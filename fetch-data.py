@@ -1,4 +1,5 @@
 # Written by: Wren J. Rudolph
+# Used code snippets taken from http://tech.thejoestory.com/2014/12/yahoo-fantasy-football-api-using-python.html
 
 import yql
 from yql.storage import FileTokenStore
