@@ -1,3 +1,5 @@
 
 .gitignore
 .idea/
+private.txt
+oauth_token/
