@@ -3,3 +3,9 @@
 .idea/
 private.txt
 oauth_token/
+client_secrets.json
+*.pdf
+*.pyc
+quickstart.py
+mycreds.txt
+*_json.txt
