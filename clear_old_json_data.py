@@ -30,6 +30,10 @@ def delete_last_week_content(filename):
             print "No data in {}\n".format(filename)
             return
 
+        if len(content_list[0]) < 2:
+            delete_all_file_content(filename)
+            return
+
         for player_time_series_info in content_list:
             del player_time_series_info[-1]
 
