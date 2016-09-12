@@ -285,20 +285,22 @@ for team in teams_dict:
         player_bye = player.get("bye_weeks")["week"]
         player_selected_position = player.get("selected_position").get("position")
         player_eligible_positions = player.get("eligible_positions").get("position")
-        player_points = player.get("player_stats").get("player_points")
+        player_points = player.get("player_points").get("total")
 
         if player_points is None:
 
             # UNCOMMENT FOR PROPER FUNCTIONING OF SCRIPT!
-            # player_points = 0.0
+            player_points = 0.0
 
             # ----------------------------------------------------------------------------------------------------------
             # --------------------------------------FOR TESTING ONLY----------------------------------------------------
             # ----------------------------------------------------------------------------------------------------------
-            player_points = random.uniform(0, 15)
+            # player_points = random.uniform(0, 15)
             # ----------------------------------------------------------------------------------------------------------
             # ----------------------------------------------------------------------------------------------------------
             # ----------------------------------------------------------------------------------------------------------
+        else:
+            player_points = float(player_points)
 
         if player_selected_position != "BN":
             positions_filled_active.append(player_selected_position)
@@ -680,7 +682,7 @@ for team in teams_data_list:
     # ------------------------------------------------------------------------------------------------------------------
     # -------------------------------------------FOR TESTING ONLY-------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
-    test_week_var = 2
+    test_week_var = 0
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
@@ -753,6 +755,8 @@ if __name__ == '__main__':
         tied_weekly_luck_bool,
         chart_data_list
     )
+
+    print "Generated PDF: {}\n".format(file_for_upload)
 
     # upload pdf to google drive
     google_drive_uploader = GoogleDriveUploader(file_for_upload)
