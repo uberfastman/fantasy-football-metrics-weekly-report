@@ -109,6 +109,7 @@ def get_optimal_players(player_list, position_slots, optimal_players_list):
             temp_position_slots -= 1
 
         optimal_players_list.append(optimal_players_at_position)
+        return optimal_players_at_position
 
 
 def instantiate_data_from_txt_file(time_series_data, time_series_data_filename):
@@ -335,25 +336,17 @@ for team in teams_dict:
         players.append(player_info_dict)
 
     # used to calculate optimal score for coaching efficiency
-    optimal_qbs = []
-    optimal_wrs = []
-    optimal_rbs = []
-    optimal_flexes = []
-    optimal_tes = []
-    optimal_ks = []
-    optimal_defs = []
-    optimal_idps = []
-
     optimal_players = []
 
-    get_optimal_players(quarterbacks, qb_slots, optimal_players)
-    get_optimal_players(wide_receivers, wr_slots, optimal_players)
-    get_optimal_players(running_backs, rb_slots, optimal_players)
-    get_optimal_players(tight_ends, te_slots, optimal_players)
-    get_optimal_players(kickers, k_slots, optimal_players)
-    get_optimal_players(team_defenses, def_slots, optimal_players)
-    get_optimal_players(individual_defenders, idp_slots, optimal_players)
+    optimal_qbs = get_optimal_players(quarterbacks, qb_slots, optimal_players)
+    optimal_wrs = get_optimal_players(wide_receivers, wr_slots, optimal_players)
+    optimal_rbs = get_optimal_players(running_backs, rb_slots, optimal_players)
+    optimal_tes = get_optimal_players(tight_ends, te_slots, optimal_players)
+    optimal_ks = get_optimal_players(kickers, k_slots, optimal_players)
+    optimal_defs = get_optimal_players(team_defenses, def_slots, optimal_players)
+    optimal_idps = get_optimal_players(individual_defenders, idp_slots, optimal_players)
 
+    optimal_flexes = []
     if flex_candidates:
         flex_set = set(map(tuple, flex_candidates))
         wr_set = set(map(tuple, optimal_wrs))
@@ -398,7 +391,7 @@ for team in teams_dict:
     team_info_dict["players"] = players
 
     # apply coaching efficiency eligibility requirements for League of Emperors
-    if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == "5521":
+    if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
 
         efficiency_disqualification = False
 
@@ -422,12 +415,12 @@ for team in teams_dict:
 # ----------------------------------------------------------------------------------------------------------------------
 # ---------------------------------------------FOR TESTING ONLY---------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
-# if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == "5521":
+# if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
 #     team_results_dict["Legion"] = {'manager': u'Uberfastman', 'coaching_efficiency': '98.00%', 'weekly_score': '150.00', 'bench_score': '50.00', "luck": "100.00", "team_id": "1"}
 #     team_results_dict["The Implications"] = {'manager': u'Charlie', 'coaching_efficiency': '100.00%', 'weekly_score': '150.00', 'bench_score': '55.00', "luck": "0.00", "team_id": "4"}
 #     team_results_dict["Stormin Normans"] = {'manager': u'Mike', 'coaching_efficiency': '0.0%', 'weekly_score': '148.00', 'bench_score': '65.00', "luck": "100.00", "team_id": "2"}
 #
-# if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == "806145":
+# if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get("Fantasy_Football_Report_Settings", "making_football_orange_id"):
 #     team_results_dict["LeGEOn"] = {'manager': u'Uberfastman', 'coaching_efficiency': '100.00%', 'weekly_score': '149.00', 'bench_score': '50.00', "luck": "", "team_id": "8"}
 #     team_results_dict["Washington IceNinjas"] = {'manager': u'Ryan', 'coaching_efficiency': '100.00%', 'weekly_score': '150.00', 'bench_score': '55.00', "luck": "", "team_id": "4"}
 #     team_results_dict["Beamerball"] = {'manager': u'Andrew Mulrean', 'coaching_efficiency': '100.00%', 'weekly_score': '150.00', 'bench_score': '65.00', "luck": "", "team_id": "11"}
@@ -512,15 +505,19 @@ for ranked_team in ranked_team_scores:
     ranked_team_score = ranked_team.get("score")
     ranked_team_matchup_result = team_matchup_result_dict.get(ranked_team_name)
 
+    ranked_team_score_without_team = list(ranked_team_scores)
+    del ranked_team_score_without_team[ranked_team_scores.index(ranked_team)]
+
     luck = 0.00
     if ranked_team_score == top_team_score or ranked_team_score == bottom_team_score:
         ranked_team["luck"] = luck
 
     else:
         if ranked_team_matchup_result == "W" or ranked_team_matchup_result == "T":
-            luck += (((sum(score.get("score") >= ranked_team_score for score in ranked_team_scores)) / (float(len(ranked_team_scores)) - 1)) * 100)
+
+            luck += (((sum(score.get("score") >= ranked_team_score for score in ranked_team_score_without_team)) / (float(len(ranked_team_score_without_team)))) * 100)
         else:
-            luck += (((0 - sum(score.get("score") <= ranked_team_score for score in ranked_team_scores)) / (float(len(ranked_team_scores)) - 1)) * 100)
+            luck += (((0 - sum(score.get("score") <= ranked_team_score for score in ranked_team_score_without_team)) / (float(len(ranked_team_score_without_team)))) * 100)
 
         ranked_team["luck"] = luck
 
@@ -537,7 +534,7 @@ results.sort(key=lambda x: x.get("luck"), reverse=True)
 # ----------------------------------------------------------------------------------------------------------------------
 # ---------------------------------------------FOR TESTING ONLY---------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
-# if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == "806145":
+# if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get("Fantasy_Football_Report_Settings", "making_football_orange_id"):
 #     team_results_dict["LeGEOn"] = {'manager': u'Uberfastman', 'coaching_efficiency': '100.00%', 'weekly_score': '149.00', 'bench_score': '50.00', "luck": "100.00%", "team_id": "8"}
 #     team_results_dict["Washington IceNinjas"] = {'manager': u'Ryan', 'coaching_efficiency': '100.00%', 'weekly_score': '150.00', 'bench_score': '55.00', "luck": "100.00%", "team_id": "4"}
 #     team_results_dict["Beamerball"] = {'manager': u'Andrew Mulrean', 'coaching_efficiency': '100.00%', 'weekly_score': '150.00', 'bench_score': '65.00', "luck": "100.00%", "team_id": "11"}
@@ -763,7 +760,7 @@ if __name__ == '__main__':
     # upload_message = google_drive_uploader.upload_file()
 
     # post shareable link to uploaded google drive pdf on slack
-    if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == "806145":
+    if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get("Fantasy_Football_Report_Settings", "making_football_orange_id"):
         slack_messenger = SlackMessenger()
         # print slack_messenger.post_to_hg_fantasy_football_channel(upload_message)
         # print slack_messenger.test_on_hg_slack(upload_message)
