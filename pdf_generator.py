@@ -267,7 +267,7 @@ class PdfGenerator(object):
         points_line_chart.make_title("Weekly Points")
         points_line_chart.make_data(points_data)
         points_line_chart.make_x_axis("Weeks", 0, len(points_data[0]) + 1, 1)
-        points_line_chart.make_y_axis("Fantasy Points", 0.00, 140.00, 10.00)
+        points_line_chart.make_y_axis("Fantasy Points", 85.00, 155.00, 5.00)
         points_line_chart.make_series_labels(series_names)
 
         elements.append(points_line_chart)
@@ -277,7 +277,7 @@ class PdfGenerator(object):
         coaching_efficiency_line_chart.make_title("Weekly Coaching Efficiency")
         coaching_efficiency_line_chart.make_data(efficiency_data)
         coaching_efficiency_line_chart.make_x_axis("Weeks", 0, len(efficiency_data[0]) + 1, 1)
-        coaching_efficiency_line_chart.make_y_axis("Coaching Efficiency (%)", 0.00, 90.00, 10.00)
+        coaching_efficiency_line_chart.make_y_axis("Coaching Efficiency (%)", 55.00, 95.00, 5.00)
         coaching_efficiency_line_chart.make_series_labels(series_names)
 
         elements.append(coaching_efficiency_line_chart)

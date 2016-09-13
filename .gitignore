@@ -9,3 +9,4 @@ client_secrets.json
 quickstart.py
 mycreds.txt
 *_json.txt
+time_series_data_backups/

@@ -138,7 +138,7 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         self.chart.yValueAxis.rangeRound = 'both'
         self.chart.yValueAxis.avoidBoundFrac = 0.1
         self.chart.yValueAxis.labels.dx = 3
-        self.chart.yValueAxis.forceZero = 1
+        self.chart.yValueAxis.forceZero = 0
         self.chart.yValueAxis.gridStrokeColor = PCMYKColor(100, 100, 100, 100, alpha=100)
         self.chart.yValueAxis.visible = 1
         self.chart.yValueAxis.strokeColor = black

@@ -239,7 +239,8 @@ league_name = league_standings_data[0].get("name")
 # league_url = league_standings_data[0].get("url")
 # entry_fee = league_standings_data[0].get("entry_fee")
 
-current_week = league_standings_data[0].get("current_week")
+chosen_week = str(int(league_standings_data[0].get("current_week")) - 1)
+print "Generating report for week {}\n".format(chosen_week)
 
 # prohibited statuses to check team coaching efficiency eligibility
 prohibited_status_list = ["PUP-P", "SUSP", "O", "IR"]
@@ -254,7 +255,7 @@ for team in teams_dict:
     team_info_dict = teams_dict.get(team)
 
     # get data for this individual team
-    roster_stats_data_query = "select * from fantasysports.teams.roster.stats where team_key='" + league_key + ".t." + team + "'"
+    roster_stats_data_query = "select * from fantasysports.teams.roster.stats where team_key='" + league_key + ".t." + team + "' and week='" + chosen_week + "'"
     roster_stats_data = yql_query(roster_stats_data_query)
 
     positions_filled_active = []
@@ -442,7 +443,7 @@ for key, value in final_weekly_score_results_list:
     place += 1
 
 # get league scoreboard data
-scoreboard_data = yql_query("select * from fantasysports.leagues.scoreboard where league_key='" + league_key + "'")[0].get("scoreboard").get("matchups").get("matchup")
+scoreboard_data = yql_query("select * from fantasysports.leagues.scoreboard where league_key='" + league_key + "' and week='" + chosen_week + "'")[0].get("scoreboard").get("matchups").get("matchup")
 matchups_list = []
 for matchup in scoreboard_data:
     individual_matchup = {}
@@ -685,16 +686,16 @@ for team in teams_data_list:
     # ------------------------------------------------------------------------------------------------------------------
 
     ordered_team_names.append(team[1])
-    weekly_points_data.append([(int(current_week), float(team[2]))])
-    weekly_coaching_efficiency_data.append([(int(current_week), float(team[3].replace("%", "")))])
-    weekly_luck_data.append([(int(current_week), float(team[4].replace("%", "")))])
+    weekly_points_data.append([(int(chosen_week), float(team[2]))])
+    weekly_coaching_efficiency_data.append([(int(chosen_week), float(team[3].replace("%", "")))])
+    weekly_luck_data.append([(int(chosen_week), float(team[4].replace("%", "")))])
 
     if time_series_points_data:
-        time_series_points_data[teams_data_list.index(team)].append([int(current_week) + test_week_var, float(team[2])])
+        time_series_points_data[teams_data_list.index(team)].append([int(chosen_week) + test_week_var, float(team[2])])
     if time_series_efficiency_data:
-        time_series_efficiency_data[teams_data_list.index(team)].append([int(current_week) + test_week_var, float(team[3].replace("%", ""))])
+        time_series_efficiency_data[teams_data_list.index(team)].append([int(chosen_week) + test_week_var, float(team[3].replace("%", ""))])
     if time_series_luck_data:
-        time_series_luck_data[teams_data_list.index(team)].append([int(current_week) + test_week_var, float(team[4].replace("%", ""))])
+        time_series_luck_data[teams_data_list.index(team)].append([int(chosen_week) + test_week_var, float(team[4].replace("%", ""))])
 
     # ------------------------------------------------------------------------------------------------------------------
     # -------------------------------------------FOR TESTING ONLY-------------------------------------------------------
@@ -720,8 +721,8 @@ chart_data_list = [ordered_team_names, time_series_points_data, time_series_effi
 # RUN FANTASY FOOTBALL REPORT PROGRAM
 if __name__ == '__main__':
 
-    filename = league_name.replace(" ", "-") + "(" + league_id + ")_week-" + current_week + "_report.pdf"
-    report_title_text = league_name + " (" + league_id + ") Week " + current_week + " Report"
+    filename = league_name.replace(" ", "-") + "(" + league_id + ")_week-" + chosen_week + "_report.pdf"
+    report_title_text = league_name + " (" + league_id + ") Week " + chosen_week + " Report"
     report_footer_text = "Report generated %s for Yahoo Fantasy Football league '%s' (%s)." % ("{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), league_name, league_id)
 
     print "Filename: {}\n".format(filename)
@@ -757,14 +758,15 @@ if __name__ == '__main__':
 
     # upload pdf to google drive
     google_drive_uploader = GoogleDriveUploader(file_for_upload)
-    # upload_message = google_drive_uploader.upload_file()
+    upload_message = google_drive_uploader.upload_file()
 
     # post shareable link to uploaded google drive pdf on slack
     if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get("Fantasy_Football_Report_Settings", "making_football_orange_id"):
         slack_messenger = SlackMessenger()
-        # print slack_messenger.post_to_hg_fantasy_football_channel(upload_message)
+        print slack_messenger.post_to_hg_fantasy_football_channel(upload_message)
         # print slack_messenger.test_on_hg_slack(upload_message)
         print "DONE!"
 
     else:
+        print "{}\n".format(upload_message)
         print "DONE!"
