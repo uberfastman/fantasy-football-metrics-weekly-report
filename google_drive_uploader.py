@@ -33,7 +33,7 @@ class GoogleDriveUploader(object):
         drive = GoogleDrive(self.gauth)
 
         # Create GoogleDriveFile instance.
-        upload_file = drive.CreateFile({'title': self.filename, 'mimeType': 'application/pdf'})
+        upload_file = drive.CreateFile({'title': self.filename.split("/")[-1], 'mimeType': 'application/pdf'})
 
         upload_file.SetContentFile(self.filename)
 

@@ -693,7 +693,8 @@ for team in teams_data_list:
     if time_series_points_data:
         time_series_points_data[teams_data_list.index(team)].append([int(chosen_week) + test_week_var, float(team[2])])
     if time_series_efficiency_data:
-        time_series_efficiency_data[teams_data_list.index(team)].append([int(chosen_week) + test_week_var, float(team[3].replace("%", ""))])
+        if float(team[3].replace("%", "")) != 0.0:
+            time_series_efficiency_data[teams_data_list.index(team)].append([int(chosen_week) + test_week_var, float(team[3].replace("%", ""))])
     if time_series_luck_data:
         time_series_luck_data[teams_data_list.index(team)].append([int(chosen_week) + test_week_var, float(team[4].replace("%", ""))])
 
@@ -722,10 +723,16 @@ chart_data_list = [ordered_team_names, time_series_points_data, time_series_effi
 if __name__ == '__main__':
 
     filename = league_name.replace(" ", "-") + "(" + league_id + ")_week-" + chosen_week + "_report.pdf"
+    report_save_dir = config.get("Generated_Report_Settings", "report_directory_base_path") + league_name.replace(" ", "-") + "(" + league_id + ")"
     report_title_text = league_name + " (" + league_id + ") Week " + chosen_week + " Report"
     report_footer_text = "Report generated %s for Yahoo Fantasy Football league '%s' (%s)." % ("{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), league_name, league_id)
 
     print "Filename: {}\n".format(filename)
+
+    if not os.path.isdir(report_save_dir):
+        os.makedirs(report_save_dir)
+
+    filename_with_path = os.path.join(report_save_dir, filename)
 
     # instantiate pdf generator
     pdf_generator = PdfGenerator(
@@ -740,7 +747,7 @@ if __name__ == '__main__':
 
     # generate pdf of report
     file_for_upload = pdf_generator.generate_pdf(
-        filename,
+        filename_with_path,
         pdf_generator.create_report_title(report_title_text),
         report_footer_text,
         pdf_generator.create_weekly_points_title(),

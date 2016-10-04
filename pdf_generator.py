@@ -208,13 +208,13 @@ class PdfGenerator(object):
         return luck_title_table
 
     @staticmethod
-    def generate_pdf(filename, report_title, report_footer_text, weekly_points_title, weekly_points_table, coaching_efficiency_title, coaching_efficiency_table, tied_efficiency_bool, luck_title, luck_table, tied_luck_bool, chart_data_list):
+    def generate_pdf(filename_with_path, report_title, report_footer_text, weekly_points_title, weekly_points_table, coaching_efficiency_title, coaching_efficiency_table, tied_efficiency_bool, luck_title, luck_table, tied_luck_bool, chart_data_list):
 
         elements = []
         spacer_small = Spacer(1, 0.05 * inch)
         spacer_large = Spacer(1, 0.10 * inch)
 
-        doc = SimpleDocTemplate(filename, pagesize=LETTER, rightMargin=25, leftMargin=25, topMargin=10, bottomMargin=10)
+        doc = SimpleDocTemplate(filename_with_path, pagesize=LETTER, rightMargin=25, leftMargin=25, topMargin=10, bottomMargin=10)
         doc.pagesize = portrait(LETTER)
 
         elements.append(report_title)
@@ -267,7 +267,7 @@ class PdfGenerator(object):
         points_line_chart.make_title("Weekly Points")
         points_line_chart.make_data(points_data)
         points_line_chart.make_x_axis("Weeks", 0, len(points_data[0]) + 1, 1)
-        points_line_chart.make_y_axis("Fantasy Points", 85.00, 155.00, 5.00)
+        points_line_chart.make_y_axis("Fantasy Points", 80.00, 190.00, 10.00)
         points_line_chart.make_series_labels(series_names)
 
         elements.append(points_line_chart)
