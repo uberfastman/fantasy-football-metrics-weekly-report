@@ -240,6 +240,7 @@ league_name = league_standings_data[0].get("name")
 # entry_fee = league_standings_data[0].get("entry_fee")
 
 chosen_week = str(int(league_standings_data[0].get("current_week")) - 1)
+# chosen_week = str(int(league_standings_data[0].get("current_week")))
 print "Generating report for week {}\n".format(chosen_week)
 
 # prohibited statuses to check team coaching efficiency eligibility
@@ -310,6 +311,8 @@ for team in teams_dict:
         else:
             positions_filled_bench.append(player_selected_position)
             if player_status in prohibited_status_list:
+                ineligible_efficiency_player_count += 1
+            elif int(player_bye) == int(chosen_week):
                 ineligible_efficiency_player_count += 1
             actual_bench_score += player_points
 
