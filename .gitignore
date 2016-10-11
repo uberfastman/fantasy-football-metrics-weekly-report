@@ -6,7 +6,8 @@ oauth_token/
 client_secrets.json
 *.pdf
 *.pyc
-quickstart.py
 mycreds.txt
 *_json.txt
 time_series_data_backups/
+League-of-Emperors(5521)/
+Making-Football-Orange(806145)/
