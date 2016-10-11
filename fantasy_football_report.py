@@ -310,9 +310,9 @@ for team in teams_dict:
             actual_weekly_score += player_points
         else:
             positions_filled_bench.append(player_selected_position)
-            if player_status in prohibited_status_list:
+            if int(player_bye) == int(chosen_week):
                 ineligible_efficiency_player_count += 1
-            elif int(player_bye) == int(chosen_week):
+            elif player_status in prohibited_status_list:
                 ineligible_efficiency_player_count += 1
             actual_bench_score += player_points
 
@@ -403,7 +403,7 @@ for team in teams_dict:
         if collections.Counter(league_roster_active) == collections.Counter(positions_filled_active):
             active_roster_bool = True
 
-            if active_roster_bool and ineligible_efficiency_player_count <= 3:
+            if active_roster_bool and ineligible_efficiency_player_count <= 4:
                 efficiency_disqualification = False
             else:
                 print "ROSTER INVALID! There are %d inactive players on the bench!\n" % ineligible_efficiency_player_count

@@ -276,7 +276,7 @@ class PdfGenerator(object):
         coaching_efficiency_line_chart = LineChartGenerator(series_colors)
         coaching_efficiency_line_chart.make_title("Weekly Coaching Efficiency")
         coaching_efficiency_line_chart.make_data(efficiency_data)
-        coaching_efficiency_line_chart.make_x_axis("Weeks", 0, len(efficiency_data[0]) + 1, 1)
+        coaching_efficiency_line_chart.make_x_axis("Weeks", 0, len(points_data[0]) + 1, 1)
         coaching_efficiency_line_chart.make_y_axis("Coaching Efficiency (%)", 55.00, 95.00, 5.00)
         coaching_efficiency_line_chart.make_series_labels(series_names)
 
