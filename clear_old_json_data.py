@@ -10,6 +10,9 @@ config.read('config.ini')
 clear_all_time_series_data_bool = bool(distutils.strtobool(config.get("Data_Clearing_Settings", "clear_all_time_series_data")))
 clear_last_week_time_series_data_bool = bool(distutils.strtobool(config.get("Data_Clearing_Settings", "clear_last_week_time_series_data")))
 
+# Adjust current week for proper performance
+current_week = 8
+
 
 def delete_all_file_content(filename):
     with open(filename, "w"):
@@ -31,11 +34,14 @@ def delete_last_week_content(filename):
             return
 
         if len(content_list[0]) < 2:
-            delete_all_file_content(filename)
+            # delete_all_file_content(filename)
             return
 
         for player_time_series_info in content_list:
-            del player_time_series_info[-1]
+            # del player_time_series_info[-1]
+
+            if int(player_time_series_info[-1][0]) == current_week:
+                del player_time_series_info[-1]
 
     with open(filename, "w+") as json_data:
 

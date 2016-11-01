@@ -406,7 +406,7 @@ for team in teams_dict:
             if active_roster_bool and ineligible_efficiency_player_count <= 4:
                 efficiency_disqualification = False
             else:
-                print "ROSTER INVALID! There are %d inactive players on the bench!\n" % ineligible_efficiency_player_count
+                print "ROSTER INVALID! There are %d inactive players on the bench of %s!\n" % (ineligible_efficiency_player_count, team_name)
                 efficiency_disqualification = True
 
         else:
