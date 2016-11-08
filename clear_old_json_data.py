@@ -7,8 +7,8 @@ import simplejson
 # local config vars
 config = ConfigParser()
 config.read('config.ini')
-clear_all_time_series_data_bool = bool(distutils.strtobool(config.get("Data_Clearing_Settings", "clear_all_time_series_data")))
-clear_last_week_time_series_data_bool = bool(distutils.strtobool(config.get("Data_Clearing_Settings", "clear_last_week_time_series_data")))
+clear_all_time_series_data_bool = bool(distutils.strtobool(config.get("Data_Settings", "clear_all_time_series_data")))
+clear_last_week_time_series_data_bool = bool(distutils.strtobool(config.get("Data_Settings", "clear_last_week_time_series_data")))
 
 # Adjust current week for proper performance
 current_week = 8

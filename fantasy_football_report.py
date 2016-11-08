@@ -7,6 +7,7 @@ import os
 import random
 from ConfigParser import ConfigParser
 from operator import itemgetter
+import distutils.util as distutils
 
 import simplejson
 import yql
@@ -410,7 +411,7 @@ for team in teams_dict:
                 efficiency_disqualification = True
 
         else:
-            print "ROSTER INVALID! There is not a full squad of active players starting!\n"
+            print "ROSTER INVALID! There is not a full squad of active players starting on %s!\n" % team_name
             efficiency_disqualification = True
 
         if efficiency_disqualification:

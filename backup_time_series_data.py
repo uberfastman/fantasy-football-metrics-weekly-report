@@ -6,8 +6,8 @@ from shutil import copyfile
 # local config vars
 config = ConfigParser()
 config.read('config.ini')
-time_series_data_dir_path = config.get("Data_Clearing_Settings", "data_dir_path")
-time_series_data_backup_dir_path = config.get("Data_Clearing_Settings", "data_backup_dir_path")
+time_series_data_dir_path = config.get("Data_Settings", "data_dir_path")
+time_series_data_backup_dir_path = config.get("Data_Settings", "data_backup_dir_path")
 
 # Edit this variable to backup the current week's time series data
 current_week = 8
