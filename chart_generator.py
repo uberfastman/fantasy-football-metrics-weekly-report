@@ -20,18 +20,22 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         - Note also that **legend.colorNamePairs** is set automatically based on the colors and names of the lines. This makes a lot of sense compared to other examples in which these are defined separately and may differ from the lines they are associated with.
     """
 
-    def __init__(self, series_colors_cmyk, width=550, height=215, *args, **kw):
+    def __init__(self, series_colors_cmyk, box_width, box_height, chart_width, chart_height, width=550, height=215, *args, **kw):
         Drawing.__init__(self, width, height, *args, **kw)
         Drawing.hAlign = 'CENTER'
 
         font_name = 'Helvetica'
-        self.width = 550
-        self.height = 240
+        # self.width = 550
+        # self.height = 240
+        self.width = box_width
+        self.height = box_height
         self._add(self, LinePlot(), name='chart', validate=None, desc=None)
         self._add(self, LineLegend(), name='legend', validate=None, desc=None)
 
-        self.chart.width = 490
-        self.chart.height = 150
+        # self.chart.width = 490
+        # self.chart.height = 150
+        self.chart.width = chart_width
+        self.chart.height = chart_height
         self.chart.y = 60
         self.chart.x = 45
         self.chart.strokeWidth = 1
@@ -151,5 +155,5 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
 
     def make_series_labels(self, series_labels):
 
-        for i in range(len(self.chart.data)):
+        for i in range(len(series_labels)):
             self.chart.lines[i].name = series_labels[i]

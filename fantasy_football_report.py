@@ -54,9 +54,15 @@ if not stored_token:
     token_store.set('foo', token)
 
 else:
+
+    print "Verifying token...\n"
+
     token = y3.check_token(stored_token)
 
     if token != stored_token:
+
+        print "Setting stored token!\n"
+
         token_store.set('foo', token)
 
 """
@@ -65,6 +71,8 @@ Functions
 
 
 def yql_query(query):
+
+    # print "Executing query: %s\n" % query
     return y3.execute(query, token=token).rows
 
 
@@ -146,6 +154,7 @@ game_key = game_data[0].get("game_key")
 
 # unique league key composed of this year's yahoo fantasy football game id and the unique league id
 league_key = game_key + ".l." + league_id
+print "League key: %s\n" % league_key
 
 # get individual league roster
 roster_data_query = "select * from fantasysports.leagues.settings where league_key='" + league_key + "'"
@@ -694,13 +703,15 @@ for team in teams_data_list:
     weekly_coaching_efficiency_data.append([(int(chosen_week), float(team[3].replace("%", "")))])
     weekly_luck_data.append([(int(chosen_week), float(team[4].replace("%", "")))])
 
-    if time_series_points_data:
-        time_series_points_data[teams_data_list.index(team)].append([int(chosen_week) + test_week_var, float(team[2])])
-    if time_series_efficiency_data:
-        if float(team[3].replace("%", "")) != 0.0:
-            time_series_efficiency_data[teams_data_list.index(team)].append([int(chosen_week) + test_week_var, float(team[3].replace("%", ""))])
-    if time_series_luck_data:
-        time_series_luck_data[teams_data_list.index(team)].append([int(chosen_week) + test_week_var, float(team[4].replace("%", ""))])
+    append_new_data_bool = bool(distutils.strtobool(config.get("Data_Settings", "append_new_data")))
+    if append_new_data_bool:
+        if time_series_points_data:
+            time_series_points_data[teams_data_list.index(team)].append([int(chosen_week) + test_week_var, float(team[2])])
+        if time_series_efficiency_data:
+            if float(team[3].replace("%", "")) != 0.0:
+                time_series_efficiency_data[teams_data_list.index(team)].append([int(chosen_week) + test_week_var, float(team[3].replace("%", ""))])
+        if time_series_luck_data:
+            time_series_luck_data[teams_data_list.index(team)].append([int(chosen_week) + test_week_var, float(team[4].replace("%", ""))])
 
     # ------------------------------------------------------------------------------------------------------------------
     # -------------------------------------------FOR TESTING ONLY-------------------------------------------------------
@@ -767,17 +778,23 @@ if __name__ == '__main__':
 
     print "Generated PDF: {}\n".format(file_for_upload)
 
-    # upload pdf to google drive
-    google_drive_uploader = GoogleDriveUploader(file_for_upload)
-    upload_message = google_drive_uploader.upload_file()
+    upload_file_to_google_drive_bool = bool(distutils.strtobool(config.get("Data_Settings", "google_drive_upload")))
+    upload_message = ""
+    if upload_file_to_google_drive_bool:
+        # upload pdf to google drive
+        google_drive_uploader = GoogleDriveUploader(file_for_upload)
+        upload_message = google_drive_uploader.upload_file()
 
-    # post shareable link to uploaded google drive pdf on slack
-    if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get("Fantasy_Football_Report_Settings", "making_football_orange_id"):
-        slack_messenger = SlackMessenger()
-        print slack_messenger.post_to_hg_fantasy_football_channel(upload_message)
-        # print slack_messenger.test_on_hg_slack(upload_message)
-        print "DONE!"
+    post_to_slack_bool = bool(distutils.strtobool(config.get("Data_Settings", "post_to_slack")))
 
-    else:
-        print "{}\n".format(upload_message)
-        print "DONE!"
+    if post_to_slack_bool:
+        # post shareable link to uploaded google drive pdf on slack
+        if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get("Fantasy_Football_Report_Settings", "making_football_orange_id"):
+            slack_messenger = SlackMessenger()
+            print slack_messenger.post_to_hg_fantasy_football_channel(upload_message)
+            # print slack_messenger.test_on_hg_slack(upload_message)
+            print "DONE!"
+
+        else:
+            print "{}\n".format(upload_message)
+            print "DONE!"

@@ -1,4 +1,5 @@
 # Written by: Wren J. Rudolph
+import distutils.util as distutils
 from ConfigParser import ConfigParser
 
 from reportlab.lib import colors
@@ -263,7 +264,12 @@ class PdfGenerator(object):
             [100, 0, 50, 0, 100]
         ]
 
-        points_line_chart = LineChartGenerator(series_colors)
+        box_width = 550
+        box_height = 240
+        chart_width = 490
+        chart_height = 150
+
+        points_line_chart = LineChartGenerator(series_colors, box_width, box_height, chart_width, chart_height)
         points_line_chart.make_title("Weekly Points")
         points_line_chart.make_data(points_data)
         points_line_chart.make_x_axis("Weeks", 0, len(points_data[0]) + 1, 1)
@@ -273,7 +279,7 @@ class PdfGenerator(object):
         elements.append(points_line_chart)
         elements.append(spacer_small)
 
-        coaching_efficiency_line_chart = LineChartGenerator(series_colors)
+        coaching_efficiency_line_chart = LineChartGenerator(series_colors, box_width, box_height, chart_width, chart_height)
         coaching_efficiency_line_chart.make_title("Weekly Coaching Efficiency")
         coaching_efficiency_line_chart.make_data(efficiency_data)
         coaching_efficiency_line_chart.make_x_axis("Weeks", 0, len(points_data[0]) + 1, 1)
@@ -283,7 +289,7 @@ class PdfGenerator(object):
         elements.append(coaching_efficiency_line_chart)
         elements.append(spacer_small)
 
-        luck_line_chart = LineChartGenerator(series_colors)
+        luck_line_chart = LineChartGenerator(series_colors, box_width, box_height, chart_width, chart_height)
         luck_line_chart.make_title("Weekly Luck")
         luck_line_chart.make_data(luck_data)
         luck_line_chart.make_x_axis("Weeks", 0, len(luck_data[0]) + 1, 1)
@@ -294,6 +300,68 @@ class PdfGenerator(object):
         elements.append(spacer_large)
 
         elements.append(Paragraph(report_footer_text, getSampleStyleSheet()["Normal"]))
+
+        if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id") and bool(distutils.strtobool(config.get("Data_Settings", "include_team_stats"))):
+
+            temp_stylesheet = getSampleStyleSheet()
+            temp_title_style = temp_stylesheet['Heading3']
+            temp_text_style = temp_stylesheet["BodyText"]
+
+            elements.append(PageBreak())
+
+            team_index = 0
+            for team_name in series_names:
+
+                team_points_average = "{0:.2f}".format(sum([float(i[1]) for i in points_data[team_index]]) / float(len(points_data[team_index])))
+                team_efficiency_average = "{0:.2f}".format(sum([float(i[1]) for i in efficiency_data[team_index]]) / float(len(efficiency_data[team_index])))
+                team_luck_average = "{0:.2f}".format(sum([float(i[1]) for i in luck_data[team_index]]) / float(len(luck_data[team_index])))
+
+                elements.append(Paragraph('''<para align=center spaceb=3><b>''' + team_name + ''' Team Stats</b></para>''', temp_title_style))
+                elements.append(spacer_large)
+                elements.append(Paragraph('''<para align=left spaceb=3>Average Points (whole season): ''' + str(team_points_average) + '''</para>''', temp_text_style))
+                elements.append(spacer_small)
+                elements.append(Paragraph('''<para align=left spaceb=3>Average Coaching Efficiency (whole season): ''' + str(team_efficiency_average) + '''</para>''', temp_text_style))
+                elements.append(spacer_small)
+                elements.append(Paragraph('''<para align=left spaceb=3>Average Luck (whole season): ''' + str(team_luck_average) + '''</para>''', temp_text_style))
+                elements.append(spacer_small)
+
+                small_box_width = 400
+                small_box_height = 175
+                small_chart_width = 356
+                small_chart_height = 110
+
+                team_points_line_chart = LineChartGenerator([series_colors[team_index]], small_box_width, small_box_height, small_chart_width, small_chart_height)
+                team_points_line_chart.make_title(team_name + " Weekly Points")
+                team_points_line_chart.make_data([points_data[team_index]])
+                team_points_line_chart.make_x_axis("Weeks", 0, len(points_data[team_index]) + 1, 1)
+                team_points_line_chart.make_y_axis("Fantasy Points", 80.00, 190.00, 10.00)
+                team_points_line_chart.make_series_labels([series_names[team_index]])
+
+                elements.append(team_points_line_chart)
+                elements.append(spacer_small)
+
+                team_coaching_efficiency_line_chart = LineChartGenerator([series_colors[team_index]], small_box_width, small_box_height, small_chart_width, small_chart_height)
+                team_coaching_efficiency_line_chart.make_title(team_name + " Weekly Coaching Efficiency")
+                team_coaching_efficiency_line_chart.make_data([efficiency_data[team_index]])
+                team_coaching_efficiency_line_chart.make_x_axis("Weeks", 0, len(points_data[team_index]) + 1, 1)
+                team_coaching_efficiency_line_chart.make_y_axis("Coaching Efficiency (%)", 55.00, 95.00, 5.00)
+                team_coaching_efficiency_line_chart.make_series_labels([series_names[team_index]])
+
+                elements.append(team_coaching_efficiency_line_chart)
+                elements.append(spacer_small)
+
+                team_luck_line_chart = LineChartGenerator([series_colors[team_index]], small_box_width, small_box_height, small_chart_width, small_chart_height)
+                team_luck_line_chart.make_title(team_name + " Weekly Luck")
+                team_luck_line_chart.make_data([luck_data[team_index]])
+                team_luck_line_chart.make_x_axis("Weeks", 0, len(luck_data[team_index]) + 1, 1)
+                team_luck_line_chart.make_y_axis("Luck (%)", -80.00, 90.00, 20.00)
+                team_luck_line_chart.make_series_labels([series_names[team_index]])
+
+                elements.append(team_luck_line_chart)
+                elements.append(spacer_large)
+                elements.append(PageBreak())
+
+                team_index += 1
 
         print "generating pdf...\n"
         doc.build(elements)
