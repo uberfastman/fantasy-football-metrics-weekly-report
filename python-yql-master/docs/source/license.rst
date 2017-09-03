@@ -1,0 +1,7 @@
+=======
+License
+=======
+
+
+.. include:: ../../LICENSE
+

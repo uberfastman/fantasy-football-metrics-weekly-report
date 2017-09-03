@@ -109,7 +109,7 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         self.chart.xValueAxis.labels.dx = 1
         # self.chart.xValueAxis.strokeWidth = 0
         # self.chart.xValueAxis.visibleAxis = 1
-        # print self.chart.xValueAxis.getProperties()
+        # print(self.chart.xValueAxis.getProperties())
         # self.chart.xValueAxis.labels.angle = 45
 
     def make_y_axis(self, y_label, y_min, y_max, y_step):

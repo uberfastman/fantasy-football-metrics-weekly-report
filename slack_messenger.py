@@ -1,5 +1,6 @@
 # Written by: Wren J. Rudolph
 
+from __future__ import print_function
 from slackclient import SlackClient
 
 
@@ -21,7 +22,7 @@ class SlackMessenger(object):
 
     def test_on_hg_slack(self, message):
 
-        print self.sc.api_call("channels.info", channel="C0A56L9A4")
+        print(self.sc.api_call("channels.info", channel="C0A56L9A4"))
         return self.sc.api_call(
             "chat.postMessage", channel="C0A56L9A4", text="<!here|here>:\n" + message, username="fantasy_football_report_bot", icon_emoji=":football:"
         )

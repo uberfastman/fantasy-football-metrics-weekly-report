@@ -1,7 +1,8 @@
 # Written by: Wren J. Rudolph
+from __future__ import print_function
+from __future__ import print_function
 import distutils.util as distutils
 from ConfigParser import ConfigParser
-
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import LETTER, inch, portrait
 from reportlab.lib.styles import getSampleStyleSheet
@@ -363,8 +364,8 @@ class PdfGenerator(object):
 
                 team_index += 1
 
-        print "generating pdf...\n"
+        print("generating pdf...\n")
         doc.build(elements)
-        print "... pdf generated!\n"
+        print("... pdf generated!\n")
 
         return doc.filename

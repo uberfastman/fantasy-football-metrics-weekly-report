@@ -1,0 +1,53 @@
+* 0.7.7
+    * Refactor endpoints and oauth sigs to be based on scheme.
+* 0.7.6
+    * Update defaults for 3-legged to match 2-legged
+    * Remove old tests
+* 0.7.5
+    * Fix installation issues.
+* 0.7.4
+    * Testing refactor by Diogo Baeder
+    * Compatibility moved to > py2.6
+    * Moved to github
+* 0.7.3
+    * Bugfixes provided by Jannis Leidel
+    * Fixed examples in docs following flickr tables change requiring api key
+    * Fixed live tests.
+* 0.7.2
+    * Sync versioning in both lib + setup.py
+* 0.7.1
+    * Set two-legged Oauth to use private endpoint by default `LP:830487 <https://bugs.launchpad.net/bugs/830487>`_
+    * fix broken live test caused by a change a bit.ly's end.
+    * Fix erroneous test docstring.
+* 0.7
+    * Fix issues with https causing invalid oauth sigs in three-legged oauth.
+    * Move logging into it's own file
+    * Update live tests for bit.ly.
+    * Add one() method for single results.
+* 0.6.1
+    * Fix `LP:663232 <https://bugs.launchpad.net/bugs/663232>`_ remove setter for Python2.5 compatibility.
+* 0.6
+    * Added changelog.
+    * Documentation updates.
+    * Fixes for compatibility with latest oauth
+* 0.5.2
+    * Fix packaging issues LP: 60882, 627467
+    * Small documentation updates
+    * Logging tidy-up
+* 0.5.1
+    * Fix packaging issues
+    * Removed oauth2 from being bundled
+* 0.5
+    * Fix for meme table which returns 502 if the body isn't sent as JSON `LP:629064 <https://bugs.launchpad.net/bugs/629064>`_
+    * Fix deletions.
+    * Added logging.
+    * Scheme is now more easily configurable.
+* 0.4
+    * Add support for INSERT, UPDATE and DELETE
+    * Update tests
+* 0.3
+    * Improve tests and move to returning YQLObjects instead of raw data
+* 0.2
+    * Small bug-fixes and test improvements
+* 0.1
+    * Initial release

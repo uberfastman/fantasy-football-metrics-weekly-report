@@ -1,4 +1,7 @@
 # Written by: Wren J. Rudolph
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
 import distutils.util as distutils
 from ConfigParser import ConfigParser
 
@@ -30,7 +33,7 @@ def delete_last_week_content(filename):
         if data:
             content_list = simplejson.load(json_data)
         else:
-            print "No data in {}\n".format(filename)
+            print("No data in {}\n".format(filename))
             return
 
         if len(content_list[0]) < 2:
@@ -77,6 +80,6 @@ if __name__ == '__main__':
             delete_last_week_content(data_file)
 
         else:
-            print "Please check config.ini for proper data clearing settings!"
+            print("Please check config.ini for proper data clearing settings!")
 
-    print "Cleared content from files: {}".format(files_to_clear)
+    print("Cleared content from files: {}".format(files_to_clear))

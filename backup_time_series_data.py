@@ -1,4 +1,5 @@
 # Written by: Wren J. Rudolph
+from __future__ import print_function
 import os
 from ConfigParser import ConfigParser
 from shutil import copyfile
@@ -27,4 +28,4 @@ for filename in files_to_backup:
     file_to_copy = time_series_data_dir_path + "/" + filename
     copy_of_file = weekly_backup_dir + "/" + filename
     copyfile(file_to_copy, copy_of_file)
-    print "Copied {} to {}\n".format(filename, weekly_backup_dir)
+    print("Copied {} to {}\n".format(filename, weekly_backup_dir))
