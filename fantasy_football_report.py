@@ -262,7 +262,7 @@ team_results_dict = {}
 for team in teams_dict:
 
     team_id = team
-    team_name = teams_dict.get(team).get("name")
+    team_name = teams_dict.get(team).get("name").encode('utf-8')
     team_info_dict = teams_dict.get(team)
 
     # get data for this individual team
