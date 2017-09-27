@@ -15,11 +15,14 @@ from pdf_generator import PdfGenerator
 
 # noinspection SqlNoDataSourceInspection,SqlDialectInspection
 class FantasyFootballReport(object):
-    def __init__(self):
+    def __init__(self, user_input_league_id=None, user_input_chosen_week=None):
         # config vars
         self.config = ConfigParser()
         self.config.read("config.ini")
-        self.league_id = self.config.get("Fantasy_Football_Report_Settings", "chosen_league_id")
+        if user_input_league_id:
+            self.league_id = user_input_league_id
+        else:
+            self.league_id = self.config.get("Fantasy_Football_Report_Settings", "chosen_league_id")
 
         # verification output message
         print("Generating fantasy football report for league with id: %s (report generated: %s)\n" % (
@@ -86,13 +89,20 @@ class FantasyFootballReport(object):
         # league_id = league_standings_data[0].get("league_id")
         # league_url = league_standings_data[0].get("url")
         # entry_fee = league_standings_data[0].get("entry_fee")
-        chosen_week = self.config.get("Generated_Report_Settings", "chosen_week")
+
+        if user_input_chosen_week:
+            chosen_week = user_input_chosen_week
+        else:
+            chosen_week = self.config.get("Generated_Report_Settings", "chosen_week")
         try:
             if chosen_week == "default":
                 self.chosen_week = str(int(self.league_standings_data[0].get("current_week")) - 1)
                 # self.chosen_week = "1"
             elif 0 < int(chosen_week) < 18:
-                self.chosen_week = chosen_week
+                if 0 < int(chosen_week) <= int(self.league_standings_data[0].get("current_week")) - 1:
+                    self.chosen_week = chosen_week
+                else:
+                    raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
             else:
                 raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
         except ValueError:
@@ -371,7 +381,7 @@ class FantasyFootballReport(object):
             team_info_dict["players"] = players
 
             # apply coaching efficiency eligibility requirements for League of Emperors
-            if self.config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == self.config.get(
+            if self.league_id == self.config.get(
                     "Fantasy_Football_Report_Settings", "league_of_emperors_id"):
 
                 efficiency_disqualification = False
@@ -389,8 +399,8 @@ class FantasyFootballReport(object):
 
                 else:
                     print(
-                        "ROSTER INVALID! There is not a full squad of active players starting on %s in week %s!" % team_name,
-                        chosen_week)
+                        "ROSTER INVALID! There is not a full squad of active players starting on %s in week %s!" % (team_name,
+                        chosen_week))
                     efficiency_disqualification = True
 
                 if efficiency_disqualification:
