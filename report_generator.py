@@ -1,3 +1,4 @@
+# Written by: Wren J. Rudolph
 import distutils.util as distutils
 from ConfigParser import ConfigParser
 

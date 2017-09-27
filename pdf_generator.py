@@ -17,8 +17,8 @@ config.read('config.ini')
 
 
 class PdfGenerator(object):
-
-    def __init__(self, weekly_score_results, coaching_efficiency_results, weekly_luck_results, num_tied_scores, num_tied_efficiencies, num_tied_luck, efficiency_dq_count):
+    def __init__(self, weekly_score_results, coaching_efficiency_results, weekly_luck_results, num_tied_scores,
+                 num_tied_efficiencies, num_tied_luck, efficiency_dq_count):
 
         # Configure style and word wrap
         self.stylesheet = getSampleStyleSheet()
@@ -140,9 +140,11 @@ class PdfGenerator(object):
 
         return weekly_points_table
 
-    def create_coaching_efficiency_table(self, coaching_efficiency_data, tied_coaching_efficiency_bool, efficiency_dq_count):
+    def create_coaching_efficiency_table(self, coaching_efficiency_data, tied_coaching_efficiency_bool,
+                                         efficiency_dq_count):
 
-        coaching_efficiency_table = Table(coaching_efficiency_data, colWidths=[0.75 * inch, 1.75 * inch, 1.75 * inch, 2.00 * inch])
+        coaching_efficiency_table = Table(coaching_efficiency_data,
+                                          colWidths=[0.75 * inch, 1.75 * inch, 1.75 * inch, 2.00 * inch])
 
         if tied_coaching_efficiency_bool:
             coaching_efficiency_table.setStyle(self.style_tied_efficiencies)
@@ -167,7 +169,8 @@ class PdfGenerator(object):
 
     def create_report_title(self, report_title_text):
 
-        report_title = Paragraph('''<para align=center spaceb=3><b>''' + report_title_text + '''</b></para>''', self.text_styleT)
+        report_title = Paragraph('''<para align=center spaceb=3><b>''' + report_title_text + '''</b></para>''',
+                                 self.text_styleT)
 
         report_title_data = [[report_title]]
         report_title_table = Table(report_title_data, colWidths=[5 * inch] * 1)
@@ -189,7 +192,8 @@ class PdfGenerator(object):
 
     def create_coaching_efficiency_title(self):
 
-        coaching_title = Paragraph('''<para align=center spaceb=3><b>Team Coaching Efficiency Rankings</b></para>''', self.text_styleH)
+        coaching_title = Paragraph('''<para align=center spaceb=3><b>Team Coaching Efficiency Rankings</b></para>''',
+                                   self.text_styleH)
 
         coaching_title_data = [[coaching_title]]
         coaching_title_table = Table(coaching_title_data, colWidths=[5 * inch] * 1)
@@ -210,13 +214,16 @@ class PdfGenerator(object):
         return luck_title_table
 
     @staticmethod
-    def generate_pdf(filename_with_path, report_title, report_footer_text, weekly_points_title, weekly_points_table, coaching_efficiency_title, coaching_efficiency_table, tied_efficiency_bool, luck_title, luck_table, tied_luck_bool, chart_data_list):
+    def generate_pdf(filename_with_path, report_title, report_footer_text, weekly_points_title, weekly_points_table,
+                     coaching_efficiency_title, coaching_efficiency_table, tied_efficiency_bool, luck_title, luck_table,
+                     tied_luck_bool, chart_data_list):
 
         elements = []
         spacer_small = Spacer(1, 0.05 * inch)
         spacer_large = Spacer(1, 0.10 * inch)
 
-        doc = SimpleDocTemplate(filename_with_path, pagesize=LETTER, rightMargin=25, leftMargin=25, topMargin=10, bottomMargin=10)
+        doc = SimpleDocTemplate(filename_with_path, pagesize=LETTER, rightMargin=25, leftMargin=25, topMargin=10,
+                                bottomMargin=10)
         doc.pagesize = portrait(LETTER)
 
         elements.append(report_title)
@@ -230,9 +237,13 @@ class PdfGenerator(object):
         if tied_efficiency_bool:
             elements.append(spacer_small)
             if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == "5521":
-                elements.append(Paragraph("<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*The league commissioner will resolve coaching efficiency ties manually. The winner will be the manager whose team contains the most players who have exceeded their average weekly fantasy points.</i>", getSampleStyleSheet()["Normal"]))
+                elements.append(Paragraph(
+                    "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*The league commissioner will resolve coaching efficiency ties manually. The winner will be the manager whose team contains the most players who have exceeded their average weekly fantasy points.</i>",
+                    getSampleStyleSheet()["Normal"]))
             else:
-                elements.append(Paragraph("<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie for first place.</i>", getSampleStyleSheet()["Normal"]))
+                elements.append(Paragraph(
+                    "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie for first place.</i>",
+                    getSampleStyleSheet()["Normal"]))
 
         elements.append(spacer_small)
         elements.append(luck_title)
@@ -285,7 +296,8 @@ class PdfGenerator(object):
         elements.append(points_line_chart)
         elements.append(spacer_small)
 
-        coaching_efficiency_line_chart = LineChartGenerator(series_colors, box_width, box_height, chart_width, chart_height)
+        coaching_efficiency_line_chart = LineChartGenerator(series_colors, box_width, box_height, chart_width,
+                                                            chart_height)
         coaching_efficiency_line_chart.make_title("Weekly Coaching Efficiency")
         coaching_efficiency_line_chart.make_data(efficiency_data)
         coaching_efficiency_line_chart.make_x_axis("Weeks", 0, len(points_data[0]) + 1, 1)
@@ -307,7 +319,9 @@ class PdfGenerator(object):
 
         elements.append(Paragraph(report_footer_text, getSampleStyleSheet()["Normal"]))
 
-        if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id") and bool(distutils.strtobool(config.get("Data_Settings", "include_team_stats"))):
+        if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get(
+                "Fantasy_Football_Report_Settings", "league_of_emperors_id") and bool(
+                distutils.strtobool(config.get("Data_Settings", "include_team_stats"))):
 
             temp_stylesheet = getSampleStyleSheet()
             temp_title_style = temp_stylesheet['Heading3']
@@ -317,18 +331,26 @@ class PdfGenerator(object):
 
             team_index = 0
             for team_name in series_names:
+                team_points_average = "{0:.2f}".format(
+                    sum([float(i[1]) for i in points_data[team_index]]) / float(len(points_data[team_index])))
+                team_efficiency_average = "{0:.2f}".format(
+                    sum([float(i[1]) for i in efficiency_data[team_index]]) / float(len(efficiency_data[team_index])))
+                team_luck_average = "{0:.2f}".format(
+                    sum([float(i[1]) for i in luck_data[team_index]]) / float(len(luck_data[team_index])))
 
-                team_points_average = "{0:.2f}".format(sum([float(i[1]) for i in points_data[team_index]]) / float(len(points_data[team_index])))
-                team_efficiency_average = "{0:.2f}".format(sum([float(i[1]) for i in efficiency_data[team_index]]) / float(len(efficiency_data[team_index])))
-                team_luck_average = "{0:.2f}".format(sum([float(i[1]) for i in luck_data[team_index]]) / float(len(luck_data[team_index])))
-
-                elements.append(Paragraph('''<para align=center spaceb=3><b>''' + team_name + ''' Team Stats</b></para>''', temp_title_style))
+                elements.append(
+                    Paragraph('''<para align=center spaceb=3><b>''' + team_name + ''' Team Stats</b></para>''',
+                              temp_title_style))
                 elements.append(spacer_large)
-                elements.append(Paragraph('''<para align=left spaceb=3>Average Points (whole season): ''' + str(team_points_average) + '''</para>''', temp_text_style))
+                elements.append(Paragraph('''<para align=left spaceb=3>Average Points (whole season): ''' + str(
+                    team_points_average) + '''</para>''', temp_text_style))
                 elements.append(spacer_small)
-                elements.append(Paragraph('''<para align=left spaceb=3>Average Coaching Efficiency (whole season): ''' + str(team_efficiency_average) + '''</para>''', temp_text_style))
+                elements.append(Paragraph(
+                    '''<para align=left spaceb=3>Average Coaching Efficiency (whole season): ''' + str(
+                        team_efficiency_average) + '''</para>''', temp_text_style))
                 elements.append(spacer_small)
-                elements.append(Paragraph('''<para align=left spaceb=3>Average Luck (whole season): ''' + str(team_luck_average) + '''</para>''', temp_text_style))
+                elements.append(Paragraph('''<para align=left spaceb=3>Average Luck (whole season): ''' + str(
+                    team_luck_average) + '''</para>''', temp_text_style))
                 elements.append(spacer_small)
 
                 small_box_width = 400
@@ -336,7 +358,8 @@ class PdfGenerator(object):
                 small_chart_width = 356
                 small_chart_height = 110
 
-                team_points_line_chart = LineChartGenerator([series_colors[team_index]], small_box_width, small_box_height, small_chart_width, small_chart_height)
+                team_points_line_chart = LineChartGenerator([series_colors[team_index]], small_box_width,
+                                                            small_box_height, small_chart_width, small_chart_height)
                 team_points_line_chart.make_title(team_name + " Weekly Points")
                 team_points_line_chart.make_data([points_data[team_index]])
                 team_points_line_chart.make_x_axis("Weeks", 0, len(points_data[team_index]) + 1, 1)
@@ -346,7 +369,9 @@ class PdfGenerator(object):
                 elements.append(team_points_line_chart)
                 elements.append(spacer_small)
 
-                team_coaching_efficiency_line_chart = LineChartGenerator([series_colors[team_index]], small_box_width, small_box_height, small_chart_width, small_chart_height)
+                team_coaching_efficiency_line_chart = LineChartGenerator([series_colors[team_index]], small_box_width,
+                                                                         small_box_height, small_chart_width,
+                                                                         small_chart_height)
                 team_coaching_efficiency_line_chart.make_title(team_name + " Weekly Coaching Efficiency")
                 team_coaching_efficiency_line_chart.make_data([efficiency_data[team_index]])
                 team_coaching_efficiency_line_chart.make_x_axis("Weeks", 0, len(points_data[team_index]) + 1, 1)
@@ -356,7 +381,8 @@ class PdfGenerator(object):
                 elements.append(team_coaching_efficiency_line_chart)
                 elements.append(spacer_small)
 
-                team_luck_line_chart = LineChartGenerator([series_colors[team_index]], small_box_width, small_box_height, small_chart_width, small_chart_height)
+                team_luck_line_chart = LineChartGenerator([series_colors[team_index]], small_box_width,
+                                                          small_box_height, small_chart_width, small_chart_height)
                 team_luck_line_chart.make_title(team_name + " Weekly Luck")
                 team_luck_line_chart.make_data([luck_data[team_index]])
                 team_luck_line_chart.make_x_axis("Weeks", 0, len(luck_data[team_index]) + 1, 1)

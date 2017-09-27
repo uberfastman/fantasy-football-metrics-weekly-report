@@ -20,7 +20,8 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         - Note also that **legend.colorNamePairs** is set automatically based on the colors and names of the lines. This makes a lot of sense compared to other examples in which these are defined separately and may differ from the lines they are associated with.
     """
 
-    def __init__(self, series_colors_cmyk, box_width, box_height, chart_width, chart_height, width=550, height=215, *args, **kw):
+    def __init__(self, series_colors_cmyk, box_width, box_height, chart_width, chart_height, width=550, height=215,
+                 *args, **kw):
         Drawing.__init__(self, width, height, *args, **kw)
         Drawing.hAlign = 'CENTER'
 
@@ -44,7 +45,8 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
             index = series_colors_cmyk.index(color)
             self.chart.lines[index].strokeColor = PCMYKColor(color[0], color[1], color[2], color[3], alpha=color[4])
             self.chart.lines[index].symbol = makeMarker('FilledCircle')
-            self.chart.lines[index].symbol.strokeColor = PCMYKColor(color[0], color[1], color[2], color[3], alpha=color[4])
+            self.chart.lines[index].symbol.strokeColor = PCMYKColor(color[0], color[1], color[2], color[3],
+                                                                    alpha=color[4])
             self.chart.lines[index].symbol.size = 5
         self.chart.lines.strokeWidth = 2
 

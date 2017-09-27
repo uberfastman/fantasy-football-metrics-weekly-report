@@ -7,7 +7,6 @@ from pydrive.drive import GoogleDrive
 
 
 class GoogleDriveUploader(object):
-
     def __init__(self, filename):
         self.filename = filename
 
@@ -48,4 +47,5 @@ class GoogleDriveUploader(object):
             }
         )
 
-        return "\nFantasy Football Report\nGenerated %s\n*%s*\n\n_Google Drive Link:_\n%s" % ("{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), upload_file['title'], upload_file["alternateLink"])
+        return "\nFantasy Football Report\nGenerated %s\n*%s*\n\n_Google Drive Link:_\n%s" % (
+        "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), upload_file['title'], upload_file["alternateLink"])

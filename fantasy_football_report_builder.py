@@ -3,12 +3,10 @@
 
 import collections
 import datetime
-import distutils.util as distutils
 import os
 from ConfigParser import ConfigParser
 from operator import itemgetter
 
-import simplejson
 import yql
 from yql.storage import FileTokenStore
 
@@ -43,26 +41,17 @@ class FantasyFootballReport(object):
         stored_token = token_store.get("foo")
 
         if not stored_token:
-
             request_token, auth_url = self.y3.get_token_and_auth_url()
-
             print("Visit url %s and get a verifier string" % auth_url)
-
             verifier = raw_input("Enter the code: ")
-
             self.token = self.y3.get_access_token(request_token, verifier)
-
             token_store.set("foo", self.token)
 
         else:
-
             print("Verifying token...\n")
-
             self.token = self.y3.check_token(stored_token)
-
             if self.token != stored_token:
                 print("Setting stored token!\n")
-
                 token_store.set("foo", self.token)
 
         '''
@@ -102,12 +91,12 @@ class FantasyFootballReport(object):
             if chosen_week == "default":
                 self.chosen_week = str(int(self.league_standings_data[0].get("current_week")) - 1)
                 # self.chosen_week = "1"
-            elif 0 < int(chosen_week) < 14:
+            elif 0 < int(chosen_week) < 18:
                 self.chosen_week = chosen_week
             else:
-                raise ValueError("You must select either 'default' or an integer from 1 to 13 for the chosen week.")
+                raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
         except ValueError:
-            raise ValueError("You must select either 'default' or an integer from 1 to 13 for the chosen week.")
+            raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
 
     def yql_query(self, query):
         # print("Executing query: %s\n" % query)
@@ -158,31 +147,6 @@ class FantasyFootballReport(object):
 
             optimal_players_list.append(optimal_players_at_position)
             return optimal_players_at_position
-
-    @staticmethod
-    def instantiate_data_from_txt_file(time_series_data, time_series_data_filename):
-        with open(time_series_data_filename, "a+") as json_data:
-
-            json_data.seek(0)
-            data = json_data.read(1)
-            json_data.seek(0)
-
-            if data:
-                return simplejson.load(json_data)
-            else:
-                return simplejson.dump(time_series_data, json_data)
-
-    @staticmethod
-    def load_time_series_data(time_series_data, weekly_data, time_series_data_filename):
-        if time_series_data:
-            with open(time_series_data_filename, "w") as json_data:
-                simplejson.dump(time_series_data, json_data)
-        else:
-            with open(time_series_data_filename, "w") as json_data:
-                simplejson.dump(weekly_data, json_data)
-
-        with open(time_series_data_filename, "r") as json_data:
-            return simplejson.load(json_data)
 
     def retrieve_data(self, chosen_week):
 
@@ -303,17 +267,8 @@ class FantasyFootballReport(object):
                 player_points = player.get("player_points").get("total")
 
                 if player_points is None:
-
-                    # UNCOMMENT FOR PROPER FUNCTIONING OF SCRIPT!
                     player_points = 0.0
 
-                    # ----------------------------------------------------------------------------------------------------------
-                    # --------------------------------------FOR TESTING ONLY----------------------------------------------------
-                    # ----------------------------------------------------------------------------------------------------------
-                    # player_points = random.uniform(0, 15)
-                    # ----------------------------------------------------------------------------------------------------------
-                    # ----------------------------------------------------------------------------------------------------------
-                    # ----------------------------------------------------------------------------------------------------------
                 else:
                     player_points = float(player_points)
 
@@ -433,7 +388,9 @@ class FantasyFootballReport(object):
                         efficiency_disqualification = True
 
                 else:
-                    print("ROSTER INVALID! There is not a full squad of active players starting on %s in week %s!" % team_name, chosen_week)
+                    print(
+                        "ROSTER INVALID! There is not a full squad of active players starting on %s in week %s!" % team_name,
+                        chosen_week)
                     efficiency_disqualification = True
 
                 if efficiency_disqualification:
@@ -536,12 +493,13 @@ class FantasyFootballReport(object):
                 if ranked_team_matchup_result == "W" or ranked_team_matchup_result == "T":
 
                     luck += (
-                    ((sum(score.get("score") >= ranked_team_score for score in ranked_team_score_without_team)) / (
-                        float(len(ranked_team_score_without_team)))) * 100)
+                        ((sum(score.get("score") >= ranked_team_score for score in ranked_team_score_without_team)) / (
+                            float(len(ranked_team_score_without_team)))) * 100)
                 else:
                     luck += (
-                    ((0 - sum(score.get("score") <= ranked_team_score for score in ranked_team_score_without_team)) / (
-                        float(len(ranked_team_score_without_team)))) * 100)
+                        ((0 - sum(
+                            score.get("score") <= ranked_team_score for score in ranked_team_score_without_team)) / (
+                             float(len(ranked_team_score_without_team)))) * 100)
 
                 ranked_team["luck"] = luck
 
@@ -557,7 +515,7 @@ class FantasyFootballReport(object):
 
         final_coaching_efficiency_results_list = sorted(team_results_dict.iteritems(),
                                                         key=lambda (k, v): (
-                                                        float(v.get("coaching_efficiency").strip("%")), k))[
+                                                            float(v.get("coaching_efficiency").strip("%")), k))[
                                                  ::-1]
         final_luck_results_list = sorted(team_results_dict.iteritems(),
                                          key=lambda (k, v): (float(v.get("luck").strip("%")), k))[::-1]
@@ -733,7 +691,8 @@ class FantasyFootballReport(object):
                 for team_points in weekly_points_data:
                     time_series_points_data[weekly_points_data.index(team_points)].append(team_points)
                 for team_efficiency in weekly_coaching_efficiency_data:
-                    time_series_efficiency_data[weekly_coaching_efficiency_data.index(team_efficiency)].append(team_efficiency)
+                    time_series_efficiency_data[weekly_coaching_efficiency_data.index(team_efficiency)].append(
+                        team_efficiency)
                 for team_luck in weekly_luck_data:
                     time_series_luck_data[weekly_luck_data.index(team_luck)].append(team_luck)
             week_counter += 1
@@ -778,7 +737,8 @@ class FantasyFootballReport(object):
                                                      chosen_week_report_info_dict.get("tied_weekly_score_bool")),
             pdf_generator.create_coaching_efficiency_title(),
             pdf_generator.create_coaching_efficiency_table(pdf_generator.create_coaching_efficiency_data(),
-                                                           chosen_week_report_info_dict.get("tied_coaching_efficiency_bool"),
+                                                           chosen_week_report_info_dict.get(
+                                                               "tied_coaching_efficiency_bool"),
                                                            chosen_week_report_info_dict.get("efficiency_dq_count")),
             chosen_week_report_info_dict.get("tied_coaching_efficiency_bool"),
             pdf_generator.create_luck_title(),
