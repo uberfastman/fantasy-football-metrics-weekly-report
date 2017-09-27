@@ -270,11 +270,16 @@ class PdfGenerator(object):
         chart_width = 490
         chart_height = 150
 
+        # fit y-axis of points table
+        scores = [weeks[1] for teams in points_data for weeks in teams]
+        points_min = min(scores)
+        points_max = max(scores)
+
         points_line_chart = LineChartGenerator(series_colors, box_width, box_height, chart_width, chart_height)
         points_line_chart.make_title("Weekly Points")
         points_line_chart.make_data(points_data)
         points_line_chart.make_x_axis("Weeks", 0, len(points_data[0]) + 1, 1)
-        points_line_chart.make_y_axis("Fantasy Points", 80.00, 190.00, 10.00)
+        points_line_chart.make_y_axis("Fantasy Points", points_min, points_max, 10.00)
         points_line_chart.make_series_labels(series_names)
 
         elements.append(points_line_chart)

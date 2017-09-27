@@ -2,7 +2,7 @@
 .idea/
 private.txt
 oauth_token/
-client_secrets.json
+client_secret.json
 *.pdf
 *.pyc
 mycreds.txt
