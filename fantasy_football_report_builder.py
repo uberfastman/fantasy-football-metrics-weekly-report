@@ -17,7 +17,6 @@ from pdf_generator import PdfGenerator
 
 # noinspection SqlNoDataSourceInspection,SqlDialectInspection
 class FantasyFootballReport(object):
-
     def __init__(self):
         # config vars
         self.config = ConfigParser()
@@ -29,7 +28,7 @@ class FantasyFootballReport(object):
             self.league_id, "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now())))
 
         # yahoo oauth api (consumer) key and secret
-        with open('private.txt', 'r') as auth_file:
+        with open("./authentication/private.txt", "r") as auth_file:
             auth_data = auth_file.read().split("\n")
         consumer_key = auth_data[0]
         consumer_secret = auth_data[1]
@@ -41,11 +40,7 @@ class FantasyFootballReport(object):
             os.mkdir(_cache_dir)
 
         token_store = FileTokenStore(_cache_dir, secret="sasfasdfdasfdaf")
-
-        print("Token store:", token_store)
-
         stored_token = token_store.get("foo")
-        print("Stored token:", stored_token)
 
         if not stored_token:
 
@@ -80,13 +75,15 @@ class FantasyFootballReport(object):
         print("League key: %s\n" % self.league_key)
 
         # get individual league roster
-        self.roster_data = self.yql_query("select * from fantasysports.leagues.settings where league_key='" + self.league_key + "'")
+        self.roster_data = self.yql_query(
+            "select * from fantasysports.leagues.settings where league_key='" + self.league_key + "'")
 
         # get data for all teams in league
         self.teams_data = self.yql_query("select * from fantasysports.teams where league_key='" + self.league_key + "'")
 
         # get data for all league standings
-        self.league_standings_data = self.yql_query("select * from fantasysports.leagues.standings where league_key='" + self.league_key + "'")
+        self.league_standings_data = self.yql_query(
+            "select * from fantasysports.leagues.standings where league_key='" + self.league_key + "'")
         # league information for potential later features
         # start_week = league_standings_data[0].get("start_week")
         # start_date = league_standings_data[0].get("start_date")
@@ -101,21 +98,24 @@ class FantasyFootballReport(object):
         # league_url = league_standings_data[0].get("url")
         # entry_fee = league_standings_data[0].get("entry_fee")
         chosen_week = self.config.get("Generated_Report_Settings", "chosen_week")
-        if chosen_week == "default":
-            self.chosen_week = str(int(self.league_standings_data[0].get("current_week")) - 1)
-            # self.chosen_week = "1"
-        else:
-            self.chosen_week = chosen_week
-
-        # get league scoreboard data
-        self.scoreboard_data = self.yql_query("select * from fantasysports.leagues.scoreboard where league_key='" + self.league_key + "' and week='" + self.chosen_week + "'")[0].get("scoreboard").get("matchups").get("matchup")
+        try:
+            if chosen_week == "default":
+                self.chosen_week = str(int(self.league_standings_data[0].get("current_week")) - 1)
+                # self.chosen_week = "1"
+            elif 0 < int(chosen_week) < 14:
+                self.chosen_week = chosen_week
+            else:
+                raise ValueError("You must select either 'default' or an integer from 1 to 13 for the chosen week.")
+        except ValueError:
+            raise ValueError("You must select either 'default' or an integer from 1 to 13 for the chosen week.")
 
     def yql_query(self, query):
         # print("Executing query: %s\n" % query)
         return self.y3.execute(query, token=self.token).rows
 
     @staticmethod
-    def check_eligible_players_by_position(position_str, player_name_str, weekly_player_points, eligible_player_positions,
+    def check_eligible_players_by_position(position_str, player_name_str, weekly_player_points,
+                                           eligible_player_positions,
                                            position_list):
         if position_str in eligible_player_positions:
 
@@ -184,7 +184,7 @@ class FantasyFootballReport(object):
         with open(time_series_data_filename, "r") as json_data:
             return simplejson.load(json_data)
 
-    def retrieve_data(self):
+    def retrieve_data(self, chosen_week):
 
         league_roster_active = []
         league_roster_bench = []
@@ -251,8 +251,9 @@ class FantasyFootballReport(object):
             teams_dict[team_id] = team_info_dict
 
         # output league teams for verification
-        print("TEAMS: {}\n".format(teams_dict))
-        print("Generating report for week {}\n".format(self.chosen_week))
+        if chosen_week == "1":
+            print("TEAMS: {}\n".format(teams_dict))
+            print("Generating report for week {}\n".format(self.chosen_week))
 
         # prohibited statuses to check team coaching efficiency eligibility
         prohibited_status_list = ["PUP-P", "SUSP", "O", "IR"]
@@ -263,11 +264,12 @@ class FantasyFootballReport(object):
         for team in teams_dict:
 
             team_id = team
-            team_name = teams_dict.get(team).get("name").encode('utf-8')
+            team_name = teams_dict.get(team).get("name").encode("utf-8")
             team_info_dict = teams_dict.get(team)
 
             # get data for this individual team
-            roster_stats_data = self.yql_query("select * from fantasysports.teams.roster.stats where team_key='" + self.league_key + ".t." + team + "' and week='" + self.chosen_week + "'")
+            roster_stats_data = self.yql_query(
+                "select * from fantasysports.teams.roster.stats where team_key='" + self.league_key + ".t." + team + "' and week='" + chosen_week + "'")
 
             positions_filled_active = []
             positions_filled_bench = []
@@ -320,7 +322,7 @@ class FantasyFootballReport(object):
                     actual_weekly_score += player_points
                 else:
                     positions_filled_bench.append(player_selected_position)
-                    if int(player_bye) == int(self.chosen_week):
+                    if int(player_bye) == int(chosen_week):
                         ineligible_efficiency_player_count += 1
                     elif player_status in prohibited_status_list:
                         ineligible_efficiency_player_count += 1
@@ -332,15 +334,21 @@ class FantasyFootballReport(object):
                 player_info_dict["selected_position"] = player_selected_position
                 player_info_dict["fantasy_points"] = player_points
 
-                self.check_eligible_players_by_position("QB", player_name, player_points, player_eligible_positions, quarterbacks)
-                self.check_eligible_players_by_position_with_flex("WR", player_name, player_points, player_eligible_positions,
-                                                             flex_positions, wide_receivers, flex_candidates)
-                self.check_eligible_players_by_position_with_flex("RB", player_name, player_points, player_eligible_positions,
-                                                             flex_positions, running_backs, flex_candidates)
-                self.check_eligible_players_by_position_with_flex("TE", player_name, player_points, player_eligible_positions,
-                                                             flex_positions, tight_ends, flex_candidates)
-                self.check_eligible_players_by_position("K", player_name, player_points, player_eligible_positions, kickers)
-                self.check_eligible_players_by_position("DEF", player_name, player_points, player_eligible_positions, team_defenses)
+                self.check_eligible_players_by_position("QB", player_name, player_points, player_eligible_positions,
+                                                        quarterbacks)
+                self.check_eligible_players_by_position_with_flex("WR", player_name, player_points,
+                                                                  player_eligible_positions,
+                                                                  flex_positions, wide_receivers, flex_candidates)
+                self.check_eligible_players_by_position_with_flex("RB", player_name, player_points,
+                                                                  player_eligible_positions,
+                                                                  flex_positions, running_backs, flex_candidates)
+                self.check_eligible_players_by_position_with_flex("TE", player_name, player_points,
+                                                                  player_eligible_positions,
+                                                                  flex_positions, tight_ends, flex_candidates)
+                self.check_eligible_players_by_position("K", player_name, player_points, player_eligible_positions,
+                                                        kickers)
+                self.check_eligible_players_by_position("DEF", player_name, player_points, player_eligible_positions,
+                                                        team_defenses)
 
                 if "D" in player_eligible_positions and "DEF" not in player_eligible_positions:
 
@@ -420,12 +428,12 @@ class FantasyFootballReport(object):
                     if active_roster_bool and ineligible_efficiency_player_count <= 4:
                         efficiency_disqualification = False
                     else:
-                        print("ROSTER INVALID! There are %d inactive players on the bench of %s!\n" % (
-                            ineligible_efficiency_player_count, team_name))
+                        print("ROSTER INVALID! There are %d inactive players on the bench of %s in week %s!" % (
+                            ineligible_efficiency_player_count, team_name, chosen_week))
                         efficiency_disqualification = True
 
                 else:
-                    print("ROSTER INVALID! There is not a full squad of active players starting on %s!\n" % team_name)
+                    print("ROSTER INVALID! There is not a full squad of active players starting on %s in week %s!" % team_name, chosen_week)
                     efficiency_disqualification = True
 
                 if efficiency_disqualification:
@@ -433,26 +441,9 @@ class FantasyFootballReport(object):
 
         return team_results_dict
 
-    def calculate_metrics(self):
+    def calculate_metrics(self, chosen_week):
 
-        team_results_dict = self.retrieve_data()
-
-        # ----------------------------------------------------------------------------------------------------------------------
-        # ---------------------------------------------FOR TESTING ONLY---------------------------------------------------------
-        # ----------------------------------------------------------------------------------------------------------------------
-        # if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
-        #     team_results_dict["Legion"] = {'manager': u'Uberfastman', 'coaching_efficiency': '98.00%', 'weekly_score': '150.00', 'bench_score': '50.00', "luck": "100.00", "team_id": "1"}
-        #     team_results_dict["The Implications"] = {'manager': u'Charlie', 'coaching_efficiency': '100.00%', 'weekly_score': '150.00', 'bench_score': '55.00', "luck": "0.00", "team_id": "4"}
-        #     team_results_dict["Stormin Normans"] = {'manager': u'Mike', 'coaching_efficiency': '0.0%', 'weekly_score': '148.00', 'bench_score': '65.00', "luck": "100.00", "team_id": "2"}
-        #
-        # if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get("Fantasy_Football_Report_Settings", "making_football_orange_id"):
-        #     team_results_dict["LeGEOn"] = {'manager': u'Uberfastman', 'coaching_efficiency': '100.00%', 'weekly_score': '149.00', 'bench_score': '50.00', "luck": "", "team_id": "8"}
-        #     team_results_dict["Washington IceNinjas"] = {'manager': u'Ryan', 'coaching_efficiency': '100.00%', 'weekly_score': '150.00', 'bench_score': '55.00', "luck": "", "team_id": "4"}
-        #     team_results_dict["Beamerball"] = {'manager': u'Andrew Mulrean', 'coaching_efficiency': '100.00%', 'weekly_score': '150.00', 'bench_score': '65.00', "luck": "", "team_id": "11"}
-        # ----------------------------------------------------------------------------------------------------------------------
-        # ----------------------------------------------------------------------------------------------------------------------
-        # ----------------------------------------------------------------------------------------------------------------------
-
+        team_results_dict = self.retrieve_data(chosen_week)
         final_weekly_score_results_list = sorted(team_results_dict.iteritems(),
                                                  key=lambda (k, v): (float(v.get("weekly_score")), k))[::-1]
 
@@ -468,7 +459,12 @@ class FantasyFootballReport(object):
             place += 1
 
         matchups_list = []
-        for matchup in self.scoreboard_data:
+        # get league scoreboard data
+        scoreboard_data = self.yql_query(
+            "select * from fantasysports.leagues.scoreboard where league_key='" + self.league_key + "' and week='" + chosen_week + "'")[
+            0].get("scoreboard").get("matchups").get("matchup")
+
+        for matchup in scoreboard_data:
             individual_matchup = {}
 
             for team in matchup.get("teams").get("team"):
@@ -539,10 +535,12 @@ class FantasyFootballReport(object):
             else:
                 if ranked_team_matchup_result == "W" or ranked_team_matchup_result == "T":
 
-                    luck += (((sum(score.get("score") >= ranked_team_score for score in ranked_team_score_without_team)) / (
+                    luck += (
+                    ((sum(score.get("score") >= ranked_team_score for score in ranked_team_score_without_team)) / (
                         float(len(ranked_team_score_without_team)))) * 100)
                 else:
-                    luck += (((0 - sum(score.get("score") <= ranked_team_score for score in ranked_team_score_without_team)) / (
+                    luck += (
+                    ((0 - sum(score.get("score") <= ranked_team_score for score in ranked_team_score_without_team)) / (
                         float(len(ranked_team_score_without_team)))) * 100)
 
                 ranked_team["luck"] = luck
@@ -557,19 +555,9 @@ class FantasyFootballReport(object):
 
         results.sort(key=lambda x: x.get("luck"), reverse=True)
 
-        # ----------------------------------------------------------------------------------------------------------------------
-        # ---------------------------------------------FOR TESTING ONLY---------------------------------------------------------
-        # ----------------------------------------------------------------------------------------------------------------------
-        # if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get("Fantasy_Football_Report_Settings", "making_football_orange_id"):
-        #     team_results_dict["LeGEOn"] = {'manager': u'Uberfastman', 'coaching_efficiency': '100.00%', 'weekly_score': '149.00', 'bench_score': '50.00', "luck": "100.00%", "team_id": "8"}
-        #     team_results_dict["Washington IceNinjas"] = {'manager': u'Ryan', 'coaching_efficiency': '100.00%', 'weekly_score': '150.00', 'bench_score': '55.00', "luck": "100.00%", "team_id": "4"}
-        #     team_results_dict["Beamerball"] = {'manager': u'Andrew Mulrean', 'coaching_efficiency': '100.00%', 'weekly_score': '150.00', 'bench_score': '65.00', "luck": "100.00%", "team_id": "11"}
-        # ----------------------------------------------------------------------------------------------------------------------
-        # ----------------------------------------------------------------------------------------------------------------------
-        # ----------------------------------------------------------------------------------------------------------------------
-
         final_coaching_efficiency_results_list = sorted(team_results_dict.iteritems(),
-                                                        key=lambda (k, v): (float(v.get("coaching_efficiency").strip("%")), k))[
+                                                        key=lambda (k, v): (
+                                                        float(v.get("coaching_efficiency").strip("%")), k))[
                                                  ::-1]
         final_luck_results_list = sorted(team_results_dict.iteritems(),
                                          key=lambda (k, v): (float(v.get("luck").strip("%")), k))[::-1]
@@ -605,15 +593,18 @@ class FantasyFootballReport(object):
             place += 1
 
         # count number of ties for points, coaching efficiency, and luck
-        num_tied_scores = sum(manager.count(weekly_score_results_data_list[0][3]) for manager in weekly_score_results_data_list)
+        num_tied_scores = sum(
+            manager.count(weekly_score_results_data_list[0][3]) for manager in weekly_score_results_data_list)
         num_tied_efficiencies = sum(
-            manager.count(coaching_efficiency_results_data_list[0][3]) for manager in coaching_efficiency_results_data_list)
-        num_tied_luck = sum(manager.count(weekly_luck_results_data_list[0][3]) for manager in weekly_luck_results_data_list)
+            manager.count(coaching_efficiency_results_data_list[0][3]) for manager in
+            coaching_efficiency_results_data_list)
+        num_tied_luck = sum(
+            manager.count(weekly_luck_results_data_list[0][3]) for manager in weekly_luck_results_data_list)
 
         # if there are ties, record them and break them if possible
         tied_weekly_score_bool = False
         if num_tied_scores > 1:
-            print("THERE IS A WEEKLY SCORE TIE!\n")
+            print("THERE IS A WEEKLY SCORE TIE IN WEEK %s!" % chosen_week)
             tied_weekly_score_bool = True
             tied_scores_list = list(final_weekly_score_results_list[:num_tied_scores])
             tied_scores_list = sorted(tied_scores_list, key=lambda x: float(x[1].get("bench_score")))[::-1]
@@ -631,11 +622,11 @@ class FantasyFootballReport(object):
                 count -= 1
                 index += 1
         else:
-            print("No weekly score ties.\n")
+            print("No weekly score ties in week %s." % chosen_week)
 
         tied_coaching_efficiency_bool = False
         if num_tied_efficiencies > 1:
-            print("THERE IS A COACHING EFFICIENCY TIE!\n")
+            print("THERE IS A COACHING EFFICIENCY TIE IN WEEK %s!" % chosen_week)
             tied_coaching_efficiency_bool = True
             tied_efficiencies_list = list(final_coaching_efficiency_results_list[:num_tied_efficiencies])
 
@@ -651,11 +642,11 @@ class FantasyFootballReport(object):
                 count -= 1
                 index += 1
         else:
-            print("No coaching efficiency ties.\n")
+            print("No coaching efficiency ties in week %s." % chosen_week)
 
         tied_weekly_luck_bool = False
         if num_tied_luck > 1:
-            print("THERE IS A LUCK TIE!\n")
+            print("THERE IS A LUCK TIE IN WEEK %s!" % chosen_week)
             tied_weekly_luck_bool = True
             tied_luck_list = list(final_luck_results_list[:num_tied_luck])
 
@@ -671,7 +662,7 @@ class FantasyFootballReport(object):
                 count -= 1
                 index += 1
         else:
-            print("No luck ties.\n")
+            print("No luck ties in week %s.\n" % chosen_week)
 
         report_info_dict = {
             "weekly_score_results_data_list": weekly_score_results_data_list,
@@ -689,94 +680,72 @@ class FantasyFootballReport(object):
 
     def create_pdf_report(self):
 
-        calculated_metrics_results = self.calculate_metrics()
-        team_results_dict = calculated_metrics_results[0]
-        report_info_dict = calculated_metrics_results[1]
+        chosen_week_ordered_team_names = []
+        chosen_week_report_info_dict = {}
 
-        # create team data for charts
-        teams_data_list = []
-        for team in team_results_dict:
-            temp_team_info = team_results_dict.get(team)
-
-            teams_data_list.append([
-                temp_team_info.get("team_id"),
-                team,
-                temp_team_info.get("weekly_score"),
-                temp_team_info.get("coaching_efficiency"),
-                temp_team_info.get("luck")
-            ])
-
-        teams_data_list.sort(key=lambda x: int(x[0]))
-
-        # build lists for time series charts
         time_series_points_data = []
-        time_series_points_data_filename = "time_series_points_data_" + self.league_id + "_json.txt"
         time_series_efficiency_data = []
-        time_series_efficiency_data_filename = "time_series_efficiency_data_" + self.league_id + "_json.txt"
         time_series_luck_data = []
-        time_series_luck_data_filename = "time_series_luck_data_" + self.league_id + "_json.txt"
 
-        time_series_points_data = self.instantiate_data_from_txt_file(time_series_points_data, time_series_points_data_filename)
-        time_series_efficiency_data = self.instantiate_data_from_txt_file(time_series_efficiency_data, time_series_efficiency_data_filename)
-        time_series_luck_data = self.instantiate_data_from_txt_file(time_series_luck_data, time_series_luck_data_filename)
+        week_counter = 1
+        while week_counter <= int(self.chosen_week):
+            calculated_metrics_results = self.calculate_metrics(chosen_week=str(week_counter))
+            team_results_dict = calculated_metrics_results[0]
+            report_info_dict = calculated_metrics_results[1]
 
-        ordered_team_names = []
-        weekly_points_data = []
-        weekly_coaching_efficiency_data = []
-        weekly_luck_data = []
+            # create team data for charts
+            teams_data_list = []
+            for team in team_results_dict:
+                temp_team_info = team_results_dict.get(team)
 
-        for team in teams_data_list:
+                teams_data_list.append([
+                    temp_team_info.get("team_id"),
+                    team,
+                    temp_team_info.get("weekly_score"),
+                    temp_team_info.get("coaching_efficiency"),
+                    temp_team_info.get("luck")
+                ])
 
-            # ------------------------------------------------------------------------------------------------------------------
-            # -------------------------------------------FOR TESTING ONLY-------------------------------------------------------
-            # ------------------------------------------------------------------------------------------------------------------
-            test_week_var = 0
-            # ------------------------------------------------------------------------------------------------------------------
-            # ------------------------------------------------------------------------------------------------------------------
-            # ------------------------------------------------------------------------------------------------------------------
+            teams_data_list.sort(key=lambda x: int(x[0]))
 
-            ordered_team_names.append(team[1])
-            weekly_points_data.append([(int(self.chosen_week), float(team[2]))])
-            weekly_coaching_efficiency_data.append([(int(self.chosen_week), float(team[3].replace("%", "")))])
-            weekly_luck_data.append([(int(self.chosen_week), float(team[4].replace("%", "")))])
+            ordered_team_names = []
+            weekly_points_data = []
+            weekly_coaching_efficiency_data = []
+            weekly_luck_data = []
 
-            append_new_data_bool = bool(distutils.strtobool(self.config.get("Data_Settings", "append_new_data")))
-            if append_new_data_bool:
-                if time_series_points_data:
-                    time_series_points_data[teams_data_list.index(team)].append(
-                        [int(self.chosen_week) + test_week_var, float(team[2])])
-                if time_series_efficiency_data:
-                    if float(team[3].replace("%", "")) != 0.0:
-                        time_series_efficiency_data[teams_data_list.index(team)].append(
-                            [int(self.chosen_week) + test_week_var, float(team[3].replace("%", ""))])
-                if time_series_luck_data:
-                    time_series_luck_data[teams_data_list.index(team)].append(
-                        [int(self.chosen_week) + test_week_var, float(team[4].replace("%", ""))])
+            for team in teams_data_list:
+                ordered_team_names.append(team[1])
+                weekly_points_data.append([int(week_counter), float(team[2])])
+                weekly_coaching_efficiency_data.append([int(week_counter), float(team[3].replace("%", ""))])
+                weekly_luck_data.append([int(week_counter), float(team[4].replace("%", ""))])
 
-                    # ------------------------------------------------------------------------------------------------------------------
-                    # -------------------------------------------FOR TESTING ONLY-------------------------------------------------------
-                    # ------------------------------------------------------------------------------------------------------------------
-                    # test_weeks = 1
-                    # while test_weeks < 1:
-                    #     weekly_points_data[teams_data_list.index(team)].append((test_weeks + 1, float(random.uniform(50.0, 150.0))))
-                    #     weekly_coaching_efficiency_data[teams_data_list.index(team)].append((test_weeks + 1, float(random.uniform(0.0, 100.0))))
-                    #     weekly_luck_data[teams_data_list.index(team)].append((test_weeks + 1, float(random.uniform(-100.0, 100.0))))
-                    #     test_weeks += 1
-                    # ------------------------------------------------------------------------------------------------------------------
-                    # ------------------------------------------------------------------------------------------------------------------
-                    # ------------------------------------------------------------------------------------------------------------------
+            chosen_week_ordered_team_names = ordered_team_names
+            chosen_week_report_info_dict = report_info_dict
 
-        time_series_points_data = self.load_time_series_data(time_series_points_data, weekly_points_data, time_series_points_data_filename)
-        time_series_efficiency_data = self.load_time_series_data(time_series_efficiency_data, weekly_coaching_efficiency_data, time_series_efficiency_data_filename)
-        time_series_luck_data = self.load_time_series_data(time_series_luck_data, weekly_luck_data, time_series_luck_data_filename)
+            if week_counter == 1:
+                for team_points in weekly_points_data:
+                    time_series_points_data.append([team_points])
+                for team_efficiency in weekly_coaching_efficiency_data:
+                    time_series_efficiency_data.append([team_efficiency])
+                for team_luck in weekly_luck_data:
+                    time_series_luck_data.append([team_luck])
+            else:
+                for team_points in weekly_points_data:
+                    time_series_points_data[weekly_points_data.index(team_points)].append(team_points)
+                for team_efficiency in weekly_coaching_efficiency_data:
+                    time_series_efficiency_data[weekly_coaching_efficiency_data.index(team_efficiency)].append(team_efficiency)
+                for team_luck in weekly_luck_data:
+                    time_series_luck_data[weekly_luck_data.index(team_luck)].append(team_luck)
+            week_counter += 1
 
-        # chart_data_list = [ordered_team_names, weekly_points_data, weekly_coaching_efficiency_data, weekly_luck_data]
-        chart_data_list = [ordered_team_names, time_series_points_data, time_series_efficiency_data, time_series_luck_data]
+        chart_data_list = [chosen_week_ordered_team_names, time_series_points_data, time_series_efficiency_data,
+                           time_series_luck_data]
 
-        filename = self.league_name.replace(" ", "-") + "(" + self.league_id + ")_week-" + self.chosen_week + "_report.pdf"
+        filename = self.league_name.replace(" ",
+                                            "-") + "(" + self.league_id + ")_week-" + self.chosen_week + "_report.pdf"
         report_save_dir = self.config.get("Generated_Report_Settings",
-                                     "report_directory_base_path") + "/" + self.league_name.replace(" ",
-                                                                                               "-") + "(" + self.league_id + ")"
+                                          "report_directory_base_path") + "/" + self.league_name.replace(" ",
+                                                                                                         "-") + "(" + self.league_id + ")"
         report_title_text = self.league_name + " (" + self.league_id + ") Week " + self.chosen_week + " Report"
         report_footer_text = "Report generated %s for Yahoo Fantasy Football league '%s' (%s)." % (
             "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), self.league_name, self.league_id)
@@ -790,13 +759,13 @@ class FantasyFootballReport(object):
 
         # instantiate pdf generator
         pdf_generator = PdfGenerator(
-            report_info_dict.get("weekly_score_results_data_list"),
-            report_info_dict.get("coaching_efficiency_results_data_list"),
-            report_info_dict.get("weekly_luck_results_data_list"),
-            report_info_dict.get("num_tied_scores"),
-            report_info_dict.get("num_tied_efficiencies"),
-            report_info_dict.get("num_tied_luck"),
-            report_info_dict.get("efficiency_dq_count")
+            chosen_week_report_info_dict.get("weekly_score_results_data_list"),
+            chosen_week_report_info_dict.get("coaching_efficiency_results_data_list"),
+            chosen_week_report_info_dict.get("weekly_luck_results_data_list"),
+            chosen_week_report_info_dict.get("num_tied_scores"),
+            chosen_week_report_info_dict.get("num_tied_efficiencies"),
+            chosen_week_report_info_dict.get("num_tied_luck"),
+            chosen_week_report_info_dict.get("efficiency_dq_count")
         )
 
         # generate pdf of report
@@ -805,13 +774,17 @@ class FantasyFootballReport(object):
             pdf_generator.create_report_title(report_title_text),
             report_footer_text,
             pdf_generator.create_weekly_points_title(),
-            pdf_generator.create_weekly_points_table(pdf_generator.create_weekly_points_data(), report_info_dict.get("tied_weekly_score_bool")),
+            pdf_generator.create_weekly_points_table(pdf_generator.create_weekly_points_data(),
+                                                     chosen_week_report_info_dict.get("tied_weekly_score_bool")),
             pdf_generator.create_coaching_efficiency_title(),
-            pdf_generator.create_coaching_efficiency_table(pdf_generator.create_coaching_efficiency_data(), report_info_dict.get("tied_coaching_efficiency_bool"), report_info_dict.get("efficiency_dq_count")),
-            report_info_dict.get("tied_coaching_efficiency_bool"),
+            pdf_generator.create_coaching_efficiency_table(pdf_generator.create_coaching_efficiency_data(),
+                                                           chosen_week_report_info_dict.get("tied_coaching_efficiency_bool"),
+                                                           chosen_week_report_info_dict.get("efficiency_dq_count")),
+            chosen_week_report_info_dict.get("tied_coaching_efficiency_bool"),
             pdf_generator.create_luck_title(),
-            pdf_generator.create_weekly_luck_table(pdf_generator.create_luck_data(), report_info_dict.get("tied_weekly_luck_bool")),
-            report_info_dict.get("tied_weekly_luck_bool"),
+            pdf_generator.create_weekly_luck_table(pdf_generator.create_luck_data(),
+                                                   chosen_week_report_info_dict.get("tied_weekly_luck_bool")),
+            chosen_week_report_info_dict.get("tied_weekly_luck_bool"),
             chart_data_list
         )
 

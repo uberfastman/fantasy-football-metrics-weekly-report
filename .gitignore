@@ -1,12 +1,6 @@
 
 .idea/
-private.txt
-oauth_token/
-client_secret.json
-*.pdf
 *.pyc
-mycreds.txt
-*_json.txt
-time_series_data_backups/
-League-of-Emperors(5521)/
-Making-Football-Orange(806145)/
+authentication/
+reports/
+legacy_code/time_series_data_backups/

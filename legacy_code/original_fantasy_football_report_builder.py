@@ -27,7 +27,7 @@ print("Generating fantasy football report for league with id: %s (report generat
     league_id, "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now())))
 
 # yahoo oauth api (consumer) key and secret
-with open('private.txt', 'r') as auth_file:
+with open('./authentication/private.txt', 'r') as auth_file:
     auth_data = auth_file.read().split("\n")
 consumer_key = auth_data[0]
 consumer_secret = auth_data[1]

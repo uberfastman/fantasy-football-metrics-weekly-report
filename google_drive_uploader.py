@@ -14,7 +14,7 @@ class GoogleDriveUploader(object):
         self.gauth = GoogleAuth()
 
         # Try to load saved client credentials
-        self.gauth.LoadCredentialsFile("mycreds.txt")
+        self.gauth.LoadCredentialsFile("./authentication/mycreds.txt")
         if self.gauth.credentials is None:
             # Authenticate if they're not there
             self.gauth.LocalWebserverAuth()
@@ -25,7 +25,7 @@ class GoogleDriveUploader(object):
             # Initialize the saved creds
             self.gauth.Authorize()
         # Save the current credentials to a file
-        self.gauth.SaveCredentialsFile("mycreds.txt")
+        self.gauth.SaveCredentialsFile("./authentication/mycreds.txt")
 
     def upload_file(self):
 
