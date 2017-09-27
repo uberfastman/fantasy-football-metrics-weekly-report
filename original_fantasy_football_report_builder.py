@@ -250,6 +250,7 @@ league_name = league_standings_data[0].get("name")
 # entry_fee = league_standings_data[0].get("entry_fee")
 
 chosen_week = str(int(league_standings_data[0].get("current_week")) - 1)
+# chosen_week = "1"
 # chosen_week = str(int(league_standings_data[0].get("current_week")))
 print("Generating report for week {}\n".format(chosen_week))
 
@@ -758,7 +759,7 @@ chart_data_list = [ordered_team_names, time_series_points_data, time_series_effi
 if __name__ == '__main__':
 
     filename = league_name.replace(" ", "-") + "(" + league_id + ")_week-" + chosen_week + "_report.pdf"
-    report_save_dir = config.get("Generated_Report_Settings", "report_directory_base_path") + league_name.replace(" ",
+    report_save_dir = config.get("Generated_Report_Settings", "report_directory_base_path") + "/" + league_name.replace(" ",
                                                                                                                   "-") + "(" + league_id + ")"
     report_title_text = league_name + " (" + league_id + ") Week " + chosen_week + " Report"
     report_footer_text = "Report generated %s for Yahoo Fantasy Football league '%s' (%s)." % (
