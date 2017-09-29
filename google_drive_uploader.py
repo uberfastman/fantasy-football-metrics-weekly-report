@@ -45,18 +45,18 @@ class GoogleDriveUploader(object):
 
         # Check for "Fantasy_Football" root folder and create it if it does not exist
         root_folder_name = self.config.get("Google_Drive_Settings", "root_folder_name")
-        root_folder_id = self.make_root_folder(drive, self.check_file_existence(drive, root_folder_name, root_folders),
+        root_folder_id = self.make_root_folder(drive, self.check_file_existence(root_folder_name, root_folders),
                                                root_folder_name)
 
         # Check for parent folder for league and create it if it does not exist
         league_folder_name = self.filename.split("/")[2].replace("-", "_")
         league_folder_id = self.make_parent_folder(drive,
-                                                   self.check_file_existence(drive, league_folder_name, all_folders),
+                                                   self.check_file_existence(league_folder_name, all_folders),
                                                    league_folder_name, root_folder_id)
 
         # Check for league report and create if if it does not exist
         report_file_name = self.filename.split("/")[-1]
-        report_file = self.check_file_existence(drive, report_file_name, all_pdfs)
+        report_file = self.check_file_existence(report_file_name, all_pdfs)
         if not report_file:
             upload_file = drive.CreateFile({'title': report_file_name, 'mimeType': 'application/pdf',
                                             "parents": [{"kind": "drive#fileLink", "id": league_folder_id}]})
@@ -79,7 +79,7 @@ class GoogleDriveUploader(object):
             "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), upload_file['title'], upload_file["alternateLink"])
 
     @staticmethod
-    def check_file_existence(drive, file_name, file_list):
+    def check_file_existence(file_name, file_list):
         drive_file_name = file_name
         google_drive_file = None
 

@@ -76,18 +76,8 @@ class FantasyFootballReport(object):
         # get data for all league standings
         self.league_standings_data = self.yql_query(
             "select * from fantasysports.leagues.standings where league_key='" + self.league_key + "'")
-        # league information for potential later features
-        # start_week = league_standings_data[0].get("start_week")
-        # start_date = league_standings_data[0].get("start_date")
-        # end_week = league_standings_data[0].get("end_week")
-        # end_date = league_standings_data[0].get("end_date")
-        #
-        # game_code = league_standings_data[0].get("game_code")
-        # season = league_standings_data[0].get("season")
-        #
         self.league_name = self.league_standings_data[0].get("name")
-        # league_id = league_standings_data[0].get("league_id")
-        # league_url = league_standings_data[0].get("url")
+        # TODO: incorporate winnings into reports
         # entry_fee = league_standings_data[0].get("entry_fee")
 
         if user_input_chosen_week:
@@ -249,8 +239,6 @@ class FantasyFootballReport(object):
             positions_filled_bench = []
 
             players = []
-            active_players = []
-            bench_players = []
             ineligible_efficiency_player_count = 0
 
             quarterbacks = []
@@ -328,13 +316,13 @@ class FantasyFootballReport(object):
             # used to calculate optimal score for coaching efficiency
             optimal_players = []
 
-            optimal_qbs = self.get_optimal_players(quarterbacks, qb_slots, optimal_players)
+            self.get_optimal_players(quarterbacks, qb_slots, optimal_players)
             optimal_wrs = self.get_optimal_players(wide_receivers, wr_slots, optimal_players)
             optimal_rbs = self.get_optimal_players(running_backs, rb_slots, optimal_players)
             optimal_tes = self.get_optimal_players(tight_ends, te_slots, optimal_players)
-            optimal_ks = self.get_optimal_players(kickers, k_slots, optimal_players)
-            optimal_defs = self.get_optimal_players(team_defenses, def_slots, optimal_players)
-            optimal_idps = self.get_optimal_players(individual_defenders, idp_slots, optimal_players)
+            self.get_optimal_players(kickers, k_slots, optimal_players)
+            self.get_optimal_players(team_defenses, def_slots, optimal_players)
+            self.get_optimal_players(individual_defenders, idp_slots, optimal_players)
 
             optimal_flexes = []
             if flex_candidates:
@@ -381,16 +369,9 @@ class FantasyFootballReport(object):
             team_info_dict["players"] = players
 
             # apply coaching efficiency eligibility requirements for League of Emperors
-            if self.league_id == self.config.get(
-                    "Fantasy_Football_Report_Settings", "league_of_emperors_id"):
-
-                efficiency_disqualification = False
-
-                active_roster_bool = False
+            if self.league_id == self.config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
                 if collections.Counter(league_roster_active) == collections.Counter(positions_filled_active):
-                    active_roster_bool = True
-
-                    if active_roster_bool and ineligible_efficiency_player_count <= 4:
+                    if ineligible_efficiency_player_count <= 4:
                         efficiency_disqualification = False
                     else:
                         print("ROSTER INVALID! There are %d inactive players on the bench of %s in week %s!" % (
@@ -399,8 +380,9 @@ class FantasyFootballReport(object):
 
                 else:
                     print(
-                        "ROSTER INVALID! There is not a full squad of active players starting on %s in week %s!" % (team_name,
-                        chosen_week))
+                        "ROSTER INVALID! There is not a full squad of active players starting on %s in week %s!" % (
+                            team_name,
+                            chosen_week))
                     efficiency_disqualification = True
 
                 if efficiency_disqualification:
@@ -756,7 +738,6 @@ class FantasyFootballReport(object):
                                                    chosen_week_report_info_dict.get("tied_weekly_luck_bool")),
             chosen_week_report_info_dict.get("tied_weekly_luck_bool"),
             self.league_id,
-            self.chosen_week,
             chart_data_list
         )
 

@@ -216,7 +216,7 @@ class PdfGenerator(object):
     @staticmethod
     def generate_pdf(filename_with_path, report_title, report_footer_text, weekly_points_title, weekly_points_table,
                      coaching_efficiency_title, coaching_efficiency_table, tied_efficiency_bool, luck_title, luck_table,
-                     tied_luck_bool, league_id, chosen_week, chart_data_list):
+                     tied_luck_bool, league_id, chart_data_list):
 
         elements = []
         spacer_small = Spacer(1, 0.05 * inch)
