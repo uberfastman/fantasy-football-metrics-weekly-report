@@ -2,12 +2,18 @@
 # Code snippets taken from: http://stackoverflow.com/questions/24419188/automating-pydrive-verification-process
 
 import datetime
+from ConfigParser import ConfigParser
+
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
 
 class GoogleDriveUploader(object):
     def __init__(self, filename):
+        # local config vars
+        self.config = ConfigParser()
+        self.config.read('config.ini')
+
         self.filename = filename
 
         self.gauth = GoogleAuth()
@@ -38,12 +44,15 @@ class GoogleDriveUploader(object):
         all_pdfs = drive.ListFile({"q": "mimeType='application/pdf' and trashed=false"}).GetList()
 
         # Check for "Fantasy_Football" root folder and create it if it does not exist
-        root_folder_name = "Fantasy_Football"
-        root_folder_id = self.make_root_folder(drive, self.check_file_existence(drive, root_folder_name, root_folders), root_folder_name)
+        root_folder_name = self.config.get("Google_Drive_Settings", "root_folder_name")
+        root_folder_id = self.make_root_folder(drive, self.check_file_existence(drive, root_folder_name, root_folders),
+                                               root_folder_name)
 
         # Check for parent folder for league and create it if it does not exist
         league_folder_name = self.filename.split("/")[2].replace("-", "_")
-        league_folder_id = self.make_parent_folder(drive, self.check_file_existence(drive, league_folder_name, all_folders), league_folder_name, root_folder_id)
+        league_folder_id = self.make_parent_folder(drive,
+                                                   self.check_file_existence(drive, league_folder_name, all_folders),
+                                                   league_folder_name, root_folder_id)
 
         # Check for league report and create if if it does not exist
         report_file_name = self.filename.split("/")[-1]

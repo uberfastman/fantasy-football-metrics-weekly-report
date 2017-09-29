@@ -93,7 +93,7 @@ class FantasyFootballReport(object):
         if user_input_chosen_week:
             chosen_week = user_input_chosen_week
         else:
-            chosen_week = self.config.get("Generated_Report_Settings", "chosen_week")
+            chosen_week = self.config.get("Fantasy_Football_Report_Settings", "chosen_week")
         try:
             if chosen_week == "default":
                 self.chosen_week = str(int(self.league_standings_data[0].get("current_week")) - 1)
@@ -712,7 +712,7 @@ class FantasyFootballReport(object):
 
         filename = self.league_name.replace(" ",
                                             "-") + "(" + self.league_id + ")_week-" + self.chosen_week + "_report.pdf"
-        report_save_dir = self.config.get("Generated_Report_Settings",
+        report_save_dir = self.config.get("Fantasy_Football_Report_Settings",
                                           "report_directory_base_path") + "/" + self.league_name.replace(" ",
                                                                                                          "-") + "(" + self.league_id + ")"
         report_title_text = self.league_name + " (" + self.league_id + ") Week " + self.chosen_week + " Report"

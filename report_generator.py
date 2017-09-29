@@ -49,7 +49,7 @@ if __name__ == '__main__':
     fantasy_football_report = use_default_league_function()
     generated_report = fantasy_football_report.create_pdf_report()
 
-    upload_file_to_google_drive_bool = bool(distutils.strtobool(config.get("Data_Settings", "google_drive_upload")))
+    upload_file_to_google_drive_bool = bool(distutils.strtobool(config.get("Google_Drive_Settings", "google_drive_upload")))
     upload_message = ""
     if upload_file_to_google_drive_bool:
         # upload pdf to google drive
@@ -57,12 +57,12 @@ if __name__ == '__main__':
         upload_message = google_drive_uploader.upload_file()
         print(upload_message)
 
-    post_to_slack_bool = bool(distutils.strtobool(config.get("Data_Settings", "post_to_slack")))
+    post_to_slack_bool = bool(distutils.strtobool(config.get("Slack_Settings", "post_to_slack")))
 
     if post_to_slack_bool:
         # post shareable link to uploaded google drive pdf on slack
         if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get(
-                "Fantasy_Football_Report_Settings", "making_football_orange_id"):
+                "Fantasy_Football_Report_Settings", "humangeo_id"):
             slack_messenger = SlackMessenger()
             print(slack_messenger.post_to_hg_fantasy_football_channel(upload_message))
             # print slack_messenger.test_on_hg_slack(upload_message)
