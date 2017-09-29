@@ -55,6 +55,7 @@ if __name__ == '__main__':
         # upload pdf to google drive
         google_drive_uploader = GoogleDriveUploader(generated_report)
         upload_message = google_drive_uploader.upload_file()
+        print(upload_message)
 
     post_to_slack_bool = bool(distutils.strtobool(config.get("Data_Settings", "post_to_slack")))
 
