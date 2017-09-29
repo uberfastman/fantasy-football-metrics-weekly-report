@@ -755,6 +755,8 @@ class FantasyFootballReport(object):
             pdf_generator.create_weekly_luck_table(pdf_generator.create_luck_data(),
                                                    chosen_week_report_info_dict.get("tied_weekly_luck_bool")),
             chosen_week_report_info_dict.get("tied_weekly_luck_bool"),
+            self.league_id,
+            self.chosen_week,
             chart_data_list
         )
 

@@ -216,7 +216,7 @@ class PdfGenerator(object):
     @staticmethod
     def generate_pdf(filename_with_path, report_title, report_footer_text, weekly_points_title, weekly_points_table,
                      coaching_efficiency_title, coaching_efficiency_table, tied_efficiency_bool, luck_title, luck_table,
-                     tied_luck_bool, chart_data_list):
+                     tied_luck_bool, league_id, chosen_week, chart_data_list):
 
         elements = []
         spacer_small = Spacer(1, 0.05 * inch)
@@ -236,7 +236,7 @@ class PdfGenerator(object):
 
         if tied_efficiency_bool:
             elements.append(spacer_small)
-            if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == "5521":
+            if league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
                 elements.append(Paragraph(
                     "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*The league commissioner will resolve coaching efficiency ties manually. The winner will be the manager whose team contains the most players who have exceeded their average weekly fantasy points.</i>",
                     getSampleStyleSheet()["Normal"]))
@@ -319,8 +319,7 @@ class PdfGenerator(object):
 
         elements.append(Paragraph(report_footer_text, getSampleStyleSheet()["Normal"]))
 
-        if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get(
-                "Fantasy_Football_Report_Settings", "league_of_emperors_id") and bool(
+        if league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id") and bool(
                 distutils.strtobool(config.get("Data_Settings", "include_team_stats"))):
 
             temp_stylesheet = getSampleStyleSheet()
@@ -363,7 +362,7 @@ class PdfGenerator(object):
                 team_points_line_chart.make_title(team_name + " Weekly Points")
                 team_points_line_chart.make_data([points_data[team_index]])
                 team_points_line_chart.make_x_axis("Weeks", 0, len(points_data[team_index]) + 1, 1)
-                team_points_line_chart.make_y_axis("Fantasy Points", 80.00, 190.00, 10.00)
+                team_points_line_chart.make_y_axis("Fantasy Points", points_min, points_max, 10.00)
                 team_points_line_chart.make_series_labels([series_names[team_index]])
 
                 elements.append(team_points_line_chart)
