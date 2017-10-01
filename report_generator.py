@@ -22,7 +22,7 @@ if __name__ == '__main__':
             chosen_league_id = raw_input("What is the league ID of the Yahoo league for which you want to generate a report? -> ")
             try:
                 fantasy_football_report_instance = FantasyFootballReport(chosen_league_id, use_chosen_week_function())
-                return fantasy_football_report_instance
+                return fantasy_football_report_instance, chosen_league_id
             except IndexError:
                 print("The league ID you have selected is not valid.")
                 use_default_league_function()
@@ -46,7 +46,9 @@ if __name__ == '__main__':
             print("You must select either 'y' or 'n'.")
             use_chosen_week_function()
 
-    fantasy_football_report = use_default_league_function()
+    league_report_info = use_default_league_function()
+    fantasy_football_report = league_report_info[0]
+    league_id = league_report_info[1]
     generated_report = fantasy_football_report.create_pdf_report()
 
     upload_file_to_google_drive_bool = bool(distutils.strtobool(config.get("Google_Drive_Settings", "google_drive_upload")))
@@ -60,12 +62,13 @@ if __name__ == '__main__':
     post_to_slack_bool = bool(distutils.strtobool(config.get("Slack_Settings", "post_to_slack")))
 
     if post_to_slack_bool:
-        # post shareable link to uploaded google drive pdf on slack
-        if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get(
-                "Fantasy_Football_Report_Settings", "humangeo_id"):
+        if league_id == config.get("Fantasy_Football_Report_Settings", "humangeo_id"):
             slack_messenger = SlackMessenger()
-            print(slack_messenger.post_to_hg_fantasy_football_channel(upload_message))
-            # print slack_messenger.test_on_hg_slack(upload_message)
+            # post shareable link to uploaded google drive pdf on slack
+            # print(slack_messenger.post_to_hg_fantasy_football_channel(upload_message))
+
+            # upload pdf report directly to slack
+            print(slack_messenger.upload_file_to_hg_fantasy_football_channel(generated_report))
             print("DONE!")
 
         else:
