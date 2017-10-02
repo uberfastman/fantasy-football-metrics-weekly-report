@@ -46,9 +46,7 @@ if __name__ == '__main__':
             print("You must select either 'y' or 'n'.")
             use_chosen_week_function()
 
-    league_report_info = use_default_league_function()
-    fantasy_football_report = league_report_info[0]
-    league_id = league_report_info[1]
+    fantasy_football_report = use_default_league_function()
     generated_report = fantasy_football_report.create_pdf_report()
 
     upload_file_to_google_drive_bool = bool(distutils.strtobool(config.get("Google_Drive_Settings", "google_drive_upload")))
@@ -62,7 +60,7 @@ if __name__ == '__main__':
     post_to_slack_bool = bool(distutils.strtobool(config.get("Slack_Settings", "post_to_slack")))
 
     if post_to_slack_bool:
-        if league_id == config.get("Fantasy_Football_Report_Settings", "humangeo_id"):
+        if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get("Fantasy_Football_Report_Settings", "humangeo_id"):
             slack_messenger = SlackMessenger()
             # post shareable link to uploaded google drive pdf on slack
             # print(slack_messenger.post_to_hg_fantasy_football_channel(upload_message))
