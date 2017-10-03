@@ -310,7 +310,7 @@ class PdfGenerator(object):
         luck_line_chart = LineChartGenerator(series_colors, box_width, box_height, chart_width, chart_height)
         luck_line_chart.make_title("Weekly Luck")
         luck_line_chart.make_data(luck_data)
-        luck_line_chart.make_x_axis("Weeks", 0, len(luck_data[0]) + 1, 1)
+        luck_line_chart.make_x_axis("Weeks", 0, len(points_data[0]) + 1, 1)
         luck_line_chart.make_y_axis("Luck (%)", -80.00, 90.00, 20.00)
         luck_line_chart.make_series_labels(series_names)
 
@@ -384,7 +384,7 @@ class PdfGenerator(object):
                                                           small_box_height, small_chart_width, small_chart_height)
                 team_luck_line_chart.make_title(team_name + " Weekly Luck")
                 team_luck_line_chart.make_data([luck_data[team_index]])
-                team_luck_line_chart.make_x_axis("Weeks", 0, len(luck_data[team_index]) + 1, 1)
+                team_luck_line_chart.make_x_axis("Weeks", 0, len(points_data[team_index]) + 1, 1)
                 team_luck_line_chart.make_y_axis("Luck (%)", -80.00, 90.00, 20.00)
                 team_luck_line_chart.make_series_labels([series_names[team_index]])
 

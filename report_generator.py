@@ -17,7 +17,7 @@ if __name__ == '__main__':
         use_default_league = raw_input("Generate report for default league? (y/n) -> ")
         if use_default_league == "y":
             fantasy_football_report_instance = FantasyFootballReport(user_input_chosen_week=use_chosen_week_function())
-            return fantasy_football_report_instance
+            return fantasy_football_report_instance, config.get("Fantasy_Football_Report_Settings", "chosen_league_id")
         elif use_default_league == "n":
             chosen_league_id = raw_input("What is the league ID of the Yahoo league for which you want to generate a report? -> ")
             try:
@@ -46,7 +46,9 @@ if __name__ == '__main__':
             print("You must select either 'y' or 'n'.")
             use_chosen_week_function()
 
-    fantasy_football_report = use_default_league_function()
+    report_info = use_default_league_function()
+    fantasy_football_report = report_info[0]
+    selected_league_id = report_info[1]
     generated_report = fantasy_football_report.create_pdf_report()
 
     upload_file_to_google_drive_bool = bool(distutils.strtobool(config.get("Google_Drive_Settings", "google_drive_upload")))
@@ -60,7 +62,7 @@ if __name__ == '__main__':
     post_to_slack_bool = bool(distutils.strtobool(config.get("Slack_Settings", "post_to_slack")))
 
     if post_to_slack_bool:
-        if config.get("Fantasy_Football_Report_Settings", "chosen_league_id") == config.get("Fantasy_Football_Report_Settings", "humangeo_id"):
+        if selected_league_id == config.get("Fantasy_Football_Report_Settings", "humangeo_id"):
             slack_messenger = SlackMessenger()
             # post shareable link to uploaded google drive pdf on slack
             # print(slack_messenger.post_to_hg_fantasy_football_channel(upload_message))

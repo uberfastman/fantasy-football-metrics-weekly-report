@@ -57,23 +57,23 @@ class GoogleDriveUploader(object):
         # Check for league report and create if if it does not exist
         report_file_name = self.filename.split("/")[-1]
         report_file = self.check_file_existence(report_file_name, all_pdfs)
-        if not report_file:
-            upload_file = drive.CreateFile({'title': report_file_name, 'mimeType': 'application/pdf',
-                                            "parents": [{"kind": "drive#fileLink", "id": league_folder_id}]})
-            upload_file.SetContentFile(self.filename)
 
-            # Upload the file.
-            upload_file.Upload()
+        if report_file:
+            report_file.Delete()
+        upload_file = drive.CreateFile({'title': report_file_name, 'mimeType': 'application/pdf',
+                                        "parents": [{"kind": "drive#fileLink", "id": league_folder_id}]})
+        upload_file.SetContentFile(self.filename)
 
-            upload_file.InsertPermission(
-                {
-                    'type': 'anyone',
-                    'role': 'reader',
-                    'withLink': True
-                }
-            )
-        else:
-            upload_file = report_file
+        # Upload the file.
+        upload_file.Upload()
+
+        upload_file.InsertPermission(
+            {
+                'type': 'anyone',
+                'role': 'reader',
+                'withLink': True
+            }
+        )
 
         return "\nFantasy Football Report\nGenerated %s\n*%s*\n\n_Google Drive Link:_\n%s" % (
             "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), upload_file['title'], upload_file["alternateLink"])
