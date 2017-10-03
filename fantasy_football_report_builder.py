@@ -92,7 +92,13 @@ class FantasyFootballReport(object):
                 if 0 < int(chosen_week) <= int(self.league_standings_data[0].get("current_week")) - 1:
                     self.chosen_week = chosen_week
                 else:
-                    raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
+                    incomplete_week = raw_input("Are you sure you want to generate a report for an incomplete week? (y/n) -> ")
+                    if incomplete_week == "y":
+                        self.chosen_week = chosen_week
+                    elif incomplete_week == "n":
+                        raise ValueError("It is recommended that you not generate a report for an incomplete week.")
+                    else:
+                        raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
             else:
                 raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
         except ValueError:
