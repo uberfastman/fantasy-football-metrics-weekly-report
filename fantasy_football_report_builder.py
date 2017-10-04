@@ -11,6 +11,7 @@ import yql
 from yql.storage import FileTokenStore
 
 from pdf_generator import PdfGenerator
+from metrics import CoachingEfficiency
 
 
 # noinspection SqlNoDataSourceInspection,SqlDialectInspection
@@ -108,64 +109,11 @@ class FantasyFootballReport(object):
         # print("Executing query: %s\n" % query)
         return self.y3.execute(query, token=self.token).rows
 
-    @staticmethod
-    def check_eligible_players_by_position(position_str, player_name_str, weekly_player_points,
-                                           eligible_player_positions,
-                                           position_list):
-        if position_str in eligible_player_positions:
-
-            float_point_value = 0.0
-            if weekly_player_points is not None:
-                float_point_value += float(weekly_player_points)
-
-            position_list.append([player_name_str, float_point_value])
-
-    @staticmethod
-    def check_eligible_players_by_position_with_flex(position_str, player_name_str, weekly_player_points,
-                                                     eligible_player_positions, flex_option_positions, position_list,
-                                                     flex_player_candidates):
-        if position_str in eligible_player_positions:
-
-            float_point_value = 0.0
-            if weekly_player_points is not None:
-                float_point_value += float(weekly_player_points)
-
-            position_list.append([player_name_str, float_point_value])
-
-            if position_str in flex_option_positions:
-                flex_player_candidates.append([player_name_str, float_point_value])
-
-    @staticmethod
-    def get_optimal_players(player_list, position_slots, optimal_players_list):
-        if player_list:
-            player_list = sorted(player_list, key=itemgetter(1))[::-1]
-
-            player_index = 0
-            optimal_players_at_position = []
-            temp_position_slots = position_slots
-            while temp_position_slots > 0:
-                try:
-                    optimal_players_at_position.append(player_list[player_index])
-                except IndexError:
-                    pass
-                player_index += 1
-                temp_position_slots -= 1
-
-            optimal_players_list.append(optimal_players_at_position)
-            return optimal_players_at_position
 
     def retrieve_data(self, chosen_week):
 
         league_roster_active = []
-        league_roster_bench = []
-        qb_slots = 0
-        wr_slots = 0
-        rb_slots = 0
-        flex_slots = 0
-        te_slots = 0
-        k_slots = 0
-        def_slots = 0
-        idp_slots = 0
+        roster_slots = collections.defaultdict(int)
         flex_positions = []
 
         for position in self.roster_data[0].get("settings").get("roster_positions").get("roster_position"):
@@ -173,35 +121,21 @@ class FantasyFootballReport(object):
             position_name = position.get("position")
             position_count = int(position.get("count"))
 
-            count = position_count
-            while count > 0:
-                if position_name != "BN":
-                    league_roster_active.append(position_name)
-                else:
-                    league_roster_bench.append(position_name)
-                count -= 1
-
-            if position_name == "QB":
-                qb_slots += position_count
-            if position_name == "WR":
-                wr_slots += position_count
-            if position_name == "RB":
-                rb_slots += position_count
             if position_name == "W/R":
-                flex_slots += position_count
-                flex_positions = ["WR", "RB"]
+                flex_positions = ['WR", "RB']
             if position_name == "W/R/T":
-                flex_slots += position_count
                 flex_positions = ["WR", "RB", "TE"]
-            if position_name == "TE":
-                te_slots += position_count
-            if position_name == "K":
-                k_slots += position_count
-            if position_name == "DEF":
-                def_slots += position_count
-            if position_name == "D":
-                idp_slots += position_count
 
+            if "/" in position_name:
+                position_name = "FLEX"
+
+            roster_slots[position_name] += position_count
+
+        roster = {
+            "slots": roster_slots,
+            "flex_positions": flex_positions
+        }
+                
         teams_dict = {}
         for team in self.teams_data:
 
@@ -225,9 +159,6 @@ class FantasyFootballReport(object):
             print("TEAMS: {}\n".format(teams_dict))
             print("Generating report for week {}\n".format(self.chosen_week))
 
-        # prohibited statuses to check team coaching efficiency eligibility
-        prohibited_status_list = ["PUP-P", "SUSP", "O", "IR"]
-
         team_results_dict = {}
 
         # iterate through all teams and build team_results_dict containing all relevant team stat information
@@ -241,164 +172,39 @@ class FantasyFootballReport(object):
             roster_stats_data = self.yql_query(
                 "select * from fantasysports.teams.roster.stats where team_key='" + self.league_key + ".t." + team + "' and week='" + chosen_week + "'")
 
-            positions_filled_active = []
-            positions_filled_bench = []
-
             players = []
-            ineligible_efficiency_player_count = 0
-
-            quarterbacks = []
-            wide_receivers = []
-            running_backs = []
-            flex_candidates = []
-            tight_ends = []
-            kickers = []
-            team_defenses = []
-            individual_defenders = []
-
-            actual_weekly_score = 0.0
-            actual_bench_score = 0.0
 
             for player in roster_stats_data[0].get("roster").get("players").get("player"):
-
                 player_info_dict = {}
-
-                player_name = player.get("name")["full"]
-                player_status = player.get("status")
-                player_bye = player.get("bye_weeks")["week"]
-                player_selected_position = player.get("selected_position").get("position")
-                player_eligible_positions = player.get("eligible_positions").get("position")
-                player_points = player.get("player_points").get("total")
-
-                if player_points is None:
-                    player_points = 0.0
-
-                else:
-                    player_points = float(player_points)
-
-                if player_selected_position != "BN":
-                    positions_filled_active.append(player_selected_position)
-                    actual_weekly_score += player_points
-                else:
-                    positions_filled_bench.append(player_selected_position)
-                    if int(player_bye) == int(chosen_week):
-                        ineligible_efficiency_player_count += 1
-                    elif player_status in prohibited_status_list:
-                        ineligible_efficiency_player_count += 1
-                    actual_bench_score += player_points
-
-                player_info_dict["name"] = player_name
-                player_info_dict["status"] = player_status
-                player_info_dict["bye_week"] = player_bye
-                player_info_dict["selected_position"] = player_selected_position
-                player_info_dict["fantasy_points"] = player_points
-
-                self.check_eligible_players_by_position("QB", player_name, player_points, player_eligible_positions,
-                                                        quarterbacks)
-                self.check_eligible_players_by_position_with_flex("WR", player_name, player_points,
-                                                                  player_eligible_positions,
-                                                                  flex_positions, wide_receivers, flex_candidates)
-                self.check_eligible_players_by_position_with_flex("RB", player_name, player_points,
-                                                                  player_eligible_positions,
-                                                                  flex_positions, running_backs, flex_candidates)
-                self.check_eligible_players_by_position_with_flex("TE", player_name, player_points,
-                                                                  player_eligible_positions,
-                                                                  flex_positions, tight_ends, flex_candidates)
-                self.check_eligible_players_by_position("K", player_name, player_points, player_eligible_positions,
-                                                        kickers)
-                self.check_eligible_players_by_position("DEF", player_name, player_points, player_eligible_positions,
-                                                        team_defenses)
-
-                if "D" in player_eligible_positions and "DEF" not in player_eligible_positions:
-
-                    point_value = 0.0
-                    if player_points is not None:
-                        point_value += float(player_points)
-
-                    individual_defenders.append([player_name, point_value])
+                player_info_dict["name"] = player.get("name")["full"]
+                player_info_dict["status"] = player.get("status")
+                player_info_dict["bye_week"] = int(player.get("bye_weeks")["week"])
+                player_info_dict["selected_position"] = player.get("selected_position").get("position")
+                player_info_dict["eligible_positions"]  = player.get("eligible_positions").get("position")
+                player_info_dict["fantasy_points"] = float(player.get("player_points").get("total", 0.0))
 
                 players.append(player_info_dict)
 
-            # used to calculate optimal score for coaching efficiency
-            optimal_players = []
-
-            self.get_optimal_players(quarterbacks, qb_slots, optimal_players)
-            optimal_wrs = self.get_optimal_players(wide_receivers, wr_slots, optimal_players)
-            optimal_rbs = self.get_optimal_players(running_backs, rb_slots, optimal_players)
-            optimal_tes = self.get_optimal_players(tight_ends, te_slots, optimal_players)
-            self.get_optimal_players(kickers, k_slots, optimal_players)
-            self.get_optimal_players(team_defenses, def_slots, optimal_players)
-            self.get_optimal_players(individual_defenders, idp_slots, optimal_players)
-
-            optimal_flexes = []
-            if flex_candidates:
-                flex_set = set(map(tuple, flex_candidates))
-                wr_set = set(map(tuple, optimal_wrs))
-                rb_set = set(map(tuple, optimal_rbs))
-                te_set = set(map(tuple, optimal_tes))
-                flex_set = flex_set - wr_set
-                flex_set = flex_set - rb_set
-                flex_set = flex_set - te_set
-
-                flex_list = sorted(list(flex_set), key=itemgetter(1))[::-1]
-
-                index = 0
-                temp_slots = flex_slots
-                while temp_slots > 0:
-                    try:
-                        optimal_flexes.append(flex_list[index])
-                    except IndexError:
-                        pass
-                    index += 1
-                    temp_slots -= 1
-
-                optimal_players.append(optimal_flexes)
-
-            optimal_lineup = [item for sublist in optimal_players for item in sublist]
-
-            # calculate optimal score
-            optimal_score = 0.0
-            for player in optimal_lineup:
-                optimal_score += player[1]
-
-            # calculate coaching efficiency
-            coaching_efficiency = (actual_weekly_score / optimal_score) * 100
-
             team_results_dict[team_name] = {
                 "manager": teams_dict.get(team).get("manager"),
-                "coaching_efficiency": "%.2f%%" % coaching_efficiency,
-                "weekly_score": "%.2f" % actual_weekly_score,
-                "bench_score": "%.2f" % actual_bench_score, "luck": "",
+                "roster": roster,
+                "players": players,
+                "weekly_score": sum([p['fantasy_points'] for p in players if p['selected_position'] != 'BN']),
                 "team_id": team_id
             }
-
-            team_info_dict["players"] = players
-
-            # apply coaching efficiency eligibility requirements for League of Emperors
-            if self.league_id == self.config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
-                if collections.Counter(league_roster_active) == collections.Counter(positions_filled_active):
-                    if ineligible_efficiency_player_count <= 4:
-                        efficiency_disqualification = False
-                    else:
-                        print("ROSTER INVALID! There are %d inactive players on the bench of %s in week %s!" % (
-                            ineligible_efficiency_player_count, team_name, chosen_week))
-                        efficiency_disqualification = True
-
-                else:
-                    print(
-                        "ROSTER INVALID! There is not a full squad of active players starting on %s in week %s!" % (
-                            team_name,
-                            chosen_week))
-                    efficiency_disqualification = True
-
-                if efficiency_disqualification:
-                    team_results_dict.get(team_name)["coaching_efficiency"] = "0.0%"
 
         return team_results_dict
 
     def calculate_metrics(self, chosen_week):
 
         team_results_dict = self.retrieve_data(chosen_week)
+
+        coaching_efficiency = CoachingEfficiency()
+
+        for name, team in team_results_dict.items():
+            disqualification_eligible = self.league_id == self.config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id")
+            team['coaching_efficiency'] = coaching_efficiency.execute(team, int(chosen_week), disqualification_eligible=disqualification_eligible)
+
         final_weekly_score_results_list = sorted(team_results_dict.iteritems(),
                                                  key=lambda (k, v): (float(v.get("weekly_score")), k))[::-1]
 
@@ -409,7 +215,7 @@ class FantasyFootballReport(object):
             ranked_team_manager = value.get("manager")
             ranked_weekly_score = value.get("weekly_score")
 
-            weekly_score_results_data_list.append([place, ranked_team_name, ranked_team_manager, ranked_weekly_score])
+            weekly_score_results_data_list.append([place, ranked_team_name, ranked_team_manager, "%.2f" % ranked_weekly_score])
 
             place += 1
 
@@ -431,11 +237,11 @@ class FantasyFootballReport(object):
 
         for result in weekly_score_results_data_list:
             ranked_team_name = result[1]
-            ranked_weekly_score = 0.0
-            if "bench" in result[3]:
-                ranked_weekly_score += float(result[3].split(" ")[0])
-            else:
-                ranked_weekly_score += float(result[3])
+            ranked_weekly_score = result[3]
+            # if "bench" in result[3]:
+            #     ranked_weekly_score += float(result[3].split(" ")[0])
+            # else:
+            #     ranked_weekly_score += float(result[3])
 
             ranked_team = {"name": ranked_team_name, "score": ranked_weekly_score, "luck": ""}
             ranked_team_scores.append(ranked_team)
@@ -513,7 +319,7 @@ class FantasyFootballReport(object):
 
         final_coaching_efficiency_results_list = sorted(team_results_dict.iteritems(),
                                                         key=lambda (k, v): (
-                                                            float(v.get("coaching_efficiency").strip("%")), k))[
+                                                            v.get("coaching_efficiency"), k))[
                                                  ::-1]
         final_luck_results_list = sorted(team_results_dict.iteritems(),
                                          key=lambda (k, v): (float(v.get("luck").strip("%")), k))[::-1]
@@ -525,14 +331,14 @@ class FantasyFootballReport(object):
         for key, value in final_coaching_efficiency_results_list:
             ranked_team_name = key
             ranked_team_manager = value.get("manager")
-            ranked_coaching_efficiency = str(value.get("coaching_efficiency"))
+            ranked_coaching_efficiency = value.get("coaching_efficiency")
 
-            if ranked_coaching_efficiency == "0.0%":
-                ranked_coaching_efficiency = ranked_coaching_efficiency.replace("0.0%", "DQ")
+            if ranked_coaching_efficiency == 0.0:
+                ranked_coaching_efficiency = "DQ"
                 efficiency_dq_count += 1
 
             coaching_efficiency_results_data_list.append(
-                [place, ranked_team_name, ranked_team_manager, ranked_coaching_efficiency])
+                [place, ranked_team_name, ranked_team_manager, "%.2f%%" % ranked_coaching_efficiency])
 
             place += 1
 
@@ -672,7 +478,7 @@ class FantasyFootballReport(object):
             for team in teams_data_list:
                 ordered_team_names.append(team[1])
                 weekly_points_data.append([int(week_counter), float(team[2])])
-                weekly_coaching_efficiency_data.append([int(week_counter), float(team[3].replace("%", ""))])
+                weekly_coaching_efficiency_data.append([int(week_counter), team[3]])
                 weekly_luck_data.append([int(week_counter), float(team[4].replace("%", ""))])
 
             chosen_week_ordered_team_names = ordered_team_names
