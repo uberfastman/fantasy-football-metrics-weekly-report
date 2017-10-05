@@ -70,8 +70,6 @@ class FantasyFootballReport(object):
         roster_data = self.yql_query(
             "select * from fantasysports.leagues.settings where league_key='" + self.league_key + "'")
 
-        print(roster_data)
-
         roster_slots = collections.defaultdict(int)
         flex_positions = []
 
