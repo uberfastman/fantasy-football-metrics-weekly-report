@@ -131,6 +131,66 @@ class FantasyFootballReport(object):
         # print("Executing query: %s\n" % query)
         return self.y3.execute(query, token=self.token).rows
 
+    def retrieve_scoreboard(self, chosen_week):
+        """
+        get weekly matchup data
+        
+        result format is like: 
+        [
+            {
+                'team1': { 
+                    'result': 'W',
+                    'score': 100
+                },
+                'team2': {
+                    'result': 'L',
+                    'score': 50
+                }
+            },
+            {
+                'team3': {
+                    'result': 'T',
+                    'score': 75
+                },
+                'team4': {
+                    'result': 'T',
+                    'score': 75
+                }
+            }
+        ]
+        """
+        result = self.yql_query("select * from fantasysports.leagues.scoreboard where league_key='{0}' and week='{1}'".format(self.league_key, chosen_week))
+
+        matchups = result[0].get('scoreboard').get('matchups').get('matchup')
+
+        matchup_list = []
+
+        for matchup in matchups:
+            winning_team = matchup.get('winner_team_key')
+            is_tied = int(matchup.get('is_tied'))
+
+            def team_result(team):
+                """
+                determine if team tied/won/lost
+                """
+                team_key = team.get('team_key')
+
+                if is_tied:
+                    return 'T'
+
+                return 'W' if team_key == winning_team else 'L'
+
+            teams = { 
+                team.get('name').encode('utf-8'): {
+                    'result': team_result(team),
+                    'score': team.get('team_points').get('total')
+                } for team in matchup.get('teams').get('team') 
+            }
+
+            matchup_list.append(teams)
+
+        return matchup_list
+        
 
     def retrieve_data(self, chosen_week):
                 
@@ -194,6 +254,8 @@ class FantasyFootballReport(object):
 
     def calculate_metrics(self, chosen_week):
 
+        matchups_list = self.retrieve_scoreboard(chosen_week)
+
         team_results_dict = self.retrieve_data(chosen_week)
 
         coaching_efficiency = CoachingEfficiency(self.roster)
@@ -212,65 +274,22 @@ class FantasyFootballReport(object):
             ranked_team_manager = value.get("manager")
             ranked_weekly_score = value.get("weekly_score")
 
-            weekly_score_results_data_list.append([place, ranked_team_name, ranked_team_manager, "%.2f" % ranked_weekly_score])
+            weekly_score_results_data_list.append([place, ranked_team_name, ranked_team_manager, ranked_weekly_score])
 
             place += 1
-
-        matchups_list = []
-        # get league scoreboard data
-        scoreboard_data = self.yql_query(
-            "select * from fantasysports.leagues.scoreboard where league_key='" + self.league_key + "' and week='" + chosen_week + "'")[
-            0].get("scoreboard").get("matchups").get("matchup")
-
-        for matchup in scoreboard_data:
-            individual_matchup = {}
-
-            for team in matchup.get("teams").get("team"):
-                individual_matchup[team.get("name")] = 0.0
-
-            matchups_list.append(individual_matchup)
 
         ranked_team_scores = []
 
         for result in weekly_score_results_data_list:
             ranked_team_name = result[1]
             ranked_weekly_score = result[3]
-            # if "bench" in result[3]:
-            #     ranked_weekly_score += float(result[3].split(" ")[0])
-            # else:
-            #     ranked_weekly_score += float(result[3])
 
             ranked_team = {"name": ranked_team_name, "score": ranked_weekly_score, "luck": ""}
             ranked_team_scores.append(ranked_team)
 
-        for team in ranked_team_scores:
-
-            team_name = team.get("name")
-            for matchup in matchups_list:
-                if team_name in matchup.keys():
-                    matchup[team_name] = team.get("score")
-
         # set team matchup results for this week
-        team_matchup_result_dict = {}
-        for matchup in matchups_list:
-            keys = matchup.keys()
-
-            team_1_name = keys[0]
-            team_2_name = keys[1]
-
-            team_1_score = matchup.get(team_1_name)
-            team_2_score = matchup.get(team_2_name)
-
-            if team_1_score > team_2_score:
-                team_matchup_result_dict[team_1_name] = "W"
-                team_matchup_result_dict[team_2_name] = "L"
-            elif team_1_score < team_2_score:
-                team_matchup_result_dict[team_1_name] = "L"
-                team_matchup_result_dict[team_2_name] = "W"
-            else:
-                team_matchup_result_dict[team_1_name] = "T"
-                team_matchup_result_dict[team_2_name] = "T"
-
+        team_matchup_result_dict = { name: value['result'] for pair in matchups_list for name, value in pair.items() }
+        
         index = 0
         results = []
         top_team_score = ranked_team_scores[0].get("score")
@@ -422,6 +441,10 @@ class FantasyFootballReport(object):
                 index += 1
         else:
             print("No luck ties in week %s.\n" % chosen_week)
+
+        # last minute formatting of scores to rounded score
+        for team in weekly_score_results_data_list:
+            team[3] = "%.2f" % team[3]
 
         report_info_dict = {
             "weekly_score_results_data_list": weekly_score_results_data_list,
