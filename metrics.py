@@ -4,28 +4,29 @@ class CoachingEfficiency():
     # prohibited statuses to check team coaching efficiency eligibility
     prohibited_status_list = ["PUP-P", "SUSP", "O", "IR"]
 
-    @staticmethod
-    def check_eligible_players_by_position(position_str, player, position_list):
+    def __init__(self, roster_settings):
+        self.flex_positions = roster_settings['flex_positions']
+        self.roster_slots = roster_settings['slots']
+
+    def check_eligible_players_by_position(self, position_str, player, position_list):
         if position_str in player['eligible_positions']:
             position_list.append([player['name'], player['fantasy_points']])
             return True
         return False
 
-    @staticmethod
-    def check_eligible_players_by_position_with_flex(position_str, player, flex_option_positions, position_list,
+    def check_eligible_players_by_position_with_flex(self, position_str, player, position_list,
                                                      flex_player_candidates):
-        if CoachingEfficiency.check_eligible_players_by_position(position_str, player, position_list):
-            if position_str in flex_option_positions:
+        if self.check_eligible_players_by_position(position_str, player, position_list):
+            if position_str in self.flex_positions:
                 flex_player_candidates.append([player['name'], player['fantasy_points']])
 
-    @staticmethod
-    def get_optimal_players(player_list, position_slots, optimal_players_list):
+    def get_optimal_players(self, player_list, position, optimal_players_list):
         if player_list:
             player_list = sorted(player_list, key=itemgetter(1))[::-1]
 
             player_index = 0
             optimal_players_at_position = []
-            temp_position_slots = position_slots
+            temp_position_slots = self.roster_slots[position]
             while temp_position_slots > 0:
                 try:
                     optimal_players_at_position.append(player_list[player_index])
@@ -55,9 +56,8 @@ class CoachingEfficiency():
         team_defenses = []
         individual_defenders = []
         flex_candidates = []
-        flex_positions = team['roster']['flex_positions']
-
-        active_slots = sum(v for (k, v) in team['roster']['slots'].items())
+        
+        active_slots = sum(v for (k, v) in self.roster_slots.items())
 
         players = team['players']
 
@@ -74,9 +74,9 @@ class CoachingEfficiency():
 
         for player in players:
             self.check_eligible_players_by_position("QB", player, quarterbacks)
-            self.check_eligible_players_by_position_with_flex("WR", player, flex_positions, wide_receivers, flex_candidates)
-            self.check_eligible_players_by_position_with_flex("RB", player, flex_positions, running_backs, flex_candidates)
-            self.check_eligible_players_by_position_with_flex("TE", player, flex_positions, tight_ends, flex_candidates)
+            self.check_eligible_players_by_position_with_flex("WR", player, wide_receivers, flex_candidates)
+            self.check_eligible_players_by_position_with_flex("RB", player, running_backs, flex_candidates)
+            self.check_eligible_players_by_position_with_flex("TE", player, tight_ends, flex_candidates)
             self.check_eligible_players_by_position("K", player, kickers)
             self.check_eligible_players_by_position("DEF", player, team_defenses)
 
@@ -86,15 +86,13 @@ class CoachingEfficiency():
 
         optimal_players = []
 
-        slots = team['roster']['slots']
-
-        self.get_optimal_players(quarterbacks, slots['QB'], optimal_players)
-        optimal_wrs = self.get_optimal_players(wide_receivers, slots['WR'], optimal_players)
-        optimal_rbs = self.get_optimal_players(running_backs, slots['RB'], optimal_players)
-        optimal_tes = self.get_optimal_players(tight_ends, slots['TE'], optimal_players)
-        self.get_optimal_players(kickers, slots['K'], optimal_players)
-        self.get_optimal_players(team_defenses, slots['DEF'], optimal_players)
-        self.get_optimal_players(individual_defenders, slots['D'], optimal_players)
+        self.get_optimal_players(quarterbacks, 'QB', optimal_players)
+        optimal_wrs = self.get_optimal_players(wide_receivers, 'WR', optimal_players)
+        optimal_rbs = self.get_optimal_players(running_backs, 'RB', optimal_players)
+        optimal_tes = self.get_optimal_players(tight_ends, 'TE', optimal_players)
+        self.get_optimal_players(kickers, 'K', optimal_players)
+        self.get_optimal_players(team_defenses, 'DEF', optimal_players)
+        self.get_optimal_players(individual_defenders, 'D', optimal_players)
 
         optimal_flexes = []
         if flex_candidates:
@@ -108,7 +106,7 @@ class CoachingEfficiency():
 
             flex_list = sorted(list(flex_set), key=itemgetter(1))[::-1]
             index = 0
-            temp_slots = slots["FLEX"]
+            temp_slots = self.roster_slots["FLEX"]
             while temp_slots > 0:
                 try:
                     optimal_flexes.append(flex_list[index])

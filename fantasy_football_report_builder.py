@@ -13,7 +13,6 @@ from yql.storage import FileTokenStore
 from pdf_generator import PdfGenerator
 from metrics import CoachingEfficiency
 
-
 # noinspection SqlNoDataSourceInspection,SqlDialectInspection
 class FantasyFootballReport(object):
     def __init__(self, user_input_league_id=None, user_input_chosen_week=None):
@@ -68,8 +67,33 @@ class FantasyFootballReport(object):
         print("League key: %s\n" % self.league_key)
 
         # get individual league roster
-        self.roster_data = self.yql_query(
+        roster_data = self.yql_query(
             "select * from fantasysports.leagues.settings where league_key='" + self.league_key + "'")
+
+        print(roster_data)
+
+        roster_slots = collections.defaultdict(int)
+        flex_positions = []
+
+        for position in roster_data[0].get("settings").get("roster_positions").get("roster_position"):
+
+            position_name = position.get("position")
+            position_count = int(position.get("count"))
+
+            if position_name == "W/R":
+                flex_positions = ['WR", "RB']
+            if position_name == "W/R/T":
+                flex_positions = ["WR", "RB", "TE"]
+
+            if "/" in position_name:
+                position_name = "FLEX"
+
+            roster_slots[position_name] += position_count
+
+        self.roster = {
+            "slots": roster_slots,
+            "flex_positions": flex_positions
+        }
 
         # get data for all teams in league
         self.teams_data = self.yql_query("select * from fantasysports.teams where league_key='" + self.league_key + "'")
@@ -111,30 +135,6 @@ class FantasyFootballReport(object):
 
 
     def retrieve_data(self, chosen_week):
-
-        league_roster_active = []
-        roster_slots = collections.defaultdict(int)
-        flex_positions = []
-
-        for position in self.roster_data[0].get("settings").get("roster_positions").get("roster_position"):
-
-            position_name = position.get("position")
-            position_count = int(position.get("count"))
-
-            if position_name == "W/R":
-                flex_positions = ['WR", "RB']
-            if position_name == "W/R/T":
-                flex_positions = ["WR", "RB", "TE"]
-
-            if "/" in position_name:
-                position_name = "FLEX"
-
-            roster_slots[position_name] += position_count
-
-        roster = {
-            "slots": roster_slots,
-            "flex_positions": flex_positions
-        }
                 
         teams_dict = {}
         for team in self.teams_data:
@@ -187,7 +187,6 @@ class FantasyFootballReport(object):
 
             team_results_dict[team_name] = {
                 "manager": teams_dict.get(team).get("manager"),
-                "roster": roster,
                 "players": players,
                 "weekly_score": sum([p['fantasy_points'] for p in players if p['selected_position'] != 'BN']),
                 "team_id": team_id
@@ -199,7 +198,7 @@ class FantasyFootballReport(object):
 
         team_results_dict = self.retrieve_data(chosen_week)
 
-        coaching_efficiency = CoachingEfficiency()
+        coaching_efficiency = CoachingEfficiency(self.roster)
 
         for name, team in team_results_dict.items():
             disqualification_eligible = self.league_id == self.config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id")
