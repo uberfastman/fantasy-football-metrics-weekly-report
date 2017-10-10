@@ -22,7 +22,7 @@ if __name__ == '__main__':
             chosen_league_id = raw_input("What is the league ID of the Yahoo league for which you want to generate a report? -> ")
             try:
                 fantasy_football_report_instance = FantasyFootballReport(chosen_league_id, use_chosen_week_function())
-                return fantasy_football_report_instance, chosen_league_id
+                return fantasy_football_report_instance, str(chosen_league_id)
             except IndexError:
                 print("The league ID you have selected is not valid.")
                 use_default_league_function()
