@@ -261,6 +261,14 @@ class PdfGenerator(object):
         efficiency_data = chart_data_list[2]
         luck_data = chart_data_list[3]
 
+        # Remove any zeros from coaching efficiency to make table prettier
+        for team in efficiency_data:
+            week_index = 0
+            for week in team:
+                if week[1] == 0.0:
+                    del team[week_index]
+                week_index += 1
+
         series_colors = [
             [100, 0, 0, 0, 100],
             [100, 50, 0, 0, 100],
@@ -286,6 +294,16 @@ class PdfGenerator(object):
         points_min = min(scores)
         points_max = max(scores)
 
+        # fit y-axis of coaching efficiency table
+        coaching_efficiency_scores = [weeks[1] for teams in efficiency_data for weeks in teams]
+        coaching_efficiency_min = min(coaching_efficiency_scores)
+        coaching_efficiency_max = max(coaching_efficiency_scores)
+
+        # fit y-axis of luck table
+        luck_scores = [weeks[1] for teams in luck_data for weeks in teams]
+        luck_min = min(luck_scores)
+        luck_max = max(luck_scores)
+
         points_line_chart = LineChartGenerator(series_colors, box_width, box_height, chart_width, chart_height)
         points_line_chart.make_title("Weekly Points")
         points_line_chart.make_data(points_data)
@@ -301,7 +319,7 @@ class PdfGenerator(object):
         coaching_efficiency_line_chart.make_title("Weekly Coaching Efficiency")
         coaching_efficiency_line_chart.make_data(efficiency_data)
         coaching_efficiency_line_chart.make_x_axis("Weeks", 0, len(points_data[0]) + 1, 1)
-        coaching_efficiency_line_chart.make_y_axis("Coaching Efficiency (%)", 55.00, 95.00, 5.00)
+        coaching_efficiency_line_chart.make_y_axis("Coaching Efficiency (%)", coaching_efficiency_min, coaching_efficiency_max, 5.00)
         coaching_efficiency_line_chart.make_series_labels(series_names)
 
         elements.append(coaching_efficiency_line_chart)
@@ -311,7 +329,7 @@ class PdfGenerator(object):
         luck_line_chart.make_title("Weekly Luck")
         luck_line_chart.make_data(luck_data)
         luck_line_chart.make_x_axis("Weeks", 0, len(points_data[0]) + 1, 1)
-        luck_line_chart.make_y_axis("Luck (%)", -80.00, 90.00, 20.00)
+        luck_line_chart.make_y_axis("Luck (%)", luck_min, luck_max, 20.00)
         luck_line_chart.make_series_labels(series_names)
 
         elements.append(luck_line_chart)

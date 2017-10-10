@@ -92,7 +92,8 @@ class FantasyFootballReport(object):
                 if 0 < int(chosen_week) <= int(self.league_standings_data[0].get("current_week")) - 1:
                     self.chosen_week = chosen_week
                 else:
-                    incomplete_week = raw_input("Are you sure you want to generate a report for an incomplete week? (y/n) -> ")
+                    incomplete_week = raw_input(
+                        "Are you sure you want to generate a report for an incomplete week? (y/n) -> ")
                     if incomplete_week == "y":
                         self.chosen_week = chosen_week
                     elif incomplete_week == "n":
@@ -689,8 +690,9 @@ class FantasyFootballReport(object):
                 for team_points in weekly_points_data:
                     time_series_points_data[weekly_points_data.index(team_points)].append(team_points)
                 for team_efficiency in weekly_coaching_efficiency_data:
-                    time_series_efficiency_data[weekly_coaching_efficiency_data.index(team_efficiency)].append(
-                        team_efficiency)
+                    if float(team_efficiency[1]) != 0.0:
+                        time_series_efficiency_data[weekly_coaching_efficiency_data.index(team_efficiency)].append(
+                            team_efficiency)
                 for team_luck in weekly_luck_data:
                     time_series_luck_data[weekly_luck_data.index(team_luck)].append(team_luck)
             week_counter += 1
