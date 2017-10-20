@@ -334,10 +334,14 @@ class FantasyFootballReport(object):
 
         results.sort(key=lambda x: x.get("luck"), reverse=True)
 
+        # Option to disqualify chosen team for current week of coaching efficiency
+        if chosen_week == self.config.get("Fantasy_Football_Report_Settings", "chosen_week"):
+            disqualified_team = self.config.get("Fantasy_Football_Report_Settings", "coaching_efficiency_disqualified_team")
+            if disqualified_team:
+                team_results_dict.get(disqualified_team)["coaching_efficiency"] = "0.0%"
+
         final_coaching_efficiency_results_list = sorted(team_results_dict.iteritems(),
-                                                        key=lambda (k, v): (
-                                                            v.get("coaching_efficiency"), k))[
-                                                 ::-1]
+                                                        key=lambda (k, v): (v.get("coaching_efficiency"), k))[::-1]
         final_luck_results_list = sorted(team_results_dict.iteritems(),
                                          key=lambda (k, v): (float(v.get("luck").strip("%")), k))[::-1]
 
