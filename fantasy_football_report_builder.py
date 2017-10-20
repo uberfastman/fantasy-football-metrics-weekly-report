@@ -692,14 +692,13 @@ class FantasyFootballReport(object):
                 for team_luck in weekly_luck_data:
                     time_series_luck_data.append([team_luck])
             else:
-                for team_points in weekly_points_data:
-                    time_series_points_data[weekly_points_data.index(team_points)].append(team_points)
-                for team_efficiency in weekly_coaching_efficiency_data:
+                for index, team_points in enumerate(weekly_points_data):
+                    time_series_points_data[index].append(team_points)
+                for index, team_efficiency in enumerate(weekly_coaching_efficiency_data):
                     if float(team_efficiency[1]) != 0.0:
-                        time_series_efficiency_data[weekly_coaching_efficiency_data.index(team_efficiency)].append(
-                            team_efficiency)
-                for team_luck in weekly_luck_data:
-                    time_series_luck_data[weekly_luck_data.index(team_luck)].append(team_luck)
+                        time_series_efficiency_data[index].append(team_efficiency)
+                for index, team_luck in enumerate(weekly_luck_data):
+                    time_series_luck_data[index].append(team_luck)
             week_counter += 1
 
         chart_data_list = [chosen_week_ordered_team_names, time_series_points_data, time_series_efficiency_data,
