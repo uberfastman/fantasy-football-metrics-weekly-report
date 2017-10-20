@@ -18,7 +18,9 @@ config.read('config.ini')
 
 class PdfGenerator(object):
     def __init__(self, weekly_score_results, coaching_efficiency_results, weekly_luck_results, num_tied_scores,
-                 num_tied_efficiencies, num_tied_luck, efficiency_dq_count):
+                 num_tied_efficiencies, num_tied_luck, efficiency_dq_count, league_id):
+
+        self.league_id = league_id
 
         # Configure style and word wrap
         self.stylesheet = getSampleStyleSheet()
@@ -38,14 +40,14 @@ class PdfGenerator(object):
 
         # Reportlab fonts: https://github.com/mattjmorrison/ReportLab/blob/master/src/reportlab/lib/fonts.py
         table_style_list = [
-            ('TEXTCOLOR', (0, 1), (3, 1), colors.green),
-            ('FONT', (0, 1), (3, 1), 'Helvetica-Oblique'),
-            ('FONT', (0, 0), (3, 0), 'Helvetica-Bold'),
+            ('TEXTCOLOR', (0, 1), (-1, 1), colors.green),
+            ('FONT', (0, 1), (-1, 1), 'Helvetica-Oblique'),
+            ('FONT', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
             ('TOPPADDING', (0, 0), (-1, -1), 1),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.gray),
-            ('GRID', (0, 0), (3, 0), 1.5, colors.black),
+            ('GRID', (0, 0), (-1, 0), 1.5, colors.black),
             ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
             ('INNERGRID', (0, 0), (-1, -1), 0.25, colors.black),
             ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
@@ -54,28 +56,37 @@ class PdfGenerator(object):
 
         self.style = TableStyle(table_style_list)
 
+        self.num_tied_scores = num_tied_scores
+        tied_scores_iterator = num_tied_scores + 1
         tied_scores_table_style_list = list(table_style_list)
-        index = 2
-        while (num_tied_scores - 1) > 0:
-            tied_scores_table_style_list.append(('TEXTCOLOR', (0, index), (3, index), colors.green))
-            tied_scores_table_style_list.append(('FONT', (0, index), (3, index), 'Helvetica-Oblique'))
-            num_tied_scores -= 1
-            index += 1
 
+        if league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
+            tied_scores_table_style_list.append(('TEXTCOLOR', (0, 0), (-1, 0), colors.green))
+            tied_scores_table_style_list.append(('FONT', (0, 0), (-1, 0), 'Helvetica-Oblique'))
+        else:
+            index = 1
+            while tied_scores_iterator > 0:
+                tied_scores_table_style_list.append(('TEXTCOLOR', (0, index), (-1, index), colors.green))
+                tied_scores_table_style_list.append(('FONT', (0, index), (-1, index), 'Helvetica-Oblique'))
+                tied_scores_iterator -= 1
+                index += 1
+
+        tied_efficiencies_iterator = num_tied_efficiencies + 1
         tied_efficiencies_table_style_list = list(table_style_list)
-        index = 2
-        while (num_tied_efficiencies - 1) > 0:
+        index = 1
+        while tied_efficiencies_iterator > 0:
             tied_efficiencies_table_style_list.append(('TEXTCOLOR', (0, index), (3, index), colors.green))
             tied_efficiencies_table_style_list.append(('FONT', (0, index), (3, index), 'Helvetica-Oblique'))
-            num_tied_efficiencies -= 1
+            tied_efficiencies_iterator -= 1
             index += 1
 
+        tied_luck_iterator = num_tied_luck + 1
         tied_luck_table_style_list = list(table_style_list)
-        index = 2
-        while (num_tied_luck - 1) > 0:
+        index = 1
+        while tied_luck_iterator > 0:
             tied_luck_table_style_list.append(('TEXTCOLOR', (0, index), (3, index), colors.green))
             tied_luck_table_style_list.append(('FONT', (0, index), (3, index), 'Helvetica-Oblique'))
-            num_tied_luck -= 1
+            tied_luck_iterator -= 1
             index += 1
 
         self.style_tied_scores = TableStyle(tied_scores_table_style_list)
@@ -84,7 +95,7 @@ class PdfGenerator(object):
 
         dq_index = len(weekly_score_results) - efficiency_dq_count + 1
 
-        if num_tied_efficiencies > 1:
+        if num_tied_efficiencies > 0:
             efficiencies_dq_table_style_list = list(tied_efficiencies_table_style_list)
         else:
             efficiencies_dq_table_style_list = list(table_style_list)
@@ -106,8 +117,20 @@ class PdfGenerator(object):
 
         weekly_points_data = [["Place", "Team", "Manager", "Points"]]
 
-        for team in self.weekly_score_results:
-            weekly_points_data.append(team)
+        if self.num_tied_scores > 0:
+            if self.league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
+                weekly_points_data = [["Place", "Team", "Manager", "Points", "Bench Points"]]
+
+        if self.num_tied_scores > 0:
+            if self.league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
+                for team in self.weekly_score_results:
+                    weekly_points_data.append(team)
+            else:
+                for team in self.weekly_score_results:
+                    weekly_points_data.append(team[:-1])
+        else:
+            for team in self.weekly_score_results:
+                weekly_points_data.append(team[:-1])
 
         return weekly_points_data
 
