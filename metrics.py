@@ -1,9 +1,5 @@
 from operator import itemgetter
-<<<<<<< HEAD
-from collections import defaultdict
-=======
-import collections
->>>>>>> develop
+from collections import defaultdict, Counter
 
 
 class CoachingEfficiency(object):
@@ -181,7 +177,7 @@ class CoachingEfficiency(object):
 
         # apply coaching efficiency eligibility requirements for League of Emperors
         if disqualification_eligible:
-            if collections.Counter(league_roster_active_slots) == collections.Counter(positions_filled_active):
+            if Counter(league_roster_active_slots) == Counter(positions_filled_active):
                 if ineligible_efficiency_player_count <= 4:
                     efficiency_disqualification = False
                 else:
