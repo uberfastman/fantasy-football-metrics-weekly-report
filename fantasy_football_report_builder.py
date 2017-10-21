@@ -79,7 +79,7 @@ class FantasyFootballReport(object):
             position_count = int(position.get("count"))
 
             if position_name == "W/R":
-                flex_positions = ['WR", "RB']
+                flex_positions = ["WR", "RB"]
             if position_name == "W/R/T":
                 flex_positions = ["WR", "RB", "TE"]
 

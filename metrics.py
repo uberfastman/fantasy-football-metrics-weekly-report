@@ -1,4 +1,5 @@
 from operator import itemgetter
+from collections import defaultdict
 
 class CoachingEfficiency():
     # prohibited statuses to check team coaching efficiency eligibility
@@ -8,6 +9,28 @@ class CoachingEfficiency():
         self.flex_positions = roster_settings['flex_positions']
         self.roster_slots = roster_settings['slots']
 
+        self.flex_positions = {
+            'FLEX': roster_settings['flex_positions'],
+            'DB': ["S", "CB"],
+            'DL': ["DT", "DE"],
+            'D': ["DB", "DL", "LB", "DT", "DE", "S", "CB"]
+        }
+
+    def check_eligible_positions(self, player):
+        eligible = []
+
+        for position in self.roster_slots:
+            if position in player['eligible_positions']:
+                # special case
+                if position != 'D':
+                    eligible.append(position)
+
+                for flex_position, base_positions in self.flex_positions.items():
+                    if position in base_positions:
+                        eligible.append(flex_position)
+
+        return eligible
+            
     def check_eligible_players_by_position(self, position_str, player, position_list):
         if position_str in player['eligible_positions']:
             position_list.append([player['name'], player['fantasy_points']])
@@ -17,7 +40,7 @@ class CoachingEfficiency():
     def check_eligible_players_by_position_with_flex(self, position_str, player, position_list,
                                                      flex_player_candidates):
         if self.check_eligible_players_by_position(position_str, player, position_list):
-            if position_str in self.flex_positions:
+            if position_str in self.flex_positions['FLEX']:
                 flex_player_candidates.append([player['name'], player['fantasy_points']])
 
     def get_optimal_players(self, player_list, position, optimal_players_list):
@@ -56,6 +79,20 @@ class CoachingEfficiency():
         team_defenses = []
         individual_defenders = []
         flex_candidates = []
+        flex_d_candidates = []
+
+        positions = defaultdict(list)
+
+        defensive_positions = {
+            'DB': [],
+            'LB': [],
+            'CB': [],
+            'S': [],
+            'DE': [],
+            'DT': []
+        }
+        flex_defensive_positions = []
+        
         
         active_slots = sum(v for (k, v) in self.roster_slots.items())
 
@@ -73,6 +110,12 @@ class CoachingEfficiency():
         ineligible_efficiency_player_count = len([p for p in bench_players if self.is_player_eligible(p, week)])
 
         for player in players:
+            #print('{0} - {1}'.format(player.get('eligible_positions'),player.get('name')))
+
+            eligible = self.check_eligible_positions(player)
+            for position in eligible:
+                positions[position].append(player)
+
             self.check_eligible_players_by_position("QB", player, quarterbacks)
             self.check_eligible_players_by_position_with_flex("WR", player, wide_receivers, flex_candidates)
             self.check_eligible_players_by_position_with_flex("RB", player, running_backs, flex_candidates)
@@ -80,9 +123,19 @@ class CoachingEfficiency():
             self.check_eligible_players_by_position("K", player, kickers)
             self.check_eligible_players_by_position("DEF", player, team_defenses)
 
+            for position, eligible in defensive_positions.items():
+                self.check_eligible_players_by_position_with_flex(position, player, eligible, flex_defensive_positions)
+
             eligible_positions = player['eligible_positions']
             if "D" in eligible_positions and "DEF" not in eligible_positions:
                 individual_defenders.append([player['name'], player['fantasy_points']])
+
+        import json
+        for position, players in positions.items():
+            print('{0}: {1}'.format(position, [p['name'] for p in players]))
+        #print(json.dumps(positions, indent=2))
+        # print(json.dumps(defensive_positions, indent=2))
+        # print(json.dumps(flex_defensive_positions))
 
         optimal_players = []
 
