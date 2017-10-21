@@ -1,13 +1,18 @@
 from operator import itemgetter
+<<<<<<< HEAD
 from collections import defaultdict
+=======
+import collections
+>>>>>>> develop
 
-class CoachingEfficiency():
+
+class CoachingEfficiency(object):
     # prohibited statuses to check team coaching efficiency eligibility
     prohibited_status_list = ["PUP-P", "SUSP", "O", "IR"]
 
     def __init__(self, roster_settings):
-        self.flex_positions = roster_settings['flex_positions']
-        self.roster_slots = roster_settings['slots']
+        self.flex_positions = roster_settings["flex_positions"]
+        self.roster_slots = roster_settings["slots"]
 
         self.flex_positions = {
             'FLEX': roster_settings['flex_positions'],
@@ -61,15 +66,10 @@ class CoachingEfficiency():
             optimal_players_list.append(optimal_players_at_position)
             return optimal_players_at_position
 
-
     def is_player_eligible(self, player, week):
-        return player['status'] in self.prohibited_status_list \
-            or player['bye_week'] == week
+        return player["status"] in self.prohibited_status_list or player["bye_week"] == week
 
-    def execute(self, team, week, disqualification_eligible=False):
-        positions_filled_active = []
-        positions_filled_bench = []
-        ineligible_efficiency_player_count = 0
+    def execute(self, team_name, team_info, week, league_roster_active_slots, disqualification_eligible=False):
 
         quarterbacks = []
         wide_receivers = []
@@ -101,12 +101,10 @@ class CoachingEfficiency():
         active_players = [p for p in players if p['selected_position'] != 'BN']
         bench_players = [p for p in players if p['selected_position'] == 'BN']
 
-        actual_weekly_score = team['weekly_score']
-        actual_bench_score = sum([p['fantasy_points'] for p in bench_players])
+        players = team_info["players"]
+        positions_filled_active = team_info["positions_filled_active"]
 
-        positions_filled_active = len(active_players)
-        positions_filled_bench = len(bench_players)
-
+        bench_players = [p for p in players if p["selected_position"] == "BN"]
         ineligible_efficiency_player_count = len([p for p in bench_players if self.is_player_eligible(p, week)])
 
         for player in players:
@@ -128,7 +126,7 @@ class CoachingEfficiency():
 
             eligible_positions = player['eligible_positions']
             if "D" in eligible_positions and "DEF" not in eligible_positions:
-                individual_defenders.append([player['name'], player['fantasy_points']])
+                individual_defenders.append([player["name"], player["fantasy_points"]])
 
         import json
         for position, players in positions.items():
@@ -139,13 +137,13 @@ class CoachingEfficiency():
 
         optimal_players = []
 
-        self.get_optimal_players(quarterbacks, 'QB', optimal_players)
-        optimal_wrs = self.get_optimal_players(wide_receivers, 'WR', optimal_players)
-        optimal_rbs = self.get_optimal_players(running_backs, 'RB', optimal_players)
-        optimal_tes = self.get_optimal_players(tight_ends, 'TE', optimal_players)
-        self.get_optimal_players(kickers, 'K', optimal_players)
-        self.get_optimal_players(team_defenses, 'DEF', optimal_players)
-        self.get_optimal_players(individual_defenders, 'D', optimal_players)
+        self.get_optimal_players(quarterbacks, "QB", optimal_players)
+        optimal_wrs = self.get_optimal_players(wide_receivers, "WR", optimal_players)
+        optimal_rbs = self.get_optimal_players(running_backs, "RB", optimal_players)
+        optimal_tes = self.get_optimal_players(tight_ends, "TE", optimal_players)
+        self.get_optimal_players(kickers, "K", optimal_players)
+        self.get_optimal_players(team_defenses, "DEF", optimal_players)
+        self.get_optimal_players(individual_defenders, "D", optimal_players)
 
         optimal_flexes = []
         if flex_candidates:
@@ -178,23 +176,24 @@ class CoachingEfficiency():
             optimal_score += player[1]
 
         # calculate coaching efficiency
+        actual_weekly_score = team_info["weekly_score"]
         coaching_efficiency = (actual_weekly_score / optimal_score) * 100
 
         # apply coaching efficiency eligibility requirements for League of Emperors
         if disqualification_eligible:
-            if collections.Counter(active_slots) == collections.Counter(positions_filled_active):
+            if collections.Counter(league_roster_active_slots) == collections.Counter(positions_filled_active):
                 if ineligible_efficiency_player_count <= 4:
                     efficiency_disqualification = False
                 else:
                     print("ROSTER INVALID! There are %d inactive players on the bench of %s in week %s!" % (
-                        ineligible_efficiency_player_count, team_name, chosen_week))
+                        ineligible_efficiency_player_count, team_name, week))
                     efficiency_disqualification = True
 
             else:
                 print(
                     "ROSTER INVALID! There is not a full squad of active players starting on %s in week %s!" % (
                         team_name,
-                        chosen_week))
+                        week))
                 efficiency_disqualification = True
 
             if efficiency_disqualification:
