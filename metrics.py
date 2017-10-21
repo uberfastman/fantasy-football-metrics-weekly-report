@@ -7,7 +7,6 @@ class CoachingEfficiency(object):
     prohibited_status_list = ["PUP-P", "SUSP", "O", "IR"]
 
     def __init__(self, roster_settings):
-        self.flex_positions = roster_settings["flex_positions"]
         self.roster_slots = roster_settings["slots"]
 
         self.flex_positions = {
@@ -92,7 +91,6 @@ class CoachingEfficiency(object):
         # for position, players in eligible_positions.items():
         #     print('{0}: {1}'.format(position, [p['name'] for p in players]))
 
-
         optimal_players = []
         optimal = {}
 
@@ -112,11 +110,11 @@ class CoachingEfficiency(object):
         optimal_lineup = [item for sublist in optimal_players for item in sublist]
 
         # calculate optimal score
-        optimal_score = 0.0
+        optimal_score = sum([x["fantasy_points"] for x in optimal_lineup])
+
         # print('optimal lineup for ' + team_name)
-        for player in optimal_lineup:
-            # print(player)
-            optimal_score += player["fantasy_points"]
+        # for player in optimal_lineup:
+        #     print(player)
 
         # calculate coaching efficiency
         actual_weekly_score = team_info["weekly_score"]
