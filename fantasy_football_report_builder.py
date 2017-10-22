@@ -9,7 +9,7 @@ from ConfigParser import ConfigParser
 import yql
 from yql.storage import FileTokenStore
 
-from metrics import CoachingEfficiency
+from metrics import CoachingEfficiency, PointsByPosition
 from pdf_generator import PdfGenerator
 
 
@@ -259,7 +259,7 @@ class FantasyFootballReport(object):
 
                 players.append(player_info_dict)
 
-            # to test tied scores (and by proxy tied luck), switch "weekly_score" parameters below363515363515
+            # to test tied scores (and by proxy tied luck), switch "weekly_score" parameters below
             team_results_dict[team_name] = {
                 "manager": teams_dict.get(team).get("manager"),
                 "players": players,
@@ -303,14 +303,22 @@ class FantasyFootballReport(object):
                 team.get("number_of_trades")
             ])
 
-        # get coaching efficiency metrics
+        # get coaching efficiency metrics and points by position
         coaching_efficiency = CoachingEfficiency(self.roster)
+        points_by_position = PointsByPosition(self.roster)
+        team_points_by_position_data_list = []
         for team_name, team_info in team_results_dict.items():
             disqualification_eligible = self.league_id == self.config.get("Fantasy_Football_Report_Settings",
                                                                           "league_of_emperors_id")
-            team_info["coaching_efficiency"] = coaching_efficiency.execute(team_name, team_info, int(chosen_week),
-                                                                           self.league_roster_active_slots,
-                                                                           disqualification_eligible=disqualification_eligible)
+            team_info["coaching_efficiency"] = coaching_efficiency.execute_coaching_efficiency(team_name, team_info,
+                                                                                               int(chosen_week),
+                                                                                               self.league_roster_active_slots,
+                                                                                               disqualification_eligible=disqualification_eligible)
+            player_points_by_position = points_by_position.execute_points_by_position(team_info)
+            team_points_by_position_data_list.append([team_name, player_points_by_position])
+
+        for team in team_points_by_position_data_list:
+            print(team)
 
         final_weekly_score_results_list = sorted(team_results_dict.iteritems(),
                                                  key=lambda (k, v): (float(v.get("weekly_score")), k))[::-1]
@@ -519,7 +527,8 @@ class FantasyFootballReport(object):
             "efficiency_dq_count": efficiency_dq_count,
             "tied_weekly_score_bool": tied_weekly_score_bool,
             "tied_coaching_efficiency_bool": tied_coaching_efficiency_bool,
-            "tied_weekly_luck_bool": tied_weekly_luck_bool
+            "tied_weekly_luck_bool": tied_weekly_luck_bool,
+            "weekly_team_points_by_position": team_points_by_position_data_list
         }
         return team_results_dict, report_info_dict
 
@@ -588,7 +597,8 @@ class FantasyFootballReport(object):
                     time_series_luck_data[index].append(team_luck)
             week_counter += 1
 
-        chart_data_list = [chosen_week_ordered_team_names, chosen_week_ordered_managers, time_series_points_data, time_series_efficiency_data,
+        chart_data_list = [chosen_week_ordered_team_names, chosen_week_ordered_managers, time_series_points_data,
+                           time_series_efficiency_data,
                            time_series_luck_data]
 
         filename = self.league_name.replace(" ",
@@ -626,7 +636,8 @@ class FantasyFootballReport(object):
             coaching_efficiency_title_text="Team Coaching Efficiency Rankings",
             tied_weekly_coaching_efficiency_bool=report_info_dict.get("tied_coaching_efficiency_bool"),
             luck_title_text="Team Luck Rankings",
-            tied_weekly_luck_bool=report_info_dict.get("tied_weekly_luck_bool")
+            tied_weekly_luck_bool=report_info_dict.get("tied_weekly_luck_bool"),
+            weekly_team_points_by_position=report_info_dict.get("weekly_team_points_by_position")
         )
 
         # generate pdf of report

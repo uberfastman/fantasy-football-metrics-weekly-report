@@ -1,4 +1,3 @@
-from operator import itemgetter
 from collections import defaultdict, Counter
 
 
@@ -10,18 +9,18 @@ class CoachingEfficiency(object):
         self.roster_slots = roster_settings["slots"]
 
         self.flex_positions = {
-            'FLEX': roster_settings['flex_positions'],
-            'D': ["D", "DB", "DL", "LB", "DT", "DE", "S", "CB"]
+            "FLEX": roster_settings["flex_positions"],
+            "D": ["D", "DB", "DL", "LB", "DT", "DE", "S", "CB"]
         }
 
     def get_eligible_positions(self, player):
         eligible = []
 
         for position in self.roster_slots:
-            if position in player['eligible_positions']:
+            if position in player["eligible_positions"]:
                 # special case, because all defensive players get D as an eligible position
                 # whereas for offense, there is no special eligible position for FLEX
-                if position != 'D':
+                if position != "D":
                     eligible.append(position)
 
                 # assign all flex positions the player is eligible for
@@ -36,20 +35,20 @@ class CoachingEfficiency(object):
 
         num_slots = self.roster_slots[position]
 
-        return sorted(player_list, key=lambda x: x['fantasy_points'], reverse=True)[:num_slots]
+        return sorted(player_list, key=lambda x: x["fantasy_points"], reverse=True)[:num_slots]
 
     def get_optimal_flex(self, eligible_positions, optimal):
 
         # method to turn player dict into a tuple for use in sets/comparison
         # should just have a class, but w/e
-        def create_tuple(player):
+        def create_tuple(player_info):
             return (
-                player["name"],
-                player["fantasy_points"]
+                player_info["name"],
+                player_info["fantasy_points"]
             )
 
         for flex_position, base_positions in self.flex_positions.items():
-            candidates = set([create_tuple(x) for x in eligible_positions[flex_position]])
+            candidates = set([create_tuple(player) for player in eligible_positions[flex_position]])
 
             optimal_allocated = set()
             # go through positions that makeup the flex position
@@ -57,7 +56,7 @@ class CoachingEfficiency(object):
             for base_position in base_positions:
                 for player in optimal.get(base_position, []):
                     optimal_allocated.add(create_tuple(player))
-            
+
             # extract already allocated players from candidates
             available = candidates - optimal_allocated
 
@@ -72,13 +71,13 @@ class CoachingEfficiency(object):
                 for optimal_flex_player in optimal_flex:
                     if create_tuple(player) == optimal_flex_player:
                         yield player
-        
+
     def is_player_eligible(self, player, week):
         return player["status"] in self.prohibited_status_list or player["bye_week"] == week
 
-    def execute(self, team_name, team_info, week, league_roster_active_slots, disqualification_eligible=False):
-        
-        players = team_info['players']
+    def execute_coaching_efficiency(self, team_name, team_info, week, league_roster_active_slots, disqualification_eligible=False):
+
+        players = team_info["players"]
 
         eligible_positions = defaultdict(list)
 
@@ -147,3 +146,42 @@ class CoachingEfficiency(object):
                 coaching_efficiency = 0.0
 
         return coaching_efficiency
+
+
+class PointsByPosition(object):
+
+    def __init__(self, roster_settings):
+
+        self.roster_slots = roster_settings["slots"]
+        self.flex_positions = {
+            "FLEX": roster_settings["flex_positions"],
+            "D": ["D", "DB", "DL", "LB", "DT", "DE", "S", "CB"]
+        }
+
+    @staticmethod
+    def get_starting_players(players):
+        return [p for p in players if p["selected_position"] != "BN"]
+
+    @staticmethod
+    def get_points_for_position(players, position):
+        total_points_by_position = 0
+        for player in players:
+            player_positions = player["eligible_positions"]
+            if not isinstance(player_positions, list):
+                player_positions = [player_positions]
+            if position in player_positions and player["selected_position"] != "BN":
+                total_points_by_position += float(player["fantasy_points"])
+
+        return total_points_by_position
+
+    def execute_points_by_position(self, team_info):
+
+        players = team_info['players']
+
+        player_points_by_position = {}
+        starting_players = self.get_starting_players(players)
+        for slot in self.roster_slots.keys():
+            if slot != "BN" and slot != "FLEX":
+                player_points_by_position[slot] = self.get_points_for_position(starting_players, slot)
+
+        return player_points_by_position
