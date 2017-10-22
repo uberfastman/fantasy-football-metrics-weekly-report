@@ -526,6 +526,7 @@ class FantasyFootballReport(object):
     def create_pdf_report(self):
 
         chosen_week_ordered_team_names = []
+        chosen_week_ordered_managers = []
         report_info_dict = {}
 
         time_series_points_data = []
@@ -546,6 +547,7 @@ class FantasyFootballReport(object):
                 teams_data_list.append([
                     temp_team_info.get("team_id"),
                     team,
+                    temp_team_info.get("manager"),
                     temp_team_info.get("weekly_score"),
                     temp_team_info.get("coaching_efficiency"),
                     temp_team_info.get("luck")
@@ -554,17 +556,20 @@ class FantasyFootballReport(object):
             teams_data_list.sort(key=lambda x: int(x[0]))
 
             ordered_team_names = []
+            ordered_team_managers = []
             weekly_points_data = []
             weekly_coaching_efficiency_data = []
             weekly_luck_data = []
 
             for team in teams_data_list:
                 ordered_team_names.append(team[1])
-                weekly_points_data.append([int(week_counter), float(team[2])])
-                weekly_coaching_efficiency_data.append([int(week_counter), team[3]])
-                weekly_luck_data.append([int(week_counter), float(team[4].replace("%", ""))])
+                ordered_team_managers.append(team[2])
+                weekly_points_data.append([int(week_counter), float(team[3])])
+                weekly_coaching_efficiency_data.append([int(week_counter), team[4]])
+                weekly_luck_data.append([int(week_counter), float(team[5].replace("%", ""))])
 
             chosen_week_ordered_team_names = ordered_team_names
+            chosen_week_ordered_managers = ordered_team_managers
 
             if week_counter == 1:
                 for team_points in weekly_points_data:
@@ -583,7 +588,7 @@ class FantasyFootballReport(object):
                     time_series_luck_data[index].append(team_luck)
             week_counter += 1
 
-        chart_data_list = [chosen_week_ordered_team_names, time_series_points_data, time_series_efficiency_data,
+        chart_data_list = [chosen_week_ordered_team_names, chosen_week_ordered_managers, time_series_points_data, time_series_efficiency_data,
                            time_series_luck_data]
 
         filename = self.league_name.replace(" ",

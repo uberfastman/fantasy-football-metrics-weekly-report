@@ -252,9 +252,57 @@ class PdfGenerator(object):
         elements.append(PageBreak())
 
         series_names = chart_data_list[0]
-        points_data = chart_data_list[1]
-        efficiency_data = chart_data_list[2]
-        luck_data = chart_data_list[3]
+        managers = chart_data_list[1]
+        points_data = chart_data_list[2]
+        efficiency_data = chart_data_list[3]
+        luck_data = chart_data_list[4]
+
+        season_average_points = []
+        season_average_coaching_efficiency = []
+        season_average_luck = []
+        team_index = 0
+        for team in series_names:
+            team_points_average = sum([float(i[1]) for i in points_data[team_index]]) / float(len(points_data[team_index]))
+            season_average_points.append([team, managers[team_index], team_points_average])
+            team_efficiency_average = sum([float(i[1]) for i in efficiency_data[team_index]]) / float(len(efficiency_data[team_index]))
+            season_average_coaching_efficiency.append([team, managers[team_index], team_efficiency_average])
+            team_luck_average = sum([float(i[1]) for i in luck_data[team_index]]) / float(len(luck_data[team_index]))
+            season_average_luck.append([team, managers[team_index], team_luck_average])
+            team_index += 1
+
+        ordered_average_points = sorted(season_average_points, key=lambda x: float(x[2]), reverse=True)
+        average_points_data = []
+        place = 1
+        for team in ordered_average_points:
+            average_points_data.append([place, team[0], team[1], "{0:.2f}".format(team[2])])
+            place += 1
+
+        ordered_average_efficiency = sorted(season_average_coaching_efficiency, key=lambda x: float(x[2]), reverse=True)
+        average_efficiency_data = []
+        place = 1
+        for team in ordered_average_efficiency:
+            average_efficiency_data.append([place, team[0], team[1], "{0:.2f}%".format(team[2])])
+            place += 1
+
+        ordered_average_luck = sorted(season_average_luck, key=lambda x: float(x[2]), reverse=True)
+        average_luck_data = []
+        place = 1
+        for team in ordered_average_luck:
+            average_luck_data.append([place, team[0], team[1], "{0:.2f}%".format(team[2])])
+            place += 1
+
+        elements.append(self.create_title("Season Average Points", element_type="section"))
+        points_headers = [["Place", "Team", "Manager", "Points"]]
+        elements.append(self.create_data_table(points_headers, average_points_data, self.style, col_widths=metric_scores_col_widths))
+        elements.append(spacer_small)
+        elements.append(self.create_title("Season Average Coaching Efficiency", element_type="section"))
+        efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)"]]
+        elements.append(self.create_data_table(efficiency_headers, average_efficiency_data, self.style, col_widths=metric_scores_col_widths))
+        elements.append(spacer_small)
+        elements.append(self.create_title("Season Average Luck", element_type="section"))
+        luck_headers = [["Place", "Team", "Manager", "Luck (%)"]]
+        elements.append(self.create_data_table(luck_headers, average_luck_data, self.style, col_widths=metric_scores_col_widths))
+        elements.append(PageBreak())
 
         # Remove any zeros from coaching efficiency to make table prettier
         for team in efficiency_data:
