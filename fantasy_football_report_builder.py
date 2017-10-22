@@ -317,8 +317,8 @@ class FantasyFootballReport(object):
             player_points_by_position = points_by_position.execute_points_by_position(team_info)
             team_points_by_position_data_list.append([team_name, player_points_by_position])
 
-        for team in team_points_by_position_data_list:
-            print(team)
+        # for team in team_points_by_position_data_list:
+        #     print(team)
 
         final_weekly_score_results_list = sorted(team_results_dict.iteritems(),
                                                  key=lambda (k, v): (float(v.get("weekly_score")), k))[::-1]
