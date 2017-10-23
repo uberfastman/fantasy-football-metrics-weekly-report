@@ -1,5 +1,5 @@
 from collections import defaultdict, Counter
-
+import pandas as pd
 
 class CoachingEfficiency(object):
     # prohibited statuses to check team coaching efficiency eligibility
@@ -185,3 +185,21 @@ class PointsByPosition(object):
                 player_points_by_position[slot] = self.get_points_for_position(starting_players, slot)
 
         return player_points_by_position
+
+
+class PowerRanking():
+    def execute(self, teams):
+        """
+        avg of (weekly points rank + weekly overall win rank)
+        """
+
+        teams = [teams[key] for key in teams]
+
+        df = pd.DataFrame.from_dict(teams)
+
+        df['weekly_score_ranked'] = df['weekly_score'].rank()
+        df['coaching_efficiency_ranked'] = df['coaching_efficiency'].rank()
+
+        print(df)
+
+        return True

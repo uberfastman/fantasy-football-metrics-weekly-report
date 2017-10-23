@@ -9,7 +9,7 @@ from ConfigParser import ConfigParser
 import yql
 from yql.storage import FileTokenStore
 
-from metrics import CoachingEfficiency, PointsByPosition
+from metrics import CoachingEfficiency, PointsByPosition, PowerRanking
 from pdf_generator import PdfGenerator
 
 
@@ -316,6 +316,9 @@ class FantasyFootballReport(object):
                                                                                                disqualification_eligible=disqualification_eligible)
             player_points_by_position = points_by_position.execute_points_by_position(team_info)
             team_points_by_position_data_list.append([team_name, player_points_by_position])
+
+        power_ranking_metric = PowerRanking()
+        power_rankings = power_ranking_metric.execute(team_results_dict)
 
         # for team in team_points_by_position_data_list:
         #     print(team)
