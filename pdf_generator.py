@@ -19,10 +19,10 @@ config.read('config.ini')
 
 class PdfGenerator(object):
     def __init__(self,
-                 weekly_standings_results,
-                 weekly_score_results,
-                 weekly_coaching_efficiency_results,
-                 weekly_luck_results,
+                 weekly_standings_results_data,
+                 weekly_score_results_data,
+                 weekly_coaching_efficiency_results_data,
+                 weekly_luck_results_data,
                  num_tied_scores,
                  num_tied_efficiencies,
                  num_tied_luck,
@@ -39,10 +39,10 @@ class PdfGenerator(object):
                  tied_weekly_luck_bool,
                  weekly_team_points_by_position):
 
-        self.weekly_standings_results = weekly_standings_results
-        self.weekly_score_results = weekly_score_results
-        self.weekly_coaching_efficiency_results = weekly_coaching_efficiency_results
-        self.weekly_luck_results = weekly_luck_results
+        self.weekly_standings_results_data = weekly_standings_results_data
+        self.weekly_score_results_data = weekly_score_results_data
+        self.weekly_coaching_efficiency_results_data = weekly_coaching_efficiency_results_data
+        self.weekly_luck_results_data = weekly_luck_results_data
         self.num_tied_scores = num_tied_scores
         self.num_tied_efficiencies = num_tied_efficiencies
         self.num_tied_luck = num_tied_luck
@@ -125,7 +125,7 @@ class PdfGenerator(object):
         self.style_tied_efficiencies = TableStyle(tied_efficiencies_table_style_list)
         self.style_tied_luck = TableStyle(tied_luck_table_style_list)
 
-        dq_index = len(weekly_score_results) - efficiency_dq_count + 1
+        dq_index = len(weekly_score_results_data) - efficiency_dq_count + 1
 
         if num_tied_efficiencies > 0:
             efficiencies_dq_table_style_list = list(tied_efficiencies_table_style_list)
@@ -210,7 +210,7 @@ class PdfGenerator(object):
 
         return points_line_chart
 
-    def generate_pdf(self, filename_with_path, chart_data_list):
+    def generate_pdf(self, filename_with_path, line_chart_data_list):
 
         elements = []
         spacer_small = Spacer(1, 0.05 * inch)
@@ -231,22 +231,22 @@ class PdfGenerator(object):
         standings_col_widths = [0.50 * inch, 1.75 * inch, 1.00 * inch, 1.00 * inch, 0.80 * inch, 1.10 * inch,
                                 0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]
         elements.append(
-            self.create_data_table(standings_headers, self.weekly_standings_results, self.style, standings_col_widths))
+            self.create_data_table(standings_headers, self.weekly_standings_results_data, self.style, standings_col_widths))
 
         elements.append(PageBreak())
         elements.append(self.points_title)
-        points_headers = [["Place", "Team", "Manager", "Points"]]
+        points_headers = [["Place", "Team", "Manager", "Points", "Season Avg. Pts. (place)"]]
         if self.num_tied_scores > 0:
             if self.league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
                 points_headers[0].append("Bench Points")
             else:
-                for index, team in enumerate(self.weekly_score_results):
-                    self.weekly_score_results[index] = team[:-1]
+                for index, team in enumerate(self.weekly_score_results_data):
+                    self.weekly_score_results_data[index] = team[:-1]
         else:
-            for index, team in enumerate(self.weekly_score_results):
-                self.weekly_score_results[index] = team[:-1]
+            for index, team in enumerate(self.weekly_score_results_data):
+                self.weekly_score_results_data[index] = team[:-1]
 
-        elements.append(self.create_data_table(points_headers, self.weekly_score_results, self.style_tied_scores,
+        elements.append(self.create_data_table(points_headers, self.weekly_score_results_data, self.style_tied_scores,
                                                metric_scores_col_widths, self.tied_points_bool))
 
         if self.tied_points_bool:
@@ -257,8 +257,8 @@ class PdfGenerator(object):
 
         elements.append(spacer_small)
         elements.append(self.efficiency_title)
-        efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)"]]
-        coaching_efficiency_table = self.create_data_table(efficiency_headers, self.weekly_coaching_efficiency_results,
+        efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. Eff. (place)"]]
+        coaching_efficiency_table = self.create_data_table(efficiency_headers, self.weekly_coaching_efficiency_results_data,
                                                            self.style_tied_efficiencies, metric_scores_col_widths,
                                                            self.tied_efficiency_bool)
         if self.efficiency_dq_count > 0:
@@ -278,8 +278,8 @@ class PdfGenerator(object):
 
         elements.append(spacer_small)
         elements.append(self.luck_title)
-        luck_headers = [["Place", "Team", "Manager", "Luck (%)"]]
-        elements.append(self.create_data_table(luck_headers, self.weekly_luck_results, self.style_tied_luck,
+        luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. Luck (place)"]]
+        elements.append(self.create_data_table(luck_headers, self.weekly_luck_results_data, self.style_tied_luck,
                                                metric_scores_col_widths, self.tied_luck_bool))
 
         if self.tied_luck_bool:
@@ -289,11 +289,11 @@ class PdfGenerator(object):
 
         elements.append(PageBreak())
 
-        series_names = chart_data_list[0]
-        managers = chart_data_list[1]
-        points_data = chart_data_list[2]
-        efficiency_data = chart_data_list[3]
-        luck_data = chart_data_list[4]
+        series_names = line_chart_data_list[0]
+        managers = line_chart_data_list[1]
+        points_data = line_chart_data_list[2]
+        efficiency_data = line_chart_data_list[3]
+        luck_data = line_chart_data_list[4]
 
         # calculate season averages for points, coaching efficiency, and luck
         season_average_points = []

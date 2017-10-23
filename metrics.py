@@ -1,6 +1,12 @@
 from collections import defaultdict, Counter
 
 
+class Points(object):
+
+    def __init__(self):
+        pass
+
+
 class CoachingEfficiency(object):
     # prohibited statuses to check team coaching efficiency eligibility
     prohibited_status_list = ["PUP-P", "SUSP", "O", "IR"]
@@ -146,6 +152,53 @@ class CoachingEfficiency(object):
                 coaching_efficiency = 0.0
 
         return coaching_efficiency
+
+
+class Luck(object):
+
+    def __init__(self):
+        pass
+
+
+class SeasonAverageCalculator(object):
+
+    def __init__(self, team_names, report_info_dict):
+        self.team_names = team_names
+        self.report_info_dict = report_info_dict
+
+    def get_average(self, data):
+
+        season_average_points_list = []
+        team_index = 0
+        for team in data:
+            print()
+            team_name = self.team_names[team_index]
+            season_average_points = "{0:.2f}".format(sum([float(week[1]) for week in team]) / float(len(team)))
+            print(team_name)
+            print("TEAM DATA:\n", team)
+            print()
+            season_average_points_list.append([team_name, season_average_points])
+            print(season_average_points)
+            # report_info_dict.get("weekly_score_results_data_list").append(season_average_points)
+            team_index += 1
+        ordered_average_points = sorted(season_average_points_list, key=lambda x: float(x[1]), reverse=True)
+        for team in ordered_average_points:
+            ordered_average_points[ordered_average_points.index(team)] = [ordered_average_points.index(team), team[0], team[1]]
+
+        weekly_scores_list = []
+        for ordered_team in report_info_dict.get("weekly_score_results_data_list"):
+            for team in ordered_average_points:
+                if ordered_team[1] == team[1]:
+                    ordered_team.insert(-1, str(team[2]) + " (" + str(ordered_average_points.index(team) + 1) + ")")
+                    weekly_scores_list.append(ordered_team)
+        report_info_dict["weekly_score_results_data_list"] = weekly_scores_list
+
+        print("FINAL:\n", report_info_dict.get("weekly_score_results_data_list"))
+
+
+
+
+        return "{0:.2f}".format(sum([float(i[1]) for i in data[1]]) / float(len(data)))
 
 
 class PointsByPosition(object):

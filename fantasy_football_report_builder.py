@@ -597,9 +597,45 @@ class FantasyFootballReport(object):
                     time_series_luck_data[index].append(team_luck)
             week_counter += 1
 
-        chart_data_list = [chosen_week_ordered_team_names, chosen_week_ordered_managers, time_series_points_data,
-                           time_series_efficiency_data,
-                           time_series_luck_data]
+        print("WEEKLY SCORES RESULTS LIST:\n", report_info_dict.get("weekly_score_results_data_list"))
+        season_average_points_list = []
+        team_index = 0
+        for team in time_series_points_data:
+            print()
+
+
+
+
+
+
+
+            
+            team_name = chosen_week_ordered_team_names[team_index]
+            season_average_points = "{0:.2f}".format(sum([float(week[1]) for week in team]) / float(len(team)))
+            print(team_name)
+            print("TEAM DATA:\n", team)
+            print()
+            season_average_points_list.append([team_name, season_average_points])
+            print(season_average_points)
+            # report_info_dict.get("weekly_score_results_data_list").append(season_average_points)
+            team_index += 1
+        ordered_average_points = sorted(season_average_points_list, key=lambda x: float(x[1]), reverse=True)
+        for team in ordered_average_points:
+            ordered_average_points[ordered_average_points.index(team)] = [ordered_average_points.index(team), team[0], team[1]]
+
+        weekly_scores_list = []
+        for ordered_team in report_info_dict.get("weekly_score_results_data_list"):
+            for team in ordered_average_points:
+                if ordered_team[1] == team[1]:
+                    ordered_team.insert(-1, str(team[2]) + " (" + str(ordered_average_points.index(team) + 1) + ")")
+                    weekly_scores_list.append(ordered_team)
+        report_info_dict["weekly_score_results_data_list"] = weekly_scores_list
+
+        print("FINAL:\n", report_info_dict.get("weekly_score_results_data_list"))
+
+        line_chart_data_list = [chosen_week_ordered_team_names, chosen_week_ordered_managers, time_series_points_data,
+                                time_series_efficiency_data,
+                                time_series_luck_data]
 
         filename = self.league_name.replace(" ",
                                             "-") + "(" + self.league_id + ")_week-" + self.chosen_week + "_report.pdf"
@@ -619,10 +655,10 @@ class FantasyFootballReport(object):
 
         # instantiate pdf generator
         pdf_generator = PdfGenerator(
-            weekly_standings_results=report_info_dict.get("weekly_standings_results_data_list"),
-            weekly_score_results=report_info_dict.get("weekly_score_results_data_list"),
-            weekly_coaching_efficiency_results=report_info_dict.get("coaching_efficiency_results_data_list"),
-            weekly_luck_results=report_info_dict.get("weekly_luck_results_data_list"),
+            weekly_standings_results_data=report_info_dict.get("weekly_standings_results_data_list"),
+            weekly_score_results_data=report_info_dict.get("weekly_score_results_data_list"),
+            weekly_coaching_efficiency_results_data=report_info_dict.get("coaching_efficiency_results_data_list"),
+            weekly_luck_results_data=report_info_dict.get("weekly_luck_results_data_list"),
             num_tied_scores=report_info_dict.get("num_tied_scores"),
             num_tied_efficiencies=report_info_dict.get("num_tied_efficiencies"),
             num_tied_luck=report_info_dict.get("num_tied_luck"),
@@ -641,7 +677,7 @@ class FantasyFootballReport(object):
         )
 
         # generate pdf of report
-        file_for_upload = pdf_generator.generate_pdf(filename_with_path, chart_data_list)
+        file_for_upload = pdf_generator.generate_pdf(filename_with_path, line_chart_data_list)
 
         print("Generated PDF: {}\n".format(file_for_upload))
 
