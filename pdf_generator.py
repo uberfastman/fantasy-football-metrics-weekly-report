@@ -15,7 +15,7 @@ from line_chart_generator import LineChartGenerator
 from pie_chart_generator import BreakdownPieDrawing
 
 config = ConfigParser()
-config.read('config.ini')
+config.read("config.ini")
 
 
 class PdfGenerator(object):
@@ -58,33 +58,34 @@ class PdfGenerator(object):
         # Configure style and word wrap
         self.stylesheet = getSampleStyleSheet()
         self.text_style = self.stylesheet["BodyText"]
-        self.text_styleN = self.stylesheet['Normal']
-        self.text_styleH = self.stylesheet['Heading3']
-        self.text_styleT = self.stylesheet['Heading2']
-        self.text_style.wordWrap = 'CJK'
+        self.text_styleN = self.stylesheet["Normal"]
+        self.text_styleD = self.stylesheet["Heading1"]
+        self.text_styleT = self.stylesheet["Heading2"]
+        self.text_styleH = self.stylesheet["Heading3"]
+        self.text_style.wordWrap = "CJK"
 
         title_table_style_list = [
-            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+            ("TEXTCOLOR", (0, 0), (-1, -1), colors.black),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
         ]
 
         self.title_style = TableStyle(title_table_style_list)
 
         # Reportlab fonts: https://github.com/mattjmorrison/ReportLab/blob/master/src/reportlab/lib/fonts.py
         table_style_list = [
-            ('TEXTCOLOR', (0, 1), (-1, 1), colors.green),
-            ('FONT', (0, 1), (-1, 1), 'Helvetica-Oblique'),
-            ('FONT', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 1),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.gray),
-            ('GRID', (0, 0), (-1, 0), 1.5, colors.black),
-            ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
-            ('INNERGRID', (0, 0), (-1, -1), 0.25, colors.black),
-            ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey)
+            ("TEXTCOLOR", (0, 1), (-1, 1), colors.green),
+            ("FONT", (0, 1), (-1, 1), "Helvetica-Oblique"),
+            ("FONT", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 10),
+            ("TOPPADDING", (0, 0), (-1, -1), 1),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.gray),
+            ("GRID", (0, 0), (-1, 0), 1.5, colors.black),
+            ("BOX", (0, 0), (-1, -1), 0.5, colors.black),
+            ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.black),
+            ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey)
         ]
 
         self.style = TableStyle(table_style_list)
@@ -94,13 +95,13 @@ class PdfGenerator(object):
         tied_scores_table_style_list = list(table_style_list)
 
         if league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
-            tied_scores_table_style_list.append(('TEXTCOLOR', (0, 1), (-1, 1), colors.green))
-            tied_scores_table_style_list.append(('FONT', (0, 1), (-1, 1), 'Helvetica-Oblique'))
+            tied_scores_table_style_list.append(("TEXTCOLOR", (0, 1), (-1, 1), colors.green))
+            tied_scores_table_style_list.append(("FONT", (0, 1), (-1, 1), "Helvetica-Oblique"))
         else:
             index = 1
             while tied_scores_iterator > 0:
-                tied_scores_table_style_list.append(('TEXTCOLOR', (0, index), (-1, index), colors.green))
-                tied_scores_table_style_list.append(('FONT', (0, index), (-1, index), 'Helvetica-Oblique'))
+                tied_scores_table_style_list.append(("TEXTCOLOR", (0, index), (-1, index), colors.green))
+                tied_scores_table_style_list.append(("FONT", (0, index), (-1, index), "Helvetica-Oblique"))
                 tied_scores_iterator -= 1
                 index += 1
 
@@ -108,8 +109,8 @@ class PdfGenerator(object):
         tied_efficiencies_table_style_list = list(table_style_list)
         index = 1
         while tied_efficiencies_iterator > 0:
-            tied_efficiencies_table_style_list.append(('TEXTCOLOR', (0, index), (-1, index), colors.green))
-            tied_efficiencies_table_style_list.append(('FONT', (0, index), (-1, index), 'Helvetica-Oblique'))
+            tied_efficiencies_table_style_list.append(("TEXTCOLOR", (0, index), (-1, index), colors.green))
+            tied_efficiencies_table_style_list.append(("FONT", (0, index), (-1, index), "Helvetica-Oblique"))
             tied_efficiencies_iterator -= 1
             index += 1
 
@@ -117,8 +118,8 @@ class PdfGenerator(object):
         tied_luck_table_style_list = list(table_style_list)
         index = 1
         while tied_luck_iterator > 0:
-            tied_luck_table_style_list.append(('TEXTCOLOR', (0, index), (-1, index), colors.green))
-            tied_luck_table_style_list.append(('FONT', (0, index), (-1, index), 'Helvetica-Oblique'))
+            tied_luck_table_style_list.append(("TEXTCOLOR", (0, index), (-1, index), colors.green))
+            tied_luck_table_style_list.append(("FONT", (0, index), (-1, index), "Helvetica-Oblique"))
             tied_luck_iterator -= 1
             index += 1
 
@@ -136,7 +137,7 @@ class PdfGenerator(object):
         if efficiency_dq_count > 0:
 
             while efficiency_dq_count > 0:
-                efficiencies_dq_table_style_list.append(('TEXTCOLOR', (0, dq_index), (3, dq_index), colors.red))
+                efficiencies_dq_table_style_list.append(("TEXTCOLOR", (0, dq_index), (3, dq_index), colors.red))
                 efficiency_dq_count -= 1
                 dq_index += 1
 
@@ -149,21 +150,21 @@ class PdfGenerator(object):
         self.efficiency_title = self.create_title(coaching_efficiency_title_text, element_type="section")
         self.luck_title = self.create_title(luck_title_text, element_type="section")
 
-    def create_title(self, title_text, element_type=None):
+    def create_title(self, title_text, title_width=8.5, element_type=None):
 
         if element_type == "document":
-            title_text_style = self.text_styleT
+            title_text_style = self.text_styleD
         elif element_type == "section":
-            title_text_style = self.text_styleH
+            title_text_style = self.text_styleT
         else:
-            title_text_style = self.text_styleN
+            title_text_style = self.text_styleH
 
-        title = Paragraph('''<para align=center spaceb=3><b>''' + title_text + '''</b></para>''', title_text_style)
-        title_table = Table([[title]], colWidths=[5 * inch] * 1)
+        title = Paragraph('''<para align=center><b>''' + title_text + '''</b></para>''', title_text_style)
+        title_table = Table([[title]], colWidths=[title_width * inch] * 1)
         title_table.setStyle(self.title_style)
         return title_table
 
-    def create_data_table(self, col_headers, data, table_style_for_ties, col_widths=None, tied_metric_bool=False):
+    def create_data_table(self, col_headers, data, table_style_for_ties=None, col_widths=None, tied_metric_bool=False):
 
         [col_headers.append(item) for item in data]
         table = Table(col_headers, colWidths=col_widths)
@@ -180,19 +181,20 @@ class PdfGenerator(object):
     @staticmethod
     def create_line_chart(data, data_length, series_names, chart_title, x_axis_title, y_axis_title, y_step):
 
+        # see https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/ for colors
         series_colors = [
-            [100, 0, 0, 0, 100],
-            [100, 50, 0, 0, 100],
-            [100, 100, 0, 0, 100],
-            [50, 100, 0, 0, 100],
-            [0, 100, 0, 0, 100],
-            [0, 100, 50, 0, 100],
-            [0, 100, 100, 0, 100],
-            [0, 50, 100, 0, 100],
-            [0, 0, 100, 0, 100],
-            [50, 0, 100, 0, 100],
-            [100, 0, 100, 0, 100],
-            [100, 0, 50, 0, 100]
+            [0, 100, 66, 0, 100],  # red
+            [75, 0, 100, 0, 100],  # green
+            [0, 25, 95, 0, 100],  # yellow
+            [100, 35, 0, 0, 100],  # blue
+            [0, 60, 92, 0, 100],  # orange
+            [35, 70, 0, 0, 100],  # purple
+            [70, 0, 0, 0, 100],  # cyan
+            [0, 100, 0, 0, 100],  # magenta
+            [35, 0, 100, 0, 100],  # lime
+            [0, 30, 15, 0, 100],  # pink
+            [100, 0, 0, 50, 100],  # teal
+            [10, 25, 0, 0, 100]  # lavender
         ]
 
         box_width = 550
@@ -213,6 +215,34 @@ class PdfGenerator(object):
         points_line_chart.make_series_labels(series_names)
 
         return points_line_chart
+
+    def create_team_stats_pages(self, doc_elements, teams_data):
+        # Todo: FINISH WEEKLY POINTS BY POSITION PIE CHARTS AND MAYBE ADD SEASON AVERAGE POINTS BY POSITION
+        team_number = 1
+        for team in teams_data:
+            doc_elements.append(self.create_title("<i>" + team[0] + "</i>" + " Stats", element_type="section"))
+            labels = []
+            data = []
+            for week in team[1]:
+                labels.append(week[0])
+                data.append(week[1])
+            team_table = Table(
+                [[self.create_title("Weekly Points by Position", title_width=2.00),
+                  self.create_title("Season Average Points by Position", title_width=2.00)],
+                 [BreakdownPieDrawing(labels, data),
+                  "Season average points by position coming soon!"]],
+                colWidths=[4.25 * inch, 4.25 * inch],
+                style=TableStyle([
+                    ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.white),
+                    ("BOX", (0, 0), (-1, -1), 0.25, colors.white),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, 0), "MIDDLE")
+                ]))
+            doc_elements.append(team_table)
+            doc_elements.append(Spacer(1, 0.50 * inch))
+            if team_number % 2 == 0:
+                doc_elements.append(PageBreak())
+            team_number += 1
 
     def generate_pdf(self, filename_with_path, line_chart_data_list):
 
@@ -251,8 +281,11 @@ class PdfGenerator(object):
             for index, team in enumerate(self.weekly_score_results_data):
                 self.weekly_score_results_data[index] = team[:-1]
 
-        elements.append(self.create_data_table(points_headers, self.weekly_score_results_data, self.style_tied_scores,
-                                               metric_scores_col_widths, self.tied_points_bool))
+        elements.append(self.create_data_table(points_headers,
+                                               self.weekly_score_results_data,
+                                               table_style_for_ties=self.style_tied_scores,
+                                               col_widths=metric_scores_col_widths,
+                                               tied_metric_bool=self.tied_points_bool))
 
         if self.tied_points_bool:
             if self.league_id != config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
@@ -265,8 +298,9 @@ class PdfGenerator(object):
         efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
         coaching_efficiency_table = self.create_data_table(efficiency_headers,
                                                            self.weekly_coaching_efficiency_results_data,
-                                                           self.style_tied_efficiencies, metric_scores_col_widths,
-                                                           self.tied_efficiency_bool)
+                                                           table_style_for_ties=self.style_tied_efficiencies,
+                                                           col_widths=metric_scores_col_widths,
+                                                           tied_metric_bool=self.tied_efficiency_bool)
         if self.efficiency_dq_count > 0:
             coaching_efficiency_table.setStyle(self.style_efficiency_dqs)
         elements.append(coaching_efficiency_table)
@@ -285,8 +319,11 @@ class PdfGenerator(object):
         elements.append(spacer_small)
         elements.append(self.luck_title)
         luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)"]]
-        elements.append(self.create_data_table(luck_headers, self.weekly_luck_results_data, self.style_tied_luck,
-                                               metric_scores_col_widths, self.tied_luck_bool))
+        elements.append(self.create_data_table(luck_headers,
+                                               self.weekly_luck_results_data,
+                                               table_style_for_ties=self.style_tied_luck,
+                                               col_widths=metric_scores_col_widths,
+                                               tied_metric_bool=self.tied_luck_bool))
 
         if self.tied_luck_bool:
             elements.append(Paragraph(
@@ -323,15 +360,8 @@ class PdfGenerator(object):
         elements.append(Paragraph(self.report_footer_text, getSampleStyleSheet()["Normal"]))
         elements.append(PageBreak())
 
-        # Todo: FINISH WEEKLY POINTS BY POSITION PIE CHARTS AND MAYBE ADD SEASON AVERAGE POINTS BY POSITION
-        # for team in self.weekly_team_points_by_position:
-        #     elements.append(self.create_title(team[0] + " Weekly Points by Position", element_type="section"))
-        #     labels = []
-        #     data = []
-        #     for week in team[1]:
-        #         labels.append(week[0])
-        #         data.append(week[1])
-        #     elements.append(BreakdownPieDrawing(labels, data))
+        # dynamically build additional pages for individual team stats
+        self.create_team_stats_pages(elements, self.weekly_team_points_by_position)
 
         print("generating pdf...\n")
         doc.build(elements)

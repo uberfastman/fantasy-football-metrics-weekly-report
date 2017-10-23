@@ -8,18 +8,21 @@ from reportlab.lib.colors import HexColor, black
 
 class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
     def __init__(self, labels, data, width=400, height=200, *args, **kw):
+
+        # see https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/ for colors
         pdf_chart_colors = [
-            HexColor("#0000e5"),
-            HexColor("#1f1feb"),
-            HexColor("#5757f0"),
-            HexColor("#8f8ff5"),
-            HexColor("#c7c7fa"),
-            HexColor("#f5c2c2"),
-            HexColor("#eb8585"),
-            HexColor("#e04747"),
-            HexColor("#d60a0a"),
-            HexColor("#cc0000"),
-            HexColor("#ff0000"),
+            HexColor("#e6194b"),  # red
+            HexColor("#3cb44b"),  # green
+            HexColor("#ffe119"),  # yellow
+            HexColor("#0082c8"),  # blue
+            HexColor("#f58231"),  # orange
+            HexColor("#911eb4"),  # purple
+            HexColor("#46f0f0"),  # cyan
+            HexColor("#f032e6"),  # magenta
+            HexColor("#d2f53c"),  # lime
+            HexColor("#fabebe"),  # pink
+            HexColor("#008080"),  # teal
+            HexColor("#e6beff")   # lavender
         ]
 
         apply(Drawing.__init__, (self, width, height) + args, kw)
@@ -27,7 +30,7 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
         self._add(self, Pie(), name='pie', validate=None, desc=None)
         self.pie.width = 150
         self.pie.height = self.pie.width
-        self.pie.x = 20
+        self.pie.x = 125
         self.pie.y = (height - self.pie.height) / 2
         # self.pie.data = [26.90, 13.30, 11.10, 9.40, 8.50, 7.80, 7.00, 6.20, 8.80, 1.00]
         self.pie.data = data
@@ -41,7 +44,7 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
         self.pie.slices.strokeWidth = 1
         # adding legend
         self._add(self, Legend(), name='legend', validate=None, desc=None)
-        self.legend.x = 200
+        self.legend.x = 325
         self.legend.y = height / 2
         self.legend.dx = 8
         self.legend.dy = 8

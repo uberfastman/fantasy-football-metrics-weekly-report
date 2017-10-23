@@ -314,11 +314,11 @@ class FantasyFootballReport(object):
                                                                                                int(chosen_week),
                                                                                                self.league_roster_active_slots,
                                                                                                disqualification_eligible=disqualification_eligible)
+            for slot in self.roster["slots"].keys():
+                if self.roster["slots"].get(slot) == 0:
+                    del self.roster["slots"][slot]
             player_points_by_position = points_by_position.execute_points_by_position(team_info)
             team_points_by_position_data_list.append([team_name, player_points_by_position])
-
-        # for team in team_points_by_position_data_list:
-        #     print(team)
 
         final_weekly_score_results_list = sorted(team_results_dict.iteritems(),
                                                  key=lambda (k, v): (float(v.get("weekly_score")), k))[::-1]
