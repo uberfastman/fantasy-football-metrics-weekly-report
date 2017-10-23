@@ -9,7 +9,7 @@ from ConfigParser import ConfigParser
 import yql
 from yql.storage import FileTokenStore
 
-from metrics import CoachingEfficiency, PointsByPosition
+from metrics import CoachingEfficiency, PointsByPosition, SeasonAverageCalculator
 from pdf_generator import PdfGenerator
 
 
@@ -263,8 +263,8 @@ class FantasyFootballReport(object):
             team_results_dict[team_name] = {
                 "manager": teams_dict.get(team).get("manager"),
                 "players": players,
-                "weekly_score": sum([p["fantasy_points"] for p in players if p["selected_position"] != "BN"]),
-                # "weekly_score": 100,
+                # "weekly_score": sum([p["fantasy_points"] for p in players if p["selected_position"] != "BN"]),
+                "weekly_score": 100,
                 "bench_score": sum([p["fantasy_points"] for p in players if p["selected_position"] == "BN"]),
                 "team_id": team_id,
                 "positions_filled_active": positions_filled_active
@@ -597,41 +597,11 @@ class FantasyFootballReport(object):
                     time_series_luck_data[index].append(team_luck)
             week_counter += 1
 
-        print("WEEKLY SCORES RESULTS LIST:\n", report_info_dict.get("weekly_score_results_data_list"))
-        season_average_points_list = []
-        team_index = 0
-        for team in time_series_points_data:
-            print()
-
-
-
-
-
-
-
-            
-            team_name = chosen_week_ordered_team_names[team_index]
-            season_average_points = "{0:.2f}".format(sum([float(week[1]) for week in team]) / float(len(team)))
-            print(team_name)
-            print("TEAM DATA:\n", team)
-            print()
-            season_average_points_list.append([team_name, season_average_points])
-            print(season_average_points)
-            # report_info_dict.get("weekly_score_results_data_list").append(season_average_points)
-            team_index += 1
-        ordered_average_points = sorted(season_average_points_list, key=lambda x: float(x[1]), reverse=True)
-        for team in ordered_average_points:
-            ordered_average_points[ordered_average_points.index(team)] = [ordered_average_points.index(team), team[0], team[1]]
-
-        weekly_scores_list = []
-        for ordered_team in report_info_dict.get("weekly_score_results_data_list"):
-            for team in ordered_average_points:
-                if ordered_team[1] == team[1]:
-                    ordered_team.insert(-1, str(team[2]) + " (" + str(ordered_average_points.index(team) + 1) + ")")
-                    weekly_scores_list.append(ordered_team)
-        report_info_dict["weekly_score_results_data_list"] = weekly_scores_list
-
-        print("FINAL:\n", report_info_dict.get("weekly_score_results_data_list"))
+        # calculate season average metrics and then add columns for them to their respective metric table data
+        season_average_calculator = SeasonAverageCalculator(chosen_week_ordered_team_names, report_info_dict)
+        report_info_dict["weekly_score_results_data_list"] = season_average_calculator.get_average(time_series_points_data, "weekly_score_results_data_list", False)
+        report_info_dict["coaching_efficiency_results_data_list"] = season_average_calculator.get_average(time_series_efficiency_data, "coaching_efficiency_results_data_list", True)
+        report_info_dict["weekly_luck_results_data_list"] = season_average_calculator.get_average(time_series_luck_data, "weekly_luck_results_data_list", True)
 
         line_chart_data_list = [chosen_week_ordered_team_names, chosen_week_ordered_managers, time_series_points_data,
                                 time_series_efficiency_data,

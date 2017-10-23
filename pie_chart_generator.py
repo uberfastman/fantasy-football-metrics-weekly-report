@@ -7,7 +7,7 @@ from reportlab.lib.colors import HexColor, black
 
 
 class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
-    def __init__(self, width=400, height=200, *args, **kw):
+    def __init__(self, labels, data, width=400, height=200, *args, **kw):
         pdf_chart_colors = [
             HexColor("#0000e5"),
             HexColor("#1f1feb"),
@@ -29,9 +29,11 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
         self.pie.height = self.pie.width
         self.pie.x = 20
         self.pie.y = (height - self.pie.height) / 2
-        self.pie.data = [26.90, 13.30, 11.10, 9.40, 8.50, 7.80, 7.00, 6.20, 8.80, 1.00]
-        self.pie.labels = ['Financials', 'Energy', 'Health Care', 'Telecoms', 'Consumer', 'Consumer 2', 'Industrials',
-                           'Materials', 'Other', 'Liquid Assets']
+        # self.pie.data = [26.90, 13.30, 11.10, 9.40, 8.50, 7.80, 7.00, 6.20, 8.80, 1.00]
+        self.pie.data = data
+        # self.pie.labels = ['Financials', 'Energy', 'Health Care', 'Telecoms', 'Consumer', 'Consumer 2', 'Industrials',
+        #                    'Materials', 'Other', 'Liquid Assets']
+        self.pie.labels = labels
         self.pie.simpleLabels = 1
         self.pie.slices.label_visible = 0
         self.pie.slices.fontColor = None
@@ -63,6 +65,7 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
         self.legend.colorNamePairs = [
             (self.pie.slices[i].fillColor, (self.pie.labels[i][0:20], '%0.2f' % self.pie.data[i])) for i in xrange(n)]
 
+    @staticmethod
     def set_items(n, obj, attr, values):
         m = len(values)
         i = m // n

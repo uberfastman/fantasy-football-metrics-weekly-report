@@ -166,39 +166,29 @@ class SeasonAverageCalculator(object):
         self.team_names = team_names
         self.report_info_dict = report_info_dict
 
-    def get_average(self, data):
+    def get_average(self, data, key, with_percent_bool):
 
-        season_average_points_list = []
+        season_average_list = []
         team_index = 0
         for team in data:
-            print()
             team_name = self.team_names[team_index]
-            season_average_points = "{0:.2f}".format(sum([float(week[1]) for week in team]) / float(len(team)))
-            print(team_name)
-            print("TEAM DATA:\n", team)
-            print()
-            season_average_points_list.append([team_name, season_average_points])
-            print(season_average_points)
-            # report_info_dict.get("weekly_score_results_data_list").append(season_average_points)
+            season_average_value = "{0:.2f}".format(sum([float(week[1]) for week in team]) / float(len(team)))
+            season_average_list.append([team_name, season_average_value])
             team_index += 1
-        ordered_average_points = sorted(season_average_points_list, key=lambda x: float(x[1]), reverse=True)
-        for team in ordered_average_points:
-            ordered_average_points[ordered_average_points.index(team)] = [ordered_average_points.index(team), team[0], team[1]]
+        ordered_average_values = sorted(season_average_list, key=lambda x: float(x[1]), reverse=True)
+        for team in ordered_average_values:
+            ordered_average_values[ordered_average_values.index(team)] = [ordered_average_values.index(team), team[0], team[1]]
 
-        weekly_scores_list = []
-        for ordered_team in report_info_dict.get("weekly_score_results_data_list"):
-            for team in ordered_average_points:
+        ordered_season_average_list = []
+        for ordered_team in self.report_info_dict.get(key):
+            for team in ordered_average_values:
                 if ordered_team[1] == team[1]:
-                    ordered_team.insert(-1, str(team[2]) + " (" + str(ordered_average_points.index(team) + 1) + ")")
-                    weekly_scores_list.append(ordered_team)
-        report_info_dict["weekly_score_results_data_list"] = weekly_scores_list
-
-        print("FINAL:\n", report_info_dict.get("weekly_score_results_data_list"))
-
-
-
-
-        return "{0:.2f}".format(sum([float(i[1]) for i in data[1]]) / float(len(data)))
+                    if with_percent_bool:
+                        ordered_team.append(str(team[2]) + "% (" + str(ordered_average_values.index(team) + 1) + ")")
+                    else:
+                        ordered_team.insert(-1, str(team[2]) + " (" + str(ordered_average_values.index(team) + 1) + ")")
+                    ordered_season_average_list.append(ordered_team)
+        return ordered_season_average_list
 
 
 class PointsByPosition(object):
@@ -231,10 +221,11 @@ class PointsByPosition(object):
 
         players = team_info['players']
 
-        player_points_by_position = {}
+        player_points_by_position = []
         starting_players = self.get_starting_players(players)
         for slot in self.roster_slots.keys():
             if slot != "BN" and slot != "FLEX":
-                player_points_by_position[slot] = self.get_points_for_position(starting_players, slot)
+                player_points_by_position.append([slot, self.get_points_for_position(starting_players, slot)])
 
+        player_points_by_position = sorted(player_points_by_position, key=lambda x: x[0])
         return player_points_by_position
