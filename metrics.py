@@ -195,7 +195,7 @@ class PointsByPosition(object):
 
     def __init__(self, roster_settings):
 
-        self.roster_slots = roster_settings["slots"]
+        self.roster_slots = roster_settings.get("slots")
         self.flex_positions = {
             "FLEX": roster_settings["flex_positions"],
             "D": ["D", "DB", "DL", "LB", "DT", "DE", "S", "CB"]
