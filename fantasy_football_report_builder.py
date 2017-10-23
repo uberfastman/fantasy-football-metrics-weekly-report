@@ -263,8 +263,8 @@ class FantasyFootballReport(object):
             team_results_dict[team_name] = {
                 "manager": teams_dict.get(team).get("manager"),
                 "players": players,
-                # "weekly_score": sum([p["fantasy_points"] for p in players if p["selected_position"] != "BN"]),
-                "weekly_score": 100,
+                "weekly_score": sum([p["fantasy_points"] for p in players if p["selected_position"] != "BN"]),
+                # "weekly_score": 100,
                 "bench_score": sum([p["fantasy_points"] for p in players if p["selected_position"] == "BN"]),
                 "team_id": team_id,
                 "positions_filled_active": positions_filled_active
