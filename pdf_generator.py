@@ -25,6 +25,7 @@ class PdfGenerator(object):
                  weekly_score_results_data,
                  weekly_coaching_efficiency_results_data,
                  weekly_luck_results_data,
+                 weekly_power_rank_data,
                  num_tied_scores,
                  num_tied_efficiencies,
                  num_tied_luck,
@@ -39,6 +40,7 @@ class PdfGenerator(object):
                  tied_weekly_coaching_efficiency_bool,
                  luck_title_text,
                  tied_weekly_luck_bool,
+                 power_tank_title_text,
                  weekly_team_points_by_position,
                  season_average_team_points_by_position
                  ):
@@ -47,6 +49,7 @@ class PdfGenerator(object):
         self.weekly_score_results_data = weekly_score_results_data
         self.weekly_coaching_efficiency_results_data = weekly_coaching_efficiency_results_data
         self.weekly_luck_results_data = weekly_luck_results_data
+        self.weekly_power_rank_data = weekly_power_rank_data
         self.num_tied_scores = num_tied_scores
         self.num_tied_efficiencies = num_tied_efficiencies
         self.num_tied_luck = num_tied_luck
@@ -158,6 +161,7 @@ class PdfGenerator(object):
         # options: "document", "section", or None/empty
         self.report_title = self.create_title(report_title_text, element_type="document")
         self.standings_title = self.create_title(standings_title_text, element_type="section")
+        self.power_rank_title = self.create_title(power_tank_title_text, element_type="section")
         self.points_title = self.create_title(points_title_text, element_type="section")
         self.efficiency_title = self.create_title(coaching_efficiency_title_text, element_type="section")
         self.luck_title = self.create_title(luck_title_text, element_type="section")
@@ -280,6 +284,15 @@ class PdfGenerator(object):
         elements.append(
             self.create_data_table(standings_headers, self.weekly_standings_results_data, self.style,
                                    standings_col_widths))
+
+        elements.append(self.spacer_small)
+        elements.append(self.power_rank_title)
+        power_rank_headers = [["Rank", "Team", "Manager", "Season Avg. (Place)"]]
+        elements.append(self.create_data_table(power_rank_headers,
+                                               self.weekly_power_rank_data,
+                                               table_style_for_ties=self.style_tied_luck,
+                                               col_widths=metric_scores_col_widths,
+                                               tied_metric_bool=True))
 
         elements.append(self.page_break)
         elements.append(self.points_title)

@@ -208,7 +208,11 @@ class SeasonAverageCalculator(object):
         self.team_names = team_names
         self.report_info_dict = report_info_dict
 
-    def get_average(self, data, key, with_percent_bool):
+    def get_average(self, data, key, with_percent_bool, append=True, reverse=True):
+        """
+        append parameter is hack to support bench scoring for a specific use case
+        TODO: dont do that
+        """
 
         season_average_list = []
         team_index = 0
@@ -217,7 +221,7 @@ class SeasonAverageCalculator(object):
             season_average_value = "{0:.2f}".format(sum([float(week[1]) for week in team]) / float(len(team)))
             season_average_list.append([team_name, season_average_value])
             team_index += 1
-        ordered_average_values = sorted(season_average_list, key=lambda x: float(x[1]), reverse=True)
+        ordered_average_values = sorted(season_average_list, key=lambda x: float(x[1]), reverse=reverse)
         for team in ordered_average_values:
             ordered_average_values[ordered_average_values.index(team)] = [ordered_average_values.index(team), team[0], team[1]]
 
@@ -225,10 +229,11 @@ class SeasonAverageCalculator(object):
         for ordered_team in self.report_info_dict.get(key):
             for team in ordered_average_values:
                 if ordered_team[1] == team[1]:
-                    if with_percent_bool:
-                        ordered_team.append(str(team[2]) + "% (" + str(ordered_average_values.index(team) + 1) + ")")
+                    value = "{0}{1} ({2})".format(str(team[2]), "%" if with_percent_bool else "", str(ordered_average_values.index(team) + 1))
+                    if append:
+                        ordered_team.append(value)
                     else:
-                        ordered_team.insert(-1, str(team[2]) + " (" + str(ordered_average_values.index(team) + 1) + ")")
+                        ordered_team.insert(-1, value)
                     ordered_season_average_list.append(ordered_team)
         return ordered_season_average_list
 
@@ -296,6 +301,12 @@ class PointsByPosition(object):
 
 
 class PowerRanking():
+
+    def power_ranking(self, row):
+        result = (row['score_rank'] + row['coach_rank'] + row['luck_rank']) / 3.0
+
+        return result
+
     def execute(self, teams):
         """
         avg of (weekly points rank + weekly overall win rank)
@@ -305,9 +316,24 @@ class PowerRanking():
 
         df = pd.DataFrame.from_dict(teams)
 
-        df['weekly_score_ranked'] = df['weekly_score'].rank()
-        df['coaching_efficiency_ranked'] = df['coaching_efficiency'].rank()
+        df['score_rank'] = df['weekly_score'].rank(ascending=False)
+        df['coach_rank'] = df['coaching_efficiency'].rank(ascending=False)
+        df['luck_rank'] = df['luck'].rank(ascending=False)
+        df['power_rank'] = df.apply(self.power_ranking, axis=1).rank()
 
-        print(df)
+        # convert to just return calculated results
+        # TODO: this is probably not the best way?
 
-        return True
+        teams = df.to_dict(orient='records')
+
+        results = {}
+
+        for team in teams:            
+            results[team['name']] = {
+                'score_rank': team['score_rank'],
+                'coach_rank': team['coach_rank'],
+                'luck_rank': team['luck_rank'],
+                'power_rank': team['power_rank']
+            }
+
+        return results
