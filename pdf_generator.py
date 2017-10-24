@@ -21,48 +21,37 @@ config.read("config.ini")
 
 class PdfGenerator(object):
     def __init__(self,
-                 weekly_standings_results_data,
-                 weekly_score_results_data,
-                 weekly_coaching_efficiency_results_data,
-                 weekly_luck_results_data,
-                 weekly_power_rank_data,
-                 num_tied_scores,
-                 num_tied_efficiencies,
-                 num_tied_luck,
-                 efficiency_dq_count,
                  league_id,
                  report_title_text,
-                 report_footer_text,
                  standings_title_text,
-                 points_title_text,
-                 tied_weekly_score_bool,
+                 scores_title_text,
                  coaching_efficiency_title_text,
-                 tied_weekly_coaching_efficiency_bool,
                  luck_title_text,
-                 tied_weekly_luck_bool,
-                 power_tank_title_text,
-                 weekly_team_points_by_position,
-                 season_average_team_points_by_position
+                 report_footer_text,
+                 report_info_dict
                  ):
 
-        self.weekly_standings_results_data = weekly_standings_results_data
-        self.weekly_score_results_data = weekly_score_results_data
-        self.weekly_coaching_efficiency_results_data = weekly_coaching_efficiency_results_data
-        self.weekly_luck_results_data = weekly_luck_results_data
-        self.weekly_power_rank_data = weekly_power_rank_data
-        self.num_tied_scores = num_tied_scores
-        self.num_tied_efficiencies = num_tied_efficiencies
-        self.num_tied_luck = num_tied_luck
-        self.efficiency_dq_count = efficiency_dq_count
         self.league_id = league_id
-        self.report_footer_text = report_footer_text
-        self.tied_points_bool = tied_weekly_score_bool
-        self.tied_efficiency_bool = tied_weekly_coaching_efficiency_bool
-        self.tied_luck_bool = tied_weekly_luck_bool
-        self.weekly_team_points_by_position = weekly_team_points_by_position
-        self.season_average_team_points_by_position = season_average_team_points_by_position
+        self.current_standings_data = report_info_dict.get("current_standings_data")
+        self.score_results_data = report_info_dict.get("score_results_data")
+        self.coaching_efficiency_results_data = report_info_dict.get("coaching_efficiency_results_data")
+        self.luck_results_data = report_info_dict.get("luck_results_data")
+        self.weekly_power_rank_data = weekly_power_rank_data
+
+        self.num_tied_scores = report_info_dict.get("num_tied_scores")
+        self.num_tied_coaching_efficiencies = report_info_dict.get("num_tied_coaching_efficiencies")
+        self.num_tied_lucks = report_info_dict.get("num_tied_lucks")
+        self.efficiency_dq_count = report_info_dict.get("efficiency_dq_count")
+        self.tied_scores_bool = report_info_dict.get("tied_scores_bool")
+        self.tied_coaching_efficiencies_bool = report_info_dict.get("tied_coaching_efficiencies_bool")
+        self.tied_lucks_bool = report_info_dict.get("tied_lucks_bool")
+        self.weekly_points_by_position_data = report_info_dict.get("weekly_points_by_position_data")
+        self.season_average_team_points_by_position = report_info_dict.get("season_average_points_by_position")
 
         # document elements
+        self.metric_scores_col_widths = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch]
+        self.standings_col_widths = [0.50 * inch, 1.75 * inch, 1.00 * inch, 1.00 * inch, 0.80 * inch, 1.10 * inch,
+                                     0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]
         self.line_separator = Drawing(100, 1)
         self.line_separator.add(Line(0, -65, 550, -65, strokeColor=colors.black, strokeWidth=1))
         self.spacer_small = Spacer(1, 0.05 * inch)
@@ -105,8 +94,7 @@ class PdfGenerator(object):
 
         self.style = TableStyle(table_style_list)
 
-        self.num_tied_scores = num_tied_scores
-        tied_scores_iterator = num_tied_scores + 1
+        tied_scores_iterator = self.num_tied_scores + 1
         tied_scores_table_style_list = list(table_style_list)
 
         if league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
@@ -120,7 +108,7 @@ class PdfGenerator(object):
                 tied_scores_iterator -= 1
                 index += 1
 
-        tied_efficiencies_iterator = num_tied_efficiencies + 1
+        tied_efficiencies_iterator = self.num_tied_coaching_efficiencies + 1
         tied_efficiencies_table_style_list = list(table_style_list)
         index = 1
         while tied_efficiencies_iterator > 0:
@@ -129,7 +117,7 @@ class PdfGenerator(object):
             tied_efficiencies_iterator -= 1
             index += 1
 
-        tied_luck_iterator = num_tied_luck + 1
+        tied_luck_iterator = self.num_tied_lucks + 1
         tied_luck_table_style_list = list(table_style_list)
         index = 1
         while tied_luck_iterator > 0:
@@ -142,18 +130,19 @@ class PdfGenerator(object):
         self.style_tied_efficiencies = TableStyle(tied_efficiencies_table_style_list)
         self.style_tied_luck = TableStyle(tied_luck_table_style_list)
 
-        dq_index = len(weekly_score_results_data) - efficiency_dq_count + 1
+        dq_index = len(self.score_results_data) - self.efficiency_dq_count + 1
 
-        if num_tied_efficiencies > 0:
+        if self.num_tied_coaching_efficiencies > 0:
             efficiencies_dq_table_style_list = list(tied_efficiencies_table_style_list)
         else:
             efficiencies_dq_table_style_list = list(table_style_list)
 
-        if efficiency_dq_count > 0:
+        if self.efficiency_dq_count > 0:
 
-            while efficiency_dq_count > 0:
+            eff_dq_count = self.efficiency_dq_count
+            while eff_dq_count > 0:
                 efficiencies_dq_table_style_list.append(("TEXTCOLOR", (0, dq_index), (3, dq_index), colors.red))
-                efficiency_dq_count -= 1
+                eff_dq_count -= 1
                 dq_index += 1
 
         self.style_efficiency_dqs = TableStyle(efficiencies_dq_table_style_list)
@@ -161,10 +150,11 @@ class PdfGenerator(object):
         # options: "document", "section", or None/empty
         self.report_title = self.create_title(report_title_text, element_type="document")
         self.standings_title = self.create_title(standings_title_text, element_type="section")
-        self.power_rank_title = self.create_title(power_tank_title_text, element_type="section")
-        self.points_title = self.create_title(points_title_text, element_type="section")
+        self.points_title = self.create_title(scores_title_text, element_type="section")
         self.efficiency_title = self.create_title(coaching_efficiency_title_text, element_type="section")
         self.luck_title = self.create_title(luck_title_text, element_type="section")
+        self.power_rank_title = self.create_title(power_tank_title_text, element_type="section")
+        self.report_footer = Paragraph(report_footer_text, getSampleStyleSheet()["Normal"])
 
     def create_title(self, title_text, title_width=8.5, element_type=None):
 
@@ -266,24 +256,22 @@ class PdfGenerator(object):
     def generate_pdf(self, filename_with_path, line_chart_data_list):
 
         elements = []
-        metric_scores_col_widths = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch]
-
         doc = SimpleDocTemplate(filename_with_path, pagesize=LETTER, rightMargin=25, leftMargin=25, topMargin=10,
                                 bottomMargin=10)
         doc.pagesize = portrait(LETTER)
 
+        # document title
         elements.append(self.report_title)
         elements.append(self.spacer_large)
 
+        # standings
         elements.append(self.standings_title)
         standings_headers = [
             ["Place", "Team", "Manager", "Record", "Points For", "Points Against", "Streak", "Waiver", "Moves",
              "Trades"]]
-        standings_col_widths = [0.50 * inch, 1.75 * inch, 1.00 * inch, 1.00 * inch, 0.80 * inch, 1.10 * inch,
-                                0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]
         elements.append(
-            self.create_data_table(standings_headers, self.weekly_standings_results_data, self.style,
-                                   standings_col_widths))
+            self.create_data_table(standings_headers, self.current_standings_data, self.style,
+                                   self.standings_col_widths))
 
         elements.append(self.spacer_small)
         elements.append(self.power_rank_title)
@@ -295,43 +283,45 @@ class PdfGenerator(object):
                                                tied_metric_bool=True))
 
         elements.append(self.page_break)
+
+        # points
         elements.append(self.points_title)
         points_headers = [["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]]
         if self.num_tied_scores > 0:
             if self.league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
                 points_headers[0].append("Bench Points")
             else:
-                for index, team in enumerate(self.weekly_score_results_data):
-                    self.weekly_score_results_data[index] = team[:-1]
+                for index, team in enumerate(self.score_results_data):
+                    self.score_results_data[index] = team[:-1]
         else:
-            for index, team in enumerate(self.weekly_score_results_data):
-                self.weekly_score_results_data[index] = team[:-1]
+            for index, team in enumerate(self.score_results_data):
+                self.score_results_data[index] = team[:-1]
 
         elements.append(self.create_data_table(points_headers,
-                                               self.weekly_score_results_data,
+                                               self.score_results_data,
                                                table_style_for_ties=self.style_tied_scores,
-                                               col_widths=metric_scores_col_widths,
-                                               tied_metric_bool=self.tied_points_bool))
-
-        if self.tied_points_bool:
+                                               col_widths=self.metric_scores_col_widths,
+                                               tied_metric_bool=self.tied_scores_bool))
+        if self.tied_scores_bool:
             if self.league_id != config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
                 elements.append(Paragraph(
                     "<i>&nbsp;*Tie for first place.</i>",
                     getSampleStyleSheet()["Normal"]))
-
         elements.append(self.spacer_small)
+
+        # coaching efficiency
         elements.append(self.efficiency_title)
         efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
         coaching_efficiency_table = self.create_data_table(efficiency_headers,
-                                                           self.weekly_coaching_efficiency_results_data,
+                                                           self.coaching_efficiency_results_data,
                                                            table_style_for_ties=self.style_tied_efficiencies,
-                                                           col_widths=metric_scores_col_widths,
-                                                           tied_metric_bool=self.tied_efficiency_bool)
+                                                           col_widths=self.metric_scores_col_widths,
+                                                           tied_metric_bool=self.tied_coaching_efficiencies_bool)
         if self.efficiency_dq_count > 0:
             coaching_efficiency_table.setStyle(self.style_efficiency_dqs)
         elements.append(coaching_efficiency_table)
 
-        if self.tied_efficiency_bool:
+        if self.tied_coaching_efficiencies_bool:
             elements.append(self.spacer_small)
             if self.league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
                 elements.append(Paragraph(
@@ -341,21 +331,20 @@ class PdfGenerator(object):
                 elements.append(Paragraph(
                     "<i>&nbsp;*Tie for first place.</i>",
                     getSampleStyleSheet()["Normal"]))
-
         elements.append(self.spacer_small)
+
+        # luck
         elements.append(self.luck_title)
         luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)"]]
         elements.append(self.create_data_table(luck_headers,
-                                               self.weekly_luck_results_data,
+                                               self.luck_results_data,
                                                table_style_for_ties=self.style_tied_luck,
-                                               col_widths=metric_scores_col_widths,
-                                               tied_metric_bool=self.tied_luck_bool))
-
-        if self.tied_luck_bool:
+                                               col_widths=self.metric_scores_col_widths,
+                                               tied_metric_bool=self.tied_lucks_bool))
+        if self.tied_lucks_bool:
             elements.append(Paragraph(
                 "<i>&nbsp;*Tie for first place.</i>",
                 getSampleStyleSheet()["Normal"]))
-
         elements.append(self.page_break)
 
         series_names = line_chart_data_list[0]
@@ -383,13 +372,14 @@ class PdfGenerator(object):
             self.create_line_chart(luck_data, len(points_data[0]), series_names, "Weekly Luck", "Weeks", "Luck (%)",
                                    20.00))
         elements.append(self.spacer_large)
-        elements.append(Paragraph(self.report_footer_text, getSampleStyleSheet()["Normal"]))
+        elements.append(self.report_footer)
         elements.append(self.page_break)
 
         # dynamically build additional pages for individual team stats
-        self.create_team_stats_pages(elements, self.weekly_team_points_by_position,
+        self.create_team_stats_pages(elements, self.weekly_points_by_position_data,
                                      self.season_average_team_points_by_position)
 
+        # build pdf
         print("generating pdf...\n")
         doc.build(elements)
         print("... pdf generated!\n")

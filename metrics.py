@@ -1,10 +1,145 @@
+import itertools
 from collections import defaultdict, Counter
 import pandas as pd
 
-class Points(object):
+class CalculateMetrics(object):
+    def __init__(self, league_id, config):
+        self.league_id = league_id
+        self.config = config
 
-    def __init__(self):
-        pass
+    @staticmethod
+    def get_standings(league_standings_data):
+        current_standings_data = []
+        for team in league_standings_data[0].get("standings").get("teams").get("team"):
+            streak_type = team.get("team_standings").get("streak").get("type")
+            if streak_type == "loss":
+                streak_type = "L"
+            elif streak_type == "win":
+                streak_type = "W"
+            else:
+                streak_type = "T"
+
+            current_standings_data.append([
+                team.get("team_standings").get("rank"),
+                team.get("name"),
+                team.get("managers").get("manager").get("nickname"),
+                team.get("team_standings").get("outcome_totals").get("wins") + "-" +
+                team.get("team_standings").get("outcome_totals").get("losses") + "-" +
+                team.get("team_standings").get("outcome_totals").get("ties") + " (" +
+                team.get("team_standings").get("outcome_totals").get("percentage") + ")",
+                team.get("team_standings").get("points_for"),
+                team.get("team_standings").get("points_against"),
+                streak_type + "-" + team.get("team_standings").get("streak").get("value"),
+                team.get("waiver_priority"),
+                team.get("number_of_moves"),
+                team.get("number_of_trades")
+            ])
+        return current_standings_data
+
+    @staticmethod
+    def get_score_data(score_results):
+        score_results_data = []
+        place = 1
+        for key, value in score_results:
+            ranked_team_name = key
+            ranked_team_manager = value.get("manager")
+            ranked_weekly_score = "%.2f" % float(value.get("score"))
+            ranked_weekly_bench_score = "%.2f" % float(value.get("bench_score"))
+
+            score_results_data.append(
+                [place, ranked_team_name, ranked_team_manager, ranked_weekly_score, ranked_weekly_bench_score])
+
+            place += 1
+
+        return score_results_data
+
+    @staticmethod
+    def get_coaching_efficiency_data(coaching_efficiency_results, efficiency_dq_count):
+        coaching_efficiency_results_data = []
+        place = 1
+        for key, value in coaching_efficiency_results:
+            ranked_team_name = key
+            ranked_team_manager = value.get("manager")
+            ranked_coaching_efficiency = value.get("coaching_efficiency")
+
+            if ranked_coaching_efficiency == 0.0:
+                ranked_coaching_efficiency = "DQ"
+                efficiency_dq_count += 1
+            else:
+                ranked_coaching_efficiency = "%.2f%%" % float(ranked_coaching_efficiency)
+
+            coaching_efficiency_results_data.append(
+                [place, ranked_team_name, ranked_team_manager, ranked_coaching_efficiency])
+
+            place += 1
+
+        return coaching_efficiency_results_data
+
+    @staticmethod
+    def get_luck_data(luck_results):
+        luck_results_data = []
+        place = 1
+        for key, value in luck_results:
+            ranked_team_name = key
+            ranked_team_manager = value.get("manager")
+            ranked_luck = "%.2f%%" % value.get("luck")
+
+            luck_results_data.append([place, ranked_team_name, ranked_team_manager, ranked_luck])
+
+            place += 1
+        return luck_results_data
+
+    def get_num_ties(self, results, results_data, week, tie_type):
+
+        num_ties = sum(manager.count(results_data[0][3]) for manager in results_data) - 1
+        newline = ""
+        if tie_type == "luck":
+            newline = "\n"
+
+        # if there are ties, record them and break them if possible
+        if num_ties > 0:
+            print("THERE IS A %s TIE IN WEEK %s!%s" % (tie_type.replace("_", " ").upper(), week, newline))
+            ties_list = list(results[:num_ties + 1])
+
+            count = num_ties
+            index = 0
+            while (count + 1) > 0:
+                if self.league_id == self.config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id") and tie_type == "score":
+                    place = index + 1
+                else:
+                    place = "1*"
+                results_data[index] = [
+                    place,
+                    ties_list[index][0],
+                    ties_list[index][1].get("manager"),
+                    ties_list[index][1].get(tie_type)
+                ]
+                if tie_type == "score":
+                    results_data[index].append(ties_list[index][1].get("bench_score"))
+                count -= 1
+                index += 1
+        else:
+            print("No %s ties in week %s.%s" % (tie_type.replace("_", " "), week, newline))
+
+        return num_ties
+
+    def resolve_score_ties(self, score_results_data):
+
+        groups = [list(group) for key, group in itertools.groupby(score_results_data, lambda x: x[3])]
+
+        resolved_score_results_data = []
+        place = 1
+        for group in groups:
+            for team in sorted(group, key=lambda x: x[-1], reverse=True):
+                if groups.index(group) != 0:
+                    team[0] = place
+                else:
+                    if self.league_id == self.config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
+                        team[0] = place
+                resolved_score_results_data.append(team)
+                place += 1
+
+        return resolved_score_results_data
 
 
 class CoachingEfficiency(object):
@@ -81,7 +216,8 @@ class CoachingEfficiency(object):
     def is_player_eligible(self, player, week):
         return player["status"] in self.prohibited_status_list or player["bye_week"] == week
 
-    def execute_coaching_efficiency(self, team_name, team_info, week, league_roster_active_slots, disqualification_eligible=False):
+    def execute_coaching_efficiency(self, team_name, team_info, week, league_roster_active_slots,
+                                    disqualification_eligible=False):
 
         players = team_info["players"]
 
@@ -94,7 +230,7 @@ class CoachingEfficiency(object):
         # debug stuff
         # import json
         # for position, players in eligible_positions.items():
-        #     print('{0}: {1}'.format(position, [p['name'] for p in players]))
+        #     print("{0}: {1}".format(position, [p["name"] for p in players]))
 
         optimal_players = []
         optimal = {}
@@ -117,12 +253,12 @@ class CoachingEfficiency(object):
         # calculate optimal score
         optimal_score = sum([x["fantasy_points"] for x in optimal_lineup])
 
-        # print('optimal lineup for ' + team_name)
+        # print("optimal lineup for " + team_name)
         # for player in optimal_lineup:
         #     print(player)
 
         # calculate coaching efficiency
-        actual_weekly_score = team_info["weekly_score"]
+        actual_weekly_score = team_info["score"]
 
         coaching_efficiency = (actual_weekly_score / optimal_score) * 100
 
@@ -155,55 +291,60 @@ class CoachingEfficiency(object):
 
 
 class Breakdown(object):
-
     def __init__(self):
         pass
 
-    def execute(self, teams, matchups):
+    def execute_breakdown(self, teams, matchups_list):
 
         result = defaultdict(dict)
+        matchups = {name: value["result"] for pair in matchups_list for name, value in pair.items()}
 
         for team_name, team in teams.items():
             record = {
-                'W': 0, 
-                'L': 0,
-                'T': 0
+                "W": 0,
+                "L": 0,
+                "T": 0
             }
 
             for team_name2, team2 in teams.items():
-                if team['team_id'] == team2['team_id']:
+                if team["team_id"] == team2["team_id"]:
                     continue
-                score1 = team['weekly_score']
-                score2 = team2['weekly_score']
+                score1 = team["score"]
+                score2 = team2["score"]
                 if score1 > score2:
-                    record['W'] += 1
+                    record["W"] += 1
                 elif score1 < score2:
-                    record['L'] += 1
+                    record["L"] += 1
                 else:
-                    record['T'] += 1
+                    record["T"] += 1
 
-            result[team_name]['breakdown'] = record
+            result[team_name]["breakdown"] = record
 
             # calc luck %
             # TODO: assuming no ties...  how are tiebreakers handled?
             luck = 0.0
             # number of teams excluding current team
-            num_teams = float(len(teams.keys())) - 1 
+            num_teams = float(len(teams.keys())) - 1
 
-            if record['W'] != 0 and record['L'] != 0:
+            if record["W"] != 0 and record["L"] != 0:
                 matchup_result = matchups[team_name]
-                if matchup_result == 'W' or matchup_result == 'T':
-                    luck = (record['L'] + record['T']) / num_teams
+                if matchup_result == "W" or matchup_result == "T":
+                    luck = (record["L"] + record["T"]) / num_teams
                 else:
-                    luck = 0 - (record['W'] + record['T']) / num_teams
-                    
-            result[team_name]['luck'] = luck
+                    luck = 0 - (record["W"] + record["T"]) / num_teams
 
-        return result                
+            result[team_name]["luck"] = luck
+
+        for team in teams:
+            # "%.2f%%" % luck
+            teams[team]['luck'] = result[team]['luck'] * 100
+            teams[team]['breakdown'] = result[team]['breakdown']
+            teams[team]['matchup_result'] = result[team]
+
+        return result
 
 
 class SeasonAverageCalculator(object):
-
     def __init__(self, team_names, report_info_dict):
         self.team_names = team_names
         self.report_info_dict = report_info_dict
@@ -223,23 +364,30 @@ class SeasonAverageCalculator(object):
             team_index += 1
         ordered_average_values = sorted(season_average_list, key=lambda x: float(x[1]), reverse=reverse)
         for team in ordered_average_values:
-            ordered_average_values[ordered_average_values.index(team)] = [ordered_average_values.index(team), team[0], team[1]]
+            ordered_average_values[ordered_average_values.index(team)] = [ordered_average_values.index(team), team[0],
+                                                                          team[1]]
 
         ordered_season_average_list = []
         for ordered_team in self.report_info_dict.get(key):
             for team in ordered_average_values:
                 if ordered_team[1] == team[1]:
-                    value = "{0}{1} ({2})".format(str(team[2]), "%" if with_percent_bool else "", str(ordered_average_values.index(team) + 1))
-                    if append:
-                        ordered_team.append(value)
+                    # reformat values and add averages to data columns
+                    # value = "{0}{1} ({2})".format(str(team[2]), "%" if with_percent_bool else "", str(ordered_average_values.index(team) + 1))
+                    # if append:
+                    #     ordered_team.append(value)
+                    # else:
+                    #     ordered_team.insert(-1, value)
+                    if with_percent_bool:
+                        ordered_team[3] = "{0:.2f}%".format(float(str(ordered_team[3]).replace("%", "")))
+                        ordered_team.append(str(team[2]) + "% (" + str(ordered_average_values.index(team) + 1) + ")")
                     else:
-                        ordered_team.insert(-1, value)
+                        ordered_team[3] = "{0:.2f}".format(float(str(ordered_team[3])))
+                        ordered_team.insert(-1, str(team[2]) + " (" + str(ordered_average_values.index(team) + 1) + ")")
                     ordered_season_average_list.append(ordered_team)
         return ordered_season_average_list
 
 
 class PointsByPosition(object):
-
     def __init__(self, roster_settings):
 
         self.roster_slots = roster_settings.get("slots")
@@ -284,11 +432,11 @@ class PointsByPosition(object):
             season_average_points_by_position_list = sorted(season_average_points_by_position_list, key=lambda x: x[0])
             season_average_points_by_position_dict[team] = season_average_points_by_position_list
 
-        report_info_dict["season_average_team_points_by_position"] = season_average_points_by_position_dict
+        report_info_dict["season_average_points_by_position"] = season_average_points_by_position_dict
 
     def execute_points_by_position(self, team_info):
 
-        players = team_info['players']
+        players = team_info["players"]
 
         player_points_by_position = []
         starting_players = self.get_starting_players(players)
@@ -298,6 +446,32 @@ class PointsByPosition(object):
 
         player_points_by_position = sorted(player_points_by_position, key=lambda x: x[0])
         return player_points_by_position
+
+    def get_weekly_points_by_position(self, league_id, config, week, roster, active_slots, team_results_dict):
+
+        coaching_efficiency = CoachingEfficiency(roster)
+        weekly_points_by_position_data = []
+        for team_name, team_info in team_results_dict.items():
+            disqualification_eligible = league_id == config.get("Fantasy_Football_Report_Settings",
+                                                                "league_of_emperors_id")
+            team_info["coaching_efficiency"] = coaching_efficiency.execute_coaching_efficiency(team_name, team_info,
+                                                                                               int(week),
+                                                                                               active_slots,
+                                                                                               disqualification_eligible=disqualification_eligible)
+            for slot in roster["slots"].keys():
+                if roster["slots"].get(slot) == 0:
+                    del roster["slots"][slot]
+            player_points_by_position = self.execute_points_by_position(team_info)
+            weekly_points_by_position_data.append([team_name, player_points_by_position])
+
+        # Option to disqualify chosen team for current week of coaching efficiency
+        if week == config.get("Fantasy_Football_Report_Settings", "chosen_week"):
+            disqualified_team = config.get("Fantasy_Football_Report_Settings",
+                                           "coaching_efficiency_disqualified_team")
+            if disqualified_team:
+                team_results_dict.get(disqualified_team)["coaching_efficiency"] = "0.0%"
+
+        return weekly_points_by_position_data
 
 
 class PowerRanking():
@@ -328,7 +502,7 @@ class PowerRanking():
 
         results = {}
 
-        for team in teams:            
+        for team in teams:
             results[team['name']] = {
                 'score_rank': team['score_rank'],
                 'coach_rank': team['coach_rank'],

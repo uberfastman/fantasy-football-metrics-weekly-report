@@ -1,14 +1,12 @@
-from reportlab.graphics.charts.piecharts import Pie
-from reportlab.lib.colors import black, red, purple, green, maroon, brown, pink, white, HexColor
 from reportlab.graphics.charts.legends import Legend
+from reportlab.graphics.charts.piecharts import Pie
 from reportlab.graphics.shapes import Drawing, _DrawingEditorMixin
-from reportlab.lib.validators import Auto
 from reportlab.lib.colors import HexColor, black
+from reportlab.lib.colors import white
 
 
 class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
     def __init__(self, labels, data, width=400, height=200, *args, **kw):
-
         # see https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/ for colors
         pdf_chart_colors = [
             HexColor("#e6194b"),  # red
@@ -22,7 +20,7 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
             HexColor("#d2f53c"),  # lime
             HexColor("#fabebe"),  # pink
             HexColor("#008080"),  # teal
-            HexColor("#e6beff")   # lavender
+            HexColor("#e6beff")  # lavender
         ]
 
         apply(Drawing.__init__, (self, width, height) + args, kw)
