@@ -9,7 +9,7 @@ from ConfigParser import ConfigParser
 import yql
 from yql.storage import FileTokenStore
 
-from metrics import CoachingEfficiency, PointsByPosition, SeasonAverageCalculator
+from metrics import CoachingEfficiency, PointsByPosition, SeasonAverageCalculator, Breakdown
 from pdf_generator import PdfGenerator
 
 
@@ -303,6 +303,10 @@ class FantasyFootballReport(object):
                 team.get("number_of_trades")
             ])
 
+
+        # set team matchup results for this week
+        team_matchup_result_dict = {name: value["result"] for pair in matchups_list for name, value in pair.items()}
+
         # get coaching efficiency metrics and points by position
         coaching_efficiency = CoachingEfficiency(self.roster)
         points_by_position = PointsByPosition(self.roster)
@@ -320,6 +324,15 @@ class FantasyFootballReport(object):
             player_points_by_position = points_by_position.execute_points_by_position(team_info)
             weekly_team_points_by_position_data_list.append([team_name, player_points_by_position])
 
+        breakdown = Breakdown()
+        team_breakdown = breakdown.execute_breakdown(team_results_dict, team_matchup_result_dict)
+
+        for team_name in team_results_dict:
+            # "%.2f%%" % luck
+            team_results_dict[team_name]['luck'] = team_breakdown[team_name]['luck'] * 100
+            team_results_dict[team_name]['breakdown'] = team_breakdown[team_name]['breakdown']
+            team_results_dict[team_name]['matchup_result'] = team_matchup_result_dict[team_name]
+
         final_weekly_score_results_list = sorted(team_results_dict.iteritems(),
                                                  key=lambda (k, v): (float(v.get("weekly_score")), k))[::-1]
 
@@ -336,60 +349,7 @@ class FantasyFootballReport(object):
 
             place += 1
 
-        ranked_team_scores = []
-
-        for result in weekly_score_results_data_list:
-            ranked_team_name = result[1]
-            ranked_weekly_score = result[3]
-
-            ranked_team = {"name": ranked_team_name, "score": ranked_weekly_score, "luck": ""}
-            ranked_team_scores.append(ranked_team)
-
-        # set team matchup results for this week
-        team_matchup_result_dict = {name: value["result"] for pair in matchups_list for name, value in pair.items()}
-
-        index = 0
-        results = []
-        top_team_score = ranked_team_scores[0].get("score")
-        bottom_team_score = ranked_team_scores[-1].get("score")
-
-        # calculate weekly luck metric
-        for ranked_team in ranked_team_scores:
-
-            ranked_team_name = ranked_team.get("name")
-            ranked_team_score = ranked_team.get("score")
-            ranked_team_matchup_result = team_matchup_result_dict.get(ranked_team_name)
-
-            ranked_team_score_without_team = list(ranked_team_scores)
-            del ranked_team_score_without_team[ranked_team_scores.index(ranked_team)]
-
-            luck = 0.00
-            if ranked_team_score == top_team_score or ranked_team_score == bottom_team_score:
-                ranked_team["luck"] = luck
-
-            else:
-                if ranked_team_matchup_result == "W" or ranked_team_matchup_result == "T":
-
-                    luck += (
-                        ((sum(score.get("score") >= ranked_team_score for score in ranked_team_score_without_team)) / (
-                            float(len(ranked_team_score_without_team)))) * 100)
-                else:
-                    luck += (
-                        ((0 - sum(
-                            score.get("score") <= ranked_team_score for score in ranked_team_score_without_team)) / (
-                             float(len(ranked_team_score_without_team)))) * 100)
-
-                ranked_team["luck"] = luck
-
-            ranked_team["matchup_result"] = ranked_team_matchup_result
-
-            results.append(ranked_team)
-            index += 1
-
-            team_results_dict.get(ranked_team_name)["luck"] = "%.2f%%" % luck
-            team_results_dict.get(ranked_team_name)["matchup_result"] = ranked_team_matchup_result
-
-        results.sort(key=lambda x: x.get("luck"), reverse=True)
+        # results.sort(key=lambda x: x.get("luck"), reverse=True)
 
         # Option to disqualify chosen team for current week of coaching efficiency
         if chosen_week == self.config.get("Fantasy_Football_Report_Settings", "chosen_week"):
@@ -399,9 +359,9 @@ class FantasyFootballReport(object):
                 team_results_dict.get(disqualified_team)["coaching_efficiency"] = "0.0%"
 
         final_coaching_efficiency_results_list = sorted(team_results_dict.iteritems(),
-                                                        key=lambda (k, v): (v.get("coaching_efficiency"), k))[::-1]
+                                                        key=lambda (k, v): (v.get("coaching_efficiency"), k), reverse=True)
         final_luck_results_list = sorted(team_results_dict.iteritems(),
-                                         key=lambda (k, v): (float(v.get("luck").strip("%")), k))[::-1]
+                                         key=lambda (k, v): (v.get("luck"), k), reverse=True)
 
         # create data for coaching efficiency table
         coaching_efficiency_results_data_list = []
@@ -429,7 +389,7 @@ class FantasyFootballReport(object):
         for key, value in final_luck_results_list:
             ranked_team_name = key
             ranked_team_manager = value.get("manager")
-            ranked_luck = value.get("luck")
+            ranked_luck = "%.2f%%" % value.get("luck")
 
             weekly_luck_results_data_list.append([place, ranked_team_name, ranked_team_manager, ranked_luck])
 
@@ -556,7 +516,6 @@ class FantasyFootballReport(object):
             teams_data_list = []
             for team in team_results_dict:
                 temp_team_info = team_results_dict.get(team)
-
                 teams_data_list.append([
                     temp_team_info.get("team_id"),
                     team,
@@ -584,7 +543,7 @@ class FantasyFootballReport(object):
                 ordered_team_managers.append(team[2])
                 weekly_points_data.append([int(week_counter), float(team[3])])
                 weekly_coaching_efficiency_data.append([int(week_counter), team[4]])
-                weekly_luck_data.append([int(week_counter), float(team[5].replace("%", ""))])
+                weekly_luck_data.append([int(week_counter), float(team[5])])
 
             chosen_week_ordered_team_names = ordered_team_names
             chosen_week_ordered_managers = ordered_team_managers

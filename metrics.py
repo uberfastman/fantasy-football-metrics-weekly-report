@@ -94,7 +94,7 @@ class CoachingEfficiency(object):
         # debug stuff
         # import json
         # for position, players in eligible_positions.items():
-        #     print('{0}: {1}'.format(position, [p['name'] for p in players]))
+        #     print("{0}: {1}".format(position, [p["name"] for p in players]))
 
         optimal_players = []
         optimal = {}
@@ -117,7 +117,7 @@ class CoachingEfficiency(object):
         # calculate optimal score
         optimal_score = sum([x["fantasy_points"] for x in optimal_lineup])
 
-        # print('optimal lineup for ' + team_name)
+        # print("optimal lineup for " + team_name)
         # for player in optimal_lineup:
         #     print(player)
 
@@ -154,10 +154,52 @@ class CoachingEfficiency(object):
         return coaching_efficiency
 
 
-class Luck(object):
+class Breakdown(object):
 
     def __init__(self):
         pass
+
+    def execute_breakdown(self, teams, matchups):
+
+        result = defaultdict(dict)
+
+        for team_name, team in teams.items():
+            record = {
+                "W": 0, 
+                "L": 0,
+                "T": 0
+            }
+
+            for team_name2, team2 in teams.items():
+                if team["team_id"] == team2["team_id"]:
+                    continue
+                score1 = team["weekly_score"]
+                score2 = team2["weekly_score"]
+                if score1 > score2:
+                    record["W"] += 1
+                elif score1 < score2:
+                    record["L"] += 1
+                else:
+                    record["T"] += 1
+
+            result[team_name]["breakdown"] = record
+
+            # calc luck %
+            # TODO: assuming no ties...  how are tiebreakers handled?
+            luck = 0.0
+            # number of teams excluding current team
+            num_teams = float(len(teams.keys())) - 1 
+
+            if record["W"] != 0 and record["L"] != 0:
+                matchup_result = matchups[team_name]
+                if matchup_result == "W" or matchup_result == "T":
+                    luck = (record["L"] + record["T"]) / num_teams
+                else:
+                    luck = 0 - (record["W"] + record["T"]) / num_teams
+                    
+            result[team_name]["luck"] = luck
+
+        return result                
 
 
 class SeasonAverageCalculator(object):
@@ -241,7 +283,7 @@ class PointsByPosition(object):
 
     def execute_points_by_position(self, team_info):
 
-        players = team_info['players']
+        players = team_info["players"]
 
         player_points_by_position = []
         starting_players = self.get_starting_players(players)
