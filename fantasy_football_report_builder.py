@@ -325,7 +325,7 @@ class FantasyFootballReport(object):
             weekly_team_points_by_position_data_list.append([team_name, player_points_by_position])
 
         breakdown = Breakdown()
-        team_breakdown = breakdown.execute(team_results_dict, team_matchup_result_dict)
+        team_breakdown = breakdown.execute_breakdown(team_results_dict, team_matchup_result_dict)
 
         for team_name in team_results_dict:
             # "%.2f%%" % luck
