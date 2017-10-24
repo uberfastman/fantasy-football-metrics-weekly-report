@@ -303,20 +303,18 @@ class FantasyFootballReport(object):
         Breakdown().execute_breakdown(team_results_dict, matchups_list)
 
         power_ranking_metric = PowerRanking()
-        rankings = power_ranking_metric.execute(team_results_dict)
+        power_ranking_results = power_ranking_metric.execute_power_ranking(team_results_dict)
 
         for team_name in team_results_dict:
-            team_results_dict[team_name]['power_rank'] = rankings[team_name]['power_rank']
+            team_results_dict[team_name]["power_rank"] = power_ranking_results[team_name]["power_rank"]
 
-        power_rank_results_data_list = []
-        rankings = sorted(rankings.iteritems(), key=lambda (k, v): v['power_rank'])
-
-        power_rank_results_data_list = []
-        for key, value in rankings:
+        power_ranking_results = sorted(power_ranking_results.iteritems(), key=lambda (k, v): v["power_rank"])
+        power_ranking_results_data = []
+        for key, value in power_ranking_results:
             # season avg calc does something where it keys off the second value in the array
             # WREN WHYYYYY
-            power_rank_results_data_list.append(
-                [value.get('power_rank'), key, team_results_dict[key]['manager']]
+            power_ranking_results_data.append(
+                [value.get("power_rank"), key, team_results_dict[key]["manager"]]
             )
 
         # create score data for table
@@ -338,13 +336,14 @@ class FantasyFootballReport(object):
         luck_results_data = calculate_metrics.get_luck_data(luck_results)
 
         # count number of ties for points, coaching efficiency, and luck
-        # tie_type can be "score", "coaching_efficiency", or "luck"
+        # tie_type can be "score", "coaching_efficiency", "luck", or "power_rank"
         num_tied_scores = calculate_metrics.get_num_ties(score_results, score_results_data, chosen_week,
                                                          tie_type="score")
         # reorder score data based on bench points
         if num_tied_scores > 0:
             score_results_data = calculate_metrics.resolve_score_ties(score_results_data)
-
+        num_tied_power_rankings = calculate_metrics.get_num_ties(power_ranking_results, power_ranking_results_data,
+                                                                 chosen_week, tie_type="power_rank")
         num_tied_coaching_efficiencies = calculate_metrics.get_num_ties(coaching_efficiency_results,
                                                                         coaching_efficiency_results_data, chosen_week,
                                                                         tie_type="coaching_efficiency")
@@ -356,14 +355,16 @@ class FantasyFootballReport(object):
             "score_results_data": score_results_data,
             "coaching_efficiency_results_data": coaching_efficiency_results_data,
             "luck_results_data": luck_results_data,
-            "power_rank_results_data_list": power_rank_results_data_list,
+            "power_ranking_results_data": power_ranking_results_data,
             "num_tied_scores": num_tied_scores,
             "num_tied_coaching_efficiencies": num_tied_coaching_efficiencies,
             "num_tied_lucks": num_tied_lucks,
+            "num_tied_power_rankings": num_tied_power_rankings,
             "efficiency_dq_count": efficiency_dq_count,
             "tied_scores_bool": num_tied_scores > 0,
             "tied_coaching_efficiencies_bool": num_tied_coaching_efficiencies > 0,
             "tied_lucks_bool": num_tied_lucks > 0,
+            "tied_power_rankings_bool": num_tied_power_rankings > 0,
             "weekly_points_by_position_data": weekly_points_by_position_data
         }
         return report_info_dict
@@ -449,16 +450,19 @@ class FantasyFootballReport(object):
         # calculate season average metrics and then add columns for them to their respective metric table data
         season_average_calculator = SeasonAverageCalculator(chosen_week_ordered_team_names, report_info_dict)
         report_info_dict["score_results_data"] = season_average_calculator.get_average(
-            time_series_points_data, "score_results_data", False)
+            time_series_points_data, "score_results_data", with_percent_bool=False)
         report_info_dict["coaching_efficiency_results_data"] = season_average_calculator.get_average(
-            time_series_efficiency_data, "coaching_efficiency_results_data", True)
+            time_series_efficiency_data, "coaching_efficiency_results_data", with_percent_bool=True)
         report_info_dict["luck_results_data"] = season_average_calculator.get_average(time_series_luck_data,
                                                                                       "luck_results_data",
-                                                                                      True)
-        report_info_dict['power_rank_results_data_list'] = season_average_calculator.get_average(
-            time_series_power_rank_data, "power_rank_results_data_list", False, reverse=False)
+                                                                                      with_percent_bool=True)
+        report_info_dict["power_ranking_results_data"] = season_average_calculator.get_average(
+            time_series_power_rank_data, "power_ranking_results_data", with_percent_bool=False, bench_column_bool=False,
+            reverse_bool=False)
 
-        line_chart_data_list = [chosen_week_ordered_team_names, chosen_week_ordered_managers, time_series_points_data,
+        line_chart_data_list = [chosen_week_ordered_team_names,
+                                chosen_week_ordered_managers,
+                                time_series_points_data,
                                 time_series_efficiency_data,
                                 time_series_luck_data,
                                 time_series_power_rank_data]
@@ -491,7 +495,7 @@ class FantasyFootballReport(object):
             scores_title_text="Team Score Rankings",
             coaching_efficiency_title_text="Team Coaching Efficiency Rankings",
             luck_title_text="Team Luck Rankings",
-            power_tank_title_text="Team Power Rankings",
+            power_ranking_title_text="Team Power Rankings",
             report_footer_text=report_footer_text,
             report_info_dict=report_info_dict
         )
