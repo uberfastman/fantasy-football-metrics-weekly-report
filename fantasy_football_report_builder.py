@@ -9,7 +9,7 @@ from ConfigParser import ConfigParser
 import yql
 from yql.storage import FileTokenStore
 
-from metrics import CoachingEfficiency, PointsByPosition, SeasonAverageCalculator, Breakdown
+from metrics import PointsByPosition, SeasonAverageCalculator, Breakdown, CalculateMetrics
 from pdf_generator import PdfGenerator
 
 
@@ -201,10 +201,6 @@ class FantasyFootballReport(object):
 
         return matchup_list
 
-    def retrieve_standings(self):
-
-        return self.league_standings_data[0].get("standings").get("teams").get("team")
-
     def retrieve_data(self, chosen_week):
 
         teams_dict = {}
@@ -259,12 +255,26 @@ class FantasyFootballReport(object):
 
                 players.append(player_info_dict)
 
-            # to test tied scores (and by proxy tied luck), switch "weekly_score" parameters below
+            # for testing ties
+            # test_score = 70
+            # if int(team_id) == 1:
+            #     test_score = 100
+            # if int(team_id) == 2:
+            #     test_score = 100
+            # if int(team_id) == 3:
+            #     test_score = 100
+            # if int(team_id) == 4:
+            #     test_score = 90
+            # if int(team_id) == 5:
+            #     test_score = 90
+            # if int(team_id) == 6:
+            #     test_score = 90
+
             team_results_dict[team_name] = {
                 "manager": teams_dict.get(team).get("manager"),
                 "players": players,
-                "weekly_score": sum([p["fantasy_points"] for p in players if p["selected_position"] != "BN"]),
-                # "weekly_score": 100,
+                "score": sum([p["fantasy_points"] for p in players if p["selected_position"] != "BN"]),
+                # "score": test_score,
                 "bench_score": sum([p["fantasy_points"] for p in players if p["selected_position"] == "BN"]),
                 "team_id": team_id,
                 "positions_filled_active": positions_filled_active
@@ -277,220 +287,67 @@ class FantasyFootballReport(object):
         matchups_list = self.retrieve_scoreboard(chosen_week)
         team_results_dict = self.retrieve_data(chosen_week)
 
-        weekly_standings_results_data_list = []
-        for team in self.retrieve_standings():
-            streak_type = team.get("team_standings").get("streak").get("type")
-            if streak_type == "loss":
-                streak_type = "L"
-            elif streak_type == "win":
-                streak_type = "W"
-            else:
-                streak_type = "T"
+        # get current standings
+        calculate_metrics = CalculateMetrics(self.league_id, self.config)
+        current_standings_data = calculate_metrics.get_standings(self.league_standings_data)
 
-            weekly_standings_results_data_list.append([
-                team.get("team_standings").get("rank"),
-                team.get("name"),
-                team.get("managers").get("manager").get("nickname"),
-                team.get("team_standings").get("outcome_totals").get("wins") + "-" +
-                team.get("team_standings").get("outcome_totals").get("losses") + "-" +
-                team.get("team_standings").get("outcome_totals").get("ties") + " (" +
-                team.get("team_standings").get("outcome_totals").get("percentage") + ")",
-                team.get("team_standings").get("points_for"),
-                team.get("team_standings").get("points_against"),
-                streak_type + "-" + team.get("team_standings").get("streak").get("value"),
-                team.get("waiver_priority"),
-                team.get("number_of_moves"),
-                team.get("number_of_trades")
-            ])
-
-
-        # set team matchup results for this week
-        team_matchup_result_dict = {name: value["result"] for pair in matchups_list for name, value in pair.items()}
-
-        # get coaching efficiency metrics and points by position
-        coaching_efficiency = CoachingEfficiency(self.roster)
+        # calculate coaching efficiency metric and add values to team_results_dict, and get and points by position
         points_by_position = PointsByPosition(self.roster)
-        weekly_team_points_by_position_data_list = []
-        for team_name, team_info in team_results_dict.items():
-            disqualification_eligible = self.league_id == self.config.get("Fantasy_Football_Report_Settings",
-                                                                          "league_of_emperors_id")
-            team_info["coaching_efficiency"] = coaching_efficiency.execute_coaching_efficiency(team_name, team_info,
-                                                                                               int(chosen_week),
-                                                                                               self.league_roster_active_slots,
-                                                                                               disqualification_eligible=disqualification_eligible)
-            for slot in self.roster["slots"].keys():
-                if self.roster["slots"].get(slot) == 0:
-                    del self.roster["slots"][slot]
-            player_points_by_position = points_by_position.execute_points_by_position(team_info)
-            weekly_team_points_by_position_data_list.append([team_name, player_points_by_position])
+        weekly_points_by_position_data = points_by_position.get_weekly_points_by_position(self.league_id, self.config,
+                                                                                          chosen_week, self.roster,
+                                                                                          self.league_roster_active_slots,
+                                                                                          team_results_dict)
 
-        breakdown = Breakdown()
-        team_breakdown = breakdown.execute_breakdown(team_results_dict, team_matchup_result_dict)
+        # calculate luck metric and add values to team_results_dict
+        Breakdown().execute_breakdown(team_results_dict, matchups_list)
 
-        for team_name in team_results_dict:
-            # "%.2f%%" % luck
-            team_results_dict[team_name]['luck'] = team_breakdown[team_name]['luck'] * 100
-            team_results_dict[team_name]['breakdown'] = team_breakdown[team_name]['breakdown']
-            team_results_dict[team_name]['matchup_result'] = team_matchup_result_dict[team_name]
+        # create score data for table
+        score_results = sorted(team_results_dict.iteritems(),
+                               key=lambda (k, v): (float(v.get("score")), k), reverse=True)
+        score_results_data = calculate_metrics.get_score_data(score_results)
 
-        final_weekly_score_results_list = sorted(team_results_dict.iteritems(),
-                                                 key=lambda (k, v): (float(v.get("weekly_score")), k))[::-1]
-
-        weekly_score_results_data_list = []
-        place = 1
-        for key, value in final_weekly_score_results_list:
-            ranked_team_name = key
-            ranked_team_manager = value.get("manager")
-            ranked_weekly_score = value.get("weekly_score")
-            ranked_weekly_bench_score = value.get("bench_score")
-
-            weekly_score_results_data_list.append(
-                [place, ranked_team_name, ranked_team_manager, ranked_weekly_score, ranked_weekly_bench_score])
-
-            place += 1
-
-        # results.sort(key=lambda x: x.get("luck"), reverse=True)
-
-        # Option to disqualify chosen team for current week of coaching efficiency
-        if chosen_week == self.config.get("Fantasy_Football_Report_Settings", "chosen_week"):
-            disqualified_team = self.config.get("Fantasy_Football_Report_Settings",
-                                                "coaching_efficiency_disqualified_team")
-            if disqualified_team:
-                team_results_dict.get(disqualified_team)["coaching_efficiency"] = "0.0%"
-
-        final_coaching_efficiency_results_list = sorted(team_results_dict.iteritems(),
-                                                        key=lambda (k, v): (v.get("coaching_efficiency"), k), reverse=True)
-        final_luck_results_list = sorted(team_results_dict.iteritems(),
-                                         key=lambda (k, v): (v.get("luck"), k), reverse=True)
-
-        # create data for coaching efficiency table
-        coaching_efficiency_results_data_list = []
+        # create coaching efficiency data for table
+        coaching_efficiency_results = sorted(team_results_dict.iteritems(),
+                                             key=lambda (k, v): (v.get("coaching_efficiency"), k),
+                                             reverse=True)
         efficiency_dq_count = 0
-        place = 1
-        for key, value in final_coaching_efficiency_results_list:
-            ranked_team_name = key
-            ranked_team_manager = value.get("manager")
-            ranked_coaching_efficiency = value.get("coaching_efficiency")
+        coaching_efficiency_results_data = calculate_metrics.get_coaching_efficiency_data(
+            coaching_efficiency_results, efficiency_dq_count)
 
-            if ranked_coaching_efficiency == 0.0:
-                ranked_coaching_efficiency = "DQ"
-                efficiency_dq_count += 1
-            else:
-                ranked_coaching_efficiency = "%.2f%%" % float(ranked_coaching_efficiency)
-
-            coaching_efficiency_results_data_list.append(
-                [place, ranked_team_name, ranked_team_manager, ranked_coaching_efficiency])
-
-            place += 1
-
-        # create data for luck table
-        weekly_luck_results_data_list = []
-        place = 1
-        for key, value in final_luck_results_list:
-            ranked_team_name = key
-            ranked_team_manager = value.get("manager")
-            ranked_luck = "%.2f%%" % value.get("luck")
-
-            weekly_luck_results_data_list.append([place, ranked_team_name, ranked_team_manager, ranked_luck])
-
-            place += 1
+        # create luck data for table
+        luck_results = sorted(team_results_dict.iteritems(),
+                              key=lambda (k, v): (v.get("luck"), k), reverse=True)
+        luck_results_data = calculate_metrics.get_luck_data(luck_results)
 
         # count number of ties for points, coaching efficiency, and luck
-        num_tied_scores = sum(
-            manager.count(weekly_score_results_data_list[0][3]) for manager in weekly_score_results_data_list) - 1
-        num_tied_efficiencies = sum(
-            manager.count(coaching_efficiency_results_data_list[0][3]) for manager in
-            coaching_efficiency_results_data_list) - 1
-        num_tied_luck = sum(
-            manager.count(weekly_luck_results_data_list[0][3]) for manager in weekly_luck_results_data_list) - 1
-
-        # if there are ties, record them and break them if possible
-        tied_weekly_score_bool = False
+        # tie_type can be "score", "coaching_efficiency", or "luck"
+        num_tied_scores = calculate_metrics.get_num_ties(score_results, score_results_data, chosen_week,
+                                                         tie_type="score")
+        # reorder score data based on bench points
         if num_tied_scores > 0:
-            print("THERE IS A SCORE TIE IN WEEK %s!" % chosen_week)
-            tied_weekly_score_bool = True
-            tied_scores_list = list(final_weekly_score_results_list[:num_tied_scores + 1])
-            tied_scores_list = sorted(tied_scores_list, key=lambda x: float(x[1].get("bench_score")))[::-1]
+            score_results_data = calculate_metrics.resolve_score_ties(score_results_data)
 
-            count = num_tied_scores
-            index = 0
-            while (count + 1) > 0:
-                if self.league_id == self.config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
-                    place = index + 1
-                else:
-                    place = "1*"
-                weekly_score_results_data_list[index] = [
-                    place,
-                    tied_scores_list[index][0],
-                    tied_scores_list[index][1].get("manager"),
-                    tied_scores_list[index][1].get("weekly_score"),
-                    tied_scores_list[index][1].get("bench_score")
-                ]
-                count -= 1
-                index += 1
-        else:
-            print("No score ties in week %s." % chosen_week)
-
-        tied_coaching_efficiency_bool = False
-        if num_tied_efficiencies > 0:
-            print("THERE IS A COACHING EFFICIENCY TIE IN WEEK %s!" % chosen_week)
-            tied_coaching_efficiency_bool = True
-            tied_efficiencies_list = list(final_coaching_efficiency_results_list[:num_tied_efficiencies + 1])
-
-            count = num_tied_efficiencies
-            index = 0
-            while (count + 1) > 0:
-                coaching_efficiency_results_data_list[index] = [
-                    "1*",
-                    tied_efficiencies_list[index][0],
-                    tied_efficiencies_list[index][1].get("manager"),
-                    tied_efficiencies_list[index][1].get("coaching_efficiency")
-                ]
-                count -= 1
-                index += 1
-        else:
-            print("No coaching efficiency ties in week %s." % chosen_week)
-
-        tied_weekly_luck_bool = False
-        if num_tied_luck > 0:
-            print("THERE IS A LUCK TIE IN WEEK %s!\n" % chosen_week)
-            tied_weekly_luck_bool = True
-            tied_luck_list = list(final_luck_results_list[:num_tied_luck + 1])
-
-            count = num_tied_luck
-            index = 0
-            while (count + 1) > 0:
-                weekly_luck_results_data_list[index] = [
-                    "1*",
-                    tied_luck_list[index][0],
-                    tied_luck_list[index][1].get("manager"),
-                    tied_luck_list[index][1].get("luck")
-                ]
-                count -= 1
-                index += 1
-        else:
-            print("No luck ties in week %s.\n" % chosen_week)
-
-        # last minute formatting of scores to rounded score
-        for team_info in weekly_score_results_data_list:
-            team_info[3] = "%.2f" % float(team_info[3])
-            team_info[4] = "%.2f" % float(team_info[4])
+        num_tied_coaching_efficiencies = calculate_metrics.get_num_ties(coaching_efficiency_results,
+                                                                        coaching_efficiency_results_data, chosen_week,
+                                                                        tie_type="coaching_efficiency")
+        num_tied_lucks = calculate_metrics.get_num_ties(luck_results, luck_results_data, chosen_week, tie_type="luck")
 
         report_info_dict = {
-            "weekly_standings_results_data_list": weekly_standings_results_data_list,
-            "weekly_score_results_data_list": weekly_score_results_data_list,
-            "coaching_efficiency_results_data_list": coaching_efficiency_results_data_list,
-            "weekly_luck_results_data_list": weekly_luck_results_data_list,
+            "team_results": team_results_dict,
+            "current_standings_data": current_standings_data,
+            "score_results_data": score_results_data,
+            "coaching_efficiency_results_data": coaching_efficiency_results_data,
+            "luck_results_data": luck_results_data,
             "num_tied_scores": num_tied_scores,
-            "num_tied_efficiencies": num_tied_efficiencies,
-            "num_tied_luck": num_tied_luck,
+            "num_tied_coaching_efficiencies": num_tied_coaching_efficiencies,
+            "num_tied_lucks": num_tied_lucks,
             "efficiency_dq_count": efficiency_dq_count,
-            "tied_weekly_score_bool": tied_weekly_score_bool,
-            "tied_coaching_efficiency_bool": tied_coaching_efficiency_bool,
-            "tied_weekly_luck_bool": tied_weekly_luck_bool,
-            "weekly_team_points_by_position": weekly_team_points_by_position_data_list
+            "tied_scores_bool": num_tied_scores > 0,
+            "tied_coaching_efficiencies_bool": num_tied_coaching_efficiencies > 0,
+            "tied_lucks_bool": num_tied_lucks > 0,
+            "weekly_points_by_position_data": weekly_points_by_position_data
         }
-        return team_results_dict, report_info_dict
+        return report_info_dict
 
     def create_pdf_report(self):
 
@@ -508,24 +365,23 @@ class FantasyFootballReport(object):
 
         week_counter = 1
         while week_counter <= int(self.chosen_week):
-            calculated_metrics_results = self.calculate_metrics(chosen_week=str(week_counter))
-            team_results_dict = calculated_metrics_results[0]
-            report_info_dict = calculated_metrics_results[1]
+            report_info_dict = self.calculate_metrics(chosen_week=str(week_counter))
 
             # create team data for charts
             teams_data_list = []
-            for team in team_results_dict:
-                temp_team_info = team_results_dict.get(team)
+            team_results = report_info_dict.get("team_results")
+            for team in team_results:
+                temp_team_info = team_results.get(team)
                 teams_data_list.append([
                     temp_team_info.get("team_id"),
                     team,
                     temp_team_info.get("manager"),
-                    temp_team_info.get("weekly_score"),
+                    temp_team_info.get("score"),
                     temp_team_info.get("coaching_efficiency"),
                     temp_team_info.get("luck")
                 ])
 
-                weekly_team_info = report_info_dict.get("weekly_team_points_by_position")
+                weekly_team_info = report_info_dict.get("weekly_points_by_position_data")
                 for weekly_info in weekly_team_info:
                     if weekly_info[0] == team:
                         season_average_points_by_position_dict.get(team).append(weekly_info[1])
@@ -567,20 +423,21 @@ class FantasyFootballReport(object):
 
         # calculate season average metrics and then add columns for them to their respective metric table data
         season_average_calculator = SeasonAverageCalculator(chosen_week_ordered_team_names, report_info_dict)
-        report_info_dict["weekly_score_results_data_list"] = season_average_calculator.get_average(
-            time_series_points_data, "weekly_score_results_data_list", False)
-        report_info_dict["coaching_efficiency_results_data_list"] = season_average_calculator.get_average(
-            time_series_efficiency_data, "coaching_efficiency_results_data_list", True)
-        report_info_dict["weekly_luck_results_data_list"] = season_average_calculator.get_average(time_series_luck_data,
-                                                                                                  "weekly_luck_results_data_list",
-                                                                                                  True)
+        report_info_dict["score_results_data"] = season_average_calculator.get_average(
+            time_series_points_data, "score_results_data", False)
+        report_info_dict["coaching_efficiency_results_data"] = season_average_calculator.get_average(
+            time_series_efficiency_data, "coaching_efficiency_results_data", True)
+        report_info_dict["luck_results_data"] = season_average_calculator.get_average(time_series_luck_data,
+                                                                                      "luck_results_data",
+                                                                                      True)
 
         line_chart_data_list = [chosen_week_ordered_team_names, chosen_week_ordered_managers, time_series_points_data,
                                 time_series_efficiency_data,
                                 time_series_luck_data]
 
         # calculate season average points by position and add them to the report_info_dict
-        PointsByPosition.calculate_points_by_position_season_averages(season_average_points_by_position_dict, report_info_dict)
+        PointsByPosition.calculate_points_by_position_season_averages(season_average_points_by_position_dict,
+                                                                      report_info_dict)
 
         filename = self.league_name.replace(" ",
                                             "-") + "(" + self.league_id + ")_week-" + self.chosen_week + "_report.pdf"
@@ -600,26 +457,14 @@ class FantasyFootballReport(object):
 
         # instantiate pdf generator
         pdf_generator = PdfGenerator(
-            weekly_standings_results_data=report_info_dict.get("weekly_standings_results_data_list"),
-            weekly_score_results_data=report_info_dict.get("weekly_score_results_data_list"),
-            weekly_coaching_efficiency_results_data=report_info_dict.get("coaching_efficiency_results_data_list"),
-            weekly_luck_results_data=report_info_dict.get("weekly_luck_results_data_list"),
-            num_tied_scores=report_info_dict.get("num_tied_scores"),
-            num_tied_efficiencies=report_info_dict.get("num_tied_efficiencies"),
-            num_tied_luck=report_info_dict.get("num_tied_luck"),
-            efficiency_dq_count=report_info_dict.get("efficiency_dq_count"),
             league_id=self.league_id,
             report_title_text=report_title_text,
-            report_footer_text=report_footer_text,
             standings_title_text="League Standings",
-            points_title_text="Team Score Rankings",
-            tied_weekly_score_bool=report_info_dict.get("tied_weekly_score_bool"),
+            scores_title_text="Team Score Rankings",
             coaching_efficiency_title_text="Team Coaching Efficiency Rankings",
-            tied_weekly_coaching_efficiency_bool=report_info_dict.get("tied_coaching_efficiency_bool"),
             luck_title_text="Team Luck Rankings",
-            tied_weekly_luck_bool=report_info_dict.get("tied_weekly_luck_bool"),
-            weekly_team_points_by_position=report_info_dict.get("weekly_team_points_by_position"),
-            season_average_team_points_by_position=report_info_dict.get("season_average_team_points_by_position")
+            report_footer_text=report_footer_text,
+            report_info_dict=report_info_dict
         )
 
         # generate pdf of report
