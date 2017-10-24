@@ -9,11 +9,7 @@ from ConfigParser import ConfigParser
 import yql
 from yql.storage import FileTokenStore
 
-<<<<<<< HEAD
-from metrics import CoachingEfficiency, PointsByPosition, PowerRanking
-=======
-from metrics import CoachingEfficiency, PointsByPosition, SeasonAverageCalculator, Breakdown
->>>>>>> feature/luck-metric
+from metrics import CoachingEfficiency, PointsByPosition, SeasonAverageCalculator, Breakdown, PowerRanking
 from pdf_generator import PdfGenerator
 
 
