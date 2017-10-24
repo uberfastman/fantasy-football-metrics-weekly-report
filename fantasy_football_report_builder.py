@@ -9,7 +9,11 @@ from ConfigParser import ConfigParser
 import yql
 from yql.storage import FileTokenStore
 
+<<<<<<< HEAD
 from metrics import CoachingEfficiency, PointsByPosition, PowerRanking
+=======
+from metrics import CoachingEfficiency, PointsByPosition, SeasonAverageCalculator, Breakdown
+>>>>>>> feature/luck-metric
 from pdf_generator import PdfGenerator
 
 
@@ -303,10 +307,14 @@ class FantasyFootballReport(object):
                 team.get("number_of_trades")
             ])
 
+
+        # set team matchup results for this week
+        team_matchup_result_dict = {name: value["result"] for pair in matchups_list for name, value in pair.items()}
+
         # get coaching efficiency metrics and points by position
         coaching_efficiency = CoachingEfficiency(self.roster)
         points_by_position = PointsByPosition(self.roster)
-        team_points_by_position_data_list = []
+        weekly_team_points_by_position_data_list = []
         for team_name, team_info in team_results_dict.items():
             disqualification_eligible = self.league_id == self.config.get("Fantasy_Football_Report_Settings",
                                                                           "league_of_emperors_id")
@@ -314,14 +322,23 @@ class FantasyFootballReport(object):
                                                                                                int(chosen_week),
                                                                                                self.league_roster_active_slots,
                                                                                                disqualification_eligible=disqualification_eligible)
+            for slot in self.roster["slots"].keys():
+                if self.roster["slots"].get(slot) == 0:
+                    del self.roster["slots"][slot]
             player_points_by_position = points_by_position.execute_points_by_position(team_info)
-            team_points_by_position_data_list.append([team_name, player_points_by_position])
+            weekly_team_points_by_position_data_list.append([team_name, player_points_by_position])
+
+        breakdown = Breakdown()
+        team_breakdown = breakdown.execute(team_results_dict, team_matchup_result_dict)
+
+        for team_name in team_results_dict:
+            # "%.2f%%" % luck
+            team_results_dict[team_name]['luck'] = team_breakdown[team_name]['luck'] * 100
+            team_results_dict[team_name]['breakdown'] = team_breakdown[team_name]['breakdown']
+            team_results_dict[team_name]['matchup_result'] = team_matchup_result_dict[team_name]
 
         power_ranking_metric = PowerRanking()
         power_rankings = power_ranking_metric.execute(team_results_dict)
-
-        # for team in team_points_by_position_data_list:
-        #     print(team)
 
         final_weekly_score_results_list = sorted(team_results_dict.iteritems(),
                                                  key=lambda (k, v): (float(v.get("weekly_score")), k))[::-1]
@@ -339,60 +356,7 @@ class FantasyFootballReport(object):
 
             place += 1
 
-        ranked_team_scores = []
-
-        for result in weekly_score_results_data_list:
-            ranked_team_name = result[1]
-            ranked_weekly_score = result[3]
-
-            ranked_team = {"name": ranked_team_name, "score": ranked_weekly_score, "luck": ""}
-            ranked_team_scores.append(ranked_team)
-
-        # set team matchup results for this week
-        team_matchup_result_dict = {name: value["result"] for pair in matchups_list for name, value in pair.items()}
-
-        index = 0
-        results = []
-        top_team_score = ranked_team_scores[0].get("score")
-        bottom_team_score = ranked_team_scores[-1].get("score")
-
-        # calculate weekly luck metric
-        for ranked_team in ranked_team_scores:
-
-            ranked_team_name = ranked_team.get("name")
-            ranked_team_score = ranked_team.get("score")
-            ranked_team_matchup_result = team_matchup_result_dict.get(ranked_team_name)
-
-            ranked_team_score_without_team = list(ranked_team_scores)
-            del ranked_team_score_without_team[ranked_team_scores.index(ranked_team)]
-
-            luck = 0.00
-            if ranked_team_score == top_team_score or ranked_team_score == bottom_team_score:
-                ranked_team["luck"] = luck
-
-            else:
-                if ranked_team_matchup_result == "W" or ranked_team_matchup_result == "T":
-
-                    luck += (
-                        ((sum(score.get("score") >= ranked_team_score for score in ranked_team_score_without_team)) / (
-                            float(len(ranked_team_score_without_team)))) * 100)
-                else:
-                    luck += (
-                        ((0 - sum(
-                            score.get("score") <= ranked_team_score for score in ranked_team_score_without_team)) / (
-                             float(len(ranked_team_score_without_team)))) * 100)
-
-                ranked_team["luck"] = luck
-
-            ranked_team["matchup_result"] = ranked_team_matchup_result
-
-            results.append(ranked_team)
-            index += 1
-
-            team_results_dict.get(ranked_team_name)["luck"] = "%.2f%%" % luck
-            team_results_dict.get(ranked_team_name)["matchup_result"] = ranked_team_matchup_result
-
-        results.sort(key=lambda x: x.get("luck"), reverse=True)
+        # results.sort(key=lambda x: x.get("luck"), reverse=True)
 
         # Option to disqualify chosen team for current week of coaching efficiency
         if chosen_week == self.config.get("Fantasy_Football_Report_Settings", "chosen_week"):
@@ -402,9 +366,9 @@ class FantasyFootballReport(object):
                 team_results_dict.get(disqualified_team)["coaching_efficiency"] = "0.0%"
 
         final_coaching_efficiency_results_list = sorted(team_results_dict.iteritems(),
-                                                        key=lambda (k, v): (v.get("coaching_efficiency"), k))[::-1]
+                                                        key=lambda (k, v): (v.get("coaching_efficiency"), k), reverse=True)
         final_luck_results_list = sorted(team_results_dict.iteritems(),
-                                         key=lambda (k, v): (float(v.get("luck").strip("%")), k))[::-1]
+                                         key=lambda (k, v): (v.get("luck"), k), reverse=True)
 
         # create data for coaching efficiency table
         coaching_efficiency_results_data_list = []
@@ -432,7 +396,7 @@ class FantasyFootballReport(object):
         for key, value in final_luck_results_list:
             ranked_team_name = key
             ranked_team_manager = value.get("manager")
-            ranked_luck = value.get("luck")
+            ranked_luck = "%.2f%%" % value.get("luck")
 
             weekly_luck_results_data_list.append([place, ranked_team_name, ranked_team_manager, ranked_luck])
 
@@ -531,7 +495,7 @@ class FantasyFootballReport(object):
             "tied_weekly_score_bool": tied_weekly_score_bool,
             "tied_coaching_efficiency_bool": tied_coaching_efficiency_bool,
             "tied_weekly_luck_bool": tied_weekly_luck_bool,
-            "weekly_team_points_by_position": team_points_by_position_data_list
+            "weekly_team_points_by_position": weekly_team_points_by_position_data_list
         }
         return team_results_dict, report_info_dict
 
@@ -545,6 +509,10 @@ class FantasyFootballReport(object):
         time_series_efficiency_data = []
         time_series_luck_data = []
 
+        season_average_points_by_position_dict = {}
+        for team in self.teams_data:
+            season_average_points_by_position_dict[team.get("name")] = []
+
         week_counter = 1
         while week_counter <= int(self.chosen_week):
             calculated_metrics_results = self.calculate_metrics(chosen_week=str(week_counter))
@@ -555,7 +523,6 @@ class FantasyFootballReport(object):
             teams_data_list = []
             for team in team_results_dict:
                 temp_team_info = team_results_dict.get(team)
-
                 teams_data_list.append([
                     temp_team_info.get("team_id"),
                     team,
@@ -564,6 +531,11 @@ class FantasyFootballReport(object):
                     temp_team_info.get("coaching_efficiency"),
                     temp_team_info.get("luck")
                 ])
+
+                weekly_team_info = report_info_dict.get("weekly_team_points_by_position")
+                for weekly_info in weekly_team_info:
+                    if weekly_info[0] == team:
+                        season_average_points_by_position_dict.get(team).append(weekly_info[1])
 
             teams_data_list.sort(key=lambda x: int(x[0]))
 
@@ -578,7 +550,7 @@ class FantasyFootballReport(object):
                 ordered_team_managers.append(team[2])
                 weekly_points_data.append([int(week_counter), float(team[3])])
                 weekly_coaching_efficiency_data.append([int(week_counter), team[4]])
-                weekly_luck_data.append([int(week_counter), float(team[5].replace("%", ""))])
+                weekly_luck_data.append([int(week_counter), float(team[5])])
 
             chosen_week_ordered_team_names = ordered_team_names
             chosen_week_ordered_managers = ordered_team_managers
@@ -600,9 +572,22 @@ class FantasyFootballReport(object):
                     time_series_luck_data[index].append(team_luck)
             week_counter += 1
 
-        chart_data_list = [chosen_week_ordered_team_names, chosen_week_ordered_managers, time_series_points_data,
-                           time_series_efficiency_data,
-                           time_series_luck_data]
+        # calculate season average metrics and then add columns for them to their respective metric table data
+        season_average_calculator = SeasonAverageCalculator(chosen_week_ordered_team_names, report_info_dict)
+        report_info_dict["weekly_score_results_data_list"] = season_average_calculator.get_average(
+            time_series_points_data, "weekly_score_results_data_list", False)
+        report_info_dict["coaching_efficiency_results_data_list"] = season_average_calculator.get_average(
+            time_series_efficiency_data, "coaching_efficiency_results_data_list", True)
+        report_info_dict["weekly_luck_results_data_list"] = season_average_calculator.get_average(time_series_luck_data,
+                                                                                                  "weekly_luck_results_data_list",
+                                                                                                  True)
+
+        line_chart_data_list = [chosen_week_ordered_team_names, chosen_week_ordered_managers, time_series_points_data,
+                                time_series_efficiency_data,
+                                time_series_luck_data]
+
+        # calculate season average points by position and add them to the report_info_dict
+        PointsByPosition.calculate_points_by_position_season_averages(season_average_points_by_position_dict, report_info_dict)
 
         filename = self.league_name.replace(" ",
                                             "-") + "(" + self.league_id + ")_week-" + self.chosen_week + "_report.pdf"
@@ -622,10 +607,10 @@ class FantasyFootballReport(object):
 
         # instantiate pdf generator
         pdf_generator = PdfGenerator(
-            weekly_standings_results=report_info_dict.get("weekly_standings_results_data_list"),
-            weekly_score_results=report_info_dict.get("weekly_score_results_data_list"),
-            weekly_coaching_efficiency_results=report_info_dict.get("coaching_efficiency_results_data_list"),
-            weekly_luck_results=report_info_dict.get("weekly_luck_results_data_list"),
+            weekly_standings_results_data=report_info_dict.get("weekly_standings_results_data_list"),
+            weekly_score_results_data=report_info_dict.get("weekly_score_results_data_list"),
+            weekly_coaching_efficiency_results_data=report_info_dict.get("coaching_efficiency_results_data_list"),
+            weekly_luck_results_data=report_info_dict.get("weekly_luck_results_data_list"),
             num_tied_scores=report_info_dict.get("num_tied_scores"),
             num_tied_efficiencies=report_info_dict.get("num_tied_efficiencies"),
             num_tied_luck=report_info_dict.get("num_tied_luck"),
@@ -640,11 +625,12 @@ class FantasyFootballReport(object):
             tied_weekly_coaching_efficiency_bool=report_info_dict.get("tied_coaching_efficiency_bool"),
             luck_title_text="Team Luck Rankings",
             tied_weekly_luck_bool=report_info_dict.get("tied_weekly_luck_bool"),
-            weekly_team_points_by_position=report_info_dict.get("weekly_team_points_by_position")
+            weekly_team_points_by_position=report_info_dict.get("weekly_team_points_by_position"),
+            season_average_team_points_by_position=report_info_dict.get("season_average_team_points_by_position")
         )
 
         # generate pdf of report
-        file_for_upload = pdf_generator.generate_pdf(filename_with_path, chart_data_list)
+        file_for_upload = pdf_generator.generate_pdf(filename_with_path, line_chart_data_list)
 
         print("Generated PDF: {}\n".format(file_for_upload))
 

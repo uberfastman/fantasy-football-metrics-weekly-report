@@ -1,6 +1,12 @@
 from collections import defaultdict, Counter
 import pandas as pd
 
+class Points(object):
+
+    def __init__(self):
+        pass
+
+
 class CoachingEfficiency(object):
     # prohibited statuses to check team coaching efficiency eligibility
     prohibited_status_list = ["PUP-P", "SUSP", "O", "IR"]
@@ -148,11 +154,90 @@ class CoachingEfficiency(object):
         return coaching_efficiency
 
 
+class Breakdown(object):
+
+    def __init__(self):
+        pass
+
+    def execute(self, teams, matchups):
+
+        result = defaultdict(dict)
+
+        for team_name, team in teams.items():
+            record = {
+                'W': 0, 
+                'L': 0,
+                'T': 0
+            }
+
+            for team_name2, team2 in teams.items():
+                if team['team_id'] == team2['team_id']:
+                    continue
+                score1 = team['weekly_score']
+                score2 = team2['weekly_score']
+                if score1 > score2:
+                    record['W'] += 1
+                elif score1 < score2:
+                    record['L'] += 1
+                else:
+                    record['T'] += 1
+
+            result[team_name]['breakdown'] = record
+
+            # calc luck %
+            # TODO: assuming no ties...  how are tiebreakers handled?
+            luck = 0.0
+            # number of teams excluding current team
+            num_teams = float(len(teams.keys())) - 1 
+
+            if record['W'] != 0 and record['L'] != 0:
+                matchup_result = matchups[team_name]
+                if matchup_result == 'W' or matchup_result == 'T':
+                    luck = (record['L'] + record['T']) / num_teams
+                else:
+                    luck = 0 - (record['W'] + record['T']) / num_teams
+                    
+            result[team_name]['luck'] = luck
+
+        return result                
+
+
+class SeasonAverageCalculator(object):
+
+    def __init__(self, team_names, report_info_dict):
+        self.team_names = team_names
+        self.report_info_dict = report_info_dict
+
+    def get_average(self, data, key, with_percent_bool):
+
+        season_average_list = []
+        team_index = 0
+        for team in data:
+            team_name = self.team_names[team_index]
+            season_average_value = "{0:.2f}".format(sum([float(week[1]) for week in team]) / float(len(team)))
+            season_average_list.append([team_name, season_average_value])
+            team_index += 1
+        ordered_average_values = sorted(season_average_list, key=lambda x: float(x[1]), reverse=True)
+        for team in ordered_average_values:
+            ordered_average_values[ordered_average_values.index(team)] = [ordered_average_values.index(team), team[0], team[1]]
+
+        ordered_season_average_list = []
+        for ordered_team in self.report_info_dict.get(key):
+            for team in ordered_average_values:
+                if ordered_team[1] == team[1]:
+                    if with_percent_bool:
+                        ordered_team.append(str(team[2]) + "% (" + str(ordered_average_values.index(team) + 1) + ")")
+                    else:
+                        ordered_team.insert(-1, str(team[2]) + " (" + str(ordered_average_values.index(team) + 1) + ")")
+                    ordered_season_average_list.append(ordered_team)
+        return ordered_season_average_list
+
+
 class PointsByPosition(object):
 
     def __init__(self, roster_settings):
 
-        self.roster_slots = roster_settings["slots"]
+        self.roster_slots = roster_settings.get("slots")
         self.flex_positions = {
             "FLEX": roster_settings["flex_positions"],
             "D": ["D", "DB", "DL", "LB", "DT", "DE", "S", "CB"]
@@ -174,16 +259,39 @@ class PointsByPosition(object):
 
         return total_points_by_position
 
+    @staticmethod
+    def calculate_points_by_position_season_averages(season_average_points_by_position_dict, report_info_dict):
+
+        for team in season_average_points_by_position_dict.keys():
+            points_by_position = season_average_points_by_position_dict.get(team)
+            season_average_points_by_position = {}
+            for week in points_by_position:
+                for position in week:
+                    position_points = season_average_points_by_position.get(position[0])
+                    if position_points:
+                        season_average_points_by_position[position[0]] = position_points + position[1]
+                    else:
+                        season_average_points_by_position[position[0]] = position[1]
+            season_average_points_by_position_list = []
+            for position in season_average_points_by_position.keys():
+                season_average_points_by_position_list.append(
+                    [position, season_average_points_by_position.get(position) / len(points_by_position)])
+            season_average_points_by_position_list = sorted(season_average_points_by_position_list, key=lambda x: x[0])
+            season_average_points_by_position_dict[team] = season_average_points_by_position_list
+
+        report_info_dict["season_average_team_points_by_position"] = season_average_points_by_position_dict
+
     def execute_points_by_position(self, team_info):
 
         players = team_info['players']
 
-        player_points_by_position = {}
+        player_points_by_position = []
         starting_players = self.get_starting_players(players)
         for slot in self.roster_slots.keys():
             if slot != "BN" and slot != "FLEX":
-                player_points_by_position[slot] = self.get_points_for_position(starting_players, slot)
+                player_points_by_position.append([slot, self.get_points_for_position(starting_players, slot)])
 
+        player_points_by_position = sorted(player_points_by_position, key=lambda x: x[0])
         return player_points_by_position
 
 
