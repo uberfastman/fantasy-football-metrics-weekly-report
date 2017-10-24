@@ -154,10 +154,99 @@ class CoachingEfficiency(object):
         return coaching_efficiency
 
 
-class Luck(object):
+class Breakdown(object):
 
     def __init__(self):
         pass
+
+    def execute(self, teams, matchups):
+
+        result = defaultdict(dict)
+
+        for team_name, team in teams.items():
+            record = {
+                'W': 0, 
+                'L': 0,
+                'T': 0
+            }
+
+            for team_name2, team2 in teams.items():
+                if team['team_id'] == team2['team_id']:
+                    continue
+                score1 = team['weekly_score']
+                score2 = team2['weekly_score']
+                if score1 > score2:
+                    record['W'] += 1
+                elif score1 < score2:
+                    record['L'] += 1
+                else:
+                    record['T'] += 1
+
+            result[team_name]['breakdown'] = record
+
+            # calc luck %
+            # TODO: assuming no ties...  how are tiebreakers handled?
+            luck = 0.0
+            # number of teams excluding current team
+            num_teams = float(len(teams.keys())) - 1 
+
+            if record['W'] != 0 and record['L'] != 0:
+                matchup_result = matchups[team_name]
+                if matchup_result == 'W' or matchup_result == 'T':
+                    luck = (record['L'] + record['T']) / num_teams
+                else:
+                    luck = 0 - (record['W'] + record['T']) / num_teams
+                    
+            result[team_name]['luck'] = luck
+
+        return result                
+
+    def execute_orig(self, teams, matchups_list): 
+        # set team matchup results for this week
+        team_matchup_result_dict = {name: value["result"] for pair in matchups_list for name, value in pair.items()}
+
+        ranked_team_scores = sorted(teams.values(), key=lambda x: x.get('weekly_score'), reverse=True)
+
+        index = 0
+        results = []
+        top_team_score = ranked_team_scores[0].get("score")
+        bottom_team_score = ranked_team_scores[-1].get("score")
+
+        # calculate weekly luck metric
+        for ranked_team in ranked_team_scores:
+
+            ranked_team_name = ranked_team.get("name")
+            ranked_team_score = ranked_team.get("score")
+            ranked_team_matchup_result = team_matchup_result_dict.get(ranked_team_name)
+
+            ranked_team_score_without_team = list(ranked_team_scores)
+            del ranked_team_score_without_team[ranked_team_scores.index(ranked_team)]
+
+            luck = 0.00
+            if ranked_team_score == top_team_score or ranked_team_score == bottom_team_score:
+                ranked_team["luck"] = luck
+
+            else:
+                if ranked_team_matchup_result == "W" or ranked_team_matchup_result == "T":
+
+                    luck += (
+                        ((sum(score.get("score") >= ranked_team_score for score in ranked_team_score_without_team)) / (
+                            float(len(ranked_team_score_without_team)))) * 100)
+                else:
+                    luck += (
+                        ((0 - sum(
+                            score.get("score") <= ranked_team_score for score in ranked_team_score_without_team)) / (
+                             float(len(ranked_team_score_without_team)))) * 100)
+
+                ranked_team["luck"] = luck
+
+            ranked_team["matchup_result"] = ranked_team_matchup_result
+
+            results.append(ranked_team)
+            index += 1
+
+            team_results_dict.get(ranked_team_name)["luck"] = "%.2f%%" % luck
+            team_results_dict.get(ranked_team_name)["matchup_result"] = ranked_team_matchup_result
 
 
 class SeasonAverageCalculator(object):
