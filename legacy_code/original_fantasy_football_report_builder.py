@@ -605,9 +605,9 @@
 #
 # # count number of ties for points, coaching efficiency, and luck
 # num_tied_scores = sum(manager.count(weekly_score_results_data_list[0][3]) for manager in weekly_score_results_data_list)
-# num_tied_efficiencies = sum(
+# num_tied_coaching_efficiencies = sum(
 #     manager.count(coaching_efficiency_results_data_list[0][3]) for manager in coaching_efficiency_results_data_list)
-# num_tied_luck = sum(manager.count(weekly_luck_results_data_list[0][3]) for manager in weekly_luck_results_data_list)
+# num_tied_lucks = sum(manager.count(weekly_luck_results_data_list[0][3]) for manager in weekly_luck_results_data_list)
 #
 # # if there are ties, record them and break them if possible
 # tied_weekly_score_bool = False
@@ -633,12 +633,12 @@
 #     print("No weekly score ties.\n")
 #
 # tied_coaching_efficiency_bool = False
-# if num_tied_efficiencies > 1:
+# if num_tied_coaching_efficiencies > 1:
 #     print("THERE IS A COACHING EFFICIENCY TIE!\n")
 #     tied_coaching_efficiency_bool = True
-#     tied_efficiencies_list = list(final_coaching_efficiency_results_list[:num_tied_efficiencies])
+#     tied_efficiencies_list = list(final_coaching_efficiency_results_list[:num_tied_coaching_efficiencies])
 #
-#     count = num_tied_efficiencies
+#     count = num_tied_coaching_efficiencies
 #     index = 0
 #     while count > 0:
 #         coaching_efficiency_results_data_list[index] = [
@@ -653,12 +653,12 @@
 #     print("No coaching efficiency ties.\n")
 #
 # tied_weekly_luck_bool = False
-# if num_tied_luck > 1:
+# if num_tied_lucks > 1:
 #     print("THERE IS A LUCK TIE!\n")
 #     tied_weekly_luck_bool = True
-#     tied_luck_list = list(final_luck_results_list[:num_tied_luck])
+#     tied_luck_list = list(final_luck_results_list[:num_tied_lucks])
 #
-#     count = num_tied_luck
+#     count = num_tied_lucks
 #     index = 0
 #     while count > 0:
 #         weekly_luck_results_data_list[index] = [
@@ -778,8 +778,8 @@
 #         coaching_efficiency_results_data_list,
 #         weekly_luck_results_data_list,
 #         num_tied_scores,
-#         num_tied_efficiencies,
-#         num_tied_luck,
+#         num_tied_coaching_efficiencies,
+#         num_tied_lucks,
 #         efficiency_dq_count
 #     )
 #
