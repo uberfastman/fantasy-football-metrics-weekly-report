@@ -1,6 +1,8 @@
 # Written by: Wren J. Rudolph
 import distutils.util as distutils
 from ConfigParser import ConfigParser
+import sys
+import getopt
 
 from google_drive_uploader import GoogleDriveUploader
 from fantasy_football_report_builder import FantasyFootballReport
@@ -10,43 +12,89 @@ from slack_messenger import SlackMessenger
 config = ConfigParser()
 config.read('config.ini')
 
-# RUN FANTASY FOOTBALL REPORT PROGRAM
-if __name__ == '__main__':
 
-    def use_default_league_function():
-        use_default_league = raw_input("Generate report for default league? (y/n) -> ")
-        if use_default_league == "y":
-            fantasy_football_report_instance = FantasyFootballReport(user_input_chosen_week=use_chosen_week_function())
-            return fantasy_football_report_instance, config.get("Fantasy_Football_Report_Settings", "chosen_league_id")
-        elif use_default_league == "n":
-            chosen_league_id = raw_input("What is the league ID of the Yahoo league for which you want to generate a report? -> ")
-            try:
-                fantasy_football_report_instance = FantasyFootballReport(chosen_league_id, use_chosen_week_function())
-                return fantasy_football_report_instance, str(chosen_league_id)
-            except IndexError:
-                print("The league ID you have selected is not valid.")
-                use_default_league_function()
+def main(argv):
+    try:
+        opts, args = getopt.getopt(argv, "htl:w:")
+    except getopt.GetoptError:
+        print("\nYahoo Fantasy Football report application usage:\n"
+              "     python report_generator.py -t -l <yahoo_league_id> -w <chosen_week>\n")
+        sys.exit(2)
 
-        else:
-            print("You must select either 'y' or 'n'.")
-            use_default_league_function()
-
-    def use_chosen_week_function():
-        use_default_chosen_week = raw_input("Generate report for default week? (y/n) -> ")
-        if use_default_chosen_week == "y":
-            return None
-        elif use_default_chosen_week == "n":
-            chosen_week = raw_input("For which week would you like to generate a report? (1 - 17) -> ")
-            if 0 < int(chosen_week) < 18:
-                return chosen_week
+    test_bool = False
+    league_id = None
+    week = None
+    for opt, arg in opts:
+        if opt == "-h":
+            print("\nYahoo Fantasy Football report application usage:\n"
+                  "     python report_generator.py -t -l <yahoo_league_id> -w <chosen_week>\n")
+            sys.exit()
+        elif opt in ("-t", "--test"):
+            test_bool = True
+        elif opt in ("-l", "--league-id"):
+            league_id = arg
+            print("Selected league id is {}".format(league_id))
+        elif opt in ("-w", "--week"):
+            week = arg
+            if 0 < int(week) < 18:
+                print("Selected week is {}".format(week))
             else:
                 print("Please select a valid week number between 1 and 17.")
                 use_chosen_week_function()
-        else:
-            print("You must select either 'y' or 'n'.")
-            use_chosen_week_function()
+    return test_bool, league_id, week
 
-    report_info = use_default_league_function()
+
+def use_default_league_function(chosen_week_arg, test_bool):
+    use_default_league = raw_input("Generate report for default league? (y/n) -> ")
+    if use_default_league == "y":
+        if not chosen_week_arg:
+            chosen_week = use_chosen_week_function()
+        else:
+            chosen_week = chosen_week_arg
+        fantasy_football_report_instance = FantasyFootballReport(user_input_chosen_week=chosen_week, test_bool=test_bool)
+        return fantasy_football_report_instance, config.get("Fantasy_Football_Report_Settings", "chosen_league_id")
+    elif use_default_league == "n":
+        chosen_league_id = raw_input("What is the league ID of the Yahoo league for which you want to generate a report? -> ")
+        try:
+            fantasy_football_report_instance = FantasyFootballReport(chosen_league_id, use_chosen_week_function(), test_bool)
+            return fantasy_football_report_instance, str(chosen_league_id)
+        except IndexError:
+            print("The league ID you have selected is not valid.")
+            use_default_league_function(chosen_week_arg, test_bool)
+
+    else:
+        print("You must select either 'y' or 'n'.")
+        use_default_league_function(chosen_week_arg, test_bool)
+
+
+def use_chosen_week_function():
+    use_default_chosen_week = raw_input("Generate report for default week? (y/n) -> ")
+    if use_default_chosen_week == "y":
+        return None
+    elif use_default_chosen_week == "n":
+        chosen_week = raw_input("For which week would you like to generate a report? (1 - 17) -> ")
+        if 0 < int(chosen_week) < 18:
+            return chosen_week
+        else:
+            print("Please select a valid week number between 1 and 17.")
+            use_chosen_week_function()
+    else:
+        print("You must select either 'y' or 'n'.")
+        use_chosen_week_function()
+
+
+# RUN FANTASY FOOTBALL REPORT PROGRAM
+if __name__ == '__main__':
+
+    options = main(sys.argv[1:])
+    test_bool_arg = options[0]
+    league_id_arg = options[1]
+    week_arg = options[2]
+
+    if not league_id_arg:
+        report_info = use_default_league_function(week_arg, test_bool_arg)
+    else:
+        report_info = FantasyFootballReport(league_id_arg, week_arg, test_bool_arg)
     fantasy_football_report = report_info[0]
     selected_league_id = report_info[1]
     generated_report = fantasy_football_report.create_pdf_report()

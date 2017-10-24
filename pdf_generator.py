@@ -50,10 +50,9 @@ class PdfGenerator(object):
         self.weekly_points_by_position_data = report_info_dict.get("weekly_points_by_position_data")
         self.season_average_team_points_by_position = report_info_dict.get("season_average_points_by_position")
 
-        # document elements
-        self.metric_scores_col_widths = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch]
-        self.standings_col_widths = [0.50 * inch, 1.75 * inch, 1.00 * inch, 1.00 * inch, 0.80 * inch, 1.10 * inch,
-                                     0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]
+        # generic document elements
+        self.metrics_col_widths = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch]
+
         self.power_ranking_col_widths = [1.00 * inch, 2.25 * inch, 2.25 * inch, 1.75 * inch]
         self.line_separator = Drawing(100, 1)
         self.line_separator.add(Line(0, -65, 550, -65, strokeColor=colors.black, strokeWidth=1))
@@ -94,80 +93,119 @@ class PdfGenerator(object):
             ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey)
         ]
-
         self.style = TableStyle(table_style_list)
 
-        tied_scores_iterator = self.num_tied_scores + 1
-        tied_scores_table_style_list = list(table_style_list)
+        # report specific document elements
+        self.standings_headers = [
+            ["Place", "Team", "Manager", "Record", "Points For", "Points Against", "Streak", "Waiver", "Moves",
+             "Trades"]]
+        self.standings_col_widths = [0.50 * inch, 1.75 * inch, 1.00 * inch, 1.00 * inch, 0.80 * inch, 1.10 * inch,
+                                     0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]
+        self.power_ranking_headers = [["Power Rank", "Team", "Manager", "Season Avg. (Place)"]]
+        self.scores_headers = [["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]]
+        self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
+        self.luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)"]]
+        self.tie_for_first_footer = "<i>&nbsp;*Tie for first place.</i>"
+        self.league_of_emperors_efficiency_footer = "<i>&nbsp;*The league commissioner will resolve coaching " \
+                                                    "fficiency ties manually. The winner will be the manager whose " \
+                                                    "team contains the most players who have exceeded their average " \
+                                                    "weekly fantasy points.</i>"
 
-        if league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
-            tied_scores_table_style_list.append(("TEXTCOLOR", (0, 1), (-1, 1), colors.green))
-            tied_scores_table_style_list.append(("FONT", (0, 1), (-1, 1), "Helvetica-Oblique"))
-        else:
-            index = 1
-            while tied_scores_iterator > 0:
-                tied_scores_table_style_list.append(("TEXTCOLOR", (0, index), (-1, index), colors.green))
-                tied_scores_table_style_list.append(("FONT", (0, index), (-1, index), "Helvetica-Oblique"))
-                tied_scores_iterator -= 1
-                index += 1
+        self.style_tied_scores = self.set_tied_values_style(self.num_tied_scores, table_style_list)
+        self.style_tied_efficiencies = self.set_tied_values_style(self.num_tied_coaching_efficiencies, table_style_list,
+                                                                  metric_type="coaching_efficiency")
+        self.style_tied_luck = self.set_tied_values_style(self.num_tied_lucks, table_style_list)
+        self.style_tied_power_rankings = self.set_tied_values_style(self.num_tied_power_rankings, table_style_list)
+        self.style_efficiency_dqs = None
 
-        tied_efficiencies_iterator = self.num_tied_coaching_efficiencies + 1
-        tied_efficiencies_table_style_list = list(table_style_list)
-        index = 1
-        while tied_efficiencies_iterator > 0:
-            tied_efficiencies_table_style_list.append(("TEXTCOLOR", (0, index), (-1, index), colors.green))
-            tied_efficiencies_table_style_list.append(("FONT", (0, index), (-1, index), "Helvetica-Oblique"))
-            tied_efficiencies_iterator -= 1
-            index += 1
-
-        tied_luck_iterator = self.num_tied_lucks + 1
-        tied_luck_table_style_list = list(table_style_list)
-        index = 1
-        while tied_luck_iterator > 0:
-            tied_luck_table_style_list.append(("TEXTCOLOR", (0, index), (-1, index), colors.green))
-            tied_luck_table_style_list.append(("FONT", (0, index), (-1, index), "Helvetica-Oblique"))
-            tied_luck_iterator -= 1
-            index += 1
-
-        tied_power_rankings_iterator = self.num_tied_power_rankings + 1
-        tied_power_rankings_table_style_list = list(table_style_list)
-        index = 1
-        while tied_power_rankings_iterator > 0:
-            tied_power_rankings_table_style_list.append(("TEXTCOLOR", (0, index), (-1, index), colors.green))
-            tied_power_rankings_table_style_list.append(("FONT", (0, index), (-1, index), "Helvetica-Oblique"))
-            tied_power_rankings_iterator -= 1
-            index += 1
-
-        self.style_tied_scores = TableStyle(tied_scores_table_style_list)
-        self.style_tied_efficiencies = TableStyle(tied_efficiencies_table_style_list)
-        self.style_tied_luck = TableStyle(tied_luck_table_style_list)
-        self.style_tied_power_rankings = TableStyle(tied_power_rankings_table_style_list)
-
-        dq_index = len(self.score_results_data) - self.efficiency_dq_count + 1
-
-        if self.num_tied_coaching_efficiencies > 0:
-            efficiencies_dq_table_style_list = list(tied_efficiencies_table_style_list)
-        else:
-            efficiencies_dq_table_style_list = list(table_style_list)
-
-        if self.efficiency_dq_count > 0:
-
-            eff_dq_count = self.efficiency_dq_count
-            while eff_dq_count > 0:
-                efficiencies_dq_table_style_list.append(("TEXTCOLOR", (0, dq_index), (3, dq_index), colors.red))
-                eff_dq_count -= 1
-                dq_index += 1
-
-        self.style_efficiency_dqs = TableStyle(efficiencies_dq_table_style_list)
-
-        # options: "document", "section", or None/empty
+        # options: "document", "section", or None
         self.report_title = self.create_title(report_title_text, element_type="document")
         self.standings_title = self.create_title(standings_title_text, element_type="section")
-        self.points_title = self.create_title(scores_title_text, element_type="section")
+        self.scores_title = self.create_title(scores_title_text, element_type="section")
         self.efficiency_title = self.create_title(coaching_efficiency_title_text, element_type="section")
         self.luck_title = self.create_title(luck_title_text, element_type="section")
         self.power_ranking_title = self.create_title(power_ranking_title_text, element_type="section")
         self.report_footer = Paragraph(report_footer_text, getSampleStyleSheet()["Normal"])
+
+    def set_tied_values_style(self, num_tied_values, table_style_list, metric_type=None):
+
+        tied_values_table_style_list = list(table_style_list)
+        if self.league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
+            tied_values_table_style_list.append(("TEXTCOLOR", (0, 1), (-1, 1), colors.green))
+            tied_values_table_style_list.append(("FONT", (0, 1), (-1, 1), "Helvetica-Oblique"))
+        else:
+            iterator = num_tied_values + 1
+            index = 1
+            while iterator > 0:
+                tied_values_table_style_list.append(("TEXTCOLOR", (0, index), (-1, index), colors.green))
+                tied_values_table_style_list.append(("FONT", (0, index), (-1, index), "Helvetica-Oblique"))
+                iterator -= 1
+                index += 1
+
+        if metric_type == "coaching_efficiency":
+            if self.efficiency_dq_count > 0:
+                dq_index = len(self.score_results_data) - self.efficiency_dq_count + 1
+
+                if self.num_tied_coaching_efficiencies > 0:
+                    efficiencies_dq_table_style_list = list(tied_values_table_style_list)
+                else:
+                    efficiencies_dq_table_style_list = list(table_style_list)
+
+                eff_dq_count = self.efficiency_dq_count
+                while eff_dq_count > 0:
+                    efficiencies_dq_table_style_list.append(("TEXTCOLOR", (0, dq_index), (3, dq_index), colors.red))
+                    eff_dq_count -= 1
+                    dq_index += 1
+                self.style_efficiency_dqs = TableStyle(efficiencies_dq_table_style_list)
+
+        return TableStyle(tied_values_table_style_list)
+
+    def create_section(self, elements, title, headers, data, table_style, col_widths, trailing_element,
+                       tied_metric_bool=False, metric_type=None):
+
+        elements.append(title)
+
+        if metric_type == "scores":
+            if self.num_tied_scores > 0:
+                if self.league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
+                    self.scores_headers[0].append("Bench Points")
+                else:
+                    for index, team in enumerate(self.score_results_data):
+                        self.score_results_data[index] = team[:-1]
+            else:
+                for index, team in enumerate(self.score_results_data):
+                    self.score_results_data[index] = team[:-1]
+
+        data_table = self.create_data_table(headers, data, table_style, col_widths, tied_metric_bool)
+
+        if metric_type == "coaching_efficiency":
+            if self.efficiency_dq_count > 0:
+                data_table.setStyle(self.style_efficiency_dqs)
+
+        elements.append(data_table)
+        self.add_tied_metric_footer(elements, metric_type)
+        elements.append(trailing_element)
+
+    def add_tied_metric_footer(self, elements, metric_type):
+
+        if metric_type == "scores":
+            if self.tied_scores_bool:
+                if self.league_id != config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
+                    elements.append(self.spacer_small)
+                    elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
+
+        elif metric_type == "coaching_efficiency":
+            if self.tied_coaching_efficiencies_bool:
+                elements.append(self.spacer_small)
+                if self.league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
+                    elements.append(
+                        Paragraph(self.league_of_emperors_efficiency_footer, getSampleStyleSheet()["Normal"]))
+                else:
+                    elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
+
+        elif metric_type == "luck":
+            if self.tied_lucks_bool:
+                elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
 
     def create_title(self, title_text, title_width=8.5, element_type=None):
 
@@ -278,87 +316,29 @@ class PdfGenerator(object):
         elements.append(self.spacer_large)
 
         # standings
-        elements.append(self.standings_title)
-        standings_headers = [
-            ["Place", "Team", "Manager", "Record", "Points For", "Points Against", "Streak", "Waiver", "Moves",
-             "Trades"]]
-        elements.append(
-            self.create_data_table(standings_headers, self.current_standings_data, self.style,
-                                   self.standings_col_widths))
+        self.create_section(elements, self.standings_title, self.standings_headers, self.current_standings_data,
+                            self.style, self.standings_col_widths, self.spacer_large)
 
-        elements.append(self.spacer_large)
-        elements.append(self.power_ranking_title)
-        power_ranking_headers = [["Power Rank", "Team", "Manager", "Season Avg. (Place)"]]
-        elements.append(self.create_data_table(power_ranking_headers,
-                                               self.power_ranking_data,
-                                               table_style_for_ties=self.style_tied_power_rankings,
-                                               col_widths=self.power_ranking_col_widths,
-                                               tied_metric_bool=True))
+        # power ranking
+        self.create_section(elements, self.power_ranking_title, self.power_ranking_headers, self.power_ranking_data,
+                            self.style_tied_power_rankings, self.power_ranking_col_widths, self.page_break,
+                            tied_metric_bool=self.tied_power_rankings_bool)
 
-        elements.append(self.page_break)
-
-        # points
-        elements.append(self.points_title)
-        points_headers = [["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]]
-        if self.num_tied_scores > 0:
-            if self.league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
-                points_headers[0].append("Bench Points")
-            else:
-                for index, team in enumerate(self.score_results_data):
-                    self.score_results_data[index] = team[:-1]
-        else:
-            for index, team in enumerate(self.score_results_data):
-                self.score_results_data[index] = team[:-1]
-
-        elements.append(self.create_data_table(points_headers,
-                                               self.score_results_data,
-                                               table_style_for_ties=self.style_tied_scores,
-                                               col_widths=self.metric_scores_col_widths,
-                                               tied_metric_bool=self.tied_scores_bool))
-        if self.tied_scores_bool:
-            if self.league_id != config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
-                elements.append(Paragraph(
-                    "<i>&nbsp;*Tie for first place.</i>",
-                    getSampleStyleSheet()["Normal"]))
-        elements.append(self.spacer_small)
+        # scores
+        self.create_section(elements, self.scores_title, self.scores_headers, self.score_results_data,
+                            self.style_tied_scores, self.metrics_col_widths, self.spacer_small,
+                            tied_metric_bool=self.tied_scores_bool, metric_type="scores")
 
         # coaching efficiency
-        elements.append(self.efficiency_title)
-        efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
-        coaching_efficiency_table = self.create_data_table(efficiency_headers,
-                                                           self.coaching_efficiency_results_data,
-                                                           table_style_for_ties=self.style_tied_efficiencies,
-                                                           col_widths=self.metric_scores_col_widths,
-                                                           tied_metric_bool=self.tied_coaching_efficiencies_bool)
-        if self.efficiency_dq_count > 0:
-            coaching_efficiency_table.setStyle(self.style_efficiency_dqs)
-        elements.append(coaching_efficiency_table)
-
-        if self.tied_coaching_efficiencies_bool:
-            elements.append(self.spacer_small)
-            if self.league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
-                elements.append(Paragraph(
-                    "<i>&nbsp;*The league commissioner will resolve coaching efficiency ties manually. The winner will be the manager whose team contains the most players who have exceeded their average weekly fantasy points.</i>",
-                    getSampleStyleSheet()["Normal"]))
-            else:
-                elements.append(Paragraph(
-                    "<i>&nbsp;*Tie for first place.</i>",
-                    getSampleStyleSheet()["Normal"]))
-        elements.append(self.spacer_small)
+        self.create_section(elements, self.efficiency_title, self.efficiency_headers,
+                            self.coaching_efficiency_results_data,
+                            self.style_tied_efficiencies, self.metrics_col_widths, self.spacer_small,
+                            tied_metric_bool=self.tied_coaching_efficiencies_bool, metric_type="coaching_efficiency")
 
         # luck
-        elements.append(self.luck_title)
-        luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)"]]
-        elements.append(self.create_data_table(luck_headers,
-                                               self.luck_results_data,
-                                               table_style_for_ties=self.style_tied_luck,
-                                               col_widths=self.metric_scores_col_widths,
-                                               tied_metric_bool=self.tied_lucks_bool))
-        if self.tied_lucks_bool:
-            elements.append(Paragraph(
-                "<i>&nbsp;*Tie for first place.</i>",
-                getSampleStyleSheet()["Normal"]))
-        elements.append(self.page_break)
+        self.create_section(elements, self.luck_title, self.luck_headers, self.luck_results_data, self.style_tied_luck,
+                            self.metrics_col_widths, self.page_break, tied_metric_bool=self.tied_lucks_bool,
+                            metric_type="luck")
 
         series_names = line_chart_data_list[0]
         points_data = line_chart_data_list[2]

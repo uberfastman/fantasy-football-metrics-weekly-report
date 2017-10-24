@@ -15,7 +15,7 @@ from pdf_generator import PdfGenerator
 
 # noinspection SqlNoDataSourceInspection,SqlDialectInspection
 class FantasyFootballReport(object):
-    def __init__(self, user_input_league_id=None, user_input_chosen_week=None):
+    def __init__(self, user_input_league_id=None, user_input_chosen_week=None, test_bool=False):
         # config vars
         self.config = ConfigParser()
         self.config.read("config.ini")
@@ -23,6 +23,11 @@ class FantasyFootballReport(object):
             self.league_id = user_input_league_id
         else:
             self.league_id = self.config.get("Fantasy_Football_Report_Settings", "chosen_league_id")
+
+        self.test_bool = False
+        if test_bool:
+            self.test_bool = True
+            print("Generating test report...\n")
 
         # verification output message
         print("Generating fantasy football report for league with id: %s (report generated: %s)\n" % (
@@ -485,7 +490,10 @@ class FantasyFootballReport(object):
         if not os.path.isdir(report_save_dir):
             os.makedirs(report_save_dir)
 
-        filename_with_path = os.path.join(report_save_dir, filename)
+        if not self.test_bool:
+            filename_with_path = os.path.join(report_save_dir, filename)
+        else:
+            filename_with_path = os.path.join(self.config.get("Fantasy_Football_Report_Settings", "report_directory_base_path") + "/", "test_report.pdf")
 
         # instantiate pdf generator
         pdf_generator = PdfGenerator(
