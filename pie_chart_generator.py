@@ -30,7 +30,7 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
         self._add(self, Pie(), name='pie', validate=None, desc=None)
         self.pie.width = 150
         self.pie.height = self.pie.width
-        self.pie.x = 125
+        self.pie.x = 75
         self.pie.y = (height - self.pie.height) / 2
         # self.pie.data = [26.90, 13.30, 11.10, 9.40, 8.50, 7.80, 7.00, 6.20, 8.80, 1.00]
         self.pie.data = data
@@ -44,7 +44,7 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
         self.pie.slices.strokeWidth = 1
         # adding legend
         self._add(self, Legend(), name='legend', validate=None, desc=None)
-        self.legend.x = 325
+        self.legend.x = 250
         self.legend.y = height / 2
         self.legend.dx = 8
         self.legend.dy = 8

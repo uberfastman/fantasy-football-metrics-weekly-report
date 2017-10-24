@@ -259,6 +259,28 @@ class PointsByPosition(object):
 
         return total_points_by_position
 
+    @staticmethod
+    def calculate_points_by_position_season_averages(season_average_points_by_position_dict, report_info_dict):
+
+        for team in season_average_points_by_position_dict.keys():
+            points_by_position = season_average_points_by_position_dict.get(team)
+            season_average_points_by_position = {}
+            for week in points_by_position:
+                for position in week:
+                    position_points = season_average_points_by_position.get(position[0])
+                    if position_points:
+                        season_average_points_by_position[position[0]] = position_points + position[1]
+                    else:
+                        season_average_points_by_position[position[0]] = position[1]
+            season_average_points_by_position_list = []
+            for position in season_average_points_by_position.keys():
+                season_average_points_by_position_list.append(
+                    [position, season_average_points_by_position.get(position) / len(points_by_position)])
+            season_average_points_by_position_list = sorted(season_average_points_by_position_list, key=lambda x: x[0])
+            season_average_points_by_position_dict[team] = season_average_points_by_position_list
+
+        report_info_dict["season_average_team_points_by_position"] = season_average_points_by_position_dict
+
     def execute_points_by_position(self, team_info):
 
         players = team_info['players']
