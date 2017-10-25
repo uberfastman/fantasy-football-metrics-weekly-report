@@ -38,7 +38,7 @@ Project dependencies can be viewed in the `requirements.txt` file.
 
 * Run `pip install -r requirements.txt`
 
-* Run `python report_generator.py`. You should see the following prompts: 
+* Run `python generate_report.py`. You should see the following prompts: 
     * `Generate report for default league? (y/n) -> `. 
     
         Type `y` and hit enter. 
@@ -58,7 +58,7 @@ _\* General setup excludes Google Drive and Slack integrations. See below sectio
 
 ### Usage
 
-After completing the above setup steps, you should now be able to simply run `python report_generator.py` to regenerate a report. The report generator script (`report_generator.py`) also supports several command line options that allow you to specify the following:
+After completing the above setup steps, you should now be able to simply run `python generate_report.py` to regenerate a report. The report generator script (`generate_report.py`) also supports several command line options that allow you to specify the following:
 
 * `-h`: print command line usage
 
@@ -99,7 +99,7 @@ The Yahoo Fantasy Football Metrics Report Generator also supports several additi
 Occasionally when you run the report generator, you encounter an error like this:
 ```
 Traceback (most recent call last):
-  File "report_generator.py", line 114, in <module>
+  File "generate_report.py", line 114, in <module>
     generated_report = fantasy_football_report.create_pdf_report()
   File "/Users/your_username/PATH/T0/LOCAL/PROJECT/yahoo-fantasy-football-metrics/fantasy_football_report_builder.py", line 429, in create_pdf_report
     report_info_dict = self.calculate_metrics(chosen_week=str(week_counter))

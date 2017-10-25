@@ -6,7 +6,7 @@ import sys
 from ConfigParser import ConfigParser
 
 from fantasy_football_report_builder import FantasyFootballReport
-from google_drive_uploader import GoogleDriveUploader
+from upload_to_google_drive import GoogleDriveUploader
 from slack_messenger import SlackMessenger
 
 # local config vars
@@ -19,7 +19,7 @@ def main(argv):
         opts, args = getopt.getopt(argv, "htl:w:")
     except getopt.GetoptError:
         print("\nYahoo Fantasy Football report application usage:\n"
-              "     python report_generator.py -t -l <yahoo_league_id> -w <chosen_week>\n")
+              "     python generate_report.py -t -l <yahoo_league_id> -w <chosen_week>\n")
         sys.exit(2)
 
     test_bool = False
@@ -28,7 +28,7 @@ def main(argv):
     for opt, arg in opts:
         if opt == "-h":
             print("\nYahoo Fantasy Football report application usage:\n"
-                  "     python report_generator.py -t -l <yahoo_league_id> -w <chosen_week>\n")
+                  "     python generate_report.py -t -l <yahoo_league_id> -w <chosen_week>\n")
             sys.exit()
         elif opt in ("-t", "--test"):
             test_bool = True
