@@ -1,4 +1,6 @@
-# Written by: Wren J. Rudolph
+# written by Wren J.R.
+# contributors: Kevin N.
+
 from __future__ import print_function
 from __future__ import print_function
 
@@ -47,6 +49,14 @@ class PdfGenerator(object):
         self.tied_coaching_efficiencies_bool = report_info_dict.get("tied_coaching_efficiencies_bool")
         self.tied_lucks_bool = report_info_dict.get("tied_lucks_bool")
         self.tied_power_rankings_bool = report_info_dict.get("tied_power_rankings_bool")
+        self.tie_for_first_score = report_info_dict.get("tie_for_first_score")
+        self.tie_for_first_coaching_efficiency = report_info_dict.get("tie_for_first_coaching_efficiency")
+        self.tie_for_first_luck = report_info_dict.get("tie_for_first_luck")
+        self.tie_for_first_power_ranking = report_info_dict.get("tie_for_first_power_ranking")
+        self.num_tied_for_first_scores = report_info_dict.get("num_tied_for_first_scores")
+        self.num_tied_for_first_coaching_efficiency = report_info_dict.get("num_tied_for_first_coaching_efficiency")
+        self.num_tied_for_first_luck = report_info_dict.get("num_tied_for_first_luck")
+        self.num_tied_for_first_power_ranking = report_info_dict.get("num_tied_for_first_power_ranking")
         self.weekly_points_by_position_data = report_info_dict.get("weekly_points_by_position_data")
         self.season_average_team_points_by_position = report_info_dict.get("season_average_points_by_position")
 
@@ -105,17 +115,21 @@ class PdfGenerator(object):
         self.scores_headers = [["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]]
         self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
         self.luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)"]]
-        self.tie_for_first_footer = "<i>&nbsp;*Tie for first place.</i>"
-        self.league_of_emperors_efficiency_footer = "<i>&nbsp;*The league commissioner will resolve coaching " \
-                                                    "fficiency ties manually. The winner will be the manager whose " \
-                                                    "team contains the most players who have exceeded their average " \
-                                                    "weekly fantasy points.</i>"
+        self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
+        self.league_of_emperors_efficiency_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*The league commissioner will " \
+                                                    "resolve coaching efficiency ties manually. The tiebreaker goes " \
+                                                    "to the manager whose team contains the most players who have " \
+                                                    "exceeded their average weekly fantasy points. If there is still " \
+                                                    "a tie after that, the manager whose players exceeded their " \
+                                                    "season average score by the highest cumulative percent wins.</i>"
 
-        self.style_tied_scores = self.set_tied_values_style(self.num_tied_scores, table_style_list)
+        self.style_tied_scores = self.set_tied_values_style(self.num_tied_scores, table_style_list,
+                                                            metric_type="scores")
         self.style_tied_efficiencies = self.set_tied_values_style(self.num_tied_coaching_efficiencies, table_style_list,
                                                                   metric_type="coaching_efficiency")
-        self.style_tied_luck = self.set_tied_values_style(self.num_tied_lucks, table_style_list)
-        self.style_tied_power_rankings = self.set_tied_values_style(self.num_tied_power_rankings, table_style_list)
+        self.style_tied_luck = self.set_tied_values_style(self.num_tied_lucks, table_style_list, metric_type="luck")
+        self.style_tied_power_rankings = self.set_tied_values_style(self.num_tied_power_rankings, table_style_list,
+                                                                    metric_type="power_ranking")
         self.style_efficiency_dqs = None
 
         # options: "document", "section", or None
@@ -129,12 +143,35 @@ class PdfGenerator(object):
 
     def set_tied_values_style(self, num_tied_values, table_style_list, metric_type=None):
 
-        tied_values_table_style_list = list(table_style_list)
-        if self.league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
+        num_tied_for_first = num_tied_values
+        if metric_type == "scores":
+            if not self.tie_for_first_score:
+                num_tied_for_first = 0
+            else:
+                num_tied_for_first = self.num_tied_for_first_scores
+        elif metric_type == "coaching_efficiency":
+            if not self.tie_for_first_coaching_efficiency:
+                num_tied_for_first = 0
+            else:
+                num_tied_for_first = self.num_tied_for_first_coaching_efficiency
+        elif metric_type == "luck":
+            if not self.tie_for_first_luck:
+                num_tied_for_first = 0
+            else:
+                num_tied_for_first = self.num_tied_for_first_luck
+        elif metric_type == "power_ranking":
+            if not self.tie_for_first_power_ranking:
+                num_tied_for_first = 0
+            else:
+                num_tied_for_first = self.num_tied_for_first_power_ranking
+
+        tied_values_table_style_list = table_style_list
+        if self.league_id == config.get("Fantasy_Football_Report_Settings",
+                                        "league_of_emperors_id") and metric_type == "scores":
             tied_values_table_style_list.append(("TEXTCOLOR", (0, 1), (-1, 1), colors.green))
             tied_values_table_style_list.append(("FONT", (0, 1), (-1, 1), "Helvetica-Oblique"))
         else:
-            iterator = num_tied_values + 1
+            iterator = num_tied_for_first
             index = 1
             while iterator > 0:
                 tied_values_table_style_list.append(("TEXTCOLOR", (0, index), (-1, index), colors.green))
@@ -147,13 +184,13 @@ class PdfGenerator(object):
                 dq_index = len(self.score_results_data) - self.efficiency_dq_count + 1
 
                 if self.num_tied_coaching_efficiencies > 0:
-                    efficiencies_dq_table_style_list = list(tied_values_table_style_list)
+                    efficiencies_dq_table_style_list = tied_values_table_style_list
                 else:
-                    efficiencies_dq_table_style_list = list(table_style_list)
+                    efficiencies_dq_table_style_list = table_style_list
 
                 eff_dq_count = self.efficiency_dq_count
                 while eff_dq_count > 0:
-                    efficiencies_dq_table_style_list.append(("TEXTCOLOR", (0, dq_index), (3, dq_index), colors.red))
+                    efficiencies_dq_table_style_list.append(("TEXTCOLOR", (0, dq_index), (-1, dq_index), colors.red))
                     eff_dq_count -= 1
                     dq_index += 1
                 self.style_efficiency_dqs = TableStyle(efficiencies_dq_table_style_list)
@@ -205,6 +242,10 @@ class PdfGenerator(object):
 
         elif metric_type == "luck":
             if self.tied_lucks_bool:
+                elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
+
+        elif metric_type == "power_rank":
+            if self.tied_power_rankings_bool:
                 elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
 
     def create_title(self, title_text, title_width=8.5, element_type=None):
@@ -322,7 +363,7 @@ class PdfGenerator(object):
         # power ranking
         self.create_section(elements, self.power_ranking_title, self.power_ranking_headers, self.power_ranking_data,
                             self.style_tied_power_rankings, self.power_ranking_col_widths, self.page_break,
-                            tied_metric_bool=self.tied_power_rankings_bool)
+                            tied_metric_bool=self.tied_power_rankings_bool, metric_type="power_rank")
 
         # scores
         self.create_section(elements, self.scores_title, self.scores_headers, self.score_results_data,

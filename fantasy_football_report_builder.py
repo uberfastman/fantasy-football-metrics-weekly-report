@@ -1,8 +1,10 @@
-# Written by: Wren J. Rudolph
-# Code snippets taken from: http://tech.thejoestory.com/2014/12/yahoo-fantasy-football-api-using-python.html
+# written by Wren J.R.
+# contributors: Kevin N.
+# code snippets taken from: http://tech.thejoestory.com/2014/12/yahoo-fantasy-football-api-using-python.html
 
 import collections
 import datetime
+import itertools
 import os
 from ConfigParser import ConfigParser
 
@@ -27,7 +29,7 @@ class FantasyFootballReport(object):
         self.test_bool = False
         if test_bool:
             self.test_bool = True
-            print("Generating test report...\n")
+            print("\nGenerating test report...\n")
 
         # verification output message
         print("Generating fantasy football report for league with id: %s (report generated: %s)\n" % (
@@ -115,6 +117,7 @@ class FantasyFootballReport(object):
         # TODO: incorporate winnings into reports
         # entry_fee = league_standings_data[0].get("entry_fee")
 
+        # user input validation
         if user_input_chosen_week:
             chosen_week = user_input_chosen_week
         else:
@@ -122,7 +125,6 @@ class FantasyFootballReport(object):
         try:
             if chosen_week == "default":
                 self.chosen_week = str(int(self.league_standings_data[0].get("current_week")) - 1)
-                # self.chosen_week = "1"
             elif 0 < int(chosen_week) < 18:
                 if 0 < int(chosen_week) <= int(self.league_standings_data[0].get("current_week")) - 1:
                     self.chosen_week = chosen_week
@@ -176,30 +178,30 @@ class FantasyFootballReport(object):
             "select * from fantasysports.leagues.scoreboard where league_key='{0}' and week='{1}'".format(
                 self.league_key, chosen_week))
 
-        matchups = result[0].get('scoreboard').get('matchups').get('matchup')
+        matchups = result[0].get("scoreboard").get("matchups").get("matchup")
 
         matchup_list = []
 
         for matchup in matchups:
-            winning_team = matchup.get('winner_team_key')
-            is_tied = int(matchup.get('is_tied'))
+            winning_team = matchup.get("winner_team_key")
+            is_tied = int(matchup.get("is_tied"))
 
             def team_result(team):
                 """
                 determine if team tied/won/lost
                 """
-                team_key = team.get('team_key')
+                team_key = team.get("team_key")
 
                 if is_tied:
-                    return 'T'
+                    return "T"
 
-                return 'W' if team_key == winning_team else 'L'
+                return "W" if team_key == winning_team else "L"
 
             teams = {
-                team.get('name').encode('utf-8'): {
-                    'result': team_result(team),
-                    'score': team.get('team_points').get('total')
-                } for team in matchup.get('teams').get('team')
+                team.get("name").encode("utf-8"): {
+                    "result": team_result(team),
+                    "score": team.get("team_points").get("total")
+                } for team in matchup.get("teams").get("team")
             }
 
             matchup_list.append(teams)
@@ -313,7 +315,11 @@ class FantasyFootballReport(object):
         for team_name in team_results_dict:
             team_results_dict[team_name]["power_rank"] = power_ranking_results[team_name]["power_rank"]
 
-        power_ranking_results = sorted(power_ranking_results.iteritems(), key=lambda (k, v): v["power_rank"])
+        # used only for testing what happens when different metrics are tied; requires uncommenting lines in method
+        if self.test_bool:
+            calculate_metrics.test_ties(team_results_dict)
+
+        power_ranking_results = sorted(team_results_dict.iteritems(), key=lambda (k, v): v["power_rank"])
         power_ranking_results_data = []
         for key, value in power_ranking_results:
             # season avg calc does something where it keys off the second value in the array
@@ -342,17 +348,40 @@ class FantasyFootballReport(object):
 
         # count number of ties for points, coaching efficiency, and luck
         # tie_type can be "score", "coaching_efficiency", "luck", or "power_rank"
-        num_tied_scores = calculate_metrics.get_num_ties(score_results, score_results_data, chosen_week,
+        num_tied_scores = calculate_metrics.get_num_ties(score_results_data, chosen_week,
                                                          tie_type="score")
         # reorder score data based on bench points
         if num_tied_scores > 0:
             score_results_data = calculate_metrics.resolve_score_ties(score_results_data)
-        num_tied_power_rankings = calculate_metrics.get_num_ties(power_ranking_results, power_ranking_results_data,
-                                                                 chosen_week, tie_type="power_rank")
-        num_tied_coaching_efficiencies = calculate_metrics.get_num_ties(coaching_efficiency_results,
-                                                                        coaching_efficiency_results_data, chosen_week,
+            calculate_metrics.get_num_ties(score_results_data, chosen_week, tie_type="score")
+        tie_for_first_score = False
+        if score_results_data[0][0] == score_results_data[1][0]:
+            tie_for_first_score = True
+        num_tied_for_first_scores = len(
+            [list(group) for key, group in itertools.groupby(score_results_data, lambda x: x[3])][0])
+
+        num_tied_coaching_efficiencies = calculate_metrics.get_num_ties(coaching_efficiency_results_data, chosen_week,
                                                                         tie_type="coaching_efficiency")
-        num_tied_lucks = calculate_metrics.get_num_ties(luck_results, luck_results_data, chosen_week, tie_type="luck")
+        tie_for_first_coaching_efficiency = False
+        if coaching_efficiency_results_data[0][0] == coaching_efficiency_results_data[1][0]:
+            tie_for_first_coaching_efficiency = True
+        num_tied_for_first_coaching_efficiency = len(
+            [list(group) for key, group in itertools.groupby(coaching_efficiency_results_data, lambda x: x[3])][0])
+
+        num_tied_lucks = calculate_metrics.get_num_ties(luck_results_data, chosen_week, tie_type="luck")
+        tie_for_first_luck = False
+        if luck_results_data[0][0] == luck_results_data[1][0]:
+            tie_for_first_luck = True
+        num_tied_for_first_luck = len(
+            [list(group) for key, group in itertools.groupby(luck_results_data, lambda x: x[3])][0])
+
+        num_tied_power_rankings = calculate_metrics.get_num_ties(power_ranking_results_data,
+                                                                 chosen_week, tie_type="power_rank")
+        tie_for_first_power_ranking = False
+        if power_ranking_results_data[0][0] == power_ranking_results_data[1][0]:
+            tie_for_first_power_ranking = True
+        num_tied_for_first_power_ranking = len(
+            [list(group) for key, group in itertools.groupby(power_ranking_results_data, lambda x: x[0])][0])
 
         report_info_dict = {
             "team_results": team_results_dict,
@@ -370,6 +399,14 @@ class FantasyFootballReport(object):
             "tied_coaching_efficiencies_bool": num_tied_coaching_efficiencies > 0,
             "tied_lucks_bool": num_tied_lucks > 0,
             "tied_power_rankings_bool": num_tied_power_rankings > 0,
+            "tie_for_first_score": tie_for_first_score,
+            "tie_for_first_coaching_efficiency": tie_for_first_coaching_efficiency,
+            "tie_for_first_luck": tie_for_first_luck,
+            "tie_for_first_power_ranking": tie_for_first_power_ranking,
+            "num_tied_for_first_scores": num_tied_for_first_scores,
+            "num_tied_for_first_coaching_efficiency": num_tied_for_first_coaching_efficiency,
+            "num_tied_for_first_luck": num_tied_for_first_luck,
+            "num_tied_for_first_power_ranking": num_tied_for_first_power_ranking,
             "weekly_points_by_position_data": weekly_points_by_position_data
         }
         return report_info_dict
@@ -493,7 +530,9 @@ class FantasyFootballReport(object):
         if not self.test_bool:
             filename_with_path = os.path.join(report_save_dir, filename)
         else:
-            filename_with_path = os.path.join(self.config.get("Fantasy_Football_Report_Settings", "report_directory_base_path") + "/", "test_report.pdf")
+            filename_with_path = os.path.join(
+                self.config.get("Fantasy_Football_Report_Settings", "report_directory_base_path") + "/",
+                "test_report.pdf")
 
         # instantiate pdf generator
         pdf_generator = PdfGenerator(
