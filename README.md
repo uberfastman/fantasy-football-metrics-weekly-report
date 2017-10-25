@@ -12,6 +12,16 @@ Project dependencies can be viewed in the `requirements.txt` file.
 
 ### Report Generator Setup*
 
+* Go to [https://developer.yahoo.com/apps/create/](https://developer.yahoo.com/apps/create/) and create an app (you must be logged into your Yahoo account). For the app, select the following options:
+    * Set `Application Name` to `fantasy-football-metrics` (you can name your app whatever you want, but this is just an example).
+    * For `Application Type`, select the `Installed Application` radio button.
+    * For `Description`, you may write a description of what the app does (optional).
+    * For `API Permissions`, check the `Fantasy Sports` checkbox. You can leave the `Read` option selected (appears in an accordion expansion underneath the `Fantasy Sports` checkbox once you select it).
+    * Click the `Create App` button.
+    * Once the app is created, it should redirect you to a page for your app, which will show both a `Client ID` and a `Client Secret`.
+    * Copy the `Client ID` to the first line of `yahoo-fantasy-football-metrics/authentication/private.txt`, and then copy the `Client Secret` to the second line of the `private.txt` file.
+    * Now you should be ready to initialize the OAuth connection between the report generator and your Yahoo account.
+    
 * Open a Terminal window (command line prompt)
 
 * Run `pip install virtualenv virtualenvwrapper` (if not already installed)
