@@ -1,3 +1,5 @@
+# code taken from https://www.reportlab.com/snippets/4/ and modified by Wren J.R.
+
 from reportlab.graphics.charts.legends import Legend
 from reportlab.graphics.charts.piecharts import Pie
 from reportlab.graphics.shapes import Drawing, _DrawingEditorMixin

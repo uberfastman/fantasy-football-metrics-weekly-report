@@ -1,5 +1,5 @@
-# Written by: Wren J. Rudolph
-# Code snippets taken from: http://stackoverflow.com/questions/24419188/automating-pydrive-verification-process
+# written by Wren J.R.
+# code snippets taken from: http://stackoverflow.com/questions/24419188/automating-pydrive-verification-process
 
 import datetime
 from ConfigParser import ConfigParser

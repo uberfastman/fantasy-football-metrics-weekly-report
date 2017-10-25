@@ -1,4 +1,4 @@
-# Written by: Wren J. Rudolph
+# written by Wren J.R.
 
 from __future__ import print_function
 

@@ -1,5 +1,5 @@
-# Written by: Wren J. Rudolph
-# Code snippets taken from: http://www.reportlab.com/chartgallery/
+# written by Wren J.R.
+# code snippets taken from: http://www.reportlab.com/chartgallery/
 
 from reportlab.graphics.charts.axes import XValueAxis
 from reportlab.graphics.charts.legends import LineLegend

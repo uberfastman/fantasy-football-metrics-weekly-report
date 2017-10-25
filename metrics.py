@@ -1,5 +1,10 @@
+# written by Wren J.R.
+# contributors: Kevin N.
+
 import itertools
+import math
 from collections import defaultdict, Counter
+
 import pandas as pd
 
 
@@ -90,40 +95,109 @@ class CalculateMetrics(object):
             place += 1
         return luck_results_data
 
-    def get_num_ties(self, results, results_data, week, tie_type):
+    def get_num_ties(self, results_data, week, tie_type):
 
-        if tie_type != "power_rank":
-            num_ties = sum(manager.count(results_data[0][3]) for manager in results_data) - 1
-        else:
-            num_ties = sum(manager.count(results_data[0][0]) for manager in results_data) - 1
         newline = ""
-        if tie_type == "luck":
+        if tie_type == "power_rank":
+            # num_ties = sum(manager.count(results_data[0][0]) for manager in results_data) - 1
+            groups = [list(group) for key, group in itertools.groupby(results_data, lambda x: x[0])]
+            num_ties = self.count_ties(groups)
             newline = "\n"
+        else:
+            # num_ties = sum(manager.count(results_data[0][3]) for manager in results_data) - 1
+            groups = [list(group) for key, group in itertools.groupby(results_data, lambda x: x[3])]
+            num_ties = self.count_ties(groups)
 
         # if there are ties, record them and break them if possible
         if num_ties > 0:
-            print("THERE IS A %s TIE IN WEEK %s!%s" % (tie_type.replace("_", " ").upper(), week, newline))
-            ties_list = list(results[:num_ties + 1])
+            if num_ties == 1:
+                print("THERE IS A %s TIE IN WEEK %s!%s" % (tie_type.replace("_", " ").upper(), week, newline))
+            else:
+                print(
+                    "THERE ARE %d %s TIES IN WEEK %s!%s" % (
+                        num_ties, tie_type.replace("_", " ").upper(), week, newline))
 
-            count = num_ties
-            index = 0
-            while (count + 1) > 0:
-                if self.league_id == self.config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id") and tie_type == "score":
-                    place = index + 1
-                else:
-                    place = "1*"
-                results_data[index] = [
-                    place,
-                    ties_list[index][0],
-                    ties_list[index][1].get("manager"),
-                    ties_list[index][1].get(tie_type)
-                ]
-                if tie_type == "score":
-                    results_data[index].append(ties_list[index][1].get("bench_score"))
-                count -= 1
-                index += 1
+            ties_count = 0
+            team_index = 0
+            place = 1
+            while ties_count != num_ties:
+
+                for group in groups:
+                    if len(group) > 1:
+                        if len(group) % 2 == 0:
+                            ties_count += (len(group) / 2)
+                        else:
+                            ties_count += math.factorial(len(group))
+
+                        for team in group:
+                            if tie_type == "power_rank":
+                                results_data[team_index] = [
+                                    str(place) + ".0*",
+                                    team[1],
+                                    team[2],
+                                ]
+                            elif tie_type == "score" and self.league_id == self.config.get(
+                                    "Fantasy_Football_Report_Settings", "league_of_emperors_id"):
+                                results_data[team_index] = [
+                                    str(place),
+                                    team[1],
+                                    team[2],
+                                    team[3]
+                                ]
+                                if group.index(team) != (len(group) - 1):
+                                    place += 1
+                            else:
+                                results_data[team_index] = [
+                                    str(place) + "*",
+                                    team[1],
+                                    team[2],
+                                    team[3]
+                                ]
+                            if tie_type == "score":
+                                results_data[team_index].append(team[4])
+                            team_index += 1
+                        place += 1
+
+                    else:
+                        if tie_type == "power_rank":
+                            results_data[team_index] = [
+                                str(place) + ".0",
+                                group[0][1],
+                                group[0][2],
+                            ]
+                        elif tie_type == "score" and self.league_id == self.config.get(
+                                "Fantasy_Football_Report_Settings", "league_of_emperors_id"):
+                            results_data[team_index] = [
+                                str(place),
+                                group[0][1],
+                                group[0][2],
+                                group[0][3]
+                            ]
+                        else:
+                            results_data[team_index] = [
+                                str(place),
+                                group[0][1],
+                                group[0][2],
+                                group[0][3]
+                            ]
+                        if tie_type == "score":
+                            results_data[team_index].append(group[0][4])
+                        team_index += 1
+                        place += 1
         else:
             print("No %s ties in week %s.%s" % (tie_type.replace("_", " "), week, newline))
+
+        return num_ties
+
+    @staticmethod
+    def count_ties(groups):
+        num_ties = 0
+        for group in groups:
+            if len(group) > 1:
+                if len(group) % 2 == 0:
+                    num_ties += (len(group) / 2)
+                else:
+                    num_ties += math.factorial(len(group))
 
         return num_ties
 
@@ -144,6 +218,98 @@ class CalculateMetrics(object):
                 place += 1
 
         return resolved_score_results_data
+
+    @staticmethod
+    def resolve_season_average_ties(season_average_results_data, with_percent_bool):
+
+        groups = [list(group) for key, group in itertools.groupby(season_average_results_data, lambda x: x[2])]
+
+        resolved_season_average_results_data = []
+        place = 1
+        for group in groups:
+            for team in sorted(group, key=lambda x: x[-1], reverse=True):
+                team[0] = place
+                if with_percent_bool:
+                    team[2] = "{0}% ({1})".format(str(team[2]), str(place))
+                else:
+                    team[2] = "{0} ({1})".format(str(team[2]), str(place))
+
+                resolved_season_average_results_data.append(team)
+            place += 1
+
+        return resolved_season_average_results_data
+
+    @staticmethod
+    def test_ties(team_results_dict):
+        for team in team_results_dict.keys():
+            team_id = team_results_dict.get(team).get("team_id")
+
+            # for testing score ties
+            test_score = 70
+            test_efficiency = 75.00
+            test_luck = 10.00
+            test_power_rank = 5.0
+
+            # swap the first team to test for non-first place ties vs. first place ties
+            # if int(team_id) == 1:
+            #     test_score = 101
+            #     test_efficiency = 101.00
+            #     test_luck = 99.50
+            #     test_power_rank = 0.9
+            if int(team_id) == 1:
+                test_score = 100
+                test_efficiency = 100.00
+                test_luck = 99.00
+                test_power_rank = 1.0
+            if int(team_id) == 2:
+                test_score = 100
+                test_efficiency = 100.00
+                test_luck = 99.00
+                test_power_rank = 1.0
+            # swap the third time to test for middle ranked non-ties
+            # if int(team_id) == 3:
+            #     test_score = 100
+            #     test_efficiency = 100.00
+            #     test_luck = 99.00
+            #     test_power_rank = 1.0
+            if int(team_id) == 3:
+                test_score = 95
+                test_efficiency = 95.00
+                test_luck = 50.00
+                test_power_rank = 1.5
+            if int(team_id) == 4:
+                test_score = 90
+                test_efficiency = 90.00
+                test_luck = 5.00
+                test_power_rank = 2.0
+            if int(team_id) == 5:
+                test_score = 90
+                test_efficiency = 90.00
+                test_luck = 5.00
+                test_power_rank = 2.0
+            if int(team_id) == 6:
+                test_score = 90
+                test_efficiency = 90.00
+                test_luck = 5.00
+                test_power_rank = 2.0
+            # uncomment to test ending teams with unique place
+            if int(team_id) == len(team_results_dict.keys()):
+                test_score = 85
+                test_efficiency = 85.00
+                test_luck = -5.00
+                test_power_rank = 6.0
+
+                # # uncomment to test scoring ties
+                # team_results_dict.get(team)["score"] = test_score
+                #
+                # # uncomment to test coaching efficiency ties
+                # team_results_dict.get(team)["coaching_efficiency"] = test_efficiency
+                #
+                # # # uncomment to test luck ties
+                # team_results_dict.get(team)["luck"] = test_luck
+                #
+                # # # uncomment to test power ranking ties
+                # team_results_dict.get(team)["power_rank"] = test_power_rank
 
 
 class CoachingEfficiency(object):
@@ -298,7 +464,8 @@ class Breakdown(object):
     def __init__(self):
         pass
 
-    def execute_breakdown(self, teams, matchups_list):
+    @staticmethod
+    def execute_breakdown(teams, matchups_list):
 
         result = defaultdict(dict)
         matchups = {name: value["result"] for pair in matchups_list for name, value in pair.items()}
@@ -354,10 +521,6 @@ class SeasonAverageCalculator(object):
         self.report_info_dict = report_info_dict
 
     def get_average(self, data, key, with_percent_bool, bench_column_bool=True, reverse_bool=True):
-        """
-        append parameter is hack to support bench scoring for a specific use case
-        TODO: dont do that
-        """
 
         season_average_list = []
         team_index = 0
@@ -367,9 +530,13 @@ class SeasonAverageCalculator(object):
             season_average_list.append([team_name, season_average_value])
             team_index += 1
         ordered_average_values = sorted(season_average_list, key=lambda x: float(x[1]), reverse=reverse_bool)
+        index = 0
         for team in ordered_average_values:
-            ordered_average_values[ordered_average_values.index(team)] = [ordered_average_values.index(team), team[0],
-                                                                          team[1]]
+            ordered_average_values[ordered_average_values.index(team)] = [index, team[0], team[1]]
+            index += 1
+
+        ordered_average_values = CalculateMetrics(None, None).resolve_season_average_ties(ordered_average_values,
+                                                                                          with_percent_bool)
 
         ordered_season_average_list = []
         for ordered_team in self.report_info_dict.get(key):
@@ -377,15 +544,21 @@ class SeasonAverageCalculator(object):
                 if ordered_team[1] == team[1]:
                     if with_percent_bool:
                         ordered_team[3] = "{0:.2f}%".format(float(str(ordered_team[3]).replace("%", "")))
-                        ordered_team.append(str(team[2]) + "% (" + str(ordered_average_values.index(team) + 1) + ")")
+                        # ordered_team.append(str(team[2]) + "% (" + str(ordered_average_values.index(team) + 1) + ")")
+                        ordered_team.append(str(team[2]))
+
                     elif bench_column_bool:
                         ordered_team[3] = "{0:.2f}".format(float(str(ordered_team[3])))
-                        ordered_team.insert(-1, str(team[2]) + " (" + str(ordered_average_values.index(team) + 1) + ")")
+                        # ordered_team.insert(-1, str(team[2]) + " (" + str(ordered_average_values.index(team) + 1) + ")")
+                        ordered_team.insert(-1, str(team[2]))
+
                     else:
-                        value = "{0} ({1})".format(str(team[2]), str(ordered_average_values.index(team) + 1))
+                        # value = "{0} ({1})".format(str(team[2]), str(ordered_average_values.index(team) + 1))
+                        value = "{0}".format(str(team[2]))
                         ordered_team.append(value)
 
                     ordered_season_average_list.append(ordered_team)
+
         return ordered_season_average_list
 
 
@@ -477,7 +650,6 @@ class PointsByPosition(object):
 
 
 class PowerRanking(object):
-
     def __init__(self):
         pass
 
