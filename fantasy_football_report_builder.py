@@ -11,7 +11,7 @@ from ConfigParser import ConfigParser
 import yql
 from yql.storage import FileTokenStore
 
-from metrics import PointsByPosition, SeasonAverageCalculator, Breakdown, CalculateMetrics, PowerRanking
+from metrics import PointsByPosition, SeasonAverageCalculator, Breakdown, CalculateMetrics, PowerRanking, ZScore
 from pdf_generator import PdfGenerator
 
 
@@ -290,7 +290,7 @@ class FantasyFootballReport(object):
 
         return team_results_dict
 
-    def calculate_metrics(self, chosen_week):
+    def calculate_metrics(self, weekly_team_info, chosen_week):
 
         matchups_list = self.retrieve_scoreboard(chosen_week)
         team_results_dict = self.retrieve_data(chosen_week)
@@ -327,6 +327,13 @@ class FantasyFootballReport(object):
             power_ranking_results_data.append(
                 [value.get("power_rank"), key, team_results_dict[key]["manager"]]
             )
+
+        # calculate zscore metric 
+        # dependent on all previous weeks scores
+        zscore = ZScore()
+        zscore_results = zscore.execute(weekly_team_info + [team_results_dict])
+
+        
 
         # create score data for table
         score_results = sorted(team_results_dict.iteritems(),
@@ -383,6 +390,8 @@ class FantasyFootballReport(object):
         num_tied_for_first_power_ranking = len(
             [list(group) for key, group in itertools.groupby(power_ranking_results_data, lambda x: x[0])][0])
 
+        
+
         report_info_dict = {
             "team_results": team_results_dict,
             "current_standings_data": current_standings_data,
@@ -409,6 +418,7 @@ class FantasyFootballReport(object):
             "num_tied_for_first_power_ranking": num_tied_for_first_power_ranking,
             "weekly_points_by_position_data": weekly_points_by_position_data
         }
+
         return report_info_dict
 
     def create_pdf_report(self):
@@ -416,6 +426,8 @@ class FantasyFootballReport(object):
         chosen_week_ordered_team_names = []
         chosen_week_ordered_managers = []
         report_info_dict = {}
+
+        weekly_team_info = []
 
         time_series_points_data = []
         time_series_efficiency_data = []
@@ -426,7 +438,12 @@ class FantasyFootballReport(object):
 
         week_counter = 1
         while week_counter <= int(self.chosen_week):
-            report_info_dict = self.calculate_metrics(chosen_week=str(week_counter))
+            report_info_dict = self.calculate_metrics(weekly_team_info, chosen_week=str(week_counter))
+
+            weekly_team_info.append(report_info_dict.get('team_results'))
+
+            # for id, team in report_info_dict.get("team_results").items():
+            #     scores_by_week[id].append(team.get('score'))
 
             # create team data for charts
             teams_data_list = []
@@ -443,10 +460,12 @@ class FantasyFootballReport(object):
                     temp_team_info.get("power_rank")
                 ])
 
-                weekly_team_info = report_info_dict.get("weekly_points_by_position_data")
-                for weekly_info in weekly_team_info:
+                points_by_position = report_info_dict.get("weekly_points_by_position_data")
+                for weekly_info in points_by_position:
                     if weekly_info[0] == team:
                         season_average_points_by_position_dict[team].append(weekly_info[1])
+
+                
 
             teams_data_list.sort(key=lambda x: int(x[0]))
 
@@ -491,6 +510,7 @@ class FantasyFootballReport(object):
 
         # calculate season average metrics and then add columns for them to their respective metric table data
         season_average_calculator = SeasonAverageCalculator(chosen_week_ordered_team_names, report_info_dict)
+
         report_info_dict["score_results_data"] = season_average_calculator.get_average(
             time_series_points_data, "score_results_data", with_percent_bool=False)
         report_info_dict["coaching_efficiency_results_data"] = season_average_calculator.get_average(

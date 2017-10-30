@@ -6,6 +6,7 @@ import math
 from collections import defaultdict, Counter
 
 import pandas as pd
+import numpy as np
 
 
 class CalculateMetrics(object):
@@ -689,3 +690,56 @@ class PowerRanking(object):
             }
 
         return results
+
+
+class ZScore(object):
+
+
+    def execute(self, weekly_teams):
+
+        if len(weekly_teams) < 2:
+            return {}
+
+        results = {}
+
+        for team_id in teams:
+            scores = [week[team_id].get('score') for week in weekly_teams]
+
+            scores_excluding_current = scores[:-1]
+            current_score = scores[-1]
+            std = np.std(scores_excluding_current)
+            print("STD: {0}".format(std))
+            mean = np.mean(scores_excluding_current)
+            print("MEAN: {0}".format(mean))
+
+            zscore = (current_score - mean) / std
+            print("ZSCORE: {0}\n".format(zscore))
+
+            results[team_id] = zscore
+
+        return results
+        
+
+        # df = pd.DataFrame.from_dict(scores_by_week)
+
+        # df["score_rank"] = df["score"].rank(ascending=False)
+        # df["coach_rank"] = df["coaching_efficiency"].rank(ascending=False)
+        # df["luck_rank"] = df["luck"].rank(ascending=False)
+        # df["power_rank"] = df.apply(self.power_ranking, axis=1).rank()
+
+        # # convert to just return calculated results
+        # # TODO: this is probably not the best way?
+
+        # teams = df.to_dict(orient="records")
+
+        # results = {}
+
+        # for team in teams:
+        #     results[team["name"]] = {
+        #         "score_rank": team["score_rank"],
+        #         "coach_rank": team["coach_rank"],
+        #         "luck_rank": team["luck_rank"],
+        #         "power_rank": team["power_rank"]
+        #     }
+
+        # return results
