@@ -27,6 +27,7 @@ class PdfGenerator(object):
                  report_title_text,
                  standings_title_text,
                  scores_title_text,
+                 zscores_title_text,
                  coaching_efficiency_title_text,
                  luck_title_text,
                  power_ranking_title_text,
@@ -40,6 +41,7 @@ class PdfGenerator(object):
         self.coaching_efficiency_results_data = report_info_dict.get("coaching_efficiency_results_data")
         self.luck_results_data = report_info_dict.get("luck_results_data")
         self.power_ranking_data = report_info_dict.get("power_ranking_results_data")
+        self.zscore_results_data = report_info_dict.get("zscore_results_data")
         self.num_tied_scores = report_info_dict.get("num_tied_scores")
         self.num_tied_coaching_efficiencies = report_info_dict.get("num_tied_coaching_efficiencies")
         self.num_tied_lucks = report_info_dict.get("num_tied_lucks")
@@ -113,6 +115,7 @@ class PdfGenerator(object):
                                      0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]
         self.power_ranking_headers = [["Power Rank", "Team", "Manager", "Season Avg. (Place)"]]
         self.scores_headers = [["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]]
+        self.zscores_headers = [["Place", "Team", "Manager", "Z-Score", "Season Avg. (Place)"]]
         self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
         self.luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)"]]
         self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
@@ -136,6 +139,7 @@ class PdfGenerator(object):
         self.report_title = self.create_title(report_title_text, element_type="document")
         self.standings_title = self.create_title(standings_title_text, element_type="section")
         self.scores_title = self.create_title(scores_title_text, element_type="section")
+        self.zscores_title = self.create_title(zscores_title_text, element_type="section")
         self.efficiency_title = self.create_title(coaching_efficiency_title_text, element_type="section")
         self.luck_title = self.create_title(luck_title_text, element_type="section")
         self.power_ranking_title = self.create_title(power_ranking_title_text, element_type="section")
@@ -370,6 +374,11 @@ class PdfGenerator(object):
                             self.style_tied_scores, self.metrics_col_widths, self.spacer_small,
                             tied_metric_bool=self.tied_scores_bool, metric_type="scores")
 
+        # zscores
+        self.create_section(elements, self.zscores_title, self.zscores_headers, self.zscore_results_data,
+                            self.style_tied_power_rankings, self.metrics_col_widths, self.page_break,
+                            tied_metric_bool=False, metric_type="zscore")
+
         # coaching efficiency
         self.create_section(elements, self.efficiency_title, self.efficiency_headers,
                             self.coaching_efficiency_results_data,
@@ -385,6 +394,7 @@ class PdfGenerator(object):
         points_data = line_chart_data_list[2]
         efficiency_data = line_chart_data_list[3]
         luck_data = line_chart_data_list[4]
+        zscore_data = line_chart_data_list[5]
 
         # Remove any zeros from coaching efficiency to make table prettier
         for team in efficiency_data:
@@ -394,9 +404,13 @@ class PdfGenerator(object):
                     del team[week_index]
                 week_index += 1
 
+
         # create line charts for points, coaching efficiency, and luck
         elements.append(self.create_line_chart(points_data, len(points_data[0]), series_names, "Weekly Points", "Weeks",
                                                "Fantasy Points", 10.00))
+        elements.append(self.spacer_small)
+        elements.append(self.create_line_chart(zscore_data, len(points_data[0]), series_names, "Weekly Z-Score", "Weeks",
+                                               "Z-Score", 5.00))
         elements.append(self.spacer_small)
         elements.append(
             self.create_line_chart(efficiency_data, len(points_data[0]), series_names, "Weekly Coaching Efficiency",
