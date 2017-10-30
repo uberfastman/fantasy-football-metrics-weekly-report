@@ -507,12 +507,6 @@ class Breakdown(object):
 
             result[team_name]["luck"] = luck
 
-        for team in teams:
-            # "%.2f%%" % luck
-            teams[team]["luck"] = result[team]["luck"] * 100
-            teams[team]["breakdown"] = result[team]["breakdown"]
-            teams[team]["matchup_result"] = result[team]
-
         return result
 
 
@@ -527,7 +521,12 @@ class SeasonAverageCalculator(object):
         team_index = 0
         for team in data:
             team_name = self.team_names[team_index]
-            season_average_value = "{0:.2f}".format(sum([float(week[1]) for week in team]) / float(len(team)))
+
+            valid_values = [value[1] for value in team if value[1] is not None]
+
+            average = np.mean(valid_values)
+
+            season_average_value = "{0:.2f}".format(average)
             season_average_list.append([team_name, season_average_value])
             team_index += 1
         ordered_average_values = sorted(season_average_list, key=lambda x: float(x[1]), reverse=reverse_bool)
@@ -661,18 +660,16 @@ class PowerRanking(object):
         return result
 
     def execute_power_ranking(self, teams):
-        """
-        avg of (weekly points rank + weekly overall win rank)
-        """
 
         teams = [teams[key] for key in teams]
 
         df = pd.DataFrame.from_dict(teams)
 
-        df["score_rank"] = df["score"].rank(ascending=False)
-        df["coach_rank"] = df["coaching_efficiency"].rank(ascending=False)
-        df["luck_rank"] = df["luck"].rank(ascending=False)
-        df["power_rank"] = df.apply(self.power_ranking, axis=1).rank()
+        df["score_rank"] = df["score"].rank()
+        df["coach_rank"] = df["coaching_efficiency"].rank()
+        df["luck_rank"] = df["luck"].rank()
+        df["zscore_rank"] = df["zscore"].rank()
+        df["power_rank"] = df.apply(self.power_ranking, axis=1).rank(ascending=False)
 
         # convert to just return calculated results
         # TODO: this is probably not the best way?
@@ -686,7 +683,8 @@ class PowerRanking(object):
                 "score_rank": team["score_rank"],
                 "coach_rank": team["coach_rank"],
                 "luck_rank": team["luck_rank"],
-                "power_rank": team["power_rank"]
+                "power_rank": team["power_rank"],
+                "zscore_rank": team["zscore_rank"]
             }
 
         return results
@@ -694,52 +692,29 @@ class PowerRanking(object):
 
 class ZScore(object):
 
-
     def execute(self, weekly_teams):
-
-        if len(weekly_teams) < 2:
-            return {}
 
         results = {}
 
-        for team_id in teams:
-            scores = [week[team_id].get('score') for week in weekly_teams]
+        # can only determine zscore 
+        can_calculate = len(weekly_teams) > 2
 
-            scores_excluding_current = scores[:-1]
-            current_score = scores[-1]
-            std = np.std(scores_excluding_current)
-            print("STD: {0}".format(std))
-            mean = np.mean(scores_excluding_current)
-            print("MEAN: {0}".format(mean))
+        # just grab first week team names
+        # could be done in constructor or something
+        for team_id in weekly_teams[0]:
+            zscore = None
 
-            zscore = (current_score - mean) / std
-            print("ZSCORE: {0}\n".format(zscore))
+            if can_calculate:
+
+                scores = [week[team_id].get('score') for week in weekly_teams]
+
+                scores_excluding_current = scores[:-1]
+                current_score = scores[-1]
+
+                std = np.std(scores_excluding_current)
+                mean = np.mean(scores_excluding_current)
+                zscore = (current_score - mean) / std
 
             results[team_id] = zscore
 
         return results
-        
-
-        # df = pd.DataFrame.from_dict(scores_by_week)
-
-        # df["score_rank"] = df["score"].rank(ascending=False)
-        # df["coach_rank"] = df["coaching_efficiency"].rank(ascending=False)
-        # df["luck_rank"] = df["luck"].rank(ascending=False)
-        # df["power_rank"] = df.apply(self.power_ranking, axis=1).rank()
-
-        # # convert to just return calculated results
-        # # TODO: this is probably not the best way?
-
-        # teams = df.to_dict(orient="records")
-
-        # results = {}
-
-        # for team in teams:
-        #     results[team["name"]] = {
-        #         "score_rank": team["score_rank"],
-        #         "coach_rank": team["coach_rank"],
-        #         "luck_rank": team["luck_rank"],
-        #         "power_rank": team["power_rank"]
-        #     }
-
-        # return results
