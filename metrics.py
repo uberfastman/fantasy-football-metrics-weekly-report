@@ -2,6 +2,7 @@
 # contributors: Kevin N.
 
 import itertools
+import math
 from collections import defaultdict, Counter
 
 import pandas as pd
@@ -96,26 +97,15 @@ class CalculateMetrics(object):
 
     def get_num_ties(self, results_data, week, tie_type):
 
-        newline = ""
         if tie_type == "power_rank":
-            # num_ties = sum(manager.count(results_data[0][0]) for manager in results_data) - 1
             groups = [list(group) for key, group in itertools.groupby(results_data, lambda x: x[0])]
             num_ties = self.count_ties(groups)
-            newline = "\n"
         else:
-            # num_ties = sum(manager.count(results_data[0][3]) for manager in results_data) - 1
             groups = [list(group) for key, group in itertools.groupby(results_data, lambda x: x[3])]
             num_ties = self.count_ties(groups)
 
         # if there are ties, record them and break them if possible
         if num_ties > 0:
-            if num_ties == 1:
-                print("THERE IS A %s TIE IN WEEK %s!%s" % (tie_type.replace("_", " ").upper(), week, newline))
-            else:
-                print(
-                    "THERE ARE %d %s TIES IN WEEK %s!%s" % (
-                        num_ties, tie_type.replace("_", " ").upper(), week, newline))
-
             ties_count = 0
             team_index = 0
             place = 1
@@ -180,9 +170,6 @@ class CalculateMetrics(object):
                             results_data[team_index].append(group[0][4])
                         team_index += 1
                         place += 1
-        else:
-            print("No %s ties in week %s.%s" % (tie_type.replace("_", " "), week, newline))
-
         return num_ties
 
     @staticmethod
@@ -311,11 +298,11 @@ class CoachingEfficiency(object):
 
     def __init__(self, roster_settings):
         self.roster_slots = roster_settings["slots"]
-
         self.flex_positions = {
             "FLEX": roster_settings["flex_positions"],
             "D": ["D", "DB", "DL", "LB", "DT", "DE", "S", "CB"]
         }
+        self.coaching_efficiency_dq_dict = {}
 
     def get_eligible_positions(self, player):
         eligible = []
@@ -416,10 +403,6 @@ class CoachingEfficiency(object):
         # calculate optimal score
         optimal_score = sum([x["fantasy_points"] for x in optimal_lineup])
 
-        # print("optimal lineup for " + team_name)
-        # for player in optimal_lineup:
-        #     print(player)
-
         # calculate coaching efficiency
         actual_weekly_score = team_info["score"]
 
@@ -433,19 +416,16 @@ class CoachingEfficiency(object):
             positions_filled_active = team_info["positions_filled_active"]
 
             if Counter(league_roster_active_slots) == Counter(positions_filled_active):
-                if ineligible_efficiency_player_count <= 4:
+                # divide bench slots by 2 and DQ team if number of ineligible players exceeds the ceiling of that value
+                if ineligible_efficiency_player_count <= math.ceil(self.roster_slots.get("BN") / 2.0):
                     efficiency_disqualification = False
                 else:
-                    print("ROSTER INVALID! There are %d inactive players on the bench of %s in week %s!" % (
-                        ineligible_efficiency_player_count, team_name, week))
                     efficiency_disqualification = True
+                    self.coaching_efficiency_dq_dict[team_name] = ineligible_efficiency_player_count
 
             else:
-                print(
-                    "ROSTER INVALID! There is not a full squad of active players starting on %s in week %s!" % (
-                        team_name,
-                        week))
                 efficiency_disqualification = True
+                self.coaching_efficiency_dq_dict[team_name] = -1
 
             if efficiency_disqualification:
                 coaching_efficiency = 0.0
@@ -538,16 +518,13 @@ class SeasonAverageCalculator(object):
                     if with_percent_bool:
                         ordered_team[3] = "{0:.2f}%".format(float(str(ordered_team[3]).replace("%", ""))) if \
                             ordered_team[3] != "DQ" else "DQ"
-                        # ordered_team.append(str(team[2]) + "% (" + str(ordered_average_values.index(team) + 1) + ")")
                         ordered_team.append(str(team[2]))
 
                     elif bench_column_bool:
                         ordered_team[3] = "{0:.2f}".format(float(str(ordered_team[3])))
-                        # ordered_team.insert(-1, str(team[2]) + " (" + str(ordered_average_values.index(team) + 1) + ")")
                         ordered_team.insert(-1, str(team[2]))
 
                     else:
-                        # value = "{0} ({1})".format(str(team[2]), str(ordered_average_values.index(team) + 1))
                         value = "{0}".format(str(team[2]))
                         ordered_team.append(value)
 
@@ -565,6 +542,7 @@ class PointsByPosition(object):
             "FLEX": roster_settings["flex_positions"],
             "D": ["D", "DB", "DL", "LB", "DT", "DE", "S", "CB"]
         }
+        self.coaching_efficiency_dq_dict = {}
 
     @staticmethod
     def get_starting_players(players):
@@ -631,6 +609,8 @@ class PointsByPosition(object):
                     del roster["slots"][slot]
             player_points_by_position = self.execute_points_by_position(team_info)
             weekly_points_by_position_data.append([team_name, player_points_by_position])
+
+        self.coaching_efficiency_dq_dict = coaching_efficiency.coaching_efficiency_dq_dict
 
         # Option to disqualify chosen team(s) for current week of coaching efficiency
         if week == self.chosen_week:

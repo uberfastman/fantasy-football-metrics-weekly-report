@@ -420,8 +420,7 @@ class PdfGenerator(object):
         elements.append(self.report_footer)
 
         # build pdf
-        print("generating pdf...\n")
+        print("generating PDF ({})...".format(filename_with_path.split("/")[-1]))
         doc.build(elements)
-        print("... pdf generated!\n")
 
         return doc.filename

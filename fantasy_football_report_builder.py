@@ -27,17 +27,12 @@ class FantasyFootballReport(object):
             self.league_id = self.config.get("Fantasy_Football_Report_Settings", "chosen_league_id")
 
         self.test_bool = False
-        test_report = ""
-        test_week = ""
         if test_bool:
             self.test_bool = True
-            test_report = " TEST"
-            test_week = " FOR SELECTED WEEK {}".format(user_input_chosen_week)
 
         # verification output message
-        print("\nGenerating%s fantasy football report%s for league with id: %s (report generated: %s)\n" % (
-            test_report, test_week,
-            self.league_id, "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now())))
+        print("\nGenerating%s fantasy football report for league with id: %s (report generated: %s)\n" % (
+            " TEST" if test_bool else "", self.league_id, "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now())))
 
         # yahoo oauth api (consumer) key and secret
         with open("./authentication/private.txt", "r") as auth_file:
@@ -62,10 +57,10 @@ class FantasyFootballReport(object):
             token_store.set("foo", self.token)
 
         else:
-            print("Verifying token...\n")
+            print("Verifying token...")
             self.token = self.y3.check_token(stored_token)
             if self.token != stored_token:
-                print("Setting stored token!\n")
+                print("Setting stored token!")
                 token_store.set("foo", self.token)
 
         '''
@@ -75,7 +70,6 @@ class FantasyFootballReport(object):
         game_data = self.yql_query("select * from fantasysports.games where game_key='nfl'")
         # unique league key composed of this year's yahoo fantasy football game id and the unique league id
         self.league_key = game_data[0].get("game_key") + ".l." + self.league_id
-        print("League key: %s\n" % self.league_key)
 
         # get individual league roster
         roster_data = self.yql_query(
@@ -145,6 +139,10 @@ class FantasyFootballReport(object):
                 raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
         except ValueError:
             raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
+
+        # output league info for verification
+        print("\nGenerating \"{}\" ({}) report for week {}.\n".format(self.league_name.upper(), self.league_key,
+                                                                      self.chosen_week))
 
     def yql_query(self, query):
         # print("Executing query: %s\n" % query)
@@ -240,11 +238,6 @@ class FantasyFootballReport(object):
             team_info_dict = {"name": team_name, "manager": team_manager}
             teams_dict[team_id] = team_info_dict
 
-        # output league teams for verification
-        if chosen_week == "1":
-            print("TEAMS: {}\n".format(teams_dict))
-            print("Generating report for week {}\n".format(self.chosen_week))
-
         team_results_dict = {}
 
         # iterate through all teams and build team_results_dict containing all relevant team stat information
@@ -274,27 +267,11 @@ class FantasyFootballReport(object):
 
                 players.append(player_info_dict)
 
-            # for testing ties
-            # test_score = 70
-            # if int(team_id) == 1:
-            #     test_score = 100
-            # if int(team_id) == 2:
-            #     test_score = 100
-            # if int(team_id) == 3:
-            #     test_score = 100
-            # if int(team_id) == 4:
-            #     test_score = 90
-            # if int(team_id) == 5:
-            #     test_score = 90
-            # if int(team_id) == 6:
-            #     test_score = 90
-
             team_results_dict[team_name] = {
                 "name": team_name,
                 "manager": teams_dict.get(team).get("manager"),
                 "players": players,
                 "score": sum([p["fantasy_points"] for p in players if p["selected_position"] != "BN"]),
-                # "score": test_score,
                 "bench_score": sum([p["fantasy_points"] for p in players if p["selected_position"] == "BN"]),
                 "team_id": team_id,
                 "positions_filled_active": positions_filled_active
@@ -394,6 +371,26 @@ class FantasyFootballReport(object):
             tie_for_first_power_ranking = True
         num_tied_for_first_power_ranking = len(
             [list(group) for key, group in itertools.groupby(power_ranking_results_data, lambda x: x[0])][0])
+
+        # output weekly metrics info
+        print("~~~~~ WEEK {} METRICS INFO ~~~~~".format(chosen_week))
+        print("              SCORE tie(s): {}".format(num_tied_scores))
+        print("COACHING EFFICIENCY tie(s): {}".format(num_tied_coaching_efficiencies))
+        print("               LUCK tie(s): {}".format(num_tied_lucks))
+        print("      POWER RANKING tie(s): {}".format(num_tied_power_rankings))
+        coaching_efficiency_dq_dict = points_by_position.coaching_efficiency_dq_dict
+        if coaching_efficiency_dq_dict:
+            ce_dq_str = ""
+            for team in coaching_efficiency_dq_dict.keys():
+                if coaching_efficiency_dq_dict.get(team) == -1:
+                    ce_dq_str += "{} (incomplete active squad), ".format(team)
+                else:
+                    ce_dq_str += "{} (ineligible bench players: {}/{}), ".format(team,
+                                                                                 coaching_efficiency_dq_dict.get(team),
+                                                                                 self.roster.get("slots").get("BN"))
+            print("   COACHING EFFICIENCY DQs: {}\n".format(ce_dq_str[:-2]))
+        else:
+            print("")
 
         report_info_dict = {
             "team_results": team_results_dict,
@@ -534,8 +531,6 @@ class FantasyFootballReport(object):
         report_footer_text = "<para alignment='center'>Report generated %s for Yahoo Fantasy Football league '%s' (%s).</para>" % (
             "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), self.league_name, self.league_id)
 
-        print("Filename: {}\n".format(filename))
-
         if not os.path.isdir(report_save_dir):
             os.makedirs(report_save_dir)
 
@@ -562,6 +557,6 @@ class FantasyFootballReport(object):
         # generate pdf of report
         file_for_upload = pdf_generator.generate_pdf(filename_with_path, line_chart_data_list)
 
-        print("Generated PDF: {}\n".format(file_for_upload))
+        print("...SUCCESS! Generated PDF: {}\n".format(file_for_upload))
 
         return file_for_upload
