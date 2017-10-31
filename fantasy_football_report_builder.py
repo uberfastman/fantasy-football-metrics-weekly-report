@@ -27,12 +27,16 @@ class FantasyFootballReport(object):
             self.league_id = self.config.get("Fantasy_Football_Report_Settings", "chosen_league_id")
 
         self.test_bool = False
+        test_report = ""
+        test_week = ""
         if test_bool:
             self.test_bool = True
-            print("\nGenerating test report...\n")
+            test_report = " TEST"
+            test_week = " FOR SELECTED WEEK {}".format(user_input_chosen_week)
 
         # verification output message
-        print("Generating fantasy football report for league with id: %s (report generated: %s)\n" % (
+        print("\nGenerating%s fantasy football report%s for league with id: %s (report generated: %s)\n" % (
+            test_report, test_week,
             self.league_id, "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now())))
 
         # yahoo oauth api (consumer) key and secret
@@ -183,8 +187,16 @@ class FantasyFootballReport(object):
         matchup_list = []
 
         for matchup in matchups:
-            winning_team = matchup.get("winner_team_key")
-            is_tied = int(matchup.get("is_tied"))
+
+            if matchup.get("status") == "postevent":
+                winning_team = matchup.get("winner_team_key")
+                is_tied = int(matchup.get("is_tied"))
+            elif matchup.get("status") == "midevent":
+                winning_team = ""
+                is_tied = 1
+            else:
+                winning_team = ""
+                is_tied = 0
 
             def team_result(team):
                 """
@@ -300,7 +312,7 @@ class FantasyFootballReport(object):
         current_standings_data = calculate_metrics.get_standings(self.league_standings_data)
 
         # calculate coaching efficiency metric and add values to team_results_dict, and get and points by position
-        points_by_position = PointsByPosition(self.roster)
+        points_by_position = PointsByPosition(self.roster, self.chosen_week)
         weekly_points_by_position_data = points_by_position.get_weekly_points_by_position(self.league_id, self.config,
                                                                                           chosen_week, self.roster,
                                                                                           self.league_roster_active_slots,
@@ -337,9 +349,9 @@ class FantasyFootballReport(object):
         coaching_efficiency_results = sorted(team_results_dict.iteritems(),
                                              key=lambda (k, v): (v.get("coaching_efficiency"), k),
                                              reverse=True)
-        efficiency_dq_count = 0
         coaching_efficiency_results_data = calculate_metrics.get_coaching_efficiency_data(
-            coaching_efficiency_results, efficiency_dq_count)
+            coaching_efficiency_results)
+        efficiency_dq_count = calculate_metrics.coaching_efficiency_dq_count
 
         # create luck data for table
         luck_results = sorted(team_results_dict.iteritems(),
@@ -519,7 +531,7 @@ class FantasyFootballReport(object):
                                           "report_directory_base_path") + "/" + self.league_name.replace(" ",
                                                                                                          "-") + "(" + self.league_id + ")"
         report_title_text = self.league_name + " (" + self.league_id + ") Week " + self.chosen_week + " Report"
-        report_footer_text = "Report generated %s for Yahoo Fantasy Football league '%s' (%s)." % (
+        report_footer_text = "<para alignment='center'>Report generated %s for Yahoo Fantasy Football league '%s' (%s).</para>" % (
             "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), self.league_name, self.league_id)
 
         print("Filename: {}\n".format(filename))

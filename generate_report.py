@@ -34,12 +34,9 @@ def main(argv):
             test_bool = True
         elif opt in ("-l", "--league-id"):
             league_id = arg
-            print("\nSelected league id is {}".format(league_id))
         elif opt in ("-w", "--week"):
             week = arg
-            if 0 < int(week) < 18:
-                print("\nSelected week is {}".format(week))
-            else:
+            if int(week) < 1 or int(week) > 17:
                 print("\nPlease select a valid week number between 1 and 17.")
                 week = use_chosen_week_function()
     return test_bool, league_id, week

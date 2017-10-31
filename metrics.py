@@ -2,7 +2,6 @@
 # contributors: Kevin N.
 
 import itertools
-import math
 from collections import defaultdict, Counter
 
 import pandas as pd
@@ -12,6 +11,7 @@ class CalculateMetrics(object):
     def __init__(self, league_id, config):
         self.league_id = league_id
         self.config = config
+        self.coaching_efficiency_dq_count = 0
 
     @staticmethod
     def get_standings(league_standings_data):
@@ -59,8 +59,7 @@ class CalculateMetrics(object):
 
         return score_results_data
 
-    @staticmethod
-    def get_coaching_efficiency_data(coaching_efficiency_results, efficiency_dq_count):
+    def get_coaching_efficiency_data(self, coaching_efficiency_results):
         coaching_efficiency_results_data = []
         place = 1
         for key, value in coaching_efficiency_results:
@@ -70,7 +69,7 @@ class CalculateMetrics(object):
 
             if ranked_coaching_efficiency == 0.0:
                 ranked_coaching_efficiency = "DQ"
-                efficiency_dq_count += 1
+                self.coaching_efficiency_dq_count += 1
             else:
                 ranked_coaching_efficiency = "%.2f%%" % float(ranked_coaching_efficiency)
 
@@ -124,10 +123,7 @@ class CalculateMetrics(object):
 
                 for group in groups:
                     if len(group) > 1:
-                        if len(group) % 2 == 0:
-                            ties_count += (len(group) / 2)
-                        else:
-                            ties_count += math.factorial(len(group))
+                        ties_count += sum(range(len(group)))
 
                         for team in group:
                             if tie_type == "power_rank":
@@ -194,10 +190,7 @@ class CalculateMetrics(object):
         num_ties = 0
         for group in groups:
             if len(group) > 1:
-                if len(group) % 2 == 0:
-                    num_ties += (len(group) / 2)
-                else:
-                    num_ties += math.factorial(len(group))
+                num_ties += sum(range(len(group)))
 
         return num_ties
 
@@ -261,55 +254,55 @@ class CalculateMetrics(object):
                 test_efficiency = 100.00
                 test_luck = 99.00
                 test_power_rank = 1.0
-            if int(team_id) == 2:
+            elif int(team_id) == 2:
                 test_score = 100
                 test_efficiency = 100.00
                 test_luck = 99.00
                 test_power_rank = 1.0
             # swap the third time to test for middle ranked non-ties
-            # if int(team_id) == 3:
+            # elif int(team_id) == 3:
             #     test_score = 100
             #     test_efficiency = 100.00
             #     test_luck = 99.00
             #     test_power_rank = 1.0
-            if int(team_id) == 3:
+            elif int(team_id) == 3:
                 test_score = 95
                 test_efficiency = 95.00
                 test_luck = 50.00
                 test_power_rank = 1.5
-            if int(team_id) == 4:
+            elif int(team_id) == 4:
                 test_score = 90
                 test_efficiency = 90.00
                 test_luck = 5.00
                 test_power_rank = 2.0
-            if int(team_id) == 5:
+            elif int(team_id) == 5:
                 test_score = 90
                 test_efficiency = 90.00
                 test_luck = 5.00
                 test_power_rank = 2.0
-            if int(team_id) == 6:
+            elif int(team_id) == 6:
                 test_score = 90
                 test_efficiency = 90.00
                 test_luck = 5.00
                 test_power_rank = 2.0
             # uncomment to test ending teams with unique place
-            if int(team_id) == len(team_results_dict.keys()):
+            elif int(team_id) == len(team_results_dict.keys()):
                 test_score = 85
                 test_efficiency = 85.00
                 test_luck = -5.00
                 test_power_rank = 6.0
 
-                # # uncomment to test scoring ties
-                # team_results_dict.get(team)["score"] = test_score
-                #
-                # # uncomment to test coaching efficiency ties
-                # team_results_dict.get(team)["coaching_efficiency"] = test_efficiency
-                #
-                # # # uncomment to test luck ties
-                # team_results_dict.get(team)["luck"] = test_luck
-                #
-                # # # uncomment to test power ranking ties
-                # team_results_dict.get(team)["power_rank"] = test_power_rank
+            # # uncomment to test scoring ties
+            # team_results_dict.get(team)["score"] = test_score
+            #
+            # # uncomment to test coaching efficiency ties
+            # team_results_dict.get(team)["coaching_efficiency"] = test_efficiency
+            #
+            # # # uncomment to test luck ties
+            # team_results_dict.get(team)["luck"] = test_luck
+            #
+            # # # uncomment to test power ranking ties
+            # team_results_dict.get(team)["power_rank"] = test_power_rank
 
 
 class CoachingEfficiency(object):
@@ -543,7 +536,8 @@ class SeasonAverageCalculator(object):
             for team in ordered_average_values:
                 if ordered_team[1] == team[1]:
                     if with_percent_bool:
-                        ordered_team[3] = "{0:.2f}%".format(float(str(ordered_team[3]).replace("%", "")))
+                        ordered_team[3] = "{0:.2f}%".format(float(str(ordered_team[3]).replace("%", ""))) if \
+                            ordered_team[3] != "DQ" else "DQ"
                         # ordered_team.append(str(team[2]) + "% (" + str(ordered_average_values.index(team) + 1) + ")")
                         ordered_team.append(str(team[2]))
 
@@ -563,8 +557,9 @@ class SeasonAverageCalculator(object):
 
 
 class PointsByPosition(object):
-    def __init__(self, roster_settings):
+    def __init__(self, roster_settings, chosen_week):
 
+        self.chosen_week = chosen_week
         self.roster_slots = roster_settings.get("slots")
         self.flex_positions = {
             "FLEX": roster_settings["flex_positions"],
@@ -629,22 +624,22 @@ class PointsByPosition(object):
         for team_name, team_info in team_results_dict.items():
             disqualification_eligible = league_id == config.get("Fantasy_Football_Report_Settings",
                                                                 "league_of_emperors_id")
-            team_info["coaching_efficiency"] = coaching_efficiency.execute_coaching_efficiency(team_name, team_info,
-                                                                                               int(week),
-                                                                                               active_slots,
-                                                                                               disqualification_eligible=disqualification_eligible)
+            team_info["coaching_efficiency"] = coaching_efficiency.execute_coaching_efficiency(
+                team_name, team_info, int(week), active_slots, disqualification_eligible=disqualification_eligible)
             for slot in roster["slots"].keys():
                 if roster["slots"].get(slot) == 0:
                     del roster["slots"][slot]
             player_points_by_position = self.execute_points_by_position(team_info)
             weekly_points_by_position_data.append([team_name, player_points_by_position])
 
-        # Option to disqualify chosen team for current week of coaching efficiency
-        if week == config.get("Fantasy_Football_Report_Settings", "chosen_week"):
-            disqualified_team = config.get("Fantasy_Football_Report_Settings",
-                                           "coaching_efficiency_disqualified_team")
-            if disqualified_team:
-                team_results_dict.get(disqualified_team)["coaching_efficiency"] = "0.0%"
+        # Option to disqualify chosen team(s) for current week of coaching efficiency
+        if week == self.chosen_week:
+            disqualified_teams = config.get("Fantasy_Football_Report_Settings",
+                                            "coaching_efficiency_disqualified_teams")
+            if disqualified_teams:
+                for team in disqualified_teams.split(","):
+                    print("{} has been manually disqualified from coaching efficiency eligibility!".format(team))
+                    team_results_dict.get(team)["coaching_efficiency"] = 0.0
 
         return weekly_points_by_position_data
 

@@ -123,6 +123,7 @@ class PdfGenerator(object):
                                                     "a tie after that, the manager whose players exceeded their " \
                                                     "season average score by the highest cumulative percent wins.</i>"
 
+        self.style_efficiency_dqs = None
         self.style_tied_scores = self.set_tied_values_style(self.num_tied_scores, table_style_list,
                                                             metric_type="scores")
         self.style_tied_efficiencies = self.set_tied_values_style(self.num_tied_coaching_efficiencies, table_style_list,
@@ -130,7 +131,6 @@ class PdfGenerator(object):
         self.style_tied_luck = self.set_tied_values_style(self.num_tied_lucks, table_style_list, metric_type="luck")
         self.style_tied_power_rankings = self.set_tied_values_style(self.num_tied_power_rankings, table_style_list,
                                                                     metric_type="power_ranking")
-        self.style_efficiency_dqs = None
 
         # options: "document", "section", or None
         self.report_title = self.create_title(report_title_text, element_type="document")
@@ -165,7 +165,7 @@ class PdfGenerator(object):
             else:
                 num_tied_for_first = self.num_tied_for_first_power_ranking
 
-        tied_values_table_style_list = table_style_list
+        tied_values_table_style_list = list(table_style_list)
         if self.league_id == config.get("Fantasy_Football_Report_Settings",
                                         "league_of_emperors_id") and metric_type == "scores":
             tied_values_table_style_list.append(("TEXTCOLOR", (0, 1), (-1, 1), colors.green))
@@ -184,13 +184,13 @@ class PdfGenerator(object):
                 dq_index = len(self.score_results_data) - self.efficiency_dq_count + 1
 
                 if self.num_tied_coaching_efficiencies > 0:
-                    efficiencies_dq_table_style_list = tied_values_table_style_list
+                    efficiencies_dq_table_style_list = list(tied_values_table_style_list)
                 else:
-                    efficiencies_dq_table_style_list = table_style_list
+                    efficiencies_dq_table_style_list = list(table_style_list)
 
                 eff_dq_count = self.efficiency_dq_count
                 while eff_dq_count > 0:
-                    efficiencies_dq_table_style_list.append(("TEXTCOLOR", (0, dq_index), (-1, dq_index), colors.red))
+                    efficiencies_dq_table_style_list.append(("TEXTCOLOR", (0, dq_index), (-1, -1), colors.red))
                     eff_dq_count -= 1
                     dq_index += 1
                 self.style_efficiency_dqs = TableStyle(efficiencies_dq_table_style_list)
@@ -218,6 +218,8 @@ class PdfGenerator(object):
         if metric_type == "coaching_efficiency":
             if self.efficiency_dq_count > 0:
                 data_table.setStyle(self.style_efficiency_dqs)
+        else:
+            data_table.setStyle(table_style)
 
         elements.append(data_table)
         self.add_tied_metric_footer(elements, metric_type)
@@ -338,10 +340,12 @@ class PdfGenerator(object):
                     ("VALIGN", (0, 0), (-1, 0), "MIDDLE")
                 ]))
             doc_elements.append(team_table)
-            if team_number % 2 == 1:
+            if team_number == len(alphabetical_teams):
+                doc_elements.append(Spacer(1, 1.75 * inch), )
+            elif team_number % 2 == 1:
                 doc_elements.append(self.line_separator)
-            doc_elements.append(self.spacer_inch)
-            if team_number % 2 == 0:
+                doc_elements.append(self.spacer_inch)
+            elif team_number % 2 == 0:
                 doc_elements.append(self.page_break)
             team_number += 1
 
@@ -390,8 +394,9 @@ class PdfGenerator(object):
         for team in efficiency_data:
             week_index = 0
             for week in team:
-                if week[1] == 0.0:
-                    del team[week_index]
+                if len(team) > 1:
+                    if week[1] == 0.0:
+                        del team[week_index]
                 week_index += 1
 
         # create line charts for points, coaching efficiency, and luck
@@ -406,12 +411,13 @@ class PdfGenerator(object):
             self.create_line_chart(luck_data, len(points_data[0]), series_names, "Weekly Luck", "Weeks", "Luck (%)",
                                    20.00))
         elements.append(self.spacer_large)
-        elements.append(self.report_footer)
         elements.append(self.page_break)
 
         # dynamically build additional pages for individual team stats
         self.create_team_stats_pages(elements, self.weekly_points_by_position_data,
                                      self.season_average_team_points_by_position)
+
+        elements.append(self.report_footer)
 
         # build pdf
         print("generating pdf...\n")
