@@ -33,7 +33,14 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
         self.pie.x = 75
         self.pie.y = (height - self.pie.height) / 2
         # self.pie.data = [26.90, 13.30, 11.10, 9.40, 8.50, 7.80, 7.00, 6.20, 8.80, 1.00]
-        self.pie.data = data
+        # replace negative scores with 0.0 so that pie chart does not display negative values as a positive slice
+        filtered_data = []
+        for score in data:
+            if score >= 0:
+                filtered_data.append(score)
+            else:
+                filtered_data.append(0.0)
+        self.pie.data = filtered_data
         # self.pie.labels = ['Financials', 'Energy', 'Health Care', 'Telecoms', 'Consumer', 'Consumer 2', 'Industrials',
         #                    'Materials', 'Other', 'Liquid Assets']
         self.pie.labels = labels
@@ -66,7 +73,7 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
         n = len(self.pie.data)
         self.set_items(n, self.pie.slices, 'fillColor', pdf_chart_colors)
         self.legend.colorNamePairs = [
-            (self.pie.slices[i].fillColor, (self.pie.labels[i][0:20], '%0.2f' % self.pie.data[i])) for i in xrange(n)]
+            (self.pie.slices[i].fillColor, (self.pie.labels[i][0:20], '%0.2f' % data[i])) for i in xrange(n)]
 
     @staticmethod
     def set_items(n, obj, attr, values):
