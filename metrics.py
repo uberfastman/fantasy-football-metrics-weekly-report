@@ -619,6 +619,7 @@ class PointsByPosition(object):
         for team_name, team_info in team_results_dict.items():
             disqualification_eligible = league_id == config.get("Fantasy_Football_Report_Settings",
                                                                 "league_of_emperors_id")
+            # disqualification_eligible = False
             team_info["coaching_efficiency"] = coaching_efficiency.execute_coaching_efficiency(
                 team_name, team_info, int(week), active_slots, disqualification_eligible=disqualification_eligible)
             for slot in roster["slots"].keys():
