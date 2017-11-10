@@ -298,10 +298,22 @@ class CoachingEfficiency(object):
 
     def __init__(self, roster_settings):
         self.roster_slots = roster_settings["slots"]
+
         self.flex_positions = {
-            "FLEX": roster_settings["flex_positions"],
-            "D": ["D", "DB", "DL", "LB", "DT", "DE", "S", "CB"]
+            "FLEX": roster_settings["flex_positions"]
         }
+
+        flex_def_positions = ["DB", "DL", "LB", "DT", "DE", "S", "CB"]
+
+        has_flex_def = False
+        for rs in self.roster_slots:
+            if rs in flex_def_positions:
+                has_flex_def = True
+                break
+        
+        if has_flex_def:
+            self.flex_positions['D'] = flex_def_positions
+
         self.coaching_efficiency_dq_dict = {}
 
     def get_eligible_positions(self, player):
@@ -395,7 +407,6 @@ class CoachingEfficiency(object):
 
         # now that we have optimal by position, figure out flex positions
         optimal_flexes = list(self.get_optimal_flex(eligible_positions, optimal))
-
         optimal_players.append(optimal_flexes)
 
         optimal_lineup = [item for sublist in optimal_players for item in sublist]
