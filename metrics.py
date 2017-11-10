@@ -219,6 +219,7 @@ class CalculateMetrics(object):
 
         return resolved_season_average_results_data
 
+    # noinspection PyUnusedLocal
     @staticmethod
     def test_ties(team_results_dict):
         for team in team_results_dict.keys():
@@ -320,11 +321,15 @@ class CoachingEfficiency(object):
         eligible = []
 
         for position in self.roster_slots:
-            if position in player["eligible_positions"]:
+            eligible_positions = player["eligible_positions"]
+            if not isinstance(eligible_positions, list):
+                eligible_positions = [eligible_positions]
+            if position in eligible_positions:
                 # special case, because all defensive players get D as an eligible position
                 # whereas for offense, there is no special eligible position for FLEX
-                if position != "D":
-                    eligible.append(position)
+                # if position != "D":
+                #     eligible.append(position)
+                eligible.append(position)
 
                 # assign all flex positions the player is eligible for
                 for flex_position, base_positions in self.flex_positions.items():
