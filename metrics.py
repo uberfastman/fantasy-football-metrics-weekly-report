@@ -306,13 +306,13 @@ class CoachingEfficiency(object):
 
         flex_def_positions = ["DB", "DL", "LB", "DT", "DE", "S", "CB"]
 
-        has_flex_def = False
+        self.has_flex_def = False
         for rs in self.roster_slots:
             if rs in flex_def_positions:
-                has_flex_def = True
+                self.has_flex_def = True
                 break
         
-        if has_flex_def:
+        if self.has_flex_def:
             self.flex_positions['D'] = flex_def_positions
 
         self.coaching_efficiency_dq_dict = {}
@@ -327,9 +327,8 @@ class CoachingEfficiency(object):
             if position in eligible_positions:
                 # special case, because all defensive players get D as an eligible position
                 # whereas for offense, there is no special eligible position for FLEX
-                # if position != "D":
-                #     eligible.append(position)
-                eligible.append(position)
+                if not self.has_flex_def or position != 'D':
+                    eligible.append(position)
 
                 # assign all flex positions the player is eligible for
                 for flex_position, base_positions in self.flex_positions.items():
@@ -355,6 +354,7 @@ class CoachingEfficiency(object):
                 player_info["fantasy_points"]
             )
 
+
         for flex_position, base_positions in self.flex_positions.items():
             candidates = set([create_tuple(player) for player in eligible_positions[flex_position]])
 
@@ -375,6 +375,7 @@ class CoachingEfficiency(object):
 
             # grab the player dict that matches and return those
             # so that the data types we deal with are all similar
+        
             for player in eligible_positions[flex_position]:
                 for optimal_flex_player in optimal_flex:
                     if create_tuple(player) == optimal_flex_player:
@@ -409,7 +410,7 @@ class CoachingEfficiency(object):
             optimal_position = self.get_optimal_players(eligible_positions, position)
             optimal_players.append(optimal_position)
             optimal[position] = optimal_position
-
+       
         # now that we have optimal by position, figure out flex positions
         optimal_flexes = list(self.get_optimal_flex(eligible_positions, optimal))
         optimal_players.append(optimal_flexes)
