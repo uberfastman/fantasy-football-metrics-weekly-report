@@ -25,13 +25,14 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
             HexColor("#e6beff")  # lavender
         ]
 
-        apply(Drawing.__init__, (self, width, height) + args, kw)
+        # apply(Drawing.__init__, (self, width, height) + args, kw)
+        self.drawing = Drawing(width, height)
         # adding a pie chart to the drawing
-        self._add(self, Pie(), name='pie', validate=None, desc=None)
-        self.pie.width = 150
-        self.pie.height = self.pie.width
-        self.pie.x = 75
-        self.pie.y = (height - self.pie.height) / 2
+        self.drawing._add(self, Pie(), name='pie', validate=None, desc=None)
+        self.drawing.pie.width = 150
+        self.drawing.pie.height = self.pie.width
+        self.drawing.pie.x = 75
+        self.drawing.pie.y = (height - self.pie.height) / 2
         # self.pie.data = [26.90, 13.30, 11.10, 9.40, 8.50, 7.80, 7.00, 6.20, 8.80, 1.00]
         # replace negative scores with 0.0 so that pie chart does not display negative values as a positive slice
         filtered_data = []

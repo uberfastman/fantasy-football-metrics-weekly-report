@@ -6,10 +6,11 @@ import collections
 import datetime
 import itertools
 import os
-from ConfigParser import ConfigParser
+import operator
+from configparser import ConfigParser
 
-import yql
-from yql.storage import FileTokenStore
+from yql3 import *
+from yql3.storage import FileTokenStore
 
 from metrics import PointsByPosition, SeasonAverageCalculator, Breakdown, CalculateMetrics, PowerRanking
 from pdf_generator import PdfGenerator
@@ -41,7 +42,7 @@ class FantasyFootballReport(object):
         consumer_secret = auth_data[1]
 
         # yahoo oauth process
-        self.y3 = yql.ThreeLegged(consumer_key, consumer_secret)
+        self.y3 = ThreeLegged(consumer_key, consumer_secret)
         _cache_dir = self.config.get("OAuth_Settings", "yql_cache_dir")
         if not os.access(_cache_dir, os.R_OK):
             os.mkdir(_cache_dir)
@@ -52,7 +53,7 @@ class FantasyFootballReport(object):
         if not stored_token:
             request_token, auth_url = self.y3.get_token_and_auth_url()
             print("Visit url %s and get a verifier string" % auth_url)
-            verifier = raw_input("Enter the code: ")
+            verifier = input("Enter the code: ")
             self.token = self.y3.get_access_token(request_token, verifier)
             token_store.set("foo", self.token)
 
@@ -121,7 +122,8 @@ class FantasyFootballReport(object):
         else:
             chosen_week = self.config.get("Fantasy_Football_Report_Settings", "chosen_week")
         try:
-            if chosen_week == "default":
+            print("Chosen week " + chosen_week)
+            if chosen_week == 'default':
                 self.chosen_week = str(int(self.league_standings_data[0].get("current_week")) - 1)
             elif 0 < int(chosen_week) < 18:
                 if 0 < int(chosen_week) <= int(self.league_standings_data[0].get("current_week")) - 1:
@@ -208,7 +210,7 @@ class FantasyFootballReport(object):
                 return "W" if team_key == winning_team else "L"
 
             teams = {
-                team.get("name").encode("utf-8"): {
+                team.get("name"): {
                     "result": team_result(team),
                     "score": team.get("team_points").get("total")
                 } for team in matchup.get("teams").get("team")
@@ -267,6 +269,7 @@ class FantasyFootballReport(object):
 
                 players.append(player_info_dict)
 
+            team_name = team_name.decode('utf-8')
             team_results_dict[team_name] = {
                 "name": team_name,
                 "manager": teams_dict.get(team).get("manager"),
@@ -308,7 +311,14 @@ class FantasyFootballReport(object):
         if self.test_bool:
             calculate_metrics.test_ties(team_results_dict)
 
-        power_ranking_results = sorted(team_results_dict.iteritems(), key=lambda (k, v): v["power_rank"])
+        for key in team_results_dict:
+            try:
+                st = team_results_dict[key].decode('utf-8')
+                team_results_dict[key] = st
+            except AttributeError:
+                pass
+
+        power_ranking_results = team_results_dict.items()
         power_ranking_results_data = []
         for key, value in power_ranking_results:
             # season avg calc does something where it keys off the second value in the array
@@ -318,21 +328,17 @@ class FantasyFootballReport(object):
             )
 
         # create score data for table
-        score_results = sorted(team_results_dict.iteritems(),
-                               key=lambda (k, v): (float(v.get("score")), k), reverse=True)
+        score_results = team_results_dict.items()
         score_results_data = calculate_metrics.get_score_data(score_results)
 
         # create coaching efficiency data for table
-        coaching_efficiency_results = sorted(team_results_dict.iteritems(),
-                                             key=lambda (k, v): (v.get("coaching_efficiency"), k),
-                                             reverse=True)
+        coaching_efficiency_results = team_results_dict.items()
         coaching_efficiency_results_data = calculate_metrics.get_coaching_efficiency_data(
             coaching_efficiency_results)
         efficiency_dq_count = calculate_metrics.coaching_efficiency_dq_count
 
         # create luck data for table
-        luck_results = sorted(team_results_dict.iteritems(),
-                              key=lambda (k, v): (v.get("luck"), k), reverse=True)
+        luck_results = team_results_dict.items()
         luck_results_data = calculate_metrics.get_luck_data(luck_results)
 
         # count number of ties for points, coaching efficiency, and luck

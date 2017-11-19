@@ -460,7 +460,8 @@ class Breakdown(object):
         result = defaultdict(dict)
         matchups = {name: value["result"] for pair in matchups_list for name, value in pair.items()}
 
-        for team_name, team in teams.items():
+        for team_name in teams:
+            team = teams[team_name]
             record = {
                 "W": 0,
                 "L": 0,
@@ -616,7 +617,9 @@ class PointsByPosition(object):
 
         coaching_efficiency = CoachingEfficiency(roster)
         weekly_points_by_position_data = []
-        for team_name, team_info in team_results_dict.items():
+
+        for team_name in team_results_dict:
+            team_info = team_results_dict[team_name]
             disqualification_eligible = league_id == config.get("Fantasy_Football_Report_Settings",
                                                                 "league_of_emperors_id")
             # disqualification_eligible = False

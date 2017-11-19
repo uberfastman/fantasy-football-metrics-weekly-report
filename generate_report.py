@@ -3,7 +3,7 @@
 import distutils.util as distutils
 import getopt
 import sys
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 
 from fantasy_football_report_builder import FantasyFootballReport
 from upload_to_google_drive import GoogleDriveUploader
@@ -44,7 +44,7 @@ def main(argv):
 
 def use_default_league_function(chosen_league_id, chosen_week_arg, test_bool):
     if not chosen_league_id:
-        use_default_league = raw_input("Generate report for default league? (y/n) -> ")
+        use_default_league = input("Generate report for default league? (y/n) -> ")
     else:
         use_default_league = "selected"
 
@@ -57,7 +57,7 @@ def use_default_league_function(chosen_league_id, chosen_week_arg, test_bool):
                                                                  test_bool=test_bool)
         return fantasy_football_report_instance, config.get("Fantasy_Football_Report_Settings", "chosen_league_id")
     elif use_default_league == "n":
-        chosen_league_id = raw_input(
+        chosen_league_id = input(
             "What is the league ID of the Yahoo league for which you want to generate a report? -> ")
         try:
             fantasy_football_report_instance = FantasyFootballReport(user_input_league_id=chosen_league_id,
@@ -82,11 +82,11 @@ def use_default_league_function(chosen_league_id, chosen_week_arg, test_bool):
 
 
 def use_chosen_week_function():
-    use_default_chosen_week = raw_input("Generate report for default week? (y/n) -> ")
+    use_default_chosen_week = input("Generate report for default week? (y/n) -> ")
     if use_default_chosen_week == "y":
         return None
     elif use_default_chosen_week == "n":
-        chosen_week = raw_input("For which week would you like to generate a report? (1 - 17) -> ")
+        chosen_week = input("For which week would you like to generate a report? (1 - 17) -> ")
         if 0 < int(chosen_week) < 18:
             return chosen_week
         else:

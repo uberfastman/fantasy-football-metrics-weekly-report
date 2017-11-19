@@ -2,7 +2,7 @@
 # code snippets taken from: http://stackoverflow.com/questions/24419188/automating-pydrive-verification-process
 
 import datetime
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
