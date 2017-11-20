@@ -7,6 +7,8 @@ import datetime
 import itertools
 import os
 import operator
+import webbrowser
+
 from configparser import ConfigParser
 
 from yql3 import *
@@ -31,6 +33,7 @@ class FantasyFootballReport(object):
         if test_bool:
             self.test_bool = True
 
+        command_line_only = self.config.getboolean("OAuth_Settings", "command_line_only")
         # verification output message
         print("\nGenerating%s fantasy football report for league with id: %s (report generated: %s)\n" % (
             " TEST" if test_bool else "", self.league_id, "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now())))
@@ -52,7 +55,12 @@ class FantasyFootballReport(object):
 
         if not stored_token:
             request_token, auth_url = self.y3.get_token_and_auth_url()
-            print("Visit url %s and get a verifier string" % auth_url)
+
+            if command_line_only:
+                print("Visit url %s and get a verifier string" % auth_url)
+            else:
+                webbrowser.open(auth_url.decode('utf-8'))
+
             verifier = input("Enter the code: ")
             self.token = self.y3.get_access_token(request_token, verifier)
             token_store.set("foo", self.token)
