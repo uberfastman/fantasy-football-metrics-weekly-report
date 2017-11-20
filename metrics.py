@@ -639,7 +639,7 @@ class PointsByPosition(object):
                                             "coaching_efficiency_disqualified_teams")
             if disqualified_teams:
                 for team in disqualified_teams.split(","):
-                    print(("{} has been manually disqualified from coaching efficiency eligibility!".format(team)))
+                    print("{} has been manually disqualified from coaching efficiency eligibility!".format(team))
                     team_results_dict.get(team)["coaching_efficiency"] = 0.0
 
         return weekly_points_by_position_data
