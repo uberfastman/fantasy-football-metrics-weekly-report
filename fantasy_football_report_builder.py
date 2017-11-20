@@ -32,8 +32,8 @@ class FantasyFootballReport(object):
             self.test_bool = True
 
         # verification output message
-        print("\nGenerating%s fantasy football report for league with id: %s (report generated: %s)\n" % (
-            " TEST" if test_bool else "", self.league_id, "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now())))
+        print(("\nGenerating%s fantasy football report for league with id: %s (report generated: %s)\n" % (
+            " TEST" if test_bool else "", self.league_id, "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()))))
 
         # yahoo oauth api (consumer) key and secret
         with open("./authentication/private.txt", "r") as auth_file:
@@ -52,8 +52,8 @@ class FantasyFootballReport(object):
 
         if not stored_token:
             request_token, auth_url = self.y3.get_token_and_auth_url()
-            print("Visit url %s and get a verifier string" % auth_url)
-            verifier = input("Enter the code: ")
+            print(("Visit url %s and get a verifier string" % auth_url))
+            verifier = eval(input("Enter the code: "))
             self.token = self.y3.get_access_token(request_token, verifier)
             token_store.set("foo", self.token)
 
@@ -122,15 +122,15 @@ class FantasyFootballReport(object):
         else:
             chosen_week = self.config.get("Fantasy_Football_Report_Settings", "chosen_week")
         try:
-            print("Chosen week " + chosen_week)
+            print(("Chosen week " + chosen_week))
             if chosen_week == 'default':
                 self.chosen_week = str(int(self.league_standings_data[0].get("current_week")) - 1)
             elif 0 < int(chosen_week) < 18:
                 if 0 < int(chosen_week) <= int(self.league_standings_data[0].get("current_week")) - 1:
                     self.chosen_week = chosen_week
                 else:
-                    incomplete_week = raw_input(
-                        "Are you sure you want to generate a report for an incomplete week? (y/n) -> ")
+                    incomplete_week = eval(input(
+                        "Are you sure you want to generate a report for an incomplete week? (y/n) -> "))
                     if incomplete_week == "y":
                         self.chosen_week = chosen_week
                     elif incomplete_week == "n":
@@ -143,8 +143,8 @@ class FantasyFootballReport(object):
             raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
 
         # output league info for verification
-        print("\nGenerating \"{}\" ({}) report for week {}.\n".format(self.league_name.upper(), self.league_key,
-                                                                      self.chosen_week))
+        print(("\nGenerating \"{}\" ({}) report for week {}.\n".format(self.league_name.upper(), self.league_key,
+                                                                      self.chosen_week)))
 
     def yql_query(self, query):
         # print("Executing query: %s\n" % query)
@@ -318,7 +318,7 @@ class FantasyFootballReport(object):
             except AttributeError:
                 pass
 
-        power_ranking_results = team_results_dict.items()
+        power_ranking_results = sorted(iter(list(team_results_dict.items())), key=lambda K_v: K_v[1]["power_rank"])
         power_ranking_results_data = []
         for key, value in power_ranking_results:
             # season avg calc does something where it keys off the second value in the array
@@ -328,17 +328,20 @@ class FantasyFootballReport(object):
             )
 
         # create score data for table
-        score_results = team_results_dict.items()
+        score_results = sorted(iter(team_results_dict.items()),
+                key=lambda k_v: (float(k_v[1].get("score")), k_v[0]), reverse=True)
         score_results_data = calculate_metrics.get_score_data(score_results)
 
         # create coaching efficiency data for table
-        coaching_efficiency_results = team_results_dict.items()
+        coaching_efficiency_results = sorted(iter(team_results_dict.items()),
+                key=lambda k_v1: (k_v1[1].get("coaching_efficiency"), k_v1[0]), reverse=True)
         coaching_efficiency_results_data = calculate_metrics.get_coaching_efficiency_data(
             coaching_efficiency_results)
         efficiency_dq_count = calculate_metrics.coaching_efficiency_dq_count
 
         # create luck data for table
-        luck_results = team_results_dict.items()
+        luck_results = sorted(iter(team_results_dict.items()),
+                key=lambda k_v2: (k_v2[1].get("luck"), k_v2[0]), reverse=True)
         luck_results_data = calculate_metrics.get_luck_data(luck_results)
 
         # count number of ties for points, coaching efficiency, and luck
@@ -379,22 +382,22 @@ class FantasyFootballReport(object):
             [list(group) for key, group in itertools.groupby(power_ranking_results_data, lambda x: x[0])][0])
 
         # output weekly metrics info
-        print("~~~~~ WEEK {} METRICS INFO ~~~~~".format(chosen_week))
-        print("              SCORE tie(s): {}".format(num_tied_scores))
-        print("COACHING EFFICIENCY tie(s): {}".format(num_tied_coaching_efficiencies))
-        print("               LUCK tie(s): {}".format(num_tied_lucks))
-        print("      POWER RANKING tie(s): {}".format(num_tied_power_rankings))
+        print(("~~~~~ WEEK {} METRICS INFO ~~~~~".format(chosen_week)))
+        print(("              SCORE tie(s): {}".format(num_tied_scores)))
+        print(("COACHING EFFICIENCY tie(s): {}".format(num_tied_coaching_efficiencies)))
+        print(("               LUCK tie(s): {}".format(num_tied_lucks)))
+        print(("      POWER RANKING tie(s): {}".format(num_tied_power_rankings)))
         coaching_efficiency_dq_dict = points_by_position.coaching_efficiency_dq_dict
         if coaching_efficiency_dq_dict:
             ce_dq_str = ""
-            for team in coaching_efficiency_dq_dict.keys():
+            for team in list(coaching_efficiency_dq_dict.keys()):
                 if coaching_efficiency_dq_dict.get(team) == -1:
                     ce_dq_str += "{} (incomplete active squad), ".format(team)
                 else:
                     ce_dq_str += "{} (ineligible bench players: {}/{}), ".format(team,
                                                                                  coaching_efficiency_dq_dict.get(team),
                                                                                  self.roster.get("slots").get("BN"))
-            print("   COACHING EFFICIENCY DQs: {}\n".format(ce_dq_str[:-2]))
+            print(("   COACHING EFFICIENCY DQs: {}\n".format(ce_dq_str[:-2])))
         else:
             print("")
 
@@ -563,6 +566,6 @@ class FantasyFootballReport(object):
         # generate pdf of report
         file_for_upload = pdf_generator.generate_pdf(filename_with_path, line_chart_data_list)
 
-        print("...SUCCESS! Generated PDF: {}\n".format(file_for_upload))
+        print(("...SUCCESS! Generated PDF: {}\n".format(file_for_upload)))
 
         return file_for_upload

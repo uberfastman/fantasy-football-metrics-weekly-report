@@ -1,8 +1,8 @@
 # written by Wren J.R.
 # contributors: Kevin N.
 
-from __future__ import print_function
-from __future__ import print_function
+
+
 
 from configparser import ConfigParser
 
@@ -330,9 +330,8 @@ class PdfGenerator(object):
             team_table = Table(
                 [[self.create_title("Weekly Points by Position", title_width=2.00),
                   self.create_title("Season Average Points by Position", title_width=2.00)],
-                # [BreakdownPieDrawing(labels, weekly_data),
-                #  BreakdownPieDrawing(labels, season_data)]],
-                ],
+                [BreakdownPieDrawing(labels, weekly_data),
+                 BreakdownPieDrawing(labels, season_data)]],
                 colWidths=[4.25 * inch, 4.25 * inch],
                 style=TableStyle([
                     ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.white),
