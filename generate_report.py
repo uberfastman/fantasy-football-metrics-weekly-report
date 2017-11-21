@@ -6,8 +6,8 @@ import sys
 from configparser import ConfigParser
 
 from fantasy_football_report_builder import FantasyFootballReport
-from upload_to_google_drive import GoogleDriveUploader
 from slack_messenger import SlackMessenger
+from upload_to_google_drive import GoogleDriveUploader
 
 # local config vars
 config = ConfigParser()

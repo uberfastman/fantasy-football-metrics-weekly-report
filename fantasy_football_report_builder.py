@@ -1,21 +1,18 @@
 # written by Wren J.R.
-# contributors: Kevin N.
+# contributors: Kevin N., Joe M.
 # code snippets taken from: http://tech.thejoestory.com/2014/12/yahoo-fantasy-football-api-using-python.html
 
 import collections
 import datetime
 import itertools
 import os
-import operator
 import webbrowser
-
 from configparser import ConfigParser
-
-from yql3 import *
-from yql3.storage import FileTokenStore
 
 from metrics import PointsByPosition, SeasonAverageCalculator, Breakdown, CalculateMetrics, PowerRanking
 from pdf_generator import PdfGenerator
+from yql3 import *
+from yql3.storage import FileTokenStore
 
 
 # noinspection SqlNoDataSourceInspection,SqlDialectInspection
@@ -130,7 +127,6 @@ class FantasyFootballReport(object):
         else:
             chosen_week = self.config.get("Fantasy_Football_Report_Settings", "chosen_week")
         try:
-            print("Chosen week " + chosen_week)
             if chosen_week == 'default':
                 self.chosen_week = str(int(self.league_standings_data[0].get("current_week")) - 1)
             elif 0 < int(chosen_week) < 18:
@@ -151,8 +147,9 @@ class FantasyFootballReport(object):
             raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
 
         # output league info for verification
-        print("\nGenerating \"{}\" ({}) report for week {}.\n".format(self.league_name.upper(), self.league_key,
-                                                                      self.chosen_week))
+        print("\nGenerating \"{}\" ({}) report for week {} (chosen week: {}).\n".format(self.league_name.upper(),
+                                                                                        self.league_key,
+                                                                                        self.chosen_week, chosen_week))
 
     def yql_query(self, query):
         # print("Executing query: %s\n" % query)
@@ -337,19 +334,20 @@ class FantasyFootballReport(object):
 
         # create score data for table
         score_results = sorted(iter(team_results_dict.items()),
-                key=lambda k_v: (float(k_v[1].get("score")), k_v[0]), reverse=True)
+                               key=lambda k_v: (float(k_v[1].get("score")), k_v[0]), reverse=True)
         score_results_data = calculate_metrics.get_score_data(score_results)
 
         # create coaching efficiency data for table
         coaching_efficiency_results = sorted(iter(team_results_dict.items()),
-                key=lambda k_v1: (k_v1[1].get("coaching_efficiency"), k_v1[0]), reverse=True)
+                                             key=lambda k_v1: (k_v1[1].get("coaching_efficiency"), k_v1[0]),
+                                             reverse=True)
         coaching_efficiency_results_data = calculate_metrics.get_coaching_efficiency_data(
             coaching_efficiency_results)
         efficiency_dq_count = calculate_metrics.coaching_efficiency_dq_count
 
         # create luck data for table
         luck_results = sorted(iter(team_results_dict.items()),
-                key=lambda k_v2: (k_v2[1].get("luck"), k_v2[0]), reverse=True)
+                              key=lambda k_v2: (k_v2[1].get("luck"), k_v2[0]), reverse=True)
         luck_results_data = calculate_metrics.get_luck_data(luck_results)
 
         # count number of ties for points, coaching efficiency, and luck

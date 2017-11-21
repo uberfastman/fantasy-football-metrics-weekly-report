@@ -1,6 +1,7 @@
-
 .idea/
 *.pyc
 authentication/
 reports/
 legacy_code/time_series_data_backups/
+local_dependencies/python-yql-master/__pycache__/
+logs/

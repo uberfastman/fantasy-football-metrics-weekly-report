@@ -1,5 +1,5 @@
 # written by Wren J.R.
-# contributors: Kevin N.
+# contributors: Kevin N., Joe M.
 
 import itertools
 import math
@@ -311,7 +311,7 @@ class CoachingEfficiency(object):
             if rs in flex_def_positions:
                 self.has_flex_def = True
                 break
-        
+
         if self.has_flex_def:
             self.flex_positions['D'] = flex_def_positions
 
@@ -354,7 +354,6 @@ class CoachingEfficiency(object):
                 player_info["fantasy_points"]
             )
 
-
         for flex_position, base_positions in list(self.flex_positions.items()):
             candidates = set([create_tuple(player) for player in eligible_positions[flex_position]])
 
@@ -375,7 +374,7 @@ class CoachingEfficiency(object):
 
             # grab the player dict that matches and return those
             # so that the data types we deal with are all similar
-        
+
             for player in eligible_positions[flex_position]:
                 for optimal_flex_player in optimal_flex:
                     if create_tuple(player) == optimal_flex_player:
@@ -410,7 +409,7 @@ class CoachingEfficiency(object):
             optimal_position = self.get_optimal_players(eligible_positions, position)
             optimal_players.append(optimal_position)
             optimal[position] = optimal_position
-       
+
         # now that we have optimal by position, figure out flex positions
         optimal_flexes = list(self.get_optimal_flex(eligible_positions, optimal))
         optimal_players.append(optimal_flexes)

@@ -1,7 +1,4 @@
 # written by Wren J.R.
-
-
-
 import datetime
 
 from slackclient import SlackClient
