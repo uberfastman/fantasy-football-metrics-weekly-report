@@ -50,18 +50,18 @@ class SlackMessenger(object):
             username="fantasy_football_report_bot", icon_emoji=":football:"
         )
 
-    def upload_file_to_hg_fantasy_football_channel(self, upload_file):
+    def upload_file_to_hg_fantasy_football_channel(self, upload_file, slack_channel_name):
         file_name = upload_file.split("/")[-1]
         file_type = file_name.split(".")[-1]
         league_name = file_name.split(".")[-2].split("_")[0]
         message = "\nFantasy Football Report for %s\nGenerated %s\n" % (league_name,
                                                                         "{:%Y-%b-%d %H:%M:%S}".format(
                                                                             datetime.datetime.now()))
-        with open(upload_file, "r") as uf:
+        with open(upload_file, "rb") as uf:
             file_to_upload = uf.read()
             response = self.sc.api_call(
                 "files.upload",
-                channels="#fantasyfootball",
+                channels="#" + slack_channel_name,
                 filename=file_name,
                 filetype=file_type,
                 file=file_to_upload,

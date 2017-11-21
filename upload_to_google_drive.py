@@ -32,7 +32,7 @@ class GoogleDriveUploader(object):
         # Save the current credentials to a file
         self.gauth.SaveCredentialsFile("./authentication/mycreds.txt")
 
-    def upload_file(self):
+    def upload_file(self, test_bool=False):
 
         # Create GoogleDrive instance with authenticated GoogleAuth instance.
         drive = GoogleDrive(self.gauth)
@@ -48,15 +48,20 @@ class GoogleDriveUploader(object):
         root_folder_id = self.make_root_folder(drive, self.check_file_existence(root_folder_name, root_folders),
                                                root_folder_name)
 
-        # Check for parent folder for league and create it if it does not exist
-        league_folder_name = self.filename.split("/")[2].replace("-", "_")
-        league_folder_id = self.make_parent_folder(drive,
-                                                   self.check_file_existence(league_folder_name, all_folders),
-                                                   league_folder_name, root_folder_id)
+        if not test_bool:
+            # Check for parent folder for league and create it if it does not exist
+            league_folder_name = self.filename.split("/")[2].replace("-", "_")
+            league_folder_id = self.make_parent_folder(drive,
+                                                       self.check_file_existence(league_folder_name, all_folders),
+                                                       league_folder_name, root_folder_id)
 
-        # Check for league report and create if if it does not exist
-        report_file_name = self.filename.split("/")[-1]
-        report_file = self.check_file_existence(report_file_name, all_pdfs)
+            # Check for league report and create if if it does not exist
+            report_file_name = self.filename.split("/")[-1]
+            report_file = self.check_file_existence(report_file_name, all_pdfs)
+        else:
+            report_file_name = self.filename
+            report_file = self.check_file_existence(report_file_name, all_pdfs)
+            league_folder_id = "root"
 
         if report_file:
             report_file.Delete()

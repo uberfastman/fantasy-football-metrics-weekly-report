@@ -132,7 +132,7 @@ if __name__ == '__main__':
                 # print(slack_messenger.post_to_hg_fantasy_football_channel(upload_message))
 
                 # upload pdf report directly to slack
-                print(slack_messenger.upload_file_to_hg_fantasy_football_channel(generated_report))
+                print(slack_messenger.upload_file_to_hg_fantasy_football_channel(generated_report, "fantasyfootball"))
                 print("DONE!")
 
             else:
