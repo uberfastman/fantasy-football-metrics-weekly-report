@@ -1,4 +1,4 @@
-from slack_messenger import SlackMessenger
+from .slack_messenger import SlackMessenger
 
 
 if __name__ == '__main__':

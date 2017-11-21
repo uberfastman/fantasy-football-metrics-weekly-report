@@ -222,7 +222,7 @@ class CalculateMetrics(object):
     # noinspection PyUnusedLocal
     @staticmethod
     def test_ties(team_results_dict):
-        for team in team_results_dict.keys():
+        for team in list(team_results_dict.keys()):
             team_id = team_results_dict.get(team).get("team_id")
 
             # for testing score ties
@@ -274,7 +274,7 @@ class CalculateMetrics(object):
                 test_luck = 5.00
                 test_power_rank = 2.0
             # uncomment to test ending teams with unique place
-            elif int(team_id) == len(team_results_dict.keys()):
+            elif int(team_id) == len(list(team_results_dict.keys())):
                 test_score = 85
                 test_efficiency = 85.00
                 test_luck = -5.00
@@ -331,7 +331,7 @@ class CoachingEfficiency(object):
                     eligible.append(position)
 
                 # assign all flex positions the player is eligible for
-                for flex_position, base_positions in self.flex_positions.items():
+                for flex_position, base_positions in list(self.flex_positions.items()):
                     if position in base_positions:
                         eligible.append(flex_position)
 
@@ -355,7 +355,7 @@ class CoachingEfficiency(object):
             )
 
 
-        for flex_position, base_positions in self.flex_positions.items():
+        for flex_position, base_positions in list(self.flex_positions.items()):
             candidates = set([create_tuple(player) for player in eligible_positions[flex_position]])
 
             optimal_allocated = set()
@@ -404,7 +404,7 @@ class CoachingEfficiency(object):
         optimal = {}
 
         for position in self.roster_slots:
-            if position in self.flex_positions.keys():
+            if position in list(self.flex_positions.keys()):
                 # handle flex positions later...
                 continue
             optimal_position = self.get_optimal_players(eligible_positions, position)
@@ -458,16 +458,17 @@ class Breakdown(object):
     def execute_breakdown(teams, matchups_list):
 
         result = defaultdict(dict)
-        matchups = {name: value["result"] for pair in matchups_list for name, value in pair.items()}
+        matchups = {name: value["result"] for pair in matchups_list for name, value in list(pair.items())}
 
-        for team_name, team in teams.items():
+        for team_name in teams:
+            team = teams[team_name]
             record = {
                 "W": 0,
                 "L": 0,
                 "T": 0
             }
 
-            for team_name2, team2 in teams.items():
+            for team_name2, team2 in list(teams.items()):
                 if team["team_id"] == team2["team_id"]:
                     continue
                 score1 = team["score"]
@@ -485,7 +486,7 @@ class Breakdown(object):
             # TODO: assuming no ties...  how are tiebreakers handled?
             luck = 0.0
             # number of teams excluding current team
-            num_teams = float(len(teams.keys())) - 1
+            num_teams = float(len(list(teams.keys()))) - 1
 
             if record["W"] != 0 and record["L"] != 0:
                 matchup_result = matchups[team_name]
@@ -580,7 +581,7 @@ class PointsByPosition(object):
     @staticmethod
     def calculate_points_by_position_season_averages(season_average_points_by_position_dict, report_info_dict):
 
-        for team in season_average_points_by_position_dict.keys():
+        for team in list(season_average_points_by_position_dict.keys()):
             points_by_position = season_average_points_by_position_dict.get(team)
             season_average_points_by_position = {}
             for week in points_by_position:
@@ -591,7 +592,7 @@ class PointsByPosition(object):
                     else:
                         season_average_points_by_position[position[0]] = position[1]
             season_average_points_by_position_list = []
-            for position in season_average_points_by_position.keys():
+            for position in list(season_average_points_by_position.keys()):
                 season_average_points_by_position_list.append(
                     [position, season_average_points_by_position.get(position) / len(points_by_position)])
             season_average_points_by_position_list = sorted(season_average_points_by_position_list, key=lambda x: x[0])
@@ -605,7 +606,7 @@ class PointsByPosition(object):
 
         player_points_by_position = []
         starting_players = self.get_starting_players(players)
-        for slot in self.roster_slots.keys():
+        for slot in list(self.roster_slots.keys()):
             if slot != "BN" and slot != "FLEX":
                 player_points_by_position.append([slot, self.get_points_for_position(starting_players, slot)])
 
@@ -616,13 +617,15 @@ class PointsByPosition(object):
 
         coaching_efficiency = CoachingEfficiency(roster)
         weekly_points_by_position_data = []
-        for team_name, team_info in team_results_dict.items():
+
+        for team_name in team_results_dict:
+            team_info = team_results_dict[team_name]
             disqualification_eligible = league_id == config.get("Fantasy_Football_Report_Settings",
                                                                 "league_of_emperors_id")
             # disqualification_eligible = False
             team_info["coaching_efficiency"] = coaching_efficiency.execute_coaching_efficiency(
                 team_name, team_info, int(week), active_slots, disqualification_eligible=disqualification_eligible)
-            for slot in roster["slots"].keys():
+            for slot in list(roster["slots"].keys()):
                 if roster["slots"].get(slot) == 0:
                     del roster["slots"][slot]
             player_points_by_position = self.execute_points_by_position(team_info)
