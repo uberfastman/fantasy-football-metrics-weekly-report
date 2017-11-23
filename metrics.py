@@ -448,6 +448,44 @@ class CoachingEfficiency(object):
 
         return coaching_efficiency
 
+    def execute_weighted_coaching_efficiency(self, team_name, team_info, week, league_roster_active_slots):
+
+        players = team_info["players"]
+
+        eligible_positions = defaultdict(list)
+
+        for player in players:
+            for position in self.get_eligible_positions(player):
+                if self.is_player_eligible(player, week):
+                    eligible_positions[position].append(player)
+
+        optimal_players = []
+        optimal = {}
+
+        for position in self.roster_slots:
+            if position in list(self.flex_positions.keys()):
+                # handle flex positions later...
+                continue
+            optimal_position = self.get_optimal_players(eligible_positions, position)
+            optimal_players.append(optimal_position)
+            optimal[position] = optimal_position
+
+        # now that we have optimal by position, figure out flex positions
+        optimal_flexes = list(self.get_optimal_flex(eligible_positions, optimal))
+        optimal_players.append(optimal_flexes)
+
+        optimal_lineup = [item for sublist in optimal_players for item in sublist]
+
+        # calculate optimal score
+        optimal_score = sum([x["fantasy_points"] for x in optimal_lineup])
+
+        # calculate coaching efficiency
+        actual_weekly_score = team_info["score"]
+
+        coaching_efficiency = (actual_weekly_score / optimal_score) * 100
+
+        return coaching_efficiency
+
 
 class Breakdown(object):
     def __init__(self):
