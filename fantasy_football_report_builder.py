@@ -10,6 +10,7 @@ import webbrowser
 from configparser import ConfigParser
 
 from metrics import PointsByPosition, SeasonAverageCalculator, Breakdown, CalculateMetrics, PowerRanking
+from badboystats import BadBoyStats
 from pdf_generator import PdfGenerator
 from yql3 import *
 from yql3.storage import FileTokenStore
@@ -68,6 +69,8 @@ class FantasyFootballReport(object):
             if self.token != stored_token:
                 print("Setting stored token!")
                 token_store.set("foo", self.token)
+
+        self.BadBoy = BadBoyStats()
 
         '''
         run base yql queries
@@ -260,9 +263,12 @@ class FantasyFootballReport(object):
             players = []
             positions_filled_active = []
             for player in roster_stats_data[0].get("roster").get("players").get("player"):
+                pname = player.get("name")['full']
+                pteam = player.get('editorial_team_abbr').upper()
                 player_selected_position = player.get("selected_position").get("position")
-
+                bad_boy_points = 0
                 if player_selected_position != "BN":
+                    bad_boy_points = self.BadBoy.check_bad_boy_status(pname, pteam, player_selected_position)
                     positions_filled_active.append(player_selected_position)
 
                 player_info_dict = {"name": player.get("name")["full"],
@@ -270,7 +276,8 @@ class FantasyFootballReport(object):
                                     "bye_week": int(player.get("bye_weeks")["week"]),
                                     "selected_position": player.get("selected_position").get("position"),
                                     "eligible_positions": player.get("eligible_positions").get("position"),
-                                    "fantasy_points": float(player.get("player_points").get("total", 0.0))}
+                                    "fantasy_points": float(player.get("player_points").get("total", 0.0)),
+                                    "bad_boy_points": bad_boy_points}
 
                 players.append(player_info_dict)
 
