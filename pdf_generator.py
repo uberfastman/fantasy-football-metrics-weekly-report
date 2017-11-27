@@ -28,7 +28,8 @@ class PdfGenerator(object):
                  luck_title_text,
                  power_ranking_title_text,
                  report_footer_text,
-                 report_info_dict
+                 report_info_dict,
+                 bad_boy_title_text
                  ):
 
         self.league_id = league_id
@@ -50,12 +51,17 @@ class PdfGenerator(object):
         self.tie_for_first_coaching_efficiency = report_info_dict.get("tie_for_first_coaching_efficiency")
         self.tie_for_first_luck = report_info_dict.get("tie_for_first_luck")
         self.tie_for_first_power_ranking = report_info_dict.get("tie_for_first_power_ranking")
+        self.tie_for_first_bad_boy = report_info_dict.get("tie_for_first_bad_boy")
         self.num_tied_for_first_scores = report_info_dict.get("num_tied_for_first_scores")
         self.num_tied_for_first_coaching_efficiency = report_info_dict.get("num_tied_for_first_coaching_efficiency")
         self.num_tied_for_first_luck = report_info_dict.get("num_tied_for_first_luck")
         self.num_tied_for_first_power_ranking = report_info_dict.get("num_tied_for_first_power_ranking")
+        self.num_tied_for_first_bad_boy = report_info_dict.get("num_tied_for_first_bad_boy")
         self.weekly_points_by_position_data = report_info_dict.get("weekly_points_by_position_data")
         self.season_average_team_points_by_position = report_info_dict.get("season_average_points_by_position")
+        self.bad_boy_results_data = report_info_dict.get("bad_boy_results_data")
+        self.num_tied_bad_boys = report_info_dict.get("num_tied_bad_boys")
+        self.tied_bad_boy_bool = report_info_dict.get("tied_bad_boy_bool")
 
         # generic document elements
         self.metrics_col_widths = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch]
@@ -105,13 +111,14 @@ class PdfGenerator(object):
         # report specific document elements
         self.standings_headers = [
             ["Place", "Team", "Manager", "Record", "Points For", "Points Against", "Streak", "Waiver", "Moves",
-             "Trades", "BB"]]
-        self.standings_col_widths = [0.50 * inch, 1.60 * inch, 1.00 * inch, 1.00 * inch, 0.80 * inch, 1.00 * inch,
-                                     0.45 * inch, 0.45 * inch, 0.45 * inch, 0.45 * inch, 0.40 * inch]
+             "Trades"]]
+        self.standings_col_widths = [0.50 * inch, 1.75 * inch, 1.00 * inch, 1.00 * inch, 0.80 * inch, 1.10 * inch,
+                                     0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]
         self.power_ranking_headers = [["Power Rank", "Team", "Manager", "Season Avg. (Place)"]]
         self.scores_headers = [["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]]
         self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
         self.luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)"]]
+        self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Points", "Worst Offense"]]
         self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
         self.league_of_emperors_efficiency_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*The league commissioner will " \
                                                     "resolve coaching efficiency ties manually. The tiebreaker goes " \
@@ -136,6 +143,7 @@ class PdfGenerator(object):
         self.efficiency_title = self.create_title(coaching_efficiency_title_text, element_type="section")
         self.luck_title = self.create_title(luck_title_text, element_type="section")
         self.power_ranking_title = self.create_title(power_ranking_title_text, element_type="section")
+        self.bad_boy_title = self.create_title(bad_boy_title_text, element_type="section")
         self.report_footer = Paragraph(report_footer_text, getSampleStyleSheet()["Normal"])
 
     def set_tied_values_style(self, num_tied_values, table_style_list, metric_type=None):
@@ -161,6 +169,11 @@ class PdfGenerator(object):
                 num_tied_for_first = 0
             else:
                 num_tied_for_first = self.num_tied_for_first_power_ranking
+        elif metric_type == "bad_boy":
+            if not self.tie_for_first_bad_boy:
+                num_tied_for_first = 0
+            else:
+                num_tied_for_first = self.num_tied_for_first_bad_boy
 
         tied_values_table_style_list = list(table_style_list)
         if self.league_id == config.get("Fantasy_Football_Report_Settings",
@@ -382,6 +395,10 @@ class PdfGenerator(object):
                             self.metrics_col_widths, self.page_break, tied_metric_bool=self.tied_lucks_bool,
                             metric_type="luck")
 
+        # bad boy points
+        self.create_section(elements, self.bad_boy_title, self.bad_boy_headers, self.bad_boy_results_data,
+                            self.style, self.metrics_col_widths, self.page_break,
+                            tied_metric_bool=self.tied_bad_boy_bool, metric_type="bad_boy")
         series_names = line_chart_data_list[0]
         points_data = line_chart_data_list[2]
         efficiency_data = line_chart_data_list[3]

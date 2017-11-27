@@ -78,12 +78,14 @@ class BadBoyStats(object):
         :param name: Player name to look up
         :param team: Player's team (maybe later limit to only crimes while on that team...or for DEF players)
         :param pos: Player's position
-        :return: Integer number of bad boy points
+        :return: Integer number of bad boy points, crime recorded
         """
         total = 0
+        cat = ''
         if pos == 'DEF':
             name = team
         if name in self.badboydata:
             crime = self.badboydata.get(name)
             total = crime.get("points")
-        return total
+            cat = crime.get('cat')
+        return total, cat

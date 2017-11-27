@@ -15,11 +15,8 @@ class CalculateMetrics(object):
         self.coaching_efficiency_dq_count = 0
 
     @staticmethod
-    def get_standings(league_standings_data, score_results):
+    def get_standings(league_standings_data):
         current_standings_data = []
-        bad_boy_data = {}
-        for key, data in score_results:
-             bad_boy_data[key] = data['bad_boy_points']
 
         for team in league_standings_data[0].get("standings").get("teams").get("team"):
             streak_type = team.get("team_standings").get("streak").get("type")
@@ -43,8 +40,7 @@ class CalculateMetrics(object):
                 streak_type + "-" + team.get("team_standings").get("streak").get("value"),
                 team.get("waiver_priority"),
                 team.get("number_of_moves"),
-                team.get("number_of_trades"),
-                bad_boy_data[team.get("name")]
+                team.get("number_of_trades")
             ])
         return current_standings_data
 
@@ -137,6 +133,16 @@ class CalculateMetrics(object):
                                 ]
                                 if group.index(team) != (len(group) - 1):
                                     place += 1
+                            elif tie_type == "bad_boy":
+                                results_data[team_index] = [
+                                    str(place),
+                                    team[1],
+                                    team[2],
+                                    team[3],
+                                    team[4]
+                                ]
+                                if group.index(team) != (len(group) - 1):
+                                    place += 1
                             else:
                                 results_data[team_index] = [
                                     str(place) + "*",
@@ -164,6 +170,14 @@ class CalculateMetrics(object):
                                 group[0][2],
                                 group[0][3]
                             ]
+                        elif tie_type == "bad_boy":
+                            results_data[team_index] = [
+                                str(place),
+                                group[0][1],
+                                group[0][2],
+                                group[0][3],
+                                group[0][4]
+                        ]
                         else:
                             results_data[team_index] = [
                                 str(place),
@@ -296,6 +310,21 @@ class CalculateMetrics(object):
             #
             # # # uncomment to test power ranking ties
             # team_results_dict.get(team)["power_rank"] = test_power_rank
+
+    @staticmethod
+    def get_bad_boy_data(bad_boy_results):
+        bad_boy_results_data = []
+        place = 1
+        for key, value in bad_boy_results:
+            ranked_team_name = key
+            ranked_team_manager = value.get("manager")
+            ranked_bb_points = "%d" % value.get("bad_boy_points")
+            ranked_offense = value.get("worst_offense")
+
+            bad_boy_results_data.append([place, ranked_team_name, ranked_team_manager, ranked_bb_points, ranked_offense])
+
+            place += 1
+        return bad_boy_results_data
 
 
 class CoachingEfficiency(object):
