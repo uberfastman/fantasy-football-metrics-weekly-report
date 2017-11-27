@@ -114,11 +114,12 @@ class PdfGenerator(object):
              "Trades"]]
         self.standings_col_widths = [0.50 * inch, 1.75 * inch, 1.00 * inch, 1.00 * inch, 0.80 * inch, 1.10 * inch,
                                      0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]
+        self.bad_boy_col_widths = [0.50 * inch, 1.75 * inch, 1.00 * inch, 1.00 * inch, 1.75 * inch, 1.00 * inch]
         self.power_ranking_headers = [["Power Rank", "Team", "Manager", "Season Avg. (Place)"]]
         self.scores_headers = [["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]]
         self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
         self.luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)"]]
-        self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Points", "Worst Offense"]]
+        self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]]
         self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
         self.league_of_emperors_efficiency_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*The league commissioner will " \
                                                     "resolve coaching efficiency ties manually. The tiebreaker goes " \
@@ -397,7 +398,7 @@ class PdfGenerator(object):
 
         # bad boy points
         self.create_section(elements, self.bad_boy_title, self.bad_boy_headers, self.bad_boy_results_data,
-                            self.style, self.metrics_col_widths, self.page_break,
+                            self.style, self.bad_boy_col_widths, self.page_break,
                             tied_metric_bool=self.tied_bad_boy_bool, metric_type="bad_boy")
         series_names = line_chart_data_list[0]
         points_data = line_chart_data_list[2]

@@ -289,12 +289,15 @@ class FantasyFootballReport(object):
             bad_boy_total = 0
             worst_offense = ''
             worst_offense_score = 0
+            num_offenders = 0
             for p in players:
                 if p['selected_position'] != "BN":
                     bad_boy_total = bad_boy_total + p['bad_boy_points']
-                    if p['bad_boy_points'] > worst_offense_score:
-                        worst_offense = p['bad_boy_crime']
-                        worst_offense_score = p['bad_boy_points']
+                    if p['bad_boy_points'] > 0:
+                        num_offenders = num_offenders + 1
+                        if p['bad_boy_points'] > worst_offense_score:
+                            worst_offense = p['bad_boy_crime']
+                            worst_offense_score = p['bad_boy_points']
 
             team_results_dict[team_name] = {
                 "name": team_name,
@@ -305,6 +308,7 @@ class FantasyFootballReport(object):
                 "team_id": team_id,
                 "bad_boy_points": bad_boy_total,
                 "worst_offense": worst_offense,
+                "num_offenders" : num_offenders,
                 "positions_filled_active": positions_filled_active
             }
 
