@@ -289,6 +289,7 @@ class FantasyFootballReport(object):
                 "score": sum([p["fantasy_points"] for p in players if p["selected_position"] != "BN"]),
                 "bench_score": sum([p["fantasy_points"] for p in players if p["selected_position"] == "BN"]),
                 "team_id": team_id,
+                "bad_boy_points": sum([p["bad_boy_points"] for p in players if p["selected_position"] != "BN"]),
                 "positions_filled_active": positions_filled_active
             }
 
@@ -301,14 +302,13 @@ class FantasyFootballReport(object):
 
         # get current standings
         calculate_metrics = CalculateMetrics(self.league_id, self.config)
-        current_standings_data = calculate_metrics.get_standings(self.league_standings_data)
 
         # calculate coaching efficiency metric and add values to team_results_dict, and get and points by position
         points_by_position = PointsByPosition(self.roster, self.chosen_week)
-        weekly_points_by_position_data = points_by_position.get_weekly_points_by_position(self.league_id, self.config,
-                                                                                          chosen_week, self.roster,
-                                                                                          self.league_roster_active_slots,
-                                                                                          team_results_dict)
+        weekly_points_by_position_data = \
+            points_by_position.get_weekly_points_by_position(self.league_id, self.config, chosen_week,
+                                                             self.roster, self.league_roster_active_slots,
+                                                             team_results_dict)
 
         # calculate luck metric and add values to team_results_dict
         Breakdown().execute_breakdown(team_results_dict, matchups_list)
@@ -343,6 +343,8 @@ class FantasyFootballReport(object):
         score_results = sorted(iter(team_results_dict.items()),
                                key=lambda k_v: (float(k_v[1].get("score")), k_v[0]), reverse=True)
         score_results_data = calculate_metrics.get_score_data(score_results)
+
+        current_standings_data = calculate_metrics.get_standings(self.league_standings_data, score_results)
 
         # create coaching efficiency data for table
         coaching_efficiency_results = sorted(iter(team_results_dict.items()),
@@ -547,11 +549,10 @@ class FantasyFootballReport(object):
         filename = self.league_name.replace(" ",
                                             "-") + "(" + self.league_id + ")_week-" + self.chosen_week + "_report.pdf"
         report_save_dir = self.config.get("Fantasy_Football_Report_Settings",
-                                          "report_directory_base_path") + "/" + self.league_name.replace(" ",
-                                                                                                         "-") + "(" + self.league_id + ")"
+                                          "report_directory_base_path") + "/" +\
+                          self.league_name.replace(" ", "-") + "(" + self.league_id + ")"
         report_title_text = self.league_name + " (" + self.league_id + ") Week " + self.chosen_week + " Report"
-        report_footer_text = "<para alignment='center'>Report generated %s for Yahoo Fantasy Football league '%s' (%s).</para>" % (
-            "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), self.league_name, self.league_id)
+        report_footer_text = "<para alignment='center'>Report generated %s for Yahoo Fantasy Football league '%s' (%s).</para>" % ("{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), self.league_name, self.league_id)
 
         if not os.path.isdir(report_save_dir):
             os.makedirs(report_save_dir)

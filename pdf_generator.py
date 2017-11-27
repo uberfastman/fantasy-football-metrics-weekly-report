@@ -105,9 +105,9 @@ class PdfGenerator(object):
         # report specific document elements
         self.standings_headers = [
             ["Place", "Team", "Manager", "Record", "Points For", "Points Against", "Streak", "Waiver", "Moves",
-             "Trades"]]
-        self.standings_col_widths = [0.50 * inch, 1.75 * inch, 1.00 * inch, 1.00 * inch, 0.80 * inch, 1.10 * inch,
-                                     0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]
+             "Trades", "BB"]]
+        self.standings_col_widths = [0.50 * inch, 1.60 * inch, 1.00 * inch, 1.00 * inch, 0.80 * inch, 1.00 * inch,
+                                     0.45 * inch, 0.45 * inch, 0.45 * inch, 0.45 * inch, 0.40 * inch]
         self.power_ranking_headers = [["Power Rank", "Team", "Manager", "Season Avg. (Place)"]]
         self.scores_headers = [["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]]
         self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]

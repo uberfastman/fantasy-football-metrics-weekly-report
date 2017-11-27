@@ -15,8 +15,12 @@ class CalculateMetrics(object):
         self.coaching_efficiency_dq_count = 0
 
     @staticmethod
-    def get_standings(league_standings_data):
+    def get_standings(league_standings_data, score_results):
         current_standings_data = []
+        bad_boy_data = {}
+        for key, data in score_results:
+             bad_boy_data[key] = data['bad_boy_points']
+
         for team in league_standings_data[0].get("standings").get("teams").get("team"):
             streak_type = team.get("team_standings").get("streak").get("type")
             if streak_type == "loss":
@@ -39,7 +43,8 @@ class CalculateMetrics(object):
                 streak_type + "-" + team.get("team_standings").get("streak").get("value"),
                 team.get("waiver_priority"),
                 team.get("number_of_moves"),
-                team.get("number_of_trades")
+                team.get("number_of_trades"),
+                bad_boy_data[team.get("name")]
             ])
         return current_standings_data
 
