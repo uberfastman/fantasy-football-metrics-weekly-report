@@ -10,6 +10,7 @@ import webbrowser
 from configparser import ConfigParser
 
 from metrics import PointsByPosition, SeasonAverageCalculator, Breakdown, CalculateMetrics, PowerRanking
+from badboystats import BadBoyStats
 from pdf_generator import PdfGenerator
 from yql3 import *
 from yql3.storage import FileTokenStore
@@ -68,6 +69,8 @@ class FantasyFootballReport(object):
             if self.token != stored_token:
                 print("Setting stored token!")
                 token_store.set("foo", self.token)
+
+        self.BadBoy = BadBoyStats()
 
         '''
         run base yql queries
@@ -255,14 +258,19 @@ class FantasyFootballReport(object):
 
             # get data for this individual team
             roster_stats_data = self.yql_query(
-                "select * from fantasysports.teams.roster.stats where team_key='" + self.league_key + ".t." + team + "' and week='" + chosen_week + "'")
+                "select * from fantasysports.teams.roster.stats where team_key='" + self.league_key + ".t." +
+                team + "' and week='" + chosen_week + "'")
 
             players = []
             positions_filled_active = []
             for player in roster_stats_data[0].get("roster").get("players").get("player"):
+                pname = player.get("name")['full']
+                pteam = player.get('editorial_team_abbr').upper()
                 player_selected_position = player.get("selected_position").get("position")
-
+                bad_boy_points = 0
+                crime = ''
                 if player_selected_position != "BN":
+                    bad_boy_points, crime = self.BadBoy.check_bad_boy_status(pname, pteam, player_selected_position)
                     positions_filled_active.append(player_selected_position)
 
                 player_info_dict = {"name": player.get("name")["full"],
@@ -270,11 +278,27 @@ class FantasyFootballReport(object):
                                     "bye_week": int(player.get("bye_weeks")["week"]),
                                     "selected_position": player.get("selected_position").get("position"),
                                     "eligible_positions": player.get("eligible_positions").get("position"),
-                                    "fantasy_points": float(player.get("player_points").get("total", 0.0))}
+                                    "fantasy_points": float(player.get("player_points").get("total", 0.0)),
+                                    "bad_boy_points": bad_boy_points,
+                                    "bad_boy_crime": crime
+                                    }
 
                 players.append(player_info_dict)
 
             team_name = team_name.decode('utf-8')
+            bad_boy_total = 0
+            worst_offense = ''
+            worst_offense_score = 0
+            num_offenders = 0
+            for p in players:
+                if p['selected_position'] != "BN":
+                    bad_boy_total = bad_boy_total + p['bad_boy_points']
+                    if p['bad_boy_points'] > 0:
+                        num_offenders = num_offenders + 1
+                        if p['bad_boy_points'] > worst_offense_score:
+                            worst_offense = p['bad_boy_crime']
+                            worst_offense_score = p['bad_boy_points']
+
             team_results_dict[team_name] = {
                 "name": team_name,
                 "manager": teams_dict.get(team).get("manager"),
@@ -282,6 +306,9 @@ class FantasyFootballReport(object):
                 "score": sum([p["fantasy_points"] for p in players if p["selected_position"] != "BN"]),
                 "bench_score": sum([p["fantasy_points"] for p in players if p["selected_position"] == "BN"]),
                 "team_id": team_id,
+                "bad_boy_points": bad_boy_total,
+                "worst_offense": worst_offense,
+                "num_offenders" : num_offenders,
                 "positions_filled_active": positions_filled_active
             }
 
@@ -294,14 +321,13 @@ class FantasyFootballReport(object):
 
         # get current standings
         calculate_metrics = CalculateMetrics(self.league_id, self.config)
-        current_standings_data = calculate_metrics.get_standings(self.league_standings_data)
 
         # calculate coaching efficiency metric and add values to team_results_dict, and get and points by position
         points_by_position = PointsByPosition(self.roster, self.chosen_week)
-        weekly_points_by_position_data = points_by_position.get_weekly_points_by_position(self.league_id, self.config,
-                                                                                          chosen_week, self.roster,
-                                                                                          self.league_roster_active_slots,
-                                                                                          team_results_dict)
+        weekly_points_by_position_data = \
+            points_by_position.get_weekly_points_by_position(self.league_id, self.config, chosen_week,
+                                                             self.roster, self.league_roster_active_slots,
+                                                             team_results_dict)
 
         # calculate luck metric and add values to team_results_dict
         Breakdown().execute_breakdown(team_results_dict, matchups_list)
@@ -331,10 +357,26 @@ class FantasyFootballReport(object):
                 [value.get("power_rank"), key, team_results_dict[key]["manager"]]
             )
 
+        # create bad boy data for table
+        bad_boy_results = sorted(iter(team_results_dict.items()),
+                                 key=lambda k_v: (float(k_v[1].get("bad_boy_points")), k_v[0]), reverse=True)
+        bad_boy_results_data = calculate_metrics.get_bad_boy_data(bad_boy_results)
+
+        num_tied_bad_boys = calculate_metrics.get_num_ties(bad_boy_results_data, chosen_week, tie_type="bad_boy")
+
+        tie_for_first_bad_boy = False
+        if num_tied_bad_boys > 0:
+            if bad_boy_results_data[0][0] == bad_boy_results_data[1][0]:
+                tie_for_first_bad_boy = True
+        num_tied_for_first_bad_boy = len(
+            [list(group) for key, group in itertools.groupby(bad_boy_results_data, lambda x: x[3])][0])
+
         # create score data for table
         score_results = sorted(iter(team_results_dict.items()),
                                key=lambda k_v: (float(k_v[1].get("score")), k_v[0]), reverse=True)
         score_results_data = calculate_metrics.get_score_data(score_results)
+
+        current_standings_data = calculate_metrics.get_standings(self.league_standings_data)
 
         # create coaching efficiency data for table
         coaching_efficiency_results = sorted(iter(team_results_dict.items()),
@@ -350,7 +392,7 @@ class FantasyFootballReport(object):
         luck_results_data = calculate_metrics.get_luck_data(luck_results)
 
         # count number of ties for points, coaching efficiency, and luck
-        # tie_type can be "score", "coaching_efficiency", "luck", or "power_rank"
+        # tie_type can be "score", "coaching_efficiency", "luck", "bad_boy", or "power_rank"
         num_tied_scores = calculate_metrics.get_num_ties(score_results_data, chosen_week,
                                                          tie_type="score")
         # reorder score data based on bench points
@@ -392,6 +434,7 @@ class FantasyFootballReport(object):
         print("COACHING EFFICIENCY tie(s): {}".format(num_tied_coaching_efficiencies))
         print("               LUCK tie(s): {}".format(num_tied_lucks))
         print("      POWER RANKING tie(s): {}".format(num_tied_power_rankings))
+        print("      BAD BOY SCORE tie(s): {}".format(num_tied_bad_boys))
         coaching_efficiency_dq_dict = points_by_position.coaching_efficiency_dq_dict
         if coaching_efficiency_dq_dict:
             ce_dq_str = ""
@@ -430,8 +473,14 @@ class FantasyFootballReport(object):
             "num_tied_for_first_coaching_efficiency": num_tied_for_first_coaching_efficiency,
             "num_tied_for_first_luck": num_tied_for_first_luck,
             "num_tied_for_first_power_ranking": num_tied_for_first_power_ranking,
-            "weekly_points_by_position_data": weekly_points_by_position_data
+            "weekly_points_by_position_data": weekly_points_by_position_data,
+            "bad_boy_results_data": bad_boy_results_data,
+            "num_tied_bad_boys": num_tied_bad_boys,
+            "tied_bad_boy_bool": num_tied_bad_boys > 0,
+            "num_tied_for_first_bad_boy": num_tied_for_first_bad_boy,
+            "tie_for_first_bad_boy": tie_for_first_bad_boy
         }
+
         return report_info_dict
 
     def create_pdf_report(self):
@@ -539,11 +588,12 @@ class FantasyFootballReport(object):
         filename = self.league_name.replace(" ",
                                             "-") + "(" + self.league_id + ")_week-" + self.chosen_week + "_report.pdf"
         report_save_dir = self.config.get("Fantasy_Football_Report_Settings",
-                                          "report_directory_base_path") + "/" + self.league_name.replace(" ",
-                                                                                                         "-") + "(" + self.league_id + ")"
+                                          "report_directory_base_path") + "/" + \
+                          self.league_name.replace(" ", "-") + "(" + self.league_id + ")"
         report_title_text = self.league_name + " (" + self.league_id + ") Week " + self.chosen_week + " Report"
-        report_footer_text = "<para alignment='center'>Report generated %s for Yahoo Fantasy Football league '%s' (%s).</para>" % (
-            "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), self.league_name, self.league_id)
+        report_footer_text = \
+            "<para alignment='center'>Report generated %s for Yahoo Fantasy Football league '%s' (%s).</para>" % \
+            ("{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), self.league_name, self.league_id)
 
         if not os.path.isdir(report_save_dir):
             os.makedirs(report_save_dir)
@@ -565,7 +615,8 @@ class FantasyFootballReport(object):
             luck_title_text="Team Luck Rankings",
             power_ranking_title_text="Team Power Rankings",
             report_footer_text=report_footer_text,
-            report_info_dict=report_info_dict
+            report_info_dict=report_info_dict,
+            bad_boy_title_text="Bad Boy Scoring"
         )
 
         # generate pdf of report
