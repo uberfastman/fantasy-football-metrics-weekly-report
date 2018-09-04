@@ -4,9 +4,7 @@
 The Yahoo Fantasy Football Metrics Report Generator is a small application designed to automatically generate a report in the form of a PDF file that contains a host of metrics and rankings for teams in a given Yahoo Fantasy Football league.
 
 ### Dependencies
-The application has only been tested in macOS, and must run on Python 2.x, as several of the required dependencies either do not exist or have changed too much when updated to support Python 3.
-
-Eventually a Python 3 update will be attempted, but for the time being please use a virtualenv to run the app in a sandboxed Python 2 environment.
+The application has only been tested in macOS, and has now been adapted to run only on Python 3. While previous versions of the app were only compatible with Python 2, Python 2 is now no longer supported.
 
 Project dependencies can be viewed in the `requirements.txt` file.
 
