@@ -318,16 +318,15 @@ class FantasyFootballReport(object):
 
         for key in team_results_dict:
             try:
-                st = team_results_dict[key].decode('utf-8')
+                st = team_results_dict[key]  # .decode('utf-8')
                 team_results_dict[key] = st
             except AttributeError:
                 pass
 
-        power_ranking_results = sorted(iter(list(team_results_dict.items())), key=lambda K_v: K_v[1]["power_rank"])
+        power_ranking_results = sorted(iter(list(team_results_dict.items())), key=lambda k_v: k_v[1]["power_rank"])
         power_ranking_results_data = []
         for key, value in power_ranking_results:
             # season avg calc does something where it keys off the second value in the array
-            # WREN WHYYYYY
             power_ranking_results_data.append(
                 [value.get("power_rank"), key, team_results_dict[key]["manager"]]
             )
