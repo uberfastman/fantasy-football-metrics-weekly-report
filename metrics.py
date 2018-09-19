@@ -333,7 +333,7 @@ class CalculateMetrics(object):
 
 class CoachingEfficiency(object):
     # prohibited statuses to check team coaching efficiency eligibility
-    prohibited_status_list = ["PUP-P", "SUSP", "O", "IR"]
+    prohibited_status_list = ["PUP-P", "SUSP", "O", "IR", "INACTIVE"]
 
     def __init__(self, roster_settings):
         self.roster_slots = roster_settings["slots"]

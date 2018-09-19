@@ -9,7 +9,7 @@ slackclient==1.0.9
 requests==2.18.4
 websocket-client==0.44.0
 simplejson==3.12.0
-pandas==0.21.0
-numpy==1.15.1
-six==1.11.0
-bs4==0.0.1
+pandas
+numpy
+six
+bs4

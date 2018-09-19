@@ -5,6 +5,7 @@
 "Assault",3
 "Attempted murder",5
 "Battery",4
+"Bomb threat",2
 "Breach of peace",1
 "Burglary",2
 "Child abuse",3
@@ -15,6 +16,7 @@
 "Disorderly",1
 "Disturbing the peace",1
 "Dogfighting",2
+"Domestic assault",4
 "Domestic dispute",3
 "Domestic violence",4
 "Domestic",4
@@ -34,6 +36,8 @@
 "Harassment",1
 "Hit-and-run",3
 "Indecent exposure",2
+"Injury to elderly",3
+"Insider Trading",2
 "Interfering with police",1
 "Leaving scene.",1
 "License",1
@@ -51,6 +55,7 @@
 "Reckless endangerment",1
 "Resisting arrest",1
 "Resisting officer",1
+"Robbery",2
 "Selling alcohol to minor",2
 "Sex",1
 "Sexual assault",4
@@ -62,6 +67,7 @@
 "Traffic warrant",1
 "Traffic warrants",1
 "Trespassing",1
+"Vandalism",1
 "Violating court order",1
 "Weapon",2
 "privacy invasion",1

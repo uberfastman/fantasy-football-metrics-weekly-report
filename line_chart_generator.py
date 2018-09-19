@@ -51,7 +51,7 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         self.chart.lines.strokeWidth = 2
 
         self.legend.colorNamePairs = Auto(obj=self.chart)
-        self.legend.x = 35
+        self.legend.x = 5
         self.legend.y = 30
         # set size of swatches
         self.legend.dx = 0
@@ -60,7 +60,7 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         self.legend.fontSize = 8
         self.legend.alignment = 'right'
         self.legend.columnMaximum = 2
-        self.legend.dxTextSpace = 5
+        self.legend.dxTextSpace = 4
         self.legend.variColumn = 1
         self.legend.boxAnchor = 'nw'
         self.legend.deltay = 15

@@ -6,6 +6,7 @@ import collections
 import datetime
 import itertools
 import os
+import json
 import webbrowser
 from configparser import ConfigParser
 
@@ -80,9 +81,47 @@ class FantasyFootballReport(object):
         # unique league key composed of this year's yahoo fantasy football game id and the unique league id
         self.league_key = game_data[0].get("game_key") + ".l." + self.league_id
 
+        # get data for all league standings
+        self.league_standings_data = self.yql_query(
+            "select * from fantasysports.leagues.standings where league_key='" + self.league_key + "'")
+        self.league_name = self.league_standings_data[0].get("name")
+        # TODO: incorporate winnings into reports
+        # entry_fee = league_standings_data[0].get("entry_fee")
+
+        league_test_dir = "test/" + self.league_name.replace(" ", "-") + "_" + self.league_id
+        if not os.path.exists(league_test_dir):
+            os.mkdir(league_test_dir)
+            os.mkdir(league_test_dir + "/roster_data")
+
+        with open(league_test_dir +
+                  "/" +
+                  "league_standings_data.json", "w") as lsd_file:
+            json.dump(self.league_standings_data, lsd_file)
+        with open(league_test_dir +
+                  "/" +
+                  "league_standings_data.json", "r") as lsd_file:
+            self.league_standings_data = json.load(lsd_file)
+
+        with open(league_test_dir +
+                  "/" +
+                  "game_data.json", "w") as gd_file:
+            json.dump(game_data, gd_file)
+        with open(league_test_dir +
+                  "/" +
+                  "game_data.json", "r") as gd_file:
+            game_data = json.load(gd_file)
+
         # get individual league roster
         roster_data = self.yql_query(
             "select * from fantasysports.leagues.settings where league_key='" + self.league_key + "'")
+        with open(league_test_dir +
+                  "/" +
+                  "roster_data.json", "w") as rd_file:
+            json.dump(roster_data, rd_file)
+        with open(league_test_dir +
+                  "/" +
+                  "roster_data.json", "r") as rd_file:
+            roster_data = json.load(rd_file)
 
         roster_slots = collections.defaultdict(int)
         self.league_roster_active_slots = []
@@ -116,13 +155,14 @@ class FantasyFootballReport(object):
 
         # get data for all teams in league
         self.teams_data = self.yql_query("select * from fantasysports.teams where league_key='" + self.league_key + "'")
-
-        # get data for all league standings
-        self.league_standings_data = self.yql_query(
-            "select * from fantasysports.leagues.standings where league_key='" + self.league_key + "'")
-        self.league_name = self.league_standings_data[0].get("name")
-        # TODO: incorporate winnings into reports
-        # entry_fee = league_standings_data[0].get("entry_fee")
+        with open(league_test_dir +
+                  "/" +
+                  "teams_data.json", "w") as td_file:
+            json.dump(self.teams_data, td_file)
+        with open(league_test_dir +
+                  "/" +
+                  "teams_data.json", "r") as td_file:
+            self.teams_data = json.load(td_file)
 
         # user input validation
         if user_input_chosen_week:
@@ -189,6 +229,20 @@ class FantasyFootballReport(object):
         result = self.yql_query(
             "select * from fantasysports.leagues.scoreboard where league_key='{0}' and week='{1}'".format(
                 self.league_key, chosen_week))
+        with open("test/" +
+                  self.league_name.replace(" ", "-") +
+                  "_" +
+                  self.league_id +
+                  "/" +
+                  "result_data.json", "w") as rsd_file:
+            json.dump(result, rsd_file)
+        with open("test/" +
+                  self.league_name.replace(" ", "-") +
+                  "_" +
+                  self.league_id +
+                  "/" +
+                  "result_data.json", "r") as rsd_file:
+            result = json.load(rsd_file)
 
         matchups = result[0].get("scoreboard").get("matchups").get("matchup")
 
@@ -260,6 +314,22 @@ class FantasyFootballReport(object):
             roster_stats_data = self.yql_query(
                 "select * from fantasysports.teams.roster.stats where team_key='" + self.league_key + ".t." +
                 team + "' and week='" + chosen_week + "'")
+            with open("test/" +
+                      self.league_name.replace(" ", "-") +
+                      "_" +
+                      self.league_id +
+                      "/roster_data/" +
+                      str(team_name, "utf-8").replace(" ", "-") +
+                      "_roster_data.json", "w") as trd_file:
+                json.dump(roster_stats_data, trd_file)
+            with open("test/" +
+                      self.league_name.replace(" ", "-") +
+                      "_" +
+                      self.league_id +
+                      "/roster_data/" +
+                      str(team_name, "utf-8").replace(" ", "-") +
+                      "_roster_data.json", "r") as trd_file:
+                roster_stats_data = json.load(trd_file)
 
             players = []
             positions_filled_active = []
@@ -308,7 +378,7 @@ class FantasyFootballReport(object):
                 "team_id": team_id,
                 "bad_boy_points": bad_boy_total,
                 "worst_offense": worst_offense,
-                "num_offenders" : num_offenders,
+                "num_offenders": num_offenders,
                 "positions_filled_active": positions_filled_active
             }
 
@@ -588,8 +658,7 @@ class FantasyFootballReport(object):
         filename = self.league_name.replace(" ",
                                             "-") + "(" + self.league_id + ")_week-" + self.chosen_week + "_report.pdf"
         report_save_dir = self.config.get("Fantasy_Football_Report_Settings",
-                                          "report_directory_base_path") + "/" + \
-                          self.league_name.replace(" ", "-") + "(" + self.league_id + ")"
+                                          "report_directory_base_path") + "/" + self.league_name.replace(" ", "-") + "(" + self.league_id + ")"
         report_title_text = self.league_name + " (" + self.league_id + ") Week " + self.chosen_week + " Report"
         report_footer_text = \
             "<para alignment='center'>Report generated %s for Yahoo Fantasy Football league '%s' (%s).</para>" % \
