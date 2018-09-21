@@ -96,6 +96,23 @@ class CalculateMetrics(object):
             place += 1
         return luck_results_data
 
+    @staticmethod
+    def get_bad_boy_data(bad_boy_results):
+        bad_boy_results_data = []
+        place = 1
+        for key, value in bad_boy_results:
+            ranked_team_name = key
+            ranked_team_manager = value.get("manager")
+            ranked_bb_points = "%d" % value.get("bad_boy_points")
+            ranked_offense = value.get("worst_offense")
+            ranked_count = "%d" % value.get("num_offenders")
+
+            bad_boy_results_data.append([place, ranked_team_name, ranked_team_manager, ranked_bb_points,
+                                         ranked_offense, ranked_count])
+
+            place += 1
+        return bad_boy_results_data
+
     def get_num_ties(self, results_data, week, tie_type):
 
         if tie_type == "power_rank":
@@ -135,15 +152,13 @@ class CalculateMetrics(object):
                                     place += 1
                             elif tie_type == "bad_boy":
                                 results_data[team_index] = [
-                                    str(place),
+                                    str(place) + "*",
                                     team[1],
                                     team[2],
                                     team[3],
                                     team[4],
                                     team[5]
                                 ]
-                                if group.index(team) != (len(group) - 1):
-                                    place += 1
                             else:
                                 results_data[team_index] = [
                                     str(place) + "*",
@@ -312,23 +327,6 @@ class CalculateMetrics(object):
             #
             # # # uncomment to test power ranking ties
             # team_results_dict.get(team)["power_rank"] = test_power_rank
-
-    @staticmethod
-    def get_bad_boy_data(bad_boy_results):
-        bad_boy_results_data = []
-        place = 1
-        for key, value in bad_boy_results:
-            ranked_team_name = key
-            ranked_team_manager = value.get("manager")
-            ranked_bb_points = "%d" % value.get("bad_boy_points")
-            ranked_offense = value.get("worst_offense")
-            ranked_count = "%d" % value.get("num_offenders")
-
-            bad_boy_results_data.append([place, ranked_team_name, ranked_team_manager, ranked_bb_points,
-                                         ranked_offense, ranked_count])
-
-            place += 1
-        return bad_boy_results_data
 
 
 class CoachingEfficiency(object):

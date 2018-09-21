@@ -19,7 +19,8 @@ from yql3.storage import FileTokenStore
 
 # noinspection SqlNoDataSourceInspection,SqlDialectInspection
 class FantasyFootballReport(object):
-    def __init__(self, user_input_league_id=None, user_input_chosen_week=None, test_bool=False):
+    def __init__(self, user_input_league_id=None, user_input_chosen_week=None, test_bool=False, dev_bool=False,
+                 save_bool=False):
         # config vars
         self.config = ConfigParser()
         self.config.read("config.ini")
@@ -28,100 +29,126 @@ class FantasyFootballReport(object):
         else:
             self.league_id = self.config.get("Fantasy_Football_Report_Settings", "chosen_league_id")
 
-        self.test_bool = False
-        if test_bool:
-            self.test_bool = True
+        self.test_bool = test_bool
+        self.dev_bool = dev_bool
+        self.save_bool = save_bool
 
         command_line_only = self.config.getboolean("OAuth_Settings", "command_line_only")
         # verification output message
         print("\nGenerating%s fantasy football report for league with id: %s (report generated: %s)\n" % (
             " TEST" if test_bool else "", self.league_id, "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now())))
 
-        # yahoo oauth api (consumer) key and secret
-        with open("./authentication/private.txt", "r") as auth_file:
-            auth_data = auth_file.read().split("\n")
-        consumer_key = auth_data[0]
-        consumer_secret = auth_data[1]
+        if not self.dev_bool:
+            # yahoo oauth api (consumer) key and secret
+            with open("./authentication/private.txt", "r") as auth_file:
+                auth_data = auth_file.read().split("\n")
+            consumer_key = auth_data[0]
+            consumer_secret = auth_data[1]
 
-        # yahoo oauth process
-        self.y3 = ThreeLegged(consumer_key, consumer_secret)
-        _cache_dir = self.config.get("OAuth_Settings", "yql_cache_dir")
-        if not os.access(_cache_dir, os.R_OK):
-            os.mkdir(_cache_dir)
+            # yahoo oauth process
+            self.y3 = ThreeLegged(consumer_key, consumer_secret)
+            _cache_dir = self.config.get("OAuth_Settings", "yql_cache_dir")
+            if not os.access(_cache_dir, os.R_OK):
+                os.mkdir(_cache_dir)
 
-        token_store = FileTokenStore(_cache_dir, secret="sasfasdfdasfdaf")
-        stored_token = token_store.get("foo")
+            token_store = FileTokenStore(_cache_dir, secret="sasfasdfdasfdaf")
+            stored_token = token_store.get("foo")
 
-        if not stored_token:
-            request_token, auth_url = self.y3.get_token_and_auth_url()
+            if not stored_token:
+                request_token, auth_url = self.y3.get_token_and_auth_url()
 
-            if command_line_only:
-                print("Visit url %s and get a verifier string" % auth_url)
-            else:
-                webbrowser.open(auth_url.decode('utf-8'))
+                if command_line_only:
+                    print("Visit url %s and get a verifier string" % auth_url)
+                else:
+                    webbrowser.open(auth_url.decode('utf-8'))
 
-            verifier = input("Enter the code: ")
-            self.token = self.y3.get_access_token(request_token, verifier)
-            token_store.set("foo", self.token)
-
-        else:
-            print("Verifying token...")
-            self.token = self.y3.check_token(stored_token)
-            if self.token != stored_token:
-                print("Setting stored token!")
+                verifier = input("Enter the code: ")
+                self.token = self.y3.get_access_token(request_token, verifier)
                 token_store.set("foo", self.token)
 
-        self.BadBoy = BadBoyStats()
+            else:
+                print("Verifying token...")
+                self.token = self.y3.check_token(stored_token)
+                if self.token != stored_token:
+                    print("Setting stored token!")
+                    token_store.set("foo", self.token)
+
+        self.league_test_dir = "test/league_id-" + self.league_id
+
+        self.BadBoy = BadBoyStats(dev_bool, save_bool, self.league_test_dir)
 
         '''
         run base yql queries
         '''
-        # get fantasy football game info
-        game_data = self.yql_query("select * from fantasysports.games where game_key='nfl'")
-        # unique league key composed of this year's yahoo fantasy football game id and the unique league id
-        self.league_key = game_data[0].get("game_key") + ".l." + self.league_id
+        if not self.dev_bool:
+            # get fantasy football game info
+            game_data = self.yql_query("select * from fantasysports.games where game_key='nfl'")
+            # unique league key composed of this year's yahoo fantasy football game id and the unique league id
+            self.league_key = game_data[0].get("game_key") + ".l." + self.league_id
 
-        # get data for all league standings
-        self.league_standings_data = self.yql_query(
-            "select * from fantasysports.leagues.standings where league_key='" + self.league_key + "'")
-        self.league_name = self.league_standings_data[0].get("name")
-        # TODO: incorporate winnings into reports
-        # entry_fee = league_standings_data[0].get("entry_fee")
+            # get data for all league standings
+            self.league_standings_data = self.yql_query(
+                "select * from fantasysports.leagues.standings where league_key='" + self.league_key + "'")
+            self.league_name = self.league_standings_data[0].get("name")
+            # TODO: incorporate winnings into reports
+            # entry_fee = league_standings_data[0].get("entry_fee")
 
-        league_test_dir = "test/" + self.league_name.replace(" ", "-") + "_" + self.league_id
-        if not os.path.exists(league_test_dir):
-            os.mkdir(league_test_dir)
-            os.mkdir(league_test_dir + "/roster_data")
+            # get individual league roster
+            roster_data = self.yql_query(
+                "select * from fantasysports.leagues.settings where league_key='" + self.league_key + "'")
 
-        with open(league_test_dir +
-                  "/" +
-                  "league_standings_data.json", "w") as lsd_file:
-            json.dump(self.league_standings_data, lsd_file)
-        with open(league_test_dir +
-                  "/" +
-                  "league_standings_data.json", "r") as lsd_file:
-            self.league_standings_data = json.load(lsd_file)
+            # get data for all teams in league
+            self.teams_data = self.yql_query(
+                "select * from fantasysports.teams where league_key='" + self.league_key + "'")
 
-        with open(league_test_dir +
-                  "/" +
-                  "game_data.json", "w") as gd_file:
-            json.dump(game_data, gd_file)
-        with open(league_test_dir +
-                  "/" +
-                  "game_data.json", "r") as gd_file:
-            game_data = json.load(gd_file)
+            if self.save_bool:
+                if not os.path.exists(self.league_test_dir):
+                    os.mkdir(self.league_test_dir)
 
-        # get individual league roster
-        roster_data = self.yql_query(
-            "select * from fantasysports.leagues.settings where league_key='" + self.league_key + "'")
-        with open(league_test_dir +
-                  "/" +
-                  "roster_data.json", "w") as rd_file:
-            json.dump(roster_data, rd_file)
-        with open(league_test_dir +
-                  "/" +
-                  "roster_data.json", "r") as rd_file:
-            roster_data = json.load(rd_file)
+                with open(self.league_test_dir +
+                          "/" +
+                          "game_data.json", "w") as gd_file:
+                    json.dump(game_data, gd_file)
+
+                with open(self.league_test_dir +
+                          "/" +
+                          "league_standings_data.json", "w") as lsd_file:
+                    json.dump(self.league_standings_data, lsd_file)
+
+                with open(self.league_test_dir +
+                          "/" +
+                          "roster_data.json", "w") as rd_file:
+                    json.dump(roster_data, rd_file)
+
+                with open(self.league_test_dir +
+                          "/" +
+                          "teams_data.json", "w") as td_file:
+                    json.dump(self.teams_data, td_file)
+
+        else:
+            with open(self.league_test_dir +
+                      "/" +
+                      "game_data.json", "r") as gd_file:
+                game_data = json.load(gd_file)
+
+            self.league_key = game_data[0].get("game_key") + ".l." + self.league_id
+
+            with open(self.league_test_dir +
+                      "/" +
+                      "league_standings_data.json", "r") as lsd_file:
+                self.league_standings_data = json.load(lsd_file)
+
+            self.league_name = self.league_standings_data[0].get("name")
+
+            with open(self.league_test_dir +
+                      "/" +
+                      "roster_data.json", "r") as rd_file:
+                roster_data = json.load(rd_file)
+
+            with open(self.league_test_dir +
+                      "/" +
+                      "teams_data.json", "r") as td_file:
+                self.teams_data = json.load(td_file)
 
         roster_slots = collections.defaultdict(int)
         self.league_roster_active_slots = []
@@ -152,17 +179,6 @@ class FantasyFootballReport(object):
             "slots": roster_slots,
             "flex_positions": flex_positions
         }
-
-        # get data for all teams in league
-        self.teams_data = self.yql_query("select * from fantasysports.teams where league_key='" + self.league_key + "'")
-        with open(league_test_dir +
-                  "/" +
-                  "teams_data.json", "w") as td_file:
-            json.dump(self.teams_data, td_file)
-        with open(league_test_dir +
-                  "/" +
-                  "teams_data.json", "r") as td_file:
-            self.teams_data = json.load(td_file)
 
         # user input validation
         if user_input_chosen_week:
@@ -226,23 +242,26 @@ class FantasyFootballReport(object):
             }
         ]
         """
-        result = self.yql_query(
-            "select * from fantasysports.leagues.scoreboard where league_key='{0}' and week='{1}'".format(
-                self.league_key, chosen_week))
-        with open("test/" +
-                  self.league_name.replace(" ", "-") +
-                  "_" +
-                  self.league_id +
-                  "/" +
-                  "result_data.json", "w") as rsd_file:
-            json.dump(result, rsd_file)
-        with open("test/" +
-                  self.league_name.replace(" ", "-") +
-                  "_" +
-                  self.league_id +
-                  "/" +
-                  "result_data.json", "r") as rsd_file:
-            result = json.load(rsd_file)
+
+        if not os.path.exists(self.league_test_dir + "/week_" + chosen_week):
+            os.mkdir(self.league_test_dir + "/week_" + chosen_week)
+            os.mkdir(self.league_test_dir + "/week_" + chosen_week + "/roster_data")
+
+        if not self.dev_bool:
+            result = self.yql_query(
+                "select * from fantasysports.leagues.scoreboard where league_key='{0}' and week='{1}'".format(
+                    self.league_key, chosen_week))
+
+            if self.save_bool:
+                with open(self.league_test_dir +
+                          "/week_" + chosen_week + "/" +
+                          "result_data.json", "w") as rsd_file:
+                    json.dump(result, rsd_file)
+        else:
+            with open(self.league_test_dir +
+                      "/week_" + chosen_week + "/" +
+                      "result_data.json", "r") as rsd_file:
+                result = json.load(rsd_file)
 
         matchups = result[0].get("scoreboard").get("matchups").get("matchup")
 
@@ -310,26 +329,24 @@ class FantasyFootballReport(object):
             team_id = team
             team_name = teams_dict.get(team).get("name").encode("utf-8")
 
-            # get data for this individual team
-            roster_stats_data = self.yql_query(
-                "select * from fantasysports.teams.roster.stats where team_key='" + self.league_key + ".t." +
-                team + "' and week='" + chosen_week + "'")
-            with open("test/" +
-                      self.league_name.replace(" ", "-") +
-                      "_" +
-                      self.league_id +
-                      "/roster_data/" +
-                      str(team_name, "utf-8").replace(" ", "-") +
-                      "_roster_data.json", "w") as trd_file:
-                json.dump(roster_stats_data, trd_file)
-            with open("test/" +
-                      self.league_name.replace(" ", "-") +
-                      "_" +
-                      self.league_id +
-                      "/roster_data/" +
-                      str(team_name, "utf-8").replace(" ", "-") +
-                      "_roster_data.json", "r") as trd_file:
-                roster_stats_data = json.load(trd_file)
+            if not self.dev_bool:
+                # get data for this individual team
+                roster_stats_data = self.yql_query(
+                    "select * from fantasysports.teams.roster.stats where team_key='" + self.league_key + ".t." +
+                    team + "' and week='" + chosen_week + "'")
+
+                if self.save_bool:
+                    with open(self.league_test_dir +
+                              "/week_" + chosen_week + "/roster_data/" +
+                              str(team_name, "utf-8").replace(" ", "-") +
+                              "_roster_data.json", "w") as trd_file:
+                        json.dump(roster_stats_data, trd_file)
+            else:
+                with open(self.league_test_dir +
+                          "/week_" + chosen_week + "/roster_data/" +
+                          str(team_name, "utf-8").replace(" ", "-") +
+                          "_roster_data.json", "r") as trd_file:
+                    roster_stats_data = json.load(trd_file)
 
             players = []
             positions_filled_active = []
@@ -349,25 +366,25 @@ class FantasyFootballReport(object):
                                     "selected_position": player.get("selected_position").get("position"),
                                     "eligible_positions": player.get("eligible_positions").get("position"),
                                     "fantasy_points": float(player.get("player_points").get("total", 0.0)),
-                                    "bad_boy_points": bad_boy_points,
+                                    "bad_boy_points": 0 if not bad_boy_points else bad_boy_points,
                                     "bad_boy_crime": crime
                                     }
 
                 players.append(player_info_dict)
 
-            team_name = team_name.decode('utf-8')
+            team_name = team_name.decode("utf-8")
             bad_boy_total = 0
-            worst_offense = ''
+            worst_offense = ""
             worst_offense_score = 0
             num_offenders = 0
             for p in players:
-                if p['selected_position'] != "BN":
-                    bad_boy_total = bad_boy_total + p['bad_boy_points']
-                    if p['bad_boy_points'] > 0:
+                if p["selected_position"] != "BN":
+                    bad_boy_total = bad_boy_total + p["bad_boy_points"]
+                    if p["bad_boy_points"] > 0:
                         num_offenders = num_offenders + 1
-                        if p['bad_boy_points'] > worst_offense_score:
-                            worst_offense = p['bad_boy_crime']
-                            worst_offense_score = p['bad_boy_points']
+                        if p["bad_boy_points"] > worst_offense_score:
+                            worst_offense = p["bad_boy_crime"]
+                            worst_offense_score = p["bad_boy_points"]
 
             team_results_dict[team_name] = {
                 "name": team_name,
@@ -392,7 +409,7 @@ class FantasyFootballReport(object):
         # get current standings
         calculate_metrics = CalculateMetrics(self.league_id, self.config)
 
-        # calculate coaching efficiency metric and add values to team_results_dict, and get and points by position
+        # calculate coaching efficiency metric and add values to team_results_dict, and get points by position
         points_by_position = PointsByPosition(self.roster, self.chosen_week)
         weekly_points_by_position_data = \
             points_by_position.get_weekly_points_by_position(self.league_id, self.config, chosen_week,
@@ -419,28 +436,6 @@ class FantasyFootballReport(object):
             except AttributeError:
                 pass
 
-        power_ranking_results = sorted(iter(list(team_results_dict.items())), key=lambda k_v: k_v[1]["power_rank"])
-        power_ranking_results_data = []
-        for key, value in power_ranking_results:
-            # season avg calc does something where it keys off the second value in the array
-            power_ranking_results_data.append(
-                [value.get("power_rank"), key, team_results_dict[key]["manager"]]
-            )
-
-        # create bad boy data for table
-        bad_boy_results = sorted(iter(team_results_dict.items()),
-                                 key=lambda k_v: (float(k_v[1].get("bad_boy_points")), k_v[0]), reverse=True)
-        bad_boy_results_data = calculate_metrics.get_bad_boy_data(bad_boy_results)
-
-        num_tied_bad_boys = calculate_metrics.get_num_ties(bad_boy_results_data, chosen_week, tie_type="bad_boy")
-
-        tie_for_first_bad_boy = False
-        if num_tied_bad_boys > 0:
-            if bad_boy_results_data[0][0] == bad_boy_results_data[1][0]:
-                tie_for_first_bad_boy = True
-        num_tied_for_first_bad_boy = len(
-            [list(group) for key, group in itertools.groupby(bad_boy_results_data, lambda x: x[3])][0])
-
         # create score data for table
         score_results = sorted(iter(team_results_dict.items()),
                                key=lambda k_v: (float(k_v[1].get("score")), k_v[0]), reverse=True)
@@ -461,8 +456,23 @@ class FantasyFootballReport(object):
                               key=lambda k_v2: (k_v2[1].get("luck"), k_v2[0]), reverse=True)
         luck_results_data = calculate_metrics.get_luck_data(luck_results)
 
-        # count number of ties for points, coaching efficiency, and luck
-        # tie_type can be "score", "coaching_efficiency", "luck", "bad_boy", or "power_rank"
+        # create power ranking data for table
+        power_ranking_results = sorted(iter(list(team_results_dict.items())), key=lambda k_v: k_v[1]["power_rank"])
+        power_ranking_results_data = []
+        for key, value in power_ranking_results:
+            # season avg calc does something where it keys off the second value in the array
+            power_ranking_results_data.append(
+                [value.get("power_rank"), key, team_results_dict[key]["manager"]]
+            )
+
+        # create bad boy data for table
+        bad_boy_results = sorted(iter(team_results_dict.items()),
+                                 key=lambda k_v: (float(k_v[1].get("bad_boy_points")), k_v[0]), reverse=True)
+        bad_boy_results_data = calculate_metrics.get_bad_boy_data(bad_boy_results)
+
+        # count number of ties for points, coaching efficiency, luck, power ranking, or bad boy ranking
+        # tie_type can be "score", "coaching_efficiency", "luck", "power_rank", or "bad_boy"
+
         num_tied_scores = calculate_metrics.get_num_ties(score_results_data, chosen_week,
                                                          tie_type="score")
         # reorder score data based on bench points
@@ -498,13 +508,22 @@ class FantasyFootballReport(object):
         num_tied_for_first_power_ranking = len(
             [list(group) for key, group in itertools.groupby(power_ranking_results_data, lambda x: x[0])][0])
 
+        num_tied_bad_boys = calculate_metrics.get_num_ties(bad_boy_results_data, chosen_week, tie_type="bad_boy")
+
+        tie_for_first_bad_boy = False
+        if num_tied_bad_boys > 0:
+            if bad_boy_results_data[0][0] == bad_boy_results_data[1][0]:
+                tie_for_first_bad_boy = True
+        num_tied_for_first_bad_boy = len(
+            [list(group) for key, group in itertools.groupby(bad_boy_results_data, lambda x: x[3])][0])
+
         # output weekly metrics info
         print("~~~~~ WEEK {} METRICS INFO ~~~~~".format(chosen_week))
         print("              SCORE tie(s): {}".format(num_tied_scores))
         print("COACHING EFFICIENCY tie(s): {}".format(num_tied_coaching_efficiencies))
         print("               LUCK tie(s): {}".format(num_tied_lucks))
         print("      POWER RANKING tie(s): {}".format(num_tied_power_rankings))
-        print("      BAD BOY SCORE tie(s): {}".format(num_tied_bad_boys))
+        print("            BAD BOY tie(s): {}".format(num_tied_bad_boys))
         coaching_efficiency_dq_dict = points_by_position.coaching_efficiency_dq_dict
         if coaching_efficiency_dq_dict:
             ce_dq_str = ""
@@ -526,29 +545,29 @@ class FantasyFootballReport(object):
             "coaching_efficiency_results_data": coaching_efficiency_results_data,
             "luck_results_data": luck_results_data,
             "power_ranking_results_data": power_ranking_results_data,
+            "bad_boy_results_data": bad_boy_results_data,
             "num_tied_scores": num_tied_scores,
             "num_tied_coaching_efficiencies": num_tied_coaching_efficiencies,
             "num_tied_lucks": num_tied_lucks,
             "num_tied_power_rankings": num_tied_power_rankings,
+            "num_tied_bad_boys": num_tied_bad_boys,
             "efficiency_dq_count": efficiency_dq_count,
             "tied_scores_bool": num_tied_scores > 0,
             "tied_coaching_efficiencies_bool": num_tied_coaching_efficiencies > 0,
             "tied_lucks_bool": num_tied_lucks > 0,
             "tied_power_rankings_bool": num_tied_power_rankings > 0,
+            "tied_bad_boy_bool": num_tied_bad_boys > 0,
             "tie_for_first_score": tie_for_first_score,
             "tie_for_first_coaching_efficiency": tie_for_first_coaching_efficiency,
             "tie_for_first_luck": tie_for_first_luck,
             "tie_for_first_power_ranking": tie_for_first_power_ranking,
+            "tie_for_first_bad_boy": tie_for_first_bad_boy,
             "num_tied_for_first_scores": num_tied_for_first_scores,
             "num_tied_for_first_coaching_efficiency": num_tied_for_first_coaching_efficiency,
             "num_tied_for_first_luck": num_tied_for_first_luck,
             "num_tied_for_first_power_ranking": num_tied_for_first_power_ranking,
-            "weekly_points_by_position_data": weekly_points_by_position_data,
-            "bad_boy_results_data": bad_boy_results_data,
-            "num_tied_bad_boys": num_tied_bad_boys,
-            "tied_bad_boy_bool": num_tied_bad_boys > 0,
             "num_tied_for_first_bad_boy": num_tied_for_first_bad_boy,
-            "tie_for_first_bad_boy": tie_for_first_bad_boy
+            "weekly_points_by_position_data": weekly_points_by_position_data
         }
 
         return report_info_dict
@@ -685,7 +704,7 @@ class FantasyFootballReport(object):
             power_ranking_title_text="Team Power Rankings",
             report_footer_text=report_footer_text,
             report_info_dict=report_info_dict,
-            bad_boy_title_text="Bad Boy Scoring"
+            bad_boy_title_text="Bad Boy Rankings"
         )
 
         # generate pdf of report

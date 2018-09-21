@@ -114,7 +114,7 @@ class PdfGenerator(object):
              "Trades"]]
         self.standings_col_widths = [0.50 * inch, 1.75 * inch, 1.00 * inch, 1.00 * inch, 0.80 * inch, 1.10 * inch,
                                      0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]
-        self.bad_boy_col_widths = [0.50 * inch, 1.75 * inch, 1.00 * inch, 1.00 * inch, 1.75 * inch, 1.00 * inch]
+        self.bad_boy_col_widths = [0.75 * inch, 1.75 * inch, 1.25 * inch, 1.25 * inch, 1.75 * inch, 1.00 * inch]
         self.power_ranking_headers = [["Power Rank", "Team", "Manager", "Season Avg. (Place)"]]
         self.scores_headers = [["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]]
         self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
@@ -136,6 +136,8 @@ class PdfGenerator(object):
         self.style_tied_luck = self.set_tied_values_style(self.num_tied_lucks, table_style_list, metric_type="luck")
         self.style_tied_power_rankings = self.set_tied_values_style(self.num_tied_power_rankings, table_style_list,
                                                                     metric_type="power_ranking")
+        self.style_tied_bad_boy = self.set_tied_values_style(self.num_tied_bad_boys, table_style_list,
+                                                             metric_type="bad_boy")
 
         # options: "document", "section", or None
         self.report_title = self.create_title(report_title_text, element_type="document")
@@ -259,6 +261,10 @@ class PdfGenerator(object):
 
         elif metric_type == "power_rank":
             if self.tied_power_rankings_bool:
+                elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
+
+        elif metric_type == "bad_boy":
+            if self.tied_bad_boy_bool:
                 elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
 
     def create_title(self, title_text, title_width=8.5, element_type=None):
@@ -396,10 +402,11 @@ class PdfGenerator(object):
                             self.metrics_col_widths, self.page_break, tied_metric_bool=self.tied_lucks_bool,
                             metric_type="luck")
 
-        # bad boy points
+        # bad boy rankings
         self.create_section(elements, self.bad_boy_title, self.bad_boy_headers, self.bad_boy_results_data,
-                            self.style, self.bad_boy_col_widths, self.page_break,
+                            self.style_tied_bad_boy, self.bad_boy_col_widths, self.page_break,
                             tied_metric_bool=self.tied_bad_boy_bool, metric_type="bad_boy")
+
         series_names = line_chart_data_list[0]
         points_data = line_chart_data_list[2]
         efficiency_data = line_chart_data_list[3]

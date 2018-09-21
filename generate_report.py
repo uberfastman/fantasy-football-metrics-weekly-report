@@ -16,13 +16,15 @@ config.read('config.ini')
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, "htl:w:")
+        opts, args = getopt.getopt(argv, "htdsl:w:")
     except getopt.GetoptError:
         print("\nYahoo Fantasy Football report application usage:\n"
               "     python generate_report.py -t -l <yahoo_league_id> -w <chosen_week>\n")
         sys.exit(2)
 
     test_bool = False
+    dev_bool = False
+    save_bool = False
     league_id = None
     week = None
     for opt, arg in opts:
@@ -32,6 +34,10 @@ def main(argv):
             sys.exit()
         elif opt in ("-t", "--test"):
             test_bool = True
+        elif opt in ("-d", "--dev"):
+            dev_bool = True
+        elif opt in ("-s", "--save"):
+            save_bool = True
         elif opt in ("-l", "--league-id"):
             league_id = arg
         elif opt in ("-w", "--week"):
@@ -39,10 +45,10 @@ def main(argv):
             if int(week) < 1 or int(week) > 17:
                 print("\nPlease select a valid week number between 1 and 17.")
                 week = use_chosen_week_function()
-    return test_bool, league_id, week
+    return test_bool, dev_bool, save_bool, league_id, week
 
 
-def use_default_league_function(chosen_league_id, chosen_week_arg, test_bool):
+def use_default_league_function(chosen_league_id, chosen_week_arg, test_bool, dev_bool, save_bool):
     if not chosen_league_id:
         use_default_league = input("Generate report for default league? (y/n) -> ")
     else:
@@ -54,7 +60,9 @@ def use_default_league_function(chosen_league_id, chosen_week_arg, test_bool):
         else:
             chosen_week = chosen_week_arg
         fantasy_football_report_instance = FantasyFootballReport(user_input_chosen_week=chosen_week,
-                                                                 test_bool=test_bool)
+                                                                 test_bool=test_bool,
+                                                                 dev_bool=dev_bool,
+                                                                 save_bool=save_bool)
         return fantasy_football_report_instance, config.get("Fantasy_Football_Report_Settings", "chosen_league_id")
     elif use_default_league == "n":
         chosen_league_id = input(
@@ -62,11 +70,13 @@ def use_default_league_function(chosen_league_id, chosen_week_arg, test_bool):
         try:
             fantasy_football_report_instance = FantasyFootballReport(user_input_league_id=chosen_league_id,
                                                                      user_input_chosen_week=use_chosen_week_function(),
-                                                                     test_bool=test_bool)
+                                                                     test_bool=test_bool,
+                                                                     dev_bool=dev_bool,
+                                                                     save_bool=save_bool)
             return fantasy_football_report_instance, str(chosen_league_id)
         except IndexError:
             print("The league ID you have selected is not valid.")
-            use_default_league_function(chosen_week_arg, test_bool)
+            use_default_league_function(chosen_week_arg, test_bool, dev_bool, save_bool)
     elif use_default_league == "selected":
         if not chosen_week_arg:
             chosen_week = use_chosen_week_function()
@@ -74,11 +84,13 @@ def use_default_league_function(chosen_league_id, chosen_week_arg, test_bool):
             chosen_week = chosen_week_arg
         fantasy_football_report_instance = FantasyFootballReport(user_input_league_id=chosen_league_id,
                                                                  user_input_chosen_week=chosen_week,
-                                                                 test_bool=test_bool)
+                                                                 test_bool=test_bool,
+                                                                 dev_bool=dev_bool,
+                                                                 save_bool=save_bool)
         return fantasy_football_report_instance, str(chosen_league_id)
     else:
         print("You must select either 'y' or 'n'.")
-        use_default_league_function(chosen_week_arg, test_bool)
+        use_default_league_function(chosen_week_arg, test_bool, dev_bool, save_bool)
 
 
 def use_chosen_week_function():
@@ -101,11 +113,14 @@ def use_chosen_week_function():
 if __name__ == '__main__':
 
     options = main(sys.argv[1:])
-    test_bool_arg = options[0]
-    league_id_arg = options[1]
-    week_arg = options[2]
 
-    report_info = use_default_league_function(league_id_arg, week_arg, test_bool_arg)
+    test_bool_arg = options[0]
+    dev_bool_arg = options[1]
+    save_bool_arg = options[2]
+    league_id_arg = options[3]
+    week_arg = options[4]
+
+    report_info = use_default_league_function(league_id_arg, week_arg, test_bool_arg, dev_bool_arg, save_bool_arg)
     fantasy_football_report = report_info[0]
     selected_league_id = report_info[1]
     generated_report = fantasy_football_report.create_pdf_report()
