@@ -5,9 +5,9 @@ import getopt
 import sys
 from configparser import ConfigParser
 
-from fantasy_football_report_builder import FantasyFootballReport
-from slack_messenger import SlackMessenger
-from upload_to_google_drive import GoogleDriveUploader
+from report.fantasy_football_report_builder import FantasyFootballReport
+from utils.slack_messenger import SlackMessenger
+from utils.upload_to_google_drive import GoogleDriveUploader
 
 # local config vars
 config = ConfigParser()

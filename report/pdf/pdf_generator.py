@@ -11,8 +11,8 @@ from reportlab.platypus import PageBreak
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.platypus import Spacer
 
-from line_chart_generator import LineChartGenerator
-from pie_chart_generator import BreakdownPieDrawing
+from report.pdf.line_chart_generator import LineChartGenerator
+from report.pdf.pie_chart_generator import BreakdownPieDrawing
 
 config = ConfigParser()
 config.read("config.ini")
