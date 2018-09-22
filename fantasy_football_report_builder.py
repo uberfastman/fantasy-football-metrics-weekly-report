@@ -6,6 +6,7 @@ import collections
 import datetime
 import itertools
 import os
+import sys
 import json
 import webbrowser
 from configparser import ConfigParser
@@ -74,6 +75,12 @@ class FantasyFootballReport(object):
                     token_store.set("foo", self.token)
 
         self.league_test_dir = "test/league_id-" + self.league_id
+        if not os.path.exists(self.league_test_dir):
+            if self.dev_bool:
+                print("CANNOT USE DEV MODE WITHOUT FIRST SAVING DATA WITH SAVE MODE!")
+                sys.exit(2)
+            elif self.save_bool:
+                os.mkdir(self.league_test_dir)
 
         self.BadBoy = BadBoyStats(dev_bool, save_bool, self.league_test_dir)
 
@@ -102,9 +109,6 @@ class FantasyFootballReport(object):
                 "select * from fantasysports.teams where league_key='" + self.league_key + "'")
 
             if self.save_bool:
-                if not os.path.exists(self.league_test_dir):
-                    os.mkdir(self.league_test_dir)
-
                 with open(self.league_test_dir +
                           "/" +
                           "game_data.json", "w") as gd_file:
