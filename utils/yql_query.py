@@ -4,11 +4,11 @@ import webbrowser
 
 import pandas as pd
 
-from resources.dependencies.yql3 import *
-from resources.dependencies.yql3.storage import FileTokenStore
+from resources.local_dependencies.yql3 import *
+from resources.local_dependencies.yql3.storage import FileTokenStore
 
 
-# noinspection SqlDialectInspection
+# noinspection SqlNoDataSourceInspection,SqlDialectInspection
 class YqlQuery(object):
 
     def __init__(self, config, league_id, save_bool, dev_bool, league_test_dir):
@@ -56,6 +56,7 @@ class YqlQuery(object):
                 if self.token != stored_token:
                     print("Setting stored token!")
                     token_store.set("foo", self.token)
+                print("...token verified.")
 
     def yql_query(self, query):
         # print("Executing query: %s\n" % query)
@@ -66,28 +67,21 @@ class YqlQuery(object):
         if not self.dev_bool:
             # get fantasy football game info
             game_data = self.yql_query("select * from fantasysports.games where game_key='nfl'")
-            # unique league key composed of this year's yahoo fantasy football game id and the unique league id
-            # self.league_key = game_data[0].get("game_key") + ".l." + self.league_id
-
-            # print(game_data)
-            # print("-" * 50)
-            df = pd.DataFrame(game_data)
-            # print(df.to_string())
-            # print()
-            self.league_key = df.loc[0, "game_key"] + ".l." + self.league_id
         else:
             with open(self.league_test_dir +
                       "/" +
                       "game_data.json", "r") as gd_file:
                 game_data = json.load(gd_file)
 
-            self.league_key = game_data[0].get("game_key") + ".l." + self.league_id
-
         if self.save_bool:
             with open(self.league_test_dir +
                       "/" +
                       "game_data.json", "w") as gd_file:
                 json.dump(game_data, gd_file)
+
+        df = pd.DataFrame(game_data)
+        # unique league key composed of this year's yahoo fantasy football game id and the unique league id
+        self.league_key = df.loc[0, "game_key"] + ".l." + self.league_id
 
         return self.league_key
 
@@ -97,7 +91,6 @@ class YqlQuery(object):
             # get data for all league standings
             league_standings_data = self.yql_query(
                 "select * from fantasysports.leagues.standings where league_key='" + self.league_key + "'")
-            self.league_name = league_standings_data[0].get("name")
             # TODO: incorporate winnings into reports
             # entry_fee = league_standings_data[0].get("entry_fee")
         else:
@@ -106,15 +99,17 @@ class YqlQuery(object):
                       "league_standings_data.json", "r") as lsd_file:
                 league_standings_data = json.load(lsd_file)
 
-            self.league_name = league_standings_data[0].get("name")
-
         if self.save_bool:
             with open(self.league_test_dir +
                       "/" +
                       "league_standings_data.json", "w") as lsd_file:
                 json.dump(league_standings_data, lsd_file)
 
-        return league_standings_data
+        df = pd.DataFrame(league_standings_data)
+        self.league_name = df.loc[0, "name"]
+
+        # return league_standings_data
+        return df
 
     def get_roster_data(self):
 

@@ -11,6 +11,7 @@ from reportlab.lib.colors import PCMYKColor, black
 from reportlab.lib.validators import Auto
 
 
+# noinspection PyUnresolvedReferences
 class LineChartGenerator(_DrawingEditorMixin, Drawing):
     """
         Chart Features

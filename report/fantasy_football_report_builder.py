@@ -9,15 +9,26 @@ import os
 import sys
 from configparser import ConfigParser
 
-from calculate.badboystats import BadBoyStats
-from calculate.metrics import PointsByPosition, SeasonAverageCalculator, Breakdown, CalculateMetrics, PowerRanking
+from calculate.bad_boy_stats import BadBoyStats
+from calculate.breakdown import Breakdown
+from calculate.metrics import CalculateMetrics
+from calculate.points_by_position import PointsByPosition
+from calculate.power_ranking import PowerRanking
+from calculate.season_averages import SeasonAverageCalculator
 from report.pdf.pdf_generator import PdfGenerator
 from utils.yql_query import YqlQuery
 
 
 class FantasyFootballReport(object):
-    def __init__(self, user_input_league_id=None, user_input_chosen_week=None, test_bool=False, dev_bool=False,
+    def __init__(self,
+                 user_input_league_id=None,
+                 user_input_chosen_week=None,
+                 dq_ce_bool=False,
+                 break_ties_bool=False,
+                 test_bool=False,
+                 dev_bool=False,
                  save_bool=False):
+
         # config vars
         self.config = ConfigParser()
         self.config.read("config.ini")
@@ -26,26 +37,25 @@ class FantasyFootballReport(object):
         else:
             self.league_id = self.config.get("Fantasy_Football_Report_Settings", "chosen_league_id")
 
+        self.dq_ce_bool = dq_ce_bool
+        self.break_ties_bool = break_ties_bool
+
         self.test_bool = test_bool
-        self.dev_bool = dev_bool
-        self.save_bool = save_bool
 
         # verification output message
-        print("\nGenerating%s fantasy football report for league with id: %s (report generated: %s)\n" % (
-            " TEST" if test_bool else "", self.league_id, "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now())))
+        print("\nGenerating%s fantasy football report for league with id: %s on %s..." % (
+            " TEST" if test_bool else "", self.league_id, "{:%b %d, %Y}".format(datetime.datetime.now())))
 
         self.league_test_dir = "test/league_id-" + self.league_id
         if not os.path.exists(self.league_test_dir):
-            if self.dev_bool:
+            if dev_bool:
                 print("CANNOT USE DEV MODE WITHOUT FIRST SAVING DATA WITH SAVE MODE!")
                 sys.exit(2)
-            elif self.save_bool:
+            elif save_bool:
                 os.mkdir(self.league_test_dir)
 
-        self.BadBoy = BadBoyStats(dev_bool, save_bool, self.league_test_dir)
-
         # run base yql queries
-        self.yql_query = YqlQuery(self.config, self.league_id, self.save_bool, self.dev_bool, self.league_test_dir)
+        self.yql_query = YqlQuery(self.config, self.league_id, save_bool, dev_bool, self.league_test_dir)
         self.league_key = self.yql_query.get_league_key()
         self.league_standings_data = self.yql_query.get_league_standings_data()
         self.league_name = self.yql_query.league_name
@@ -55,7 +65,6 @@ class FantasyFootballReport(object):
         roster_slots = collections.defaultdict(int)
         self.league_roster_active_slots = []
         flex_positions = []
-
         for position in roster_data[0].get("settings").get("roster_positions").get("roster_position"):
 
             position_name = position.get("position")
@@ -82,16 +91,18 @@ class FantasyFootballReport(object):
             "flex_positions": flex_positions
         }
 
+        self.BadBoy = BadBoyStats(dev_bool, save_bool, self.league_test_dir)
+
         # user input validation
         if user_input_chosen_week:
             chosen_week = user_input_chosen_week
         else:
             chosen_week = self.config.get("Fantasy_Football_Report_Settings", "chosen_week")
         try:
-            if chosen_week == 'default':
-                self.chosen_week = str(int(self.league_standings_data[0].get("current_week")) - 1)
+            if chosen_week == "default":
+                self.chosen_week = str(int(self.league_standings_data.loc[0, "current_week"]) - 1)
             elif 0 < int(chosen_week) < 18:
-                if 0 < int(chosen_week) <= int(self.league_standings_data[0].get("current_week")) - 1:
+                if 0 < int(chosen_week) <= int(self.league_standings_data.loc[0, "current_week"]) - 1:
                     self.chosen_week = chosen_week
                 else:
                     incomplete_week = input(
@@ -108,9 +119,9 @@ class FantasyFootballReport(object):
             raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
 
         # output league info for verification
-        print("\nGenerating \"{}\" ({}) report for week {} (chosen week: {}).\n".format(self.league_name.upper(),
-                                                                                        self.league_key,
-                                                                                        self.chosen_week, chosen_week))
+        print("...setup complete for \"{}\" ({}) week {} report.\n".format(self.league_name.upper(),
+                                                                           self.league_id,
+                                                                           self.chosen_week))
 
     def retrieve_scoreboard(self, chosen_week):
         """
@@ -276,7 +287,7 @@ class FantasyFootballReport(object):
         # calculate coaching efficiency metric and add values to team_results_dict, and get points by position
         points_by_position = PointsByPosition(self.roster, self.chosen_week)
         weekly_points_by_position_data = \
-            points_by_position.get_weekly_points_by_position(self.league_id, self.config, chosen_week,
+            points_by_position.get_weekly_points_by_position(self.dq_ce_bool, self.config, chosen_week,
                                                              self.roster, self.league_roster_active_slots,
                                                              team_results_dict)
 
@@ -337,42 +348,41 @@ class FantasyFootballReport(object):
         # count number of ties for points, coaching efficiency, luck, power ranking, or bad boy ranking
         # tie_type can be "score", "coaching_efficiency", "luck", "power_rank", or "bad_boy"
 
-        num_tied_scores = calculate_metrics.get_num_ties(score_results_data, chosen_week,
-                                                         tie_type="score")
+        num_tied_scores = calculate_metrics.get_num_ties(score_results_data, "score", self.break_ties_bool)
         # reorder score data based on bench points
         if num_tied_scores > 0:
-            score_results_data = calculate_metrics.resolve_score_ties(score_results_data)
-            calculate_metrics.get_num_ties(score_results_data, chosen_week, tie_type="score")
+            score_results_data = calculate_metrics.resolve_score_ties(score_results_data, self.break_ties_bool)
+            calculate_metrics.get_num_ties(score_results_data, "score", self.break_ties_bool)
         tie_for_first_score = False
         if score_results_data[0][0] == score_results_data[1][0]:
             tie_for_first_score = True
         num_tied_for_first_scores = len(
             [list(group) for key, group in itertools.groupby(score_results_data, lambda x: x[3])][0])
 
-        num_tied_coaching_efficiencies = calculate_metrics.get_num_ties(coaching_efficiency_results_data, chosen_week,
-                                                                        tie_type="coaching_efficiency")
+        num_tied_coaching_efficiencies = calculate_metrics.get_num_ties(coaching_efficiency_results_data,
+                                                                        "coaching_efficiency", self.break_ties_bool)
         tie_for_first_coaching_efficiency = False
         if coaching_efficiency_results_data[0][0] == coaching_efficiency_results_data[1][0]:
             tie_for_first_coaching_efficiency = True
         num_tied_for_first_coaching_efficiency = len(
             [list(group) for key, group in itertools.groupby(coaching_efficiency_results_data, lambda x: x[3])][0])
 
-        num_tied_lucks = calculate_metrics.get_num_ties(luck_results_data, chosen_week, tie_type="luck")
+        num_tied_lucks = calculate_metrics.get_num_ties(luck_results_data, "luck", self.break_ties_bool)
         tie_for_first_luck = False
         if luck_results_data[0][0] == luck_results_data[1][0]:
             tie_for_first_luck = True
         num_tied_for_first_luck = len(
             [list(group) for key, group in itertools.groupby(luck_results_data, lambda x: x[3])][0])
 
-        num_tied_power_rankings = calculate_metrics.get_num_ties(power_ranking_results_data,
-                                                                 chosen_week, tie_type="power_rank")
+        num_tied_power_rankings = calculate_metrics.get_num_ties(power_ranking_results_data, "power_rank",
+                                                                 self.break_ties_bool)
         tie_for_first_power_ranking = False
         if power_ranking_results_data[0][0] == power_ranking_results_data[1][0]:
             tie_for_first_power_ranking = True
         num_tied_for_first_power_ranking = len(
             [list(group) for key, group in itertools.groupby(power_ranking_results_data, lambda x: x[0])][0])
 
-        num_tied_bad_boys = calculate_metrics.get_num_ties(bad_boy_results_data, chosen_week, tie_type="bad_boy")
+        num_tied_bad_boys = calculate_metrics.get_num_ties(bad_boy_results_data, "bad_boy", self.break_ties_bool)
 
         tie_for_first_bad_boy = False
         if num_tied_bad_boys > 0:
@@ -541,7 +551,8 @@ class FantasyFootballReport(object):
         filename = self.league_name.replace(" ",
                                             "-") + "(" + self.league_id + ")_week-" + self.chosen_week + "_report.pdf"
         report_save_dir = self.config.get("Fantasy_Football_Report_Settings",
-                                          "report_directory_base_path") + "/" + self.league_name.replace(" ", "-") + "(" + self.league_id + ")"
+                                          "report_directory_base_path") + \
+            "/" + self.league_name.replace(" ", "-") + "(" + self.league_id + ")"
         report_title_text = self.league_name + " (" + self.league_id + ") Week " + self.chosen_week + " Report"
         report_footer_text = \
             "<para alignment='center'>Report generated %s for Yahoo Fantasy Football league '%s' (%s).</para>" % \
@@ -560,6 +571,7 @@ class FantasyFootballReport(object):
         # instantiate pdf generator
         pdf_generator = PdfGenerator(
             league_id=self.league_id,
+            break_ties_bool=self.break_ties_bool,
             report_title_text=report_title_text,
             standings_title_text="League Standings",
             scores_title_text="Team Score Rankings",
@@ -572,7 +584,7 @@ class FantasyFootballReport(object):
         )
 
         # generate pdf of report
-        file_for_upload = pdf_generator.generate_pdf(filename_with_path, line_chart_data_list)
+        file_for_upload = pdf_generator.generate_pdf(filename_with_path, line_chart_data_list, self.break_ties_bool)
 
         print("...SUCCESS! Generated PDF: {}\n".format(file_for_upload))
 

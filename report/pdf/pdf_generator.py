@@ -21,6 +21,7 @@ config.read("config.ini")
 class PdfGenerator(object):
     def __init__(self,
                  league_id,
+                 break_ties_bool,
                  report_title_text,
                  standings_title_text,
                  scores_title_text,
@@ -33,6 +34,7 @@ class PdfGenerator(object):
                  ):
 
         self.league_id = league_id
+        self.break_ties_bool = break_ties_bool
         self.current_standings_data = report_info_dict.get("current_standings_data")
         self.score_results_data = report_info_dict.get("score_results_data")
         self.coaching_efficiency_results_data = report_info_dict.get("coaching_efficiency_results_data")
@@ -121,7 +123,7 @@ class PdfGenerator(object):
         self.luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)"]]
         self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]]
         self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
-        self.league_of_emperors_efficiency_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*The league commissioner will " \
+        self.break_efficiency_ties_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*The league commissioner will " \
                                                     "resolve coaching efficiency ties manually. The tiebreaker goes " \
                                                     "to the manager whose team contains the most players who have " \
                                                     "exceeded their average weekly fantasy points. If there is still " \
@@ -129,15 +131,14 @@ class PdfGenerator(object):
                                                     "season average score by the highest cumulative percent wins.</i>"
 
         self.style_efficiency_dqs = None
-        self.style_tied_scores = self.set_tied_values_style(self.num_tied_scores, table_style_list,
-                                                            metric_type="scores")
+        self.style_tied_scores = self.set_tied_values_style(self.num_tied_scores, table_style_list, "scores")
         self.style_tied_efficiencies = self.set_tied_values_style(self.num_tied_coaching_efficiencies, table_style_list,
-                                                                  metric_type="coaching_efficiency")
-        self.style_tied_luck = self.set_tied_values_style(self.num_tied_lucks, table_style_list, metric_type="luck")
+                                                                  "coaching_efficiency")
+        self.style_tied_luck = self.set_tied_values_style(self.num_tied_lucks, table_style_list, "luck")
         self.style_tied_power_rankings = self.set_tied_values_style(self.num_tied_power_rankings, table_style_list,
-                                                                    metric_type="power_ranking")
+                                                                    "power_ranking")
         self.style_tied_bad_boy = self.set_tied_values_style(self.num_tied_bad_boys, table_style_list,
-                                                             metric_type="bad_boy")
+                                                             "bad_boy")
 
         # options: "document", "section", or None
         self.report_title = self.create_title(report_title_text, element_type="document")
@@ -149,7 +150,7 @@ class PdfGenerator(object):
         self.bad_boy_title = self.create_title(bad_boy_title_text, element_type="section")
         self.report_footer = Paragraph(report_footer_text, getSampleStyleSheet()["Normal"])
 
-    def set_tied_values_style(self, num_tied_values, table_style_list, metric_type=None):
+    def set_tied_values_style(self, num_tied_values, table_style_list, metric_type):
 
         num_tied_for_first = num_tied_values
         if metric_type == "scores":
@@ -179,8 +180,7 @@ class PdfGenerator(object):
                 num_tied_for_first = self.num_tied_for_first_bad_boy
 
         tied_values_table_style_list = list(table_style_list)
-        if self.league_id == config.get("Fantasy_Football_Report_Settings",
-                                        "league_of_emperors_id") and metric_type == "scores":
+        if metric_type == "scores" and self.break_ties_bool:
             tied_values_table_style_list.append(("TEXTCOLOR", (0, 1), (-1, 1), colors.green))
             tied_values_table_style_list.append(("FONT", (0, 1), (-1, 1), "Helvetica-Oblique"))
         else:
@@ -217,7 +217,7 @@ class PdfGenerator(object):
 
         if metric_type == "scores":
             if self.num_tied_scores > 0:
-                if self.league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
+                if self.break_ties_bool:
                     self.scores_headers[0].append("Bench Points")
                 else:
                     for index, team in enumerate(self.score_results_data):
@@ -242,16 +242,16 @@ class PdfGenerator(object):
 
         if metric_type == "scores":
             if self.tied_scores_bool:
-                if self.league_id != config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
+                if not self.break_ties_bool:
                     elements.append(self.spacer_small)
                     elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
 
         elif metric_type == "coaching_efficiency":
             if self.tied_coaching_efficiencies_bool:
                 elements.append(self.spacer_small)
-                if self.league_id == config.get("Fantasy_Football_Report_Settings", "league_of_emperors_id"):
+                if self.break_ties_bool:
                     elements.append(
-                        Paragraph(self.league_of_emperors_efficiency_footer, getSampleStyleSheet()["Normal"]))
+                        Paragraph(self.break_efficiency_ties_footer, getSampleStyleSheet()["Normal"]))
                 else:
                     elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
 
@@ -366,7 +366,7 @@ class PdfGenerator(object):
                 doc_elements.append(self.page_break)
             team_number += 1
 
-    def generate_pdf(self, filename_with_path, line_chart_data_list):
+    def generate_pdf(self, filename_with_path, line_chart_data_list, break_ties_bool):
 
         elements = []
         doc = SimpleDocTemplate(filename_with_path, pagesize=LETTER, rightMargin=25, leftMargin=25, topMargin=10,
