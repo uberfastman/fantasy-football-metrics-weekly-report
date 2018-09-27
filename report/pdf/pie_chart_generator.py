@@ -7,6 +7,7 @@ from reportlab.lib.colors import HexColor, black
 from reportlab.lib.colors import white
 
 
+# noinspection PyUnresolvedReferences
 class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
     def __init__(self, labels, data, width=400, height=200, *args, **kw):
         # see https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/ for colors

@@ -19,8 +19,8 @@ from urllib.parse import urlparse, urlencode
 from httplib2 import Http
 from six import string_types
 
-from yql3.utils import get_http_method, clean_url, clean_query
-from yql3.logger import get_logger
+from resources.local_dependencies.yql3.utils import get_http_method, clean_url, clean_query
+from resources.local_dependencies.yql3.logger import get_logger
 import oauth2 as oauth
 
 try:

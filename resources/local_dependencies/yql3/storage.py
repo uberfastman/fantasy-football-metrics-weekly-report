@@ -1,7 +1,7 @@
 import os
 from hashlib import md5
 
-from yql3 import YahooToken
+from resources.local_dependencies.yql3 import YahooToken
 
 SECRET = "FDHSJLUREIRPpieruweruwoeirhfsdjf"
 

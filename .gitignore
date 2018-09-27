@@ -2,6 +2,7 @@
 *.pyc
 authentication/
 reports/
-legacy_code/time_series_data_backups/
+legacy_code/
 local_dependencies/python-yql-master/__pycache__/
-logs/
+resources/local_dependencies/logs
+test/
