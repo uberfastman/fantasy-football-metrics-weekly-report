@@ -227,7 +227,7 @@ class FantasyFootballReport(object):
             positions_filled_active = []
             for player in roster_stats_data[0].get("roster").get("players").get("player"):
                 pname = player.get("name")['full']
-                pteam = player.get('editorial_team_abbr').upper()
+                pteam = player.get("editorial_team_abbr").upper()
                 player_selected_position = player.get("selected_position").get("position")
                 bad_boy_points = 0
                 crime = ''
@@ -584,7 +584,7 @@ class FantasyFootballReport(object):
         )
 
         # generate pdf of report
-        file_for_upload = pdf_generator.generate_pdf(filename_with_path, line_chart_data_list, self.break_ties_bool)
+        file_for_upload = pdf_generator.generate_pdf(filename_with_path, line_chart_data_list)
 
         print("...SUCCESS! Generated PDF: {}\n".format(file_for_upload))
 
