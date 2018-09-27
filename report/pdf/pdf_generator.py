@@ -40,15 +40,18 @@ class PdfGenerator(object):
         self.coaching_efficiency_results_data = report_info_dict.get("coaching_efficiency_results_data")
         self.luck_results_data = report_info_dict.get("luck_results_data")
         self.power_ranking_data = report_info_dict.get("power_ranking_results_data")
+        self.bad_boy_results_data = report_info_dict.get("bad_boy_results_data")
         self.num_tied_scores = report_info_dict.get("num_tied_scores")
         self.num_tied_coaching_efficiencies = report_info_dict.get("num_tied_coaching_efficiencies")
         self.num_tied_lucks = report_info_dict.get("num_tied_lucks")
         self.num_tied_power_rankings = report_info_dict.get("num_tied_power_rankings")
+        self.num_tied_bad_boys = report_info_dict.get("num_tied_bad_boys")
         self.efficiency_dq_count = report_info_dict.get("efficiency_dq_count")
         self.tied_scores_bool = report_info_dict.get("tied_scores_bool")
         self.tied_coaching_efficiencies_bool = report_info_dict.get("tied_coaching_efficiencies_bool")
         self.tied_lucks_bool = report_info_dict.get("tied_lucks_bool")
         self.tied_power_rankings_bool = report_info_dict.get("tied_power_rankings_bool")
+        self.tied_bad_boy_bool = report_info_dict.get("tied_bad_boy_bool")
         self.tie_for_first_score = report_info_dict.get("tie_for_first_score")
         self.tie_for_first_coaching_efficiency = report_info_dict.get("tie_for_first_coaching_efficiency")
         self.tie_for_first_luck = report_info_dict.get("tie_for_first_luck")
@@ -61,9 +64,9 @@ class PdfGenerator(object):
         self.num_tied_for_first_bad_boy = report_info_dict.get("num_tied_for_first_bad_boy")
         self.weekly_points_by_position_data = report_info_dict.get("weekly_points_by_position_data")
         self.season_average_team_points_by_position = report_info_dict.get("season_average_points_by_position")
-        self.bad_boy_results_data = report_info_dict.get("bad_boy_results_data")
-        self.num_tied_bad_boys = report_info_dict.get("num_tied_bad_boys")
-        self.tied_bad_boy_bool = report_info_dict.get("tied_bad_boy_bool")
+
+        # team data for use on team specific stats pages
+        self.team_data = report_info_dict.get("team_results")
 
         # generic document elements
         self.metrics_col_widths = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch]
