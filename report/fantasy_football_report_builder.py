@@ -35,7 +35,7 @@ class FantasyFootballReport(object):
         if user_input_league_id:
             self.league_id = user_input_league_id
         else:
-            self.league_id = self.config.get("Fantasy_Football_Report_Settings", "chosen_league_id")
+            self.league_id = self.config.get("Fantasy_Football_Report_Settings", "league_id")
 
         self.dq_ce_bool = dq_ce_bool
         self.break_ties_bool = break_ties_bool
@@ -46,7 +46,7 @@ class FantasyFootballReport(object):
         print("\nGenerating%s fantasy football report for league with id: %s on %s..." % (
             " TEST" if test_bool else "", self.league_id, "{:%b %d, %Y}".format(datetime.datetime.now())))
 
-        self.league_test_dir = "test/league_id-" + self.league_id
+        self.league_test_dir = "test_league_id-" + self.league_id
         if not os.path.exists(self.league_test_dir):
             if dev_bool:
                 print("CANNOT USE DEV MODE WITHOUT FIRST SAVING DATA WITH SAVE MODE!")
@@ -151,6 +151,9 @@ class FantasyFootballReport(object):
             }
         ]
         """
+
+        if not os.path.exists(self.league_test_dir):
+            os.mkdir(self.league_test_dir)
 
         if not os.path.exists(self.league_test_dir + "/week_" + chosen_week):
             os.mkdir(self.league_test_dir + "/week_" + chosen_week)
