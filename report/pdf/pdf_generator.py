@@ -28,6 +28,7 @@ class PdfGenerator(object):
                  coaching_efficiency_title_text,
                  luck_title_text,
                  power_ranking_title_text,
+                 zscores_title_text,
                  report_footer_text,
                  report_info_dict,
                  bad_boy_title_text
@@ -39,7 +40,8 @@ class PdfGenerator(object):
         self.score_results_data = report_info_dict.get("score_results_data")
         self.coaching_efficiency_results_data = report_info_dict.get("coaching_efficiency_results_data")
         self.luck_results_data = report_info_dict.get("luck_results_data")
-        self.power_ranking_data = report_info_dict.get("power_ranking_results_data")
+        self.power_ranking_results_data = report_info_dict.get("power_ranking_results_data")
+        self.zscore_results_data = report_info_dict.get("zscore_results_data")
         self.bad_boy_results_data = report_info_dict.get("bad_boy_results_data")
         self.num_tied_scores = report_info_dict.get("num_tied_scores")
         self.num_tied_coaching_efficiencies = report_info_dict.get("num_tied_coaching_efficiencies")
@@ -70,6 +72,7 @@ class PdfGenerator(object):
 
         # generic document elements
         self.metrics_col_widths = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch]
+        self.z_score_col_widths = [1.00 * inch, 2.25 * inch, 2.25 * inch, 2.25 * inch]
 
         self.power_ranking_col_widths = [1.00 * inch, 2.50 * inch, 2.50 * inch, 1.75 * inch]
         self.line_separator = Drawing(100, 1)
@@ -131,6 +134,7 @@ class PdfGenerator(object):
         self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
         self.luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)"]]
         self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]]
+        self.zscores_headers = [["Place", "Team", "Manager", "Z-Score"]]
         self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
         self.break_efficiency_ties_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*The league commissioner will " \
                                             "resolve coaching efficiency ties manually. The tiebreaker goes " \
@@ -157,6 +161,7 @@ class PdfGenerator(object):
         self.luck_title = self.create_title(luck_title_text, element_type="section")
         self.power_ranking_title = self.create_title(power_ranking_title_text, element_type="section")
         self.bad_boy_title = self.create_title(bad_boy_title_text, element_type="section")
+        self.zscores_title = self.create_title(zscores_title_text, element_type="section")
         footer_data = [[self.spacer_huge],
                        [Paragraph(report_footer_text, getSampleStyleSheet()["Normal"])]]
         self.report_footer = Table(footer_data, colWidths=7.75 * inch)
@@ -425,9 +430,14 @@ class PdfGenerator(object):
                             self.style, self.standings_col_widths, self.spacer_large)
 
         # power ranking
-        self.create_section(elements, self.power_ranking_title, self.power_ranking_headers, self.power_ranking_data,
-                            self.style_tied_power_rankings, self.power_ranking_col_widths, self.page_break,
+        self.create_section(elements, self.power_ranking_title, self.power_ranking_headers, self.power_ranking_results_data,
+                            self.style_tied_power_rankings, self.power_ranking_col_widths, self.spacer_small,
                             tied_metric_bool=self.tied_power_rankings_bool, metric_type="power_rank")
+
+        # zscores
+        self.create_section(elements, self.zscores_title, self.zscores_headers, self.zscore_results_data,
+                            self.style_tied_power_rankings, self.z_score_col_widths, self.page_break,
+                            tied_metric_bool=False, metric_type="zscore")
 
         # scores
         self.create_section(elements, self.scores_title, self.scores_headers, self.score_results_data,
@@ -454,6 +464,7 @@ class PdfGenerator(object):
         points_data = line_chart_data_list[2]
         efficiency_data = line_chart_data_list[3]
         luck_data = line_chart_data_list[4]
+        zscore_data = line_chart_data_list[5]
 
         # Remove any zeros from coaching efficiency to make table prettier
         for team in efficiency_data:
@@ -477,6 +488,12 @@ class PdfGenerator(object):
                                    20.00))
         elements.append(self.spacer_large)
         elements.append(self.page_break)
+
+        # # Exclude z-score time series data unless it is determined to be relevant
+        # elements.append(self.create_line_chart(zscore_data, len(points_data[0]), series_names, "Weekly Z-Score",
+        #                                        "Weeks", "Z-Score", 5.00))
+        # elements.append(self.spacer_large)
+        # elements.append(self.page_break)
 
         # dynamically build additional pages for individual team stats
         self.create_team_stats_pages(elements, self.weekly_points_by_position_data,

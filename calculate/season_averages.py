@@ -1,3 +1,5 @@
+import numpy as np
+
 from calculate.metrics import CalculateMetrics
 
 
@@ -12,7 +14,12 @@ class SeasonAverageCalculator(object):
         team_index = 0
         for team in data:
             team_name = self.team_names[team_index]
-            season_average_value = "{0:.2f}".format(sum([float(week[1]) for week in team]) / float(len(team)))
+            # season_average_value = "{0:.2f}".format(sum([float(week[1]) for week in team]) / float(len(team)))
+
+            valid_values = [value[1] for value in team if value[1] is not None]
+            average = np.mean(valid_values)
+            season_average_value = "{0:.2f}".format(average)
+
             season_average_list.append([team_name, season_average_value])
             team_index += 1
         ordered_average_values = sorted(season_average_list, key=lambda x: float(x[1]), reverse=reverse_bool)
@@ -39,6 +46,8 @@ class SeasonAverageCalculator(object):
 
                     else:
                         value = "{0}".format(str(team[2]))
+                        if key == "zscore_results_data":
+                            value = value.split(" ")[0]
                         ordered_team.append(value)
 
                     ordered_season_average_list.append(ordered_team)

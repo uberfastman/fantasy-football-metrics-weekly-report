@@ -15,6 +15,7 @@ from calculate.metrics import CalculateMetrics
 from calculate.points_by_position import PointsByPosition
 from calculate.power_ranking import PowerRanking
 from calculate.season_averages import SeasonAverageCalculator
+from calculate.z_score import ZScore
 from report.pdf.pdf_generator import PdfGenerator
 from utils.yql_query import YqlQuery
 
@@ -276,7 +277,7 @@ class FantasyFootballReport(object):
 
         return team_results_dict
 
-    def calculate_metrics(self, chosen_week):
+    def calculate_metrics(self, weekly_team_info, chosen_week):
 
         matchups_list = self.retrieve_scoreboard(chosen_week)
         team_results_dict = self.retrieve_data(chosen_week)
@@ -292,13 +293,28 @@ class FantasyFootballReport(object):
                                                              team_results_dict)
 
         # calculate luck metric and add values to team_results_dict
-        Breakdown().execute_breakdown(team_results_dict, matchups_list)
+        breakdown = Breakdown()
+        breakdown_results = breakdown.execute_breakdown(team_results_dict, matchups_list)
+
+        # yes, this is kind of redundent but its clearer that the individual metrics
+        # are _not_ supposed to be modifying the things passed into it
+        for team_id in team_results_dict:
+            team_results_dict[team_id]["luck"] = breakdown_results[team_id]["luck"] * 100
+            team_results_dict[team_id]["breakdown"] = breakdown_results[team_id]["breakdown"]
+
+        # dependent on all previous weeks scores
+        zscore = ZScore(weekly_team_info + [team_results_dict])
+        zscore_results = zscore.execute()
+
+        for team_id in team_results_dict:
+            team_results_dict[team_id]["zscore"] = zscore_results[team_id]
 
         power_ranking_metric = PowerRanking()
         power_ranking_results = power_ranking_metric.execute_power_ranking(team_results_dict)
 
-        for team_name in team_results_dict:
-            team_results_dict[team_name]["power_rank"] = power_ranking_results[team_name]["power_rank"]
+        for team_id in team_results_dict:
+            team_results_dict[team_id]["power_rank"] = power_ranking_results[team_id]["power_rank"]
+            team_results_dict[team_id]["zscore_rank"] = power_ranking_results[team_id]["zscore_rank"]
 
         # used only for testing what happens when different metrics are tied; requires uncommenting lines in method
         if self.test_bool:
@@ -320,15 +336,14 @@ class FantasyFootballReport(object):
 
         # create coaching efficiency data for table
         coaching_efficiency_results = sorted(iter(team_results_dict.items()),
-                                             key=lambda k_v1: (k_v1[1].get("coaching_efficiency"), k_v1[0]),
-                                             reverse=True)
+                                             key=lambda k_v: (k_v[1].get("coaching_efficiency"), k_v[0]), reverse=True)
         coaching_efficiency_results_data = calculate_metrics.get_coaching_efficiency_data(
             coaching_efficiency_results)
         efficiency_dq_count = calculate_metrics.coaching_efficiency_dq_count
 
         # create luck data for table
         luck_results = sorted(iter(team_results_dict.items()),
-                              key=lambda k_v2: (k_v2[1].get("luck"), k_v2[0]), reverse=True)
+                              key=lambda k_v: (k_v[1].get("luck"), k_v[0]), reverse=True)
         luck_results_data = calculate_metrics.get_luck_data(luck_results)
 
         # create power ranking data for table
@@ -337,8 +352,18 @@ class FantasyFootballReport(object):
         for key, value in power_ranking_results:
             # season avg calc does something where it keys off the second value in the array
             power_ranking_results_data.append(
-                [value.get("power_rank"), key, team_results_dict[key]["manager"]]
+                [value.get("power_rank"), key, value.get("manager")]
             )
+
+        # create zscore data for table
+        zscore_results = sorted(iter(team_results_dict.items()),
+                                key=lambda k_v: (k_v[1].get("zscore"), k_v[0]), reverse=True)
+        zscore_results_data = []
+        for key, value in zscore_results:
+            valid = value.get("zscore") is not None
+            zscore_rank = value.get("zscore_rank") if valid else "N/A"
+            # zscore_value = "%.2f" % value.get("zscore") if valid else "N/A"
+            zscore_results_data.append([zscore_rank, key, value.get("manager")])
 
         # create bad boy data for table
         bad_boy_results = sorted(iter(team_results_dict.items()),
@@ -419,6 +444,7 @@ class FantasyFootballReport(object):
             "coaching_efficiency_results_data": coaching_efficiency_results_data,
             "luck_results_data": luck_results_data,
             "power_ranking_results_data": power_ranking_results_data,
+            "zscore_results_data": zscore_results_data,
             "bad_boy_results_data": bad_boy_results_data,
             "num_tied_scores": num_tied_scores,
             "num_tied_coaching_efficiencies": num_tied_coaching_efficiencies,
@@ -452,16 +478,20 @@ class FantasyFootballReport(object):
         chosen_week_ordered_managers = []
         report_info_dict = {}
 
+        weekly_team_info = []
+
         time_series_points_data = []
         time_series_efficiency_data = []
         time_series_luck_data = []
         time_series_power_rank_data = []
+        time_series_zscore_data = []
 
         season_average_points_by_position_dict = collections.defaultdict(list)
 
         week_counter = 1
         while week_counter <= int(self.chosen_week):
-            report_info_dict = self.calculate_metrics(chosen_week=str(week_counter))
+            report_info_dict = self.calculate_metrics(weekly_team_info, chosen_week=str(week_counter))
+            weekly_team_info.append(report_info_dict.get("team_results"))
 
             # create team data for charts
             teams_data_list = []
@@ -475,11 +505,12 @@ class FantasyFootballReport(object):
                     temp_team_info.get("score"),
                     temp_team_info.get("coaching_efficiency"),
                     temp_team_info.get("luck"),
-                    temp_team_info.get("power_rank")
+                    temp_team_info.get("power_rank"),
+                    temp_team_info.get("zscore")
                 ])
 
-                weekly_team_info = report_info_dict.get("weekly_points_by_position_data")
-                for weekly_info in weekly_team_info:
+                points_by_position = report_info_dict.get("weekly_points_by_position_data")
+                for weekly_info in points_by_position:
                     if weekly_info[0] == team:
                         season_average_points_by_position_dict[team].append(weekly_info[1])
 
@@ -491,6 +522,7 @@ class FantasyFootballReport(object):
             weekly_coaching_efficiency_data = []
             weekly_luck_data = []
             weekly_power_rank_data = []
+            weekly_zscore_data = []
 
             for team in teams_data_list:
                 ordered_team_names.append(team[1])
@@ -499,6 +531,7 @@ class FantasyFootballReport(object):
                 weekly_coaching_efficiency_data.append([int(week_counter), team[4]])
                 weekly_luck_data.append([int(week_counter), float(team[5])])
                 weekly_power_rank_data.append([int(week_counter), team[6]])
+                weekly_zscore_data.append([int(week_counter), team[7]])
 
             chosen_week_ordered_team_names = ordered_team_names
             chosen_week_ordered_managers = ordered_team_managers
@@ -512,6 +545,8 @@ class FantasyFootballReport(object):
                     time_series_luck_data.append([team_luck])
                 for team_power_rank in weekly_power_rank_data:
                     time_series_power_rank_data.append([team_power_rank])
+                for team_zscore in weekly_zscore_data:
+                    time_series_zscore_data.append([team_zscore])
             else:
                 for index, team_points in enumerate(weekly_points_data):
                     time_series_points_data[index].append(team_points)
@@ -522,6 +557,8 @@ class FantasyFootballReport(object):
                     time_series_luck_data[index].append(team_luck)
                 for index, team_power_rank in enumerate(weekly_power_rank_data):
                     time_series_power_rank_data[index].append(team_power_rank)
+                for index, team_zscore in enumerate(weekly_zscore_data):
+                    time_series_zscore_data[index].append(team_zscore)
             week_counter += 1
 
         # calculate season average metrics and then add columns for them to their respective metric table data
@@ -537,12 +574,17 @@ class FantasyFootballReport(object):
             time_series_power_rank_data, "power_ranking_results_data", with_percent_bool=False, bench_column_bool=False,
             reverse_bool=False)
 
+        report_info_dict["zscore_results_data"] = season_average_calculator.get_average(
+             time_series_zscore_data, "zscore_results_data", with_percent_bool=False, bench_column_bool=False,
+             reverse_bool=False)
+
         line_chart_data_list = [chosen_week_ordered_team_names,
                                 chosen_week_ordered_managers,
                                 time_series_points_data,
                                 time_series_efficiency_data,
                                 time_series_luck_data,
-                                time_series_power_rank_data]
+                                time_series_power_rank_data,
+                                time_series_zscore_data]
 
         # calculate season average points by position and add them to the report_info_dict
         PointsByPosition.calculate_points_by_position_season_averages(season_average_points_by_position_dict,
@@ -578,6 +620,7 @@ class FantasyFootballReport(object):
             coaching_efficiency_title_text="Team Coaching Efficiency Rankings",
             luck_title_text="Team Luck Rankings",
             power_ranking_title_text="Team Power Rankings",
+            zscores_title_text="Team Z-Score Rankings",
             report_footer_text=report_footer_text,
             report_info_dict=report_info_dict,
             bad_boy_title_text="Bad Boy Rankings"
