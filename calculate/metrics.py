@@ -23,10 +23,16 @@ class CalculateMetrics(object):
             else:
                 streak_type = "T"
 
+            # Handle co-managers - if there are co-managers, select the first manager's name to display
+            if type(team["managers"]["manager"]) is list:
+                manager = team["managers"]["manager"][0]["nickname"]
+            else:
+                manager = team["managers"]["manager"]["nickname"]
+
             current_standings_data.append([
                 team.get("team_standings").get("rank"),
                 team.get("name"),
-                team.get("managers").get("manager").get("nickname"),
+                manager,
                 team.get("team_standings").get("outcome_totals").get("wins") + "-" +
                 team.get("team_standings").get("outcome_totals").get("losses") + "-" +
                 team.get("team_standings").get("outcome_totals").get("ties") + " (" +
