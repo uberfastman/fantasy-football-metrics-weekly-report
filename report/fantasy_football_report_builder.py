@@ -359,14 +359,18 @@ class FantasyFootballReport(object):
             )
 
         # create zscore data for table
-        zscore_results = sorted(iter(team_results_dict.items()),
-                                key=lambda k_v: (k_v[1].get("zscore"), k_v[0]), reverse=True)
+        zscore_results = sorted(iter(list(team_results_dict.items())),
+                                key=lambda k_v: (k_v[1].get("zscore_rank"), k_v[0]))
+
         zscore_results_data = []
         for key, value in zscore_results:
-            valid = value.get("zscore") is not None
-            zscore_rank = value.get("zscore_rank") if valid else "N/A"
-            # zscore_value = "%.2f" % value.get("zscore") if valid else "N/A"
-            zscore_results_data.append([zscore_rank, key, value.get("manager")])
+            zscore = value.get("zscore", None)
+            zscore_rank = value.get("zscore_rank", "N/A")
+            if zscore:
+                zscore = round(float(zscore), 2)
+            else:
+                zscore = "N/A"
+            zscore_results_data.append([zscore_rank, key, value.get("manager"), zscore])
 
         # create bad boy data for table
         bad_boy_results = sorted(iter(team_results_dict.items()),
@@ -590,9 +594,9 @@ class FantasyFootballReport(object):
             time_series_power_rank_data, "power_ranking_results_data", with_percent_bool=False, bench_column_bool=False,
             reverse_bool=False)
 
-        report_info_dict["zscore_results_data"] = season_average_calculator.get_average(
-             time_series_zscore_data, "zscore_results_data", with_percent_bool=False, bench_column_bool=False,
-             reverse_bool=False)
+        # report_info_dict["zscore_results_data"] = season_average_calculator.get_average(
+        #      time_series_zscore_data, "zscore_results_data", with_percent_bool=False, bench_column_bool=False,
+        #      reverse_bool=False)
 
         line_chart_data_list = [chosen_week_ordered_team_names,
                                 chosen_week_ordered_managers,

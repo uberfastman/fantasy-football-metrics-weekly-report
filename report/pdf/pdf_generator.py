@@ -119,6 +119,9 @@ class PdfGenerator(object):
         ]
         self.style = TableStyle(table_style_list)
         self.style_no_highlight = TableStyle(table_style_list[2:])
+        red_highlight = table_style_list.copy()
+        red_highlight[0] = ("TEXTCOLOR", (0, 1), (-1, 1), colors.darkred)
+        self.style_red_highlight = TableStyle(red_highlight)
 
         # report specific document elements
         self.standings_headers = [
@@ -149,8 +152,7 @@ class PdfGenerator(object):
         self.style_tied_luck = self.set_tied_values_style(self.num_tied_lucks, table_style_list, "luck")
         self.style_tied_power_rankings = self.set_tied_values_style(self.num_tied_power_rankings, table_style_list,
                                                                     "power_ranking")
-        self.style_tied_bad_boy = self.set_tied_values_style(self.num_tied_bad_boys, table_style_list,
-                                                             "bad_boy")
+        self.style_tied_bad_boy = self.set_tied_values_style(self.num_tied_bad_boys, table_style_list, "bad_boy")
 
         # options: "document", "section", or None
         self.report_title = self.create_title(report_title_text, element_type="document")
@@ -202,8 +204,12 @@ class PdfGenerator(object):
         else:
             iterator = num_tied_for_first
             index = 1
+            if metric_type == "bad_boy":
+                color = colors.darkred
+            else:
+                color = colors.green
             while iterator > 0:
-                tied_values_table_style_list.append(("TEXTCOLOR", (0, index), (-1, index), colors.green))
+                tied_values_table_style_list.append(("TEXTCOLOR", (0, index), (-1, index), color))
                 tied_values_table_style_list.append(("FONT", (0, index), (-1, index), "Helvetica-Oblique"))
                 iterator -= 1
                 index += 1
@@ -223,18 +229,6 @@ class PdfGenerator(object):
                     eff_dq_count -= 1
                     dq_index += 1
                 self.style_efficiency_dqs = TableStyle(efficiencies_dq_table_style_list)
-
-        if metric_type == "bad_boy":
-            tied_values_table_style_list.append(("TEXTCOLOR", (0, 1), (-1, 1), colors.darkred))
-            tied_values_table_style_list.append(("FONT", (0, 1), (-1, 1), "Helvetica-Oblique"))
-        else:
-            iterator = num_tied_for_first
-            index = 1
-            while iterator > 0:
-                tied_values_table_style_list.append(("TEXTCOLOR", (0, index), (-1, index), colors.darkred))
-                tied_values_table_style_list.append(("FONT", (0, index), (-1, index), "Helvetica-Oblique"))
-                iterator -= 1
-                index += 1
 
         return TableStyle(tied_values_table_style_list)
 
@@ -421,9 +415,9 @@ class PdfGenerator(object):
             # if there are no offending players, add a dummy row to avoid breaking
             if not offending_players_data:
                 offending_players_data = [["N/A", "N/A", "N/A"]]
-            bad_boys_table = self.create_data_table([["Starting Player", "Bad Boy Points", "Worse Offense"]],
+            bad_boys_table = self.create_data_table([["Starting Player", "Bad Boy Points", "Worst Offense"]],
                                                     offending_players_data,
-                                                    self.style_tied_bad_boy,
+                                                    self.style_red_highlight,
                                                     self.style_tied_bad_boy,
                                                     [2.50 * inch, 2.50 * inch, 2.75 * inch],
                                                     False)
