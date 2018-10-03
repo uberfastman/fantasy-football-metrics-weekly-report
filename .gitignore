@@ -4,5 +4,5 @@ authentication/
 reports/
 legacy_code/
 local_dependencies/python-yql-master/__pycache__/
-resources/local_dependencies/logs
+resources/local_dependencies/logs/
 test/
