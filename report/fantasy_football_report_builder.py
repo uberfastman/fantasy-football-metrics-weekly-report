@@ -36,7 +36,7 @@ class FantasyFootballReport(object):
         if user_input_league_id:
             self.league_id = user_input_league_id
         else:
-            self.league_id = self.config.get("Fantasy_Football_Report_Settings", "chosen_league_id")
+            self.league_id = self.config.get("Fantasy_Football_Report_Settings", "league_id")
 
         self.dq_ce_bool = dq_ce_bool
         self.break_ties_bool = break_ties_bool
@@ -53,7 +53,7 @@ class FantasyFootballReport(object):
                 print("CANNOT USE DEV MODE WITHOUT FIRST SAVING DATA WITH SAVE MODE!")
                 sys.exit(2)
             elif save_bool:
-                os.mkdir(self.league_test_dir)
+                os.makedirs(self.league_test_dir)
 
         # run base yql queries
         self.yql_query = YqlQuery(self.config, self.league_id, save_bool, dev_bool, self.league_test_dir)
@@ -154,8 +154,8 @@ class FantasyFootballReport(object):
         """
 
         if not os.path.exists(self.league_test_dir + "/week_" + chosen_week):
-            os.mkdir(self.league_test_dir + "/week_" + chosen_week)
-            os.mkdir(self.league_test_dir + "/week_" + chosen_week + "/roster_data")
+            os.makedirs(self.league_test_dir + "/week_" + chosen_week)
+            os.makedirs(self.league_test_dir + "/week_" + chosen_week + "/roster_data")
 
         matchups = self.yql_query.get_matchups_data(chosen_week)
 
@@ -283,7 +283,7 @@ class FantasyFootballReport(object):
         team_results_dict = self.retrieve_data(chosen_week)
 
         # get current standings
-        calculate_metrics = CalculateMetrics(self.league_id, self.config)
+        calc_metrics = CalculateMetrics(self.league_id, self.config)
 
         # calculate coaching efficiency metric and add values to team_results_dict, and get points by position
         points_by_position = PointsByPosition(self.roster, self.chosen_week)
@@ -318,7 +318,7 @@ class FantasyFootballReport(object):
 
         # used only for testing what happens when different metrics are tied; requires uncommenting lines in method
         if self.test_bool:
-            calculate_metrics.test_ties(team_results_dict)
+            calc_metrics.test_ties(team_results_dict)
 
         for key in team_results_dict:
             try:
@@ -330,21 +330,21 @@ class FantasyFootballReport(object):
         # create score data for table
         score_results = sorted(iter(team_results_dict.items()),
                                key=lambda k_v: (float(k_v[1].get("score")), k_v[0]), reverse=True)
-        score_results_data = calculate_metrics.get_score_data(score_results)
+        score_results_data = calc_metrics.get_score_data(score_results)
 
-        current_standings_data = calculate_metrics.get_standings(self.league_standings_data)
+        current_standings_data = calc_metrics.get_standings(self.league_standings_data)
 
         # create coaching efficiency data for table
         coaching_efficiency_results = sorted(iter(team_results_dict.items()),
                                              key=lambda k_v: (k_v[1].get("coaching_efficiency"), k_v[0]), reverse=True)
-        coaching_efficiency_results_data = calculate_metrics.get_coaching_efficiency_data(
+        coaching_efficiency_results_data = calc_metrics.get_coaching_efficiency_data(
             coaching_efficiency_results)
-        efficiency_dq_count = calculate_metrics.coaching_efficiency_dq_count
+        efficiency_dq_count = calc_metrics.coaching_efficiency_dq_count
 
         # create luck data for table
         luck_results = sorted(iter(team_results_dict.items()),
                               key=lambda k_v: (k_v[1].get("luck"), k_v[0]), reverse=True)
-        luck_results_data = calculate_metrics.get_luck_data(luck_results)
+        luck_results_data = calc_metrics.get_luck_data(luck_results)
 
         # create power ranking data for table
         power_ranking_results = sorted(iter(list(team_results_dict.items())), key=lambda k_v: k_v[1]["power_rank"])
@@ -368,23 +368,23 @@ class FantasyFootballReport(object):
         # create bad boy data for table
         bad_boy_results = sorted(iter(team_results_dict.items()),
                                  key=lambda k_v: (float(k_v[1].get("bad_boy_points")), k_v[0]), reverse=True)
-        bad_boy_results_data = calculate_metrics.get_bad_boy_data(bad_boy_results)
+        bad_boy_results_data = calc_metrics.get_bad_boy_data(bad_boy_results)
 
         # count number of ties for points, coaching efficiency, luck, power ranking, or bad boy ranking
         # tie_type can be "score", "coaching_efficiency", "luck", "power_rank", or "bad_boy"
 
-        num_tied_scores = calculate_metrics.get_num_ties(score_results_data, "score", self.break_ties_bool)
+        num_tied_scores = calc_metrics.get_num_ties(score_results_data, "score", self.break_ties_bool)
         # reorder score data based on bench points
         if num_tied_scores > 0:
-            score_results_data = calculate_metrics.resolve_score_ties(score_results_data, self.break_ties_bool)
-            calculate_metrics.get_num_ties(score_results_data, "score", self.break_ties_bool)
+            score_results_data = calc_metrics.resolve_score_ties(score_results_data, self.break_ties_bool)
+            calc_metrics.get_num_ties(score_results_data, "score", self.break_ties_bool)
         tie_for_first_score = False
         if score_results_data[0][0] == score_results_data[1][0]:
             tie_for_first_score = True
         num_tied_for_first_scores = len(
             [list(group) for key, group in itertools.groupby(score_results_data, lambda x: x[3])][0])
 
-        num_tied_coaching_efficiencies = calculate_metrics.get_num_ties(coaching_efficiency_results_data,
+        num_tied_coaching_efficiencies = calc_metrics.get_num_ties(coaching_efficiency_results_data,
                                                                         "coaching_efficiency", self.break_ties_bool)
         tie_for_first_coaching_efficiency = False
         if coaching_efficiency_results_data[0][0] == coaching_efficiency_results_data[1][0]:
@@ -392,14 +392,14 @@ class FantasyFootballReport(object):
         num_tied_for_first_coaching_efficiency = len(
             [list(group) for key, group in itertools.groupby(coaching_efficiency_results_data, lambda x: x[3])][0])
 
-        num_tied_lucks = calculate_metrics.get_num_ties(luck_results_data, "luck", self.break_ties_bool)
+        num_tied_lucks = calc_metrics.get_num_ties(luck_results_data, "luck", self.break_ties_bool)
         tie_for_first_luck = False
         if luck_results_data[0][0] == luck_results_data[1][0]:
             tie_for_first_luck = True
         num_tied_for_first_luck = len(
             [list(group) for key, group in itertools.groupby(luck_results_data, lambda x: x[3])][0])
 
-        num_tied_power_rankings = calculate_metrics.get_num_ties(power_ranking_results_data, "power_rank",
+        num_tied_power_rankings = calc_metrics.get_num_ties(power_ranking_results_data, "power_rank",
                                                                  self.break_ties_bool)
         tie_for_first_power_ranking = False
         if power_ranking_results_data[0][0] == power_ranking_results_data[1][0]:
@@ -407,7 +407,7 @@ class FantasyFootballReport(object):
         num_tied_for_first_power_ranking = len(
             [list(group) for key, group in itertools.groupby(power_ranking_results_data, lambda x: x[0])][0])
 
-        num_tied_bad_boys = calculate_metrics.get_num_ties(bad_boy_results_data, "bad_boy", self.break_ties_bool)
+        num_tied_bad_boys = calc_metrics.get_num_ties(bad_boy_results_data, "bad_boy", self.break_ties_bool)
 
         tie_for_first_bad_boy = False
         if num_tied_bad_boys > 0:
@@ -486,11 +486,22 @@ class FantasyFootballReport(object):
         time_series_power_rank_data = []
         time_series_zscore_data = []
 
+        weekly_top_scores = []
+
         season_average_points_by_position_dict = collections.defaultdict(list)
 
         week_counter = 1
         while week_counter <= int(self.chosen_week):
             report_info_dict = self.calculate_metrics(weekly_team_info, chosen_week=str(week_counter))
+
+            top_scorer = {
+                 "week": week_counter,
+                 "team": report_info_dict.get("score_results_data")[0][1],
+                 "manager": report_info_dict.get("score_results_data")[0][2],
+                 "score": report_info_dict.get("score_results_data")[0][3]
+             }
+            weekly_top_scores.append(top_scorer)
+
             weekly_team_info.append(report_info_dict.get("team_results"))
 
             # create team data for charts
@@ -561,6 +572,8 @@ class FantasyFootballReport(object):
                     time_series_zscore_data[index].append(team_zscore)
             week_counter += 1
 
+        report_info_dict["weekly_top_scorers"] = weekly_top_scores
+
         # calculate season average metrics and then add columns for them to their respective metric table data
         season_average_calculator = SeasonAverageCalculator(chosen_week_ordered_team_names, report_info_dict)
         report_info_dict["score_results_data"] = season_average_calculator.get_average(
@@ -617,6 +630,7 @@ class FantasyFootballReport(object):
             report_title_text=report_title_text,
             standings_title_text="League Standings",
             scores_title_text="Team Score Rankings",
+            top_scorers_title_text="Weekly Top Scorers",
             coaching_efficiency_title_text="Team Coaching Efficiency Rankings",
             luck_title_text="Team Luck Rankings",
             power_ranking_title_text="Team Power Rankings",
