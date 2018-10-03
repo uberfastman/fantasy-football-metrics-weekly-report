@@ -420,14 +420,13 @@ class PdfGenerator(object):
                 offending_players_data.append([player["name"], player["bad_boy_points"], player["bad_boy_crime"]])
             # if there are no offending players, add a dummy row to avoid breaking
             if not offending_players_data:
-                offending_players_data = ["N/A", "N/A", "N/A"]
+                offending_players_data = [["N/A", "N/A", "N/A"]]
             bad_boys_table = self.create_data_table([["Starting Player", "Bad Boy Points", "Worse Offense"]],
                                                     offending_players_data,
                                                     self.style_tied_bad_boy,
                                                     self.style_tied_bad_boy,
                                                     [2.50 * inch, 2.50 * inch, 2.75 * inch],
-                                                    False,
-                                                    bad_boy_table=True)
+                                                    False)
           
             doc_elements.append(bad_boys_table)
 
