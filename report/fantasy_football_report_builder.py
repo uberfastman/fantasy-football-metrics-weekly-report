@@ -47,7 +47,7 @@ class FantasyFootballReport(object):
         print("\nGenerating%s fantasy football report for league with id: %s on %s..." % (
             " TEST" if test_bool else "", self.league_id, "{:%b %d, %Y}".format(datetime.datetime.now())))
 
-        self.league_test_dir = "test_league_id-" + self.league_id
+        self.league_test_dir = "test/league_id-" + self.league_id
         if not os.path.exists(self.league_test_dir):
             if dev_bool:
                 print("CANNOT USE DEV MODE WITHOUT FIRST SAVING DATA WITH SAVE MODE!")
