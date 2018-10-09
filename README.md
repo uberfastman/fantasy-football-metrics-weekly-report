@@ -17,7 +17,7 @@ Project dependencies can be viewed in the `requirements.txt` file.
     * For `API Permissions`, check the `Fantasy Sports` checkbox. You can leave the `Read` option selected (appears in an accordion expansion underneath the `Fantasy Sports` checkbox once you select it).
     * Click the `Create App` button.
     * Once the app is created, it should redirect you to a page for your app, which will show both a `Client ID` and a `Client Secret`.
-    * Copy the `Client ID` to the first line of `yahoo-fantasy-football-metrics/authentication/private.txt`, and then copy the `Client Secret` to the second line of the `private.txt` file.
+    * Copy the `Client ID` to the first line of `yahoo-fantasy-football-metrics/authentication/yahoo/private.txt`, and then copy the `Client Secret` to the second line of the `private.txt` file.
     * Now you should be ready to initialize the OAuth connection between the report generator and your Yahoo account.
     
 * Open a Terminal window (command line prompt)

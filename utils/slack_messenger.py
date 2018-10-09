@@ -7,7 +7,7 @@ from slackclient import SlackClient
 class SlackMessenger(object):
     def __init__(self, config):
         self.config = config
-        with open("./authentication/private.txt", "r") as auth_file:
+        with open("./authentication/yahoo/private.txt", "r") as auth_file:
             auth_data = auth_file.read().split("\n")
 
             slack_api_token = auth_data[2]

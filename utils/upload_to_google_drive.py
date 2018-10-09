@@ -12,14 +12,16 @@ class GoogleDriveUploader(object):
     def __init__(self, filename):
         # local config vars
         self.config = ConfigParser()
-        self.config.read('config.ini')
+        self.config.read("config.ini")
 
         self.filename = filename
 
         self.gauth = GoogleAuth()
 
+        auth_token = self.config.get("Google_Drive_Settings", "google_auth_token")
+
         # Try to load saved client credentials
-        self.gauth.LoadCredentialsFile("./authentication/mycreds.txt")
+        self.gauth.LoadCredentialsFile(auth_token)
         if self.gauth.credentials is None:
             # Authenticate if they're not there
             self.gauth.LocalWebserverAuth()
@@ -30,7 +32,7 @@ class GoogleDriveUploader(object):
             # Initialize the saved creds
             self.gauth.Authorize()
         # Save the current credentials to a file
-        self.gauth.SaveCredentialsFile("./authentication/mycreds.txt")
+        self.gauth.SaveCredentialsFile(auth_token)
 
     def upload_file(self, test_bool=False):
 

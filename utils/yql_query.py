@@ -24,7 +24,7 @@ class YqlQuery(object):
 
         if not self.dev_bool:
             # yahoo oauth api (consumer) key and secret
-            with open("./authentication/private.txt", "r") as auth_file:
+            with open("./authentication/yahoo/private.txt", "r") as auth_file:
                 auth_data = auth_file.read().split("\n")
             consumer_key = auth_data[0]
             consumer_secret = auth_data[1]
