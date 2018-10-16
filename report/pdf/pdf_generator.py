@@ -13,6 +13,10 @@ from reportlab.platypus import Spacer
 
 from report.pdf.line_chart_generator import LineChartGenerator
 from report.pdf.pie_chart_generator import BreakdownPieDrawing
+from reportlab.lib.utils import ImageReader
+from reportlab.platypus import Image
+from report.pdf.utils import get_image
+
 
 config = ConfigParser()
 config.read("config.ini")
@@ -370,6 +374,13 @@ class PdfGenerator(object):
 
         return points_line_chart
 
+    @staticmethod
+    def get_image(path, width=1 * inch):
+        img = ImageReader(path)
+        iw, ih = img.getSize()
+        aspect = ih / float(iw)
+        return Image(path, width=width, height=(width * aspect))
+
     def create_team_stats_pages(self, doc_elements, weekly_team_data_by_position, season_average_team_data_by_position):
         team_number = 1
         alphabetical_teams = sorted(weekly_team_data_by_position, key=lambda team_info: team_info[0])
@@ -423,6 +434,14 @@ class PdfGenerator(object):
                                                     False)
           
             doc_elements.append(bad_boys_table)
+
+            doc_elements.append(self.spacer_large)
+
+            headshot = get_image("https://s.yimg.com/iu/api/res/1.2/zSIXGouEisBQ4yLMW4ryoQ--~B/YXBwaWQ9c2hhcmVkO2NoPTIzMzY7Y3I9MTtjdz0xNzkwO2R4PTg1NztkeT0wO2ZpPXVsY3JvcDtoPTYwO3E9MTAwO3c9NDY-/https://s.yimg.com/xe/i/us/sp/v/nfl_cutout/players_l/08212018/28457.png", 2 * inch)
+
+            data = [["player"], [headshot]]
+            table = Table(data, colWidths=2 * inch)
+            doc_elements.append(table)
 
             if team_number == len(alphabetical_teams):
                 doc_elements.append(Spacer(1, 1.75 * inch), )
@@ -529,8 +548,13 @@ class PdfGenerator(object):
         elements.append(self.page_break)
         elements.append(self.report_footer)
 
+        # headshot = ImageReader(
+        #     "https://s.yimg.com/iu/api/res/1.2/zSIXGouEisBQ4yLMW4ryoQ--~B/YXBwaWQ9c2hhcmVkO2NoPTIzMzY7Y3I9MTtjdz0xNzkwO2R4PTg1NztkeT0wO2ZpPXVsY3JvcDtoPTYwO3E9MTAwO3c9NDY-/https://s.yimg.com/xe/i/us/sp/v/nfl_cutout/players_l/08212018/28457.png")
+
         # build pdf
         print("generating PDF ({})...".format(filename_with_path.split("/")[-1]))
         doc.build(elements)
+
+        # doc.canv.drawImage(headshot, 2 * inch, 2 * inch, width=2*inch, height=2*inch)
 
         return doc.filename
