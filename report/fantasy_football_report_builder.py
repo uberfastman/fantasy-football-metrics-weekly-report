@@ -154,11 +154,16 @@ class FantasyFootballReport(object):
         """
 
         if not os.path.exists(self.league_test_dir):
-            os.mkdir(self.league_test_dir)
+            os.makedirs(self.league_test_dir)
 
         if not os.path.exists(self.league_test_dir + "/week_" + chosen_week):
             os.makedirs(self.league_test_dir + "/week_" + chosen_week)
+
+        if not os.path.exists(self.league_test_dir + "/week_" + chosen_week + "/roster_data"):
             os.makedirs(self.league_test_dir + "/week_" + chosen_week + "/roster_data")
+
+        if not os.path.exists(self.league_test_dir + "/week_" + chosen_week + "/player_headshots"):
+            os.makedirs(self.league_test_dir + "/week_" + chosen_week + "/player_headshots")
 
         matchups = self.yql_query.get_matchups_data(chosen_week)
 
@@ -234,7 +239,7 @@ class FantasyFootballReport(object):
                 pteam = player.get("editorial_team_abbr").upper()
                 player_selected_position = player.get("selected_position").get("position")
                 bad_boy_points = 0
-                crime = ''
+                crime = ""
                 if player_selected_position != "BN":
                     bad_boy_points, crime = self.BadBoy.check_bad_boy_status(pname, pteam, player_selected_position)
                     positions_filled_active.append(player_selected_position)
@@ -246,7 +251,9 @@ class FantasyFootballReport(object):
                                     "eligible_positions": player.get("eligible_positions").get("position"),
                                     "fantasy_points": float(player.get("player_points").get("total", 0.0)),
                                     "bad_boy_points": 0 if not bad_boy_points else bad_boy_points,
-                                    "bad_boy_crime": crime
+                                    "bad_boy_crime": crime,
+                                    "headshot_url": player.get("image_url"),
+                                    "nfl_team": player.get("editorial_team_full_name")
                                     }
 
                 players.append(player_info_dict)
@@ -633,6 +640,8 @@ class FantasyFootballReport(object):
         # instantiate pdf generator
         pdf_generator = PdfGenerator(
             league_id=self.league_id,
+            week=self.chosen_week,
+            test_dir=self.league_test_dir,
             break_ties_bool=self.break_ties_bool,
             report_title_text=report_title_text,
             standings_title_text="League Standings",
