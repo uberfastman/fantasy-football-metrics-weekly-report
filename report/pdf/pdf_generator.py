@@ -13,6 +13,10 @@ from reportlab.platypus import Spacer
 
 from report.pdf.line_chart_generator import LineChartGenerator
 from report.pdf.pie_chart_generator import BreakdownPieDrawing
+from reportlab.lib.utils import ImageReader
+from reportlab.platypus import Image
+from report.pdf.utils import get_image
+
 
 config = ConfigParser()
 config.read("config.ini")
@@ -21,6 +25,8 @@ config.read("config.ini")
 class PdfGenerator(object):
     def __init__(self,
                  league_id,
+                 week,
+                 test_dir,
                  break_ties_bool,
                  report_title_text,
                  standings_title_text,
@@ -36,6 +42,8 @@ class PdfGenerator(object):
                  ):
 
         self.league_id = league_id
+        self.week = week
+        self.test_dir = test_dir
         self.break_ties_bool = break_ties_bool
         self.current_standings_data = report_info_dict.get("current_standings_data")
         self.score_results_data = report_info_dict.get("score_results_data")
@@ -79,10 +87,10 @@ class PdfGenerator(object):
         self.power_ranking_col_widths = [1.00 * inch, 2.50 * inch, 2.50 * inch, 1.75 * inch]
         self.line_separator = Drawing(100, 1)
         self.line_separator.add(Line(0, -65, 550, -65, strokeColor=colors.black, strokeWidth=1))
-        self.spacer_small = Spacer(1, 0.05 * inch)
-        self.spacer_large = Spacer(1, 0.10 * inch)
-        self.spacer_huge = Spacer(1, 5.00 * inch)
-        self.spacer_inch = Spacer(1, 1.00 * inch)
+        self.spacer_twentieth_inch = Spacer(1, 0.05 * inch)
+        self.spacer_tenth_inch = Spacer(1, 0.10 * inch)
+        self.spacer_half_inch = Spacer(1, 0.50 * inch)
+        self.spacer_five_inch = Spacer(1, 5.00 * inch)
         self.page_break = PageBreak()
 
         # Configure style and word wrap
@@ -122,6 +130,19 @@ class PdfGenerator(object):
         red_highlight = table_style_list.copy()
         red_highlight[0] = ("TEXTCOLOR", (0, 1), (-1, 1), colors.darkred)
         self.style_red_highlight = TableStyle(red_highlight)
+
+        boom_bust_table_style_list = [
+            ("TEXTCOLOR", (0, 0), (0, -1), colors.green),
+            ("TEXTCOLOR", (1, 0), (1, -1), colors.darkred),
+            ("FONT", (0, 0), (-1, -1), "Helvetica-Bold"),
+            ("FONT", (0, 1), (-1, 1), "Helvetica-Oblique"),
+            ("FONTSIZE", (0, 0), (-1, 0), 16),
+            ("FONTSIZE", (0, 1), (-1, -2), 14),
+            ("FONTSIZE", (0, -1), (-1, -1), 20),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
+        ]
+        self.boom_bust_table_style = TableStyle(boom_bust_table_style_list)
 
         # report specific document elements
         self.standings_headers = [
@@ -164,7 +185,7 @@ class PdfGenerator(object):
         self.power_ranking_title = self.create_title(power_ranking_title_text, element_type="section")
         self.bad_boy_title = self.create_title(bad_boy_title_text, element_type="section")
         self.zscores_title = self.create_title(zscores_title_text, element_type="section")
-        footer_data = [[self.spacer_huge],
+        footer_data = [[self.spacer_five_inch],
                        [Paragraph(report_footer_text, getSampleStyleSheet()["Normal"])]]
         self.report_footer = Table(footer_data, colWidths=7.75 * inch)
 
@@ -277,12 +298,12 @@ class PdfGenerator(object):
         if metric_type == "scores":
             if self.tied_scores_bool:
                 if not self.break_ties_bool:
-                    elements.append(self.spacer_small)
+                    elements.append(self.spacer_twentieth_inch)
                     elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
 
         elif metric_type == "coaching_efficiency":
             if self.tied_coaching_efficiencies_bool:
-                elements.append(self.spacer_small)
+                elements.append(self.spacer_twentieth_inch)
                 if self.break_ties_bool:
                     elements.append(
                         Paragraph(self.break_efficiency_ties_footer, getSampleStyleSheet()["Normal"]))
@@ -370,6 +391,13 @@ class PdfGenerator(object):
 
         return points_line_chart
 
+    @staticmethod
+    def get_image(path, width=1 * inch):
+        img = ImageReader(path)
+        iw, ih = img.getSize()
+        aspect = ih / float(iw)
+        return Image(path, width=width, height=(width * aspect))
+
     def create_team_stats_pages(self, doc_elements, weekly_team_data_by_position, season_average_team_data_by_position):
         team_number = 1
         alphabetical_teams = sorted(weekly_team_data_by_position, key=lambda team_info: team_info[0])
@@ -397,17 +425,17 @@ class PdfGenerator(object):
             doc_elements.append(team_table)
 
             offending_players = []
+            starting_players = []
             player_info = self.team_data[team[0]]["players"]
             for player in player_info:
                 if player["bad_boy_points"] > 0:
-                    # print(player["name"])
-                    # print(player["bad_boy_points"])
-                    # print(player["bad_boy_crime"])
                     offending_players.append(player)
+                if player["selected_position"] != "BN":
+                    starting_players.append(player)
 
-            doc_elements.append(self.spacer_large)
+            doc_elements.append(self.spacer_half_inch)
             doc_elements.append(self.create_title("Whodunnit?", 8.5, "section"))
-            doc_elements.append(self.spacer_large)
+            doc_elements.append(self.spacer_tenth_inch)
             offending_players = sorted(offending_players, key=lambda x: x["bad_boy_points"], reverse=True)
             offending_players_data = []
             for player in offending_players:
@@ -421,8 +449,29 @@ class PdfGenerator(object):
                                                     self.style_tied_bad_boy,
                                                     [2.50 * inch, 2.50 * inch, 2.75 * inch],
                                                     False)
+
+            starting_players = sorted(starting_players, key=lambda x: x["fantasy_points"], reverse=True)
+            best_weekly_player = starting_players[0]
+            worst_weekly_player = starting_players[-1]
           
             doc_elements.append(bad_boys_table)
+
+            doc_elements.append(self.spacer_tenth_inch)
+
+            best_player_headshot = get_image(best_weekly_player["headshot_url"], self.test_dir, self.week, 1 * inch)
+            worst_player_headshot = get_image(worst_weekly_player["headshot_url"], self.test_dir, self.week, 1 * inch)
+
+            data = [["BOOOOOOOOM", "...b... U... s... T"],
+                    [best_weekly_player["name"] + " -- " + best_weekly_player["nfl_team"],
+                     worst_weekly_player["name"] + " -- " + worst_weekly_player["nfl_team"]],
+                    [best_player_headshot, worst_player_headshot],
+                    [best_weekly_player["fantasy_points"], worst_weekly_player["fantasy_points"]]]
+            table = Table(data, colWidths=3.5 * inch)
+            table.setStyle(self.boom_bust_table_style)
+            doc_elements.append(self.spacer_half_inch)
+            doc_elements.append(self.create_title("Boom... or Bust", 8.5, "section"))
+            doc_elements.append(self.spacer_tenth_inch)
+            doc_elements.append(table)
 
             if team_number == len(alphabetical_teams):
                 doc_elements.append(Spacer(1, 1.75 * inch), )
@@ -444,16 +493,16 @@ class PdfGenerator(object):
 
         # document title
         elements.append(self.report_title)
-        elements.append(self.spacer_large)
+        elements.append(self.spacer_tenth_inch)
 
         # standings
         self.create_section(elements, self.standings_title, self.standings_headers, self.current_standings_data,
-                            self.style, self.style, self.standings_col_widths, self.spacer_large)
+                            self.style, self.style, self.standings_col_widths, self.spacer_tenth_inch)
 
         # power ranking
         self.create_section(elements, self.power_ranking_title, self.power_ranking_headers,
                             self.power_ranking_results_data, self.style, self.style_tied_power_rankings,
-                            self.power_ranking_col_widths, self.spacer_small,
+                            self.power_ranking_col_widths, self.spacer_twentieth_inch,
                             tied_metric_bool=self.tied_power_rankings_bool, metric_type="power_rank")
 
         # zscores
@@ -463,13 +512,13 @@ class PdfGenerator(object):
 
         # scores
         self.create_section(elements, self.scores_title, self.scores_headers, self.score_results_data, self.style,
-                            self.style, self.metrics_5_col_widths, self.spacer_small,
+                            self.style, self.metrics_5_col_widths, self.spacer_twentieth_inch,
                             tied_metric_bool=self.tied_scores_bool, metric_type="scores")
 
         # coaching efficiency
         self.create_section(elements, self.efficiency_title, self.efficiency_headers,
                             self.coaching_efficiency_results_data, self.style, self.style_tied_efficiencies,
-                            self.metrics_5_col_widths, self.spacer_small,
+                            self.metrics_5_col_widths, self.spacer_twentieth_inch,
                             tied_metric_bool=self.tied_coaching_efficiencies_bool, metric_type="coaching_efficiency")
 
         # luck
@@ -479,7 +528,7 @@ class PdfGenerator(object):
 
         # weekly top scorers
         self.create_section(elements, self.top_scorers_title, self.weekly_top_scorer_headers, self.weekly_top_scorers,
-                            self.style_no_highlight, self.style_no_highlight, self.metrics_4_col_widths, self.spacer_small,
+                            self.style_no_highlight, self.style_no_highlight, self.metrics_4_col_widths, self.spacer_twentieth_inch,
                             tied_metric_bool=self.tied_scores_bool, metric_type="top_scorers")
 
         # bad boy rankings
@@ -505,21 +554,21 @@ class PdfGenerator(object):
         # create line charts for points, coaching efficiency, and luck
         elements.append(self.create_line_chart(points_data, len(points_data[0]), series_names, "Weekly Points", "Weeks",
                                                "Fantasy Points", 10.00))
-        elements.append(self.spacer_small)
+        elements.append(self.spacer_twentieth_inch)
         elements.append(
             self.create_line_chart(efficiency_data, len(points_data[0]), series_names, "Weekly Coaching Efficiency",
                                    "Weeks", "Coaching Efficiency (%)", 5.00))
-        elements.append(self.spacer_small)
+        elements.append(self.spacer_twentieth_inch)
         elements.append(
             self.create_line_chart(luck_data, len(points_data[0]), series_names, "Weekly Luck", "Weeks", "Luck (%)",
                                    20.00))
-        elements.append(self.spacer_large)
+        elements.append(self.spacer_tenth_inch)
         elements.append(self.page_break)
 
         # # Exclude z-score time series data unless it is determined to be relevant
         # elements.append(self.create_line_chart(zscore_data, len(points_data[0]), series_names, "Weekly Z-Score",
         #                                        "Weeks", "Z-Score", 5.00))
-        # elements.append(self.spacer_large)
+        # elements.append(self.spacer_tenth_inch)
         # elements.append(self.page_break)
 
         # dynamically build additional pages for individual team stats
