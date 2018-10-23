@@ -6,17 +6,20 @@ from configparser import ConfigParser
 from reportlab.graphics.shapes import Line, Drawing
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import LETTER, inch, portrait
+from reportlab.lib.enums import TA_CENTER
+
 from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.utils import ImageReader
+from reportlab.platypus import Image
 from reportlab.platypus import PageBreak
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.platypus import Spacer
+from reportlab.lib.styles import ParagraphStyle
+
 
 from report.pdf.line_chart_generator import LineChartGenerator
 from report.pdf.pie_chart_generator import BreakdownPieDrawing
-from reportlab.lib.utils import ImageReader
-from reportlab.platypus import Image
 from report.pdf.utils import get_image
-
 
 config = ConfigParser()
 config.read("config.ini")
@@ -95,11 +98,19 @@ class PdfGenerator(object):
 
         # Configure style and word wrap
         self.stylesheet = getSampleStyleSheet()
+        self.stylesheet.add(ParagraphStyle(name='HC',
+                                           parent=self.stylesheet['Normal'],
+                                           fontSize=14,
+                                           alignment=TA_CENTER,
+                                           spaceAfter=6),
+                            alias='header-centered')
+
         self.text_style = self.stylesheet["BodyText"]
         self.text_styleN = self.stylesheet["Normal"]
         self.text_styleD = self.stylesheet["Heading1"]
         self.text_styleT = self.stylesheet["Heading2"]
         self.text_styleH = self.stylesheet["Heading3"]
+        self.text_style_title = self.stylesheet["HC"]
         self.text_style.wordWrap = "CJK"
 
         title_table_style_list = [
@@ -177,14 +188,14 @@ class PdfGenerator(object):
 
         # options: "document", "section", or None
         self.report_title = self.create_title(report_title_text, element_type="document")
-        self.standings_title = self.create_title(standings_title_text, element_type="section")
+        self.standings_title = self.create_title(standings_title_text, element_type="section", anchor="<a name = page3.html#0></a>")
+        self.power_ranking_title = self.create_title(power_ranking_title_text, element_type="section", anchor="<a name = page3.html#1></a>")
+        self.zscores_title = self.create_title(zscores_title_text, element_type="section", anchor="<a name = page3.html#2></a>")
         self.scores_title = self.create_title(scores_title_text, element_type="section")
         self.top_scorers_title = self.create_title(top_scorers_title_text, element_type="section")
         self.efficiency_title = self.create_title(coaching_efficiency_title_text, element_type="section")
         self.luck_title = self.create_title(luck_title_text, element_type="section")
-        self.power_ranking_title = self.create_title(power_ranking_title_text, element_type="section")
         self.bad_boy_title = self.create_title(bad_boy_title_text, element_type="section")
-        self.zscores_title = self.create_title(zscores_title_text, element_type="section")
         footer_data = [[self.spacer_five_inch],
                        [Paragraph(report_footer_text, getSampleStyleSheet()["Normal"])]]
         self.report_footer = Table(footer_data, colWidths=7.75 * inch)
@@ -257,6 +268,7 @@ class PdfGenerator(object):
                        tied_metric_bool=False, metric_type=None):
 
         elements.append(title)
+        elements.append(self.spacer_tenth_inch)
 
         if metric_type == "scores":
             if self.num_tied_scores > 0:
@@ -322,7 +334,7 @@ class PdfGenerator(object):
             if self.tied_bad_boy_bool:
                 elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
 
-    def create_title(self, title_text, title_width=8.5, element_type=None):
+    def create_title(self, title_text, title_width=8.5, element_type=None, anchor=""):
 
         if element_type == "document":
             title_text_style = self.text_styleD
@@ -331,7 +343,21 @@ class PdfGenerator(object):
         else:
             title_text_style = self.text_styleH
 
-        title = Paragraph('''<para align=center><b>''' + title_text + '''</b></para>''', title_text_style)
+        title = Paragraph('''<para align=center><b>''' + anchor + title_text + '''</b></para>''', title_text_style)
+        title_table = Table([[title]], colWidths=[title_width * inch] * 1)
+        title_table.setStyle(self.title_style)
+        return title_table
+
+    def create_anchored_title(self, title_text, title_width=8.5, element_type=None, anchor=""):
+
+        if element_type == "document":
+            title_text_style = self.text_styleD
+        elif element_type == "section":
+            title_text_style = self.text_styleT
+        else:
+            title_text_style = self.text_styleH
+
+        title = Paragraph('''<para align=center><b>''' + anchor + title_text + '''</b></para>''', title_text_style)
         title_table = Table([[title]], colWidths=[title_width * inch] * 1)
         title_table.setStyle(self.title_style)
         return title_table
@@ -466,7 +492,7 @@ class PdfGenerator(object):
                      worst_weekly_player["name"] + " -- " + worst_weekly_player["nfl_team"]],
                     [best_player_headshot, worst_player_headshot],
                     [best_weekly_player["fantasy_points"], worst_weekly_player["fantasy_points"]]]
-            table = Table(data, colWidths=3.5 * inch)
+            table = Table(data, colWidths=4.0 * inch)
             table.setStyle(self.boom_bust_table_style)
             doc_elements.append(self.spacer_half_inch)
             doc_elements.append(self.create_title("Boom... or Bust", 8.5, "section"))
@@ -487,19 +513,36 @@ class PdfGenerator(object):
     def generate_pdf(self, filename_with_path, line_chart_data_list):
 
         elements = []
+        # doc = SimpleDocTemplate(filename_with_path, pagesize=LETTER, rightMargin=25, leftMargin=25, topMargin=10,
+        #                         bottomMargin=10)
         doc = SimpleDocTemplate(filename_with_path, pagesize=LETTER, rightMargin=25, leftMargin=25, topMargin=10,
-                                bottomMargin=10)
+                            bottomMargin=10)
         doc.pagesize = portrait(LETTER)
 
         # document title
         elements.append(self.report_title)
         elements.append(self.spacer_tenth_inch)
 
+        elements.append(Paragraph('<a href = page3.html#0>League Standings</a>', self.text_styleH))  # Linking the anchor to reference 0
+        elements.append(Paragraph('<a href = page3.html#1>Power Rankings</a>', self.text_styleH))  # Linking the anchor to reference 1
+        elements.append(Paragraph('<a href = page3.html#2>Z-Score Rankings</a>', self.text_styleH))  # Linking the anchor to reference 2
+
+        # elements.append(Paragraph('<a name = page3.html#0></a> 1. First Title', self.text_styleH))  # Creating anchor with reference 0
+        # elements.append(Paragraph('<a name = page3.html#1></a><br/> 1.1. First Subtitle', self.text_styleH))  # Creating anchor with reference 1
+
+        elements.append(self.page_break)
+
         # standings
+        # par = Paragraph('<a name = page3.html#0></a><b>League Standings</b>', self.text_style_title)
+        # tab = Table([[par]], colWidths=[8.5 * inch] * 1)
+        # tab.setStyle([("ALIGN", (0, 0), (-1, -1), "CENTER"), ("VALIGN", (0, 0), (-1, -1), "MIDDLE")])
+        # elements.append(tab)  # Creating anchor with reference 0
+        # t1 = self.create_anchored_title("League Standings", element_type="section", anchor="<a name = page3.html#0></a>")
         self.create_section(elements, self.standings_title, self.standings_headers, self.current_standings_data,
                             self.style, self.style, self.standings_col_widths, self.spacer_tenth_inch)
 
         # power ranking
+        # elements.append(Paragraph('<a name = page3.html#1></a>', self.text_styleH))  # Creating anchor with reference 1
         self.create_section(elements, self.power_ranking_title, self.power_ranking_headers,
                             self.power_ranking_results_data, self.style, self.style_tied_power_rankings,
                             self.power_ranking_col_widths, self.spacer_twentieth_inch,
