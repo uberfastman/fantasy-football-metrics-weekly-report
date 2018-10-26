@@ -284,10 +284,10 @@ class PdfGenerator(object):
         return TableStyle(tied_values_table_style_list)
 
     # noinspection PyProtectedMember
-    def create_section(self, elements, toc_anchor, toc_color, toc_page, title, headers, data, table_style, table_style_ties, col_widths,
+    def create_section(self, elements, title, headers, data, table_style, table_style_ties, col_widths,
                        trailing_element, tied_metric_bool=False, metric_type=None):
 
-        self.toc.add_metric_section(toc_anchor, toc_color, title._cellvalues[0][0].getPlainText(), toc_page)
+        self.toc.add_metric_section(title._cellvalues[0][0].getPlainText())
         elements.append(title)
         elements.append(self.spacer_tenth_inch)
 
@@ -448,13 +448,12 @@ class PdfGenerator(object):
     def create_team_stats_pages(self, doc_elements, weekly_team_data_by_position, season_average_team_data_by_position):
         team_number = 1
         alphabetical_teams = sorted(weekly_team_data_by_position, key=lambda team_info: team_info[0])
-        toc_count = len(self.toc.toc_metric_section_data) + 1
-        team_page = 6
         for team in alphabetical_teams:
 
-            self.toc.add_team_section(toc_count, team[0], team_page)
             doc_elements.append(self.create_title("<i>" + team[0] + "</i>", element_type="section",
-                                                  anchor="<a name = page.html#" + str(toc_count) + "></a>"))
+                                                  anchor="<a name = page.html#" + str(self.toc.toc_anchor) + "></a>"))
+            self.toc.add_team_section(team[0])
+            self.toc.add_toc_page()
 
             labels = []
             weekly_data = []
@@ -535,8 +534,6 @@ class PdfGenerator(object):
             # elif team_number % 2 == 0:
             #     doc_elements.append(self.page_break)
             team_number += 1
-            toc_count += 1
-            team_page += 1
 
     def generate_pdf(self, filename_with_path, line_chart_data_list):
 
@@ -555,7 +552,6 @@ class PdfGenerator(object):
 
         # standings
         self.create_section(elements,
-                            0, "blue", 2,
                             self.standings_title,
                             self.standings_headers,
                             self.current_standings_data,
@@ -566,7 +562,6 @@ class PdfGenerator(object):
 
         # power ranking
         self.create_section(elements,
-                            1, "blue", 2,
                             self.power_ranking_title,
                             self.power_ranking_headers,
                             self.power_ranking_results_data,
@@ -579,7 +574,6 @@ class PdfGenerator(object):
 
         # zscores
         self.create_section(elements,
-                            2, "blue", 2,
                             self.zscores_title,
                             self.zscores_headers,
                             self.zscore_results_data,
@@ -590,9 +584,10 @@ class PdfGenerator(object):
                             tied_metric_bool=False,
                             metric_type="zscore")
 
+        self.toc.add_toc_page()
+
         # scores
         self.create_section(elements,
-                            3, "green", 3,
                             self.scores_title,
                             self.scores_headers,
                             self.score_results_data,
@@ -605,7 +600,6 @@ class PdfGenerator(object):
 
         # coaching efficiency
         self.create_section(elements,
-                            4, "green", 3,
                             self.efficiency_title,
                             self.efficiency_headers,
                             self.coaching_efficiency_results_data,
@@ -618,7 +612,6 @@ class PdfGenerator(object):
 
         # luck
         self.create_section(elements,
-                            5, "blue", 3,
                             self.luck_title,
                             self.luck_headers,
                             self.luck_results_data,
@@ -629,9 +622,10 @@ class PdfGenerator(object):
                             tied_metric_bool=self.tied_lucks_bool,
                             metric_type="luck")
 
+        self.toc.add_toc_page()
+
         # weekly top scorers
         self.create_section(elements,
-                            6, "blue", 4,
                             self.top_scorers_title,
                             self.weekly_top_scorer_headers,
                             self.weekly_top_scorers,
@@ -644,7 +638,6 @@ class PdfGenerator(object):
 
         # bad boy rankings
         self.create_section(elements,
-                            7, "blue", 4,
                             self.bad_boy_title,
                             self.bad_boy_headers,
                             self.bad_boy_results_data,
@@ -654,6 +647,8 @@ class PdfGenerator(object):
                             self.page_break,
                             tied_metric_bool=self.tied_bad_boy_bool,
                             metric_type="bad_boy")
+
+        self.toc.add_toc_page(2)
 
         series_names = line_chart_data_list[0]
         points_data = line_chart_data_list[2]
@@ -717,6 +712,11 @@ class TableOfContents(object):
         self.toc_style_left = ParagraphStyle(name="tocl", alignment=TA_LEFT, fontSize=12)
         self.toc_style_title_left = ParagraphStyle(name="tocl", alignment=TA_LEFT, fontSize=18)
 
+        self.toc_anchor = 0
+
+        # start page number at 2 since the report title and table of contents take up page 1
+        self.toc_page = 2
+
         self.toc_metric_section_data = [
             [Paragraph("<b><i>Metric Section</i></b>", self.toc_style_title_right),
              "",
@@ -728,25 +728,35 @@ class TableOfContents(object):
              Paragraph("<b><i>Page</i></b>", self.toc_style_title_left)]
         ]
 
-    def add_metric_section(self, anchor, color, title, page):
+    def add_toc_page(self, pages_to_add=1):
+        self.toc_page += pages_to_add
+
+    def add_metric_section(self, title):
+
+        if title == "Team Score Rankings" or title == "Team Coaching Efficiency Rankings":
+            color = "green"
+        else:
+            color = "blue"
 
         metric_section = [
-            Paragraph("<a href = page.html#" + str(anchor) + " color=" + color + "><b><u>" + title + "</u></b></a>",
+            Paragraph("<a href = page.html#" + str(self.toc_anchor) + " color=" + color + "><b><u>" + title + "</u></b></a>",
                       self.toc_style_right),
             Paragraph(". . . . . . . . . .", self.toc_style_center),
-            Paragraph(str(page), self.toc_style_left)
+            Paragraph(str(self.toc_page), self.toc_style_left)
         ]
         self.toc_metric_section_data.append(metric_section)
+        self.toc_anchor += 1
 
-    def add_team_section(self, anchor, team_name, page):
+    def add_team_section(self, team_name):
 
         team_section = [
-            Paragraph("<a href = page.html#" + str(anchor) + " color=blue><b><u>" + team_name + "</u></b></a>",
+            Paragraph("<a href = page.html#" + str(self.toc_anchor) + " color=blue><b><u>" + team_name + "</u></b></a>",
                       self.toc_style_right),
             Paragraph(". . . . . . . . . .", self.toc_style_center),
-            Paragraph(str(page), self.toc_style_left)
+            Paragraph(str(self.toc_page), self.toc_style_left)
         ]
         self.toc_team_section_data.append(team_section)
+        self.toc_anchor += 1
 
     def get_toc(self):
 
