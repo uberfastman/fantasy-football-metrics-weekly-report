@@ -79,7 +79,7 @@ class PdfGenerator(object):
         self.weekly_top_scorers = report_info_dict.get("weekly_top_scorers")
 
         # table of contents
-        self.toc = TableOfContents()
+        self.toc = TableOfContents(self.break_ties_bool)
 
         # team data for use on team specific stats pages
         self.team_data = report_info_dict.get("team_results")
@@ -704,7 +704,9 @@ class PdfGenerator(object):
 
 class TableOfContents(object):
 
-    def __init__(self):
+    def __init__(self, break_ties_bool):
+
+        self.break_ties_bool = break_ties_bool
 
         self.toc_style_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=12)
         self.toc_style_title_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=18)
@@ -733,8 +735,11 @@ class TableOfContents(object):
 
     def add_metric_section(self, title):
 
-        if title == "Team Score Rankings" or title == "Team Coaching Efficiency Rankings":
-            color = "green"
+        if self.break_ties_bool:
+            if title == "Team Score Rankings" or title == "Team Coaching Efficiency Rankings":
+                color = "green"
+            else:
+                color = "blue"
         else:
             color = "blue"
 
