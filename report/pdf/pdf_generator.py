@@ -95,7 +95,6 @@ class PdfGenerator(object):
         self.spacer_tenth_inch = Spacer(1, 0.10 * inch)
         self.spacer_half_inch = Spacer(1, 0.50 * inch)
         self.spacer_five_inch = Spacer(1, 5.00 * inch)
-        self.page_break = PageBreak()
 
         # Configure style and word wrap
         self.stylesheet = getSampleStyleSheet()
@@ -219,6 +218,10 @@ class PdfGenerator(object):
         text = "Page %s" % page_num
         canvas.drawRightString(4.45 * inch, 0.25 * inch, text)
 
+    def add_page_break(self):
+        self.toc.add_toc_page()
+        return PageBreak()
+
     def set_tied_values_style(self, num_tied_values, table_style_list, metric_type):
 
         num_tied_for_first = num_tied_values
@@ -285,7 +288,7 @@ class PdfGenerator(object):
 
     # noinspection PyProtectedMember
     def create_section(self, elements, title, headers, data, table_style, table_style_ties, col_widths,
-                       trailing_element, tied_metric_bool=False, metric_type=None):
+                       tied_metric_bool=False, metric_type=None):
 
         self.toc.add_metric_section(title._cellvalues[0][0].getPlainText())
         elements.append(title)
@@ -324,7 +327,6 @@ class PdfGenerator(object):
 
         elements.append(data_table)
         self.add_tied_metric_footer(elements, metric_type)
-        elements.append(trailing_element)
 
     def add_tied_metric_footer(self, elements, metric_type):
 
@@ -453,7 +455,6 @@ class PdfGenerator(object):
             doc_elements.append(self.create_title("<i>" + team[0] + "</i>", element_type="section",
                                                   anchor="<a name = page.html#" + str(self.toc.toc_anchor) + "></a>"))
             self.toc.add_team_section(team[0])
-            self.toc.add_toc_page()
 
             labels = []
             weekly_data = []
@@ -527,7 +528,7 @@ class PdfGenerator(object):
             if team_number == len(alphabetical_teams):
                 doc_elements.append(Spacer(1, 1.75 * inch), )
             else:
-                doc_elements.append(self.page_break)
+                doc_elements.append(self.add_page_break())
             # elif team_number % 2 == 1:
             #     doc_elements.append(self.line_separator)
             #     doc_elements.append(self.spacer_inch)
@@ -548,7 +549,7 @@ class PdfGenerator(object):
         elements.append(self.report_title)
         elements.append(self.spacer_half_inch)
 
-        elements.append(self.page_break)
+        elements.append(self.add_page_break())
 
         # standings
         self.create_section(elements,
@@ -557,8 +558,8 @@ class PdfGenerator(object):
                             self.current_standings_data,
                             self.style,
                             self.style,
-                            self.standings_col_widths,
-                            self.spacer_tenth_inch)
+                            self.standings_col_widths)
+        elements.append(self.spacer_tenth_inch)
 
         # power ranking
         self.create_section(elements,
@@ -568,9 +569,9 @@ class PdfGenerator(object):
                             self.style,
                             self.style_tied_power_rankings,
                             self.power_ranking_col_widths,
-                            self.spacer_twentieth_inch,
                             tied_metric_bool=self.tied_power_rankings_bool,
                             metric_type="power_rank")
+        elements.append(self.spacer_twentieth_inch)
 
         # zscores
         self.create_section(elements,
@@ -580,11 +581,9 @@ class PdfGenerator(object):
                             self.style,
                             self.style_tied_power_rankings,
                             self.metrics_4_col_widths,
-                            self.page_break,
                             tied_metric_bool=False,
                             metric_type="zscore")
-
-        self.toc.add_toc_page()
+        elements.append(self.add_page_break())
 
         # scores
         self.create_section(elements,
@@ -594,9 +593,9 @@ class PdfGenerator(object):
                             self.style,
                             self.style,
                             self.metrics_5_col_widths,
-                            self.spacer_twentieth_inch,
                             tied_metric_bool=self.tied_scores_bool,
                             metric_type="scores")
+        elements.append(self.spacer_twentieth_inch)
 
         # coaching efficiency
         self.create_section(elements,
@@ -606,9 +605,9 @@ class PdfGenerator(object):
                             self.style,
                             self.style_tied_efficiencies,
                             self.metrics_5_col_widths,
-                            self.spacer_twentieth_inch,
                             tied_metric_bool=self.tied_coaching_efficiencies_bool,
                             metric_type="coaching_efficiency")
+        elements.append(self.spacer_twentieth_inch)
 
         # luck
         self.create_section(elements,
@@ -618,11 +617,9 @@ class PdfGenerator(object):
                             self.style,
                             self.style_tied_luck,
                             self.metrics_5_col_widths,
-                            self.page_break,
                             tied_metric_bool=self.tied_lucks_bool,
                             metric_type="luck")
-
-        self.toc.add_toc_page()
+        elements.append(self.add_page_break())
 
         # weekly top scorers
         self.create_section(elements,
@@ -632,9 +629,9 @@ class PdfGenerator(object):
                             self.style_no_highlight,
                             self.style_no_highlight,
                             self.metrics_4_col_widths,
-                            self.spacer_twentieth_inch,
                             tied_metric_bool=self.tied_scores_bool,
                             metric_type="top_scorers")
+        elements.append(self.spacer_twentieth_inch)
 
         # bad boy rankings
         self.create_section(elements,
@@ -644,11 +641,9 @@ class PdfGenerator(object):
                             self.style,
                             self.style_tied_bad_boy,
                             self.bad_boy_col_widths,
-                            self.page_break,
                             tied_metric_bool=self.tied_bad_boy_bool,
                             metric_type="bad_boy")
-
-        self.toc.add_toc_page(2)
+        elements.append(self.add_page_break())
 
         series_names = line_chart_data_list[0]
         points_data = line_chart_data_list[2]
@@ -677,7 +672,7 @@ class PdfGenerator(object):
             self.create_line_chart(luck_data, len(points_data[0]), series_names, "Weekly Luck", "Weeks", "Luck (%)",
                                    20.00))
         elements.append(self.spacer_tenth_inch)
-        elements.append(self.page_break)
+        elements.append(self.add_page_break())
 
         # # Exclude z-score time series data unless it is determined to be relevant
         # elements.append(self.create_line_chart(zscore_data, len(points_data[0]), series_names, "Weekly Z-Score",
@@ -692,7 +687,7 @@ class PdfGenerator(object):
         # insert table of contents after report title and spacer
         elements.insert(2, self.toc.get_toc())
 
-        elements.append(self.page_break)
+        elements.append(self.add_page_break())
         elements.append(self.report_footer)
 
         # build pdf
@@ -716,8 +711,8 @@ class TableOfContents(object):
 
         self.toc_anchor = 0
 
-        # start page number at 2 since the report title and table of contents take up page 1
-        self.toc_page = 2
+        # start on page 1 since table of contents is on first page
+        self.toc_page = 1
 
         self.toc_metric_section_data = [
             [Paragraph("<b><i>Metric Section</i></b>", self.toc_style_title_right),
