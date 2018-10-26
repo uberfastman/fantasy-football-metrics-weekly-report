@@ -5,18 +5,19 @@ from configparser import ConfigParser
 
 from reportlab.graphics.shapes import Line, Drawing
 from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from reportlab.lib.pagesizes import LETTER, inch, portrait
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.utils import ImageReader
+from reportlab.platypus import Image
 from reportlab.platypus import PageBreak
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.platypus import Spacer
 
 from report.pdf.line_chart_generator import LineChartGenerator
 from report.pdf.pie_chart_generator import BreakdownPieDrawing
-from reportlab.lib.utils import ImageReader
-from reportlab.platypus import Image
 from report.pdf.utils import get_image
-
 
 config = ConfigParser()
 config.read("config.ini")
@@ -77,6 +78,9 @@ class PdfGenerator(object):
         self.season_average_team_points_by_position = report_info_dict.get("season_average_points_by_position")
         self.weekly_top_scorers = report_info_dict.get("weekly_top_scorers")
 
+        # table of contents
+        self.toc = TableOfContents(self.break_ties_bool)
+
         # team data for use on team specific stats pages
         self.team_data = report_info_dict.get("team_results")
 
@@ -91,15 +95,22 @@ class PdfGenerator(object):
         self.spacer_tenth_inch = Spacer(1, 0.10 * inch)
         self.spacer_half_inch = Spacer(1, 0.50 * inch)
         self.spacer_five_inch = Spacer(1, 5.00 * inch)
-        self.page_break = PageBreak()
 
         # Configure style and word wrap
         self.stylesheet = getSampleStyleSheet()
+        self.stylesheet.add(ParagraphStyle(name='HC',
+                                           parent=self.stylesheet['Normal'],
+                                           fontSize=14,
+                                           alignment=TA_CENTER,
+                                           spaceAfter=6),
+                            alias='header-centered')
+
         self.text_style = self.stylesheet["BodyText"]
         self.text_styleN = self.stylesheet["Normal"]
         self.text_styleD = self.stylesheet["Heading1"]
         self.text_styleT = self.stylesheet["Heading2"]
         self.text_styleH = self.stylesheet["Heading3"]
+        self.text_style_title = self.stylesheet["HC"]
         self.text_style.wordWrap = "CJK"
 
         title_table_style_list = [
@@ -177,17 +188,39 @@ class PdfGenerator(object):
 
         # options: "document", "section", or None
         self.report_title = self.create_title(report_title_text, element_type="document")
-        self.standings_title = self.create_title(standings_title_text, element_type="section")
-        self.scores_title = self.create_title(scores_title_text, element_type="section")
-        self.top_scorers_title = self.create_title(top_scorers_title_text, element_type="section")
-        self.efficiency_title = self.create_title(coaching_efficiency_title_text, element_type="section")
-        self.luck_title = self.create_title(luck_title_text, element_type="section")
-        self.power_ranking_title = self.create_title(power_ranking_title_text, element_type="section")
-        self.bad_boy_title = self.create_title(bad_boy_title_text, element_type="section")
-        self.zscores_title = self.create_title(zscores_title_text, element_type="section")
+        self.standings_title = self.create_title(standings_title_text, element_type="section",
+                                                 anchor="<a name = page.html#0></a>")
+        self.power_ranking_title = self.create_title(power_ranking_title_text, element_type="section",
+                                                     anchor="<a name = page.html#1></a>")
+        self.zscores_title = self.create_title(zscores_title_text, element_type="section",
+                                               anchor="<a name = page.html#2></a>")
+        self.scores_title = self.create_title(scores_title_text, element_type="section",
+                                              anchor="<a name = page.html#3></a>")
+        self.efficiency_title = self.create_title(coaching_efficiency_title_text, element_type="section",
+                                                  anchor="<a name = page.html#4></a>")
+        self.luck_title = self.create_title(luck_title_text, element_type="section",
+                                            anchor="<a name = page.html#5></a>")
+        self.top_scorers_title = self.create_title(top_scorers_title_text, element_type="section",
+                                                   anchor="<a name = page.html#6></a>")
+        self.bad_boy_title = self.create_title(bad_boy_title_text, element_type="section",
+                                               anchor="<a name = page.html#7></a>")
         footer_data = [[self.spacer_five_inch],
                        [Paragraph(report_footer_text, getSampleStyleSheet()["Normal"])]]
         self.report_footer = Table(footer_data, colWidths=7.75 * inch)
+
+    # noinspection PyUnusedLocal
+    @staticmethod
+    def add_page_number(canvas, doc):
+        """
+        Add the page number
+        """
+        page_num = canvas.getPageNumber()
+        text = "Page %s" % page_num
+        canvas.drawRightString(4.45 * inch, 0.25 * inch, text)
+
+    def add_page_break(self):
+        self.toc.add_toc_page()
+        return PageBreak()
 
     def set_tied_values_style(self, num_tied_values, table_style_list, metric_type):
 
@@ -253,10 +286,13 @@ class PdfGenerator(object):
 
         return TableStyle(tied_values_table_style_list)
 
-    def create_section(self, elements, title, headers, data, table_style, table_style_ties, col_widths, trailing_element,
+    # noinspection PyProtectedMember
+    def create_section(self, elements, title, headers, data, table_style, table_style_ties, col_widths,
                        tied_metric_bool=False, metric_type=None):
 
+        self.toc.add_metric_section(title._cellvalues[0][0].getPlainText())
         elements.append(title)
+        elements.append(self.spacer_tenth_inch)
 
         if metric_type == "scores":
             if self.num_tied_scores > 0:
@@ -291,7 +327,6 @@ class PdfGenerator(object):
 
         elements.append(data_table)
         self.add_tied_metric_footer(elements, metric_type)
-        elements.append(trailing_element)
 
     def add_tied_metric_footer(self, elements, metric_type):
 
@@ -322,7 +357,7 @@ class PdfGenerator(object):
             if self.tied_bad_boy_bool:
                 elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
 
-    def create_title(self, title_text, title_width=8.5, element_type=None):
+    def create_title(self, title_text, title_width=8.5, element_type=None, anchor=""):
 
         if element_type == "document":
             title_text_style = self.text_styleD
@@ -331,7 +366,21 @@ class PdfGenerator(object):
         else:
             title_text_style = self.text_styleH
 
-        title = Paragraph('''<para align=center><b>''' + title_text + '''</b></para>''', title_text_style)
+        title = Paragraph('''<para align=center><b>''' + anchor + title_text + '''</b></para>''', title_text_style)
+        title_table = Table([[title]], colWidths=[title_width * inch] * 1)
+        title_table.setStyle(self.title_style)
+        return title_table
+
+    def create_anchored_title(self, title_text, title_width=8.5, element_type=None, anchor=""):
+
+        if element_type == "document":
+            title_text_style = self.text_styleD
+        elif element_type == "section":
+            title_text_style = self.text_styleT
+        else:
+            title_text_style = self.text_styleH
+
+        title = Paragraph('''<para align=center><b>''' + anchor + title_text + '''</b></para>''', title_text_style)
         title_table = Table([[title]], colWidths=[title_width * inch] * 1)
         title_table.setStyle(self.title_style)
         return title_table
@@ -403,7 +452,10 @@ class PdfGenerator(object):
         alphabetical_teams = sorted(weekly_team_data_by_position, key=lambda team_info: team_info[0])
         for team in alphabetical_teams:
 
-            doc_elements.append(self.create_title("<i>" + team[0] + "</i>", element_type="section"))
+            doc_elements.append(self.create_title("<i>" + team[0] + "</i>", element_type="section",
+                                                  anchor="<a name = page.html#" + str(self.toc.toc_anchor) + "></a>"))
+            self.toc.add_team_section(team[0])
+
             labels = []
             weekly_data = []
             season_data = [x[1] for x in season_average_team_data_by_position.get(team[0])]
@@ -466,7 +518,7 @@ class PdfGenerator(object):
                      worst_weekly_player["name"] + " -- " + worst_weekly_player["nfl_team"]],
                     [best_player_headshot, worst_player_headshot],
                     [best_weekly_player["fantasy_points"], worst_weekly_player["fantasy_points"]]]
-            table = Table(data, colWidths=3.5 * inch)
+            table = Table(data, colWidths=4.0 * inch)
             table.setStyle(self.boom_bust_table_style)
             doc_elements.append(self.spacer_half_inch)
             doc_elements.append(self.create_title("Boom... or Bust", 8.5, "section"))
@@ -476,7 +528,7 @@ class PdfGenerator(object):
             if team_number == len(alphabetical_teams):
                 doc_elements.append(Spacer(1, 1.75 * inch), )
             else:
-                doc_elements.append(self.page_break)
+                doc_elements.append(self.add_page_break())
             # elif team_number % 2 == 1:
             #     doc_elements.append(self.line_separator)
             #     doc_elements.append(self.spacer_inch)
@@ -487,54 +539,111 @@ class PdfGenerator(object):
     def generate_pdf(self, filename_with_path, line_chart_data_list):
 
         elements = []
+        # doc = SimpleDocTemplate(filename_with_path, pagesize=LETTER, rightMargin=25, leftMargin=25, topMargin=10,
+        #                         bottomMargin=10)
         doc = SimpleDocTemplate(filename_with_path, pagesize=LETTER, rightMargin=25, leftMargin=25, topMargin=10,
                                 bottomMargin=10)
         doc.pagesize = portrait(LETTER)
 
         # document title
         elements.append(self.report_title)
-        elements.append(self.spacer_tenth_inch)
+        elements.append(self.spacer_half_inch)
+
+        elements.append(self.add_page_break())
 
         # standings
-        self.create_section(elements, self.standings_title, self.standings_headers, self.current_standings_data,
-                            self.style, self.style, self.standings_col_widths, self.spacer_tenth_inch)
+        self.create_section(elements,
+                            self.standings_title,
+                            self.standings_headers,
+                            self.current_standings_data,
+                            self.style,
+                            self.style,
+                            self.standings_col_widths)
+        elements.append(self.spacer_tenth_inch)
 
         # power ranking
-        self.create_section(elements, self.power_ranking_title, self.power_ranking_headers,
-                            self.power_ranking_results_data, self.style, self.style_tied_power_rankings,
-                            self.power_ranking_col_widths, self.spacer_twentieth_inch,
-                            tied_metric_bool=self.tied_power_rankings_bool, metric_type="power_rank")
+        self.create_section(elements,
+                            self.power_ranking_title,
+                            self.power_ranking_headers,
+                            self.power_ranking_results_data,
+                            self.style,
+                            self.style_tied_power_rankings,
+                            self.power_ranking_col_widths,
+                            tied_metric_bool=self.tied_power_rankings_bool,
+                            metric_type="power_rank")
+        elements.append(self.spacer_twentieth_inch)
 
         # zscores
-        self.create_section(elements, self.zscores_title, self.zscores_headers, self.zscore_results_data,
-                            self.style, self.style_tied_power_rankings, self.metrics_4_col_widths, self.page_break,
-                            tied_metric_bool=False, metric_type="zscore")
+        self.create_section(elements,
+                            self.zscores_title,
+                            self.zscores_headers,
+                            self.zscore_results_data,
+                            self.style,
+                            self.style_tied_power_rankings,
+                            self.metrics_4_col_widths,
+                            tied_metric_bool=False,
+                            metric_type="zscore")
+        elements.append(self.add_page_break())
 
         # scores
-        self.create_section(elements, self.scores_title, self.scores_headers, self.score_results_data, self.style,
-                            self.style, self.metrics_5_col_widths, self.spacer_twentieth_inch,
-                            tied_metric_bool=self.tied_scores_bool, metric_type="scores")
+        self.create_section(elements,
+                            self.scores_title,
+                            self.scores_headers,
+                            self.score_results_data,
+                            self.style,
+                            self.style,
+                            self.metrics_5_col_widths,
+                            tied_metric_bool=self.tied_scores_bool,
+                            metric_type="scores")
+        elements.append(self.spacer_twentieth_inch)
 
         # coaching efficiency
-        self.create_section(elements, self.efficiency_title, self.efficiency_headers,
-                            self.coaching_efficiency_results_data, self.style, self.style_tied_efficiencies,
-                            self.metrics_5_col_widths, self.spacer_twentieth_inch,
-                            tied_metric_bool=self.tied_coaching_efficiencies_bool, metric_type="coaching_efficiency")
+        self.create_section(elements,
+                            self.efficiency_title,
+                            self.efficiency_headers,
+                            self.coaching_efficiency_results_data,
+                            self.style,
+                            self.style_tied_efficiencies,
+                            self.metrics_5_col_widths,
+                            tied_metric_bool=self.tied_coaching_efficiencies_bool,
+                            metric_type="coaching_efficiency")
+        elements.append(self.spacer_twentieth_inch)
 
         # luck
-        self.create_section(elements, self.luck_title, self.luck_headers, self.luck_results_data, self.style,
-                            self.style_tied_luck, self.metrics_5_col_widths, self.page_break,
-                            tied_metric_bool=self.tied_lucks_bool, metric_type="luck")
+        self.create_section(elements,
+                            self.luck_title,
+                            self.luck_headers,
+                            self.luck_results_data,
+                            self.style,
+                            self.style_tied_luck,
+                            self.metrics_5_col_widths,
+                            tied_metric_bool=self.tied_lucks_bool,
+                            metric_type="luck")
+        elements.append(self.add_page_break())
 
         # weekly top scorers
-        self.create_section(elements, self.top_scorers_title, self.weekly_top_scorer_headers, self.weekly_top_scorers,
-                            self.style_no_highlight, self.style_no_highlight, self.metrics_4_col_widths, self.spacer_twentieth_inch,
-                            tied_metric_bool=self.tied_scores_bool, metric_type="top_scorers")
+        self.create_section(elements,
+                            self.top_scorers_title,
+                            self.weekly_top_scorer_headers,
+                            self.weekly_top_scorers,
+                            self.style_no_highlight,
+                            self.style_no_highlight,
+                            self.metrics_4_col_widths,
+                            tied_metric_bool=self.tied_scores_bool,
+                            metric_type="top_scorers")
+        elements.append(self.spacer_twentieth_inch)
 
         # bad boy rankings
-        self.create_section(elements, self.bad_boy_title, self.bad_boy_headers, self.bad_boy_results_data,
-                            self.style, self.style_tied_bad_boy, self.bad_boy_col_widths, self.page_break,
-                            tied_metric_bool=self.tied_bad_boy_bool, metric_type="bad_boy")
+        self.create_section(elements,
+                            self.bad_boy_title,
+                            self.bad_boy_headers,
+                            self.bad_boy_results_data,
+                            self.style,
+                            self.style_tied_bad_boy,
+                            self.bad_boy_col_widths,
+                            tied_metric_bool=self.tied_bad_boy_bool,
+                            metric_type="bad_boy")
+        elements.append(self.add_page_break())
 
         series_names = line_chart_data_list[0]
         points_data = line_chart_data_list[2]
@@ -563,7 +672,7 @@ class PdfGenerator(object):
             self.create_line_chart(luck_data, len(points_data[0]), series_names, "Weekly Luck", "Weeks", "Luck (%)",
                                    20.00))
         elements.append(self.spacer_tenth_inch)
-        elements.append(self.page_break)
+        elements.append(self.add_page_break())
 
         # # Exclude z-score time series data unless it is determined to be relevant
         # elements.append(self.create_line_chart(zscore_data, len(points_data[0]), series_names, "Weekly Z-Score",
@@ -575,11 +684,81 @@ class PdfGenerator(object):
         self.create_team_stats_pages(elements, self.weekly_points_by_position_data,
                                      self.season_average_team_points_by_position)
 
-        elements.append(self.page_break)
+        # insert table of contents after report title and spacer
+        elements.insert(2, self.toc.get_toc())
+
+        elements.append(self.add_page_break())
         elements.append(self.report_footer)
 
         # build pdf
         print("generating PDF ({})...".format(filename_with_path.split("/")[-1]))
-        doc.build(elements)
+        doc.build(elements, onFirstPage=self.add_page_number, onLaterPages=self.add_page_number)
 
         return doc.filename
+
+
+class TableOfContents(object):
+
+    def __init__(self, break_ties_bool):
+
+        self.break_ties_bool = break_ties_bool
+
+        self.toc_style_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=12)
+        self.toc_style_title_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=18)
+        self.toc_style_center = ParagraphStyle(name="tocc", alignment=TA_CENTER, fontSize=12)
+        self.toc_style_left = ParagraphStyle(name="tocl", alignment=TA_LEFT, fontSize=12)
+        self.toc_style_title_left = ParagraphStyle(name="tocl", alignment=TA_LEFT, fontSize=18)
+
+        self.toc_anchor = 0
+
+        # start on page 1 since table of contents is on first page
+        self.toc_page = 1
+
+        self.toc_metric_section_data = [
+            [Paragraph("<b><i>Metric Section</i></b>", self.toc_style_title_right),
+             "",
+             Paragraph("<b><i>Page</i></b>", self.toc_style_title_left)]
+        ]
+        self.toc_team_section_data = [
+            [Paragraph("<b><i>Team Section</i></b>", self.toc_style_title_right),
+             "",
+             Paragraph("<b><i>Page</i></b>", self.toc_style_title_left)]
+        ]
+
+    def add_toc_page(self, pages_to_add=1):
+        self.toc_page += pages_to_add
+
+    def add_metric_section(self, title):
+
+        if self.break_ties_bool:
+            if title == "Team Score Rankings" or title == "Team Coaching Efficiency Rankings":
+                color = "green"
+            else:
+                color = "blue"
+        else:
+            color = "blue"
+
+        metric_section = [
+            Paragraph("<a href = page.html#" + str(self.toc_anchor) + " color=" + color + "><b><u>" + title + "</u></b></a>",
+                      self.toc_style_right),
+            Paragraph(". . . . . . . . . .", self.toc_style_center),
+            Paragraph(str(self.toc_page), self.toc_style_left)
+        ]
+        self.toc_metric_section_data.append(metric_section)
+        self.toc_anchor += 1
+
+    def add_team_section(self, team_name):
+
+        team_section = [
+            Paragraph("<a href = page.html#" + str(self.toc_anchor) + " color=blue><b><u>" + team_name + "</u></b></a>",
+                      self.toc_style_right),
+            Paragraph(". . . . . . . . . .", self.toc_style_center),
+            Paragraph(str(self.toc_page), self.toc_style_left)
+        ]
+        self.toc_team_section_data.append(team_section)
+        self.toc_anchor += 1
+
+    def get_toc(self):
+
+        return Table(self.toc_metric_section_data + [["", "", ""]] + self.toc_team_section_data,
+                     colWidths=[3.25 * inch, 2 * inch,  2.50 * inch], rowHeights=0.35 * inch)
