@@ -170,7 +170,6 @@ class FantasyFootballReport(object):
         matchup_list = []
 
         for matchup in matchups:
-
             if matchup.get("status") == "postevent":
                 winning_team = matchup.get("winner_team_key")
                 is_tied = int(matchup.get("is_tied"))
@@ -195,7 +194,8 @@ class FantasyFootballReport(object):
             teams = {
                 team.get("name"): {
                     "result": team_result(team),
-                    "score": team.get("team_points").get("total")
+                    "score": team.get("team_points").get("total"),
+                    "opponent": next(t.get("name") for t in matchup.get("teams").get("team") if t.get("name") != team.get("name"))
                 } for team in matchup.get("teams").get("team")
             }
 
@@ -302,6 +302,13 @@ class FantasyFootballReport(object):
                                                              self.roster, self.league_roster_active_slots,
                                                              team_results_dict)
 
+        # dependent on all previous weeks scores
+        zscore = ZScore(weekly_team_info + [team_results_dict])
+        zscore_results = zscore.execute()
+
+        for team_id in team_results_dict:
+            team_results_dict[team_id]["zscore"] = zscore_results[team_id]
+
         # calculate luck metric and add values to team_results_dict
         breakdown = Breakdown()
         breakdown_results = breakdown.execute_breakdown(team_results_dict, matchups_list)
@@ -309,15 +316,8 @@ class FantasyFootballReport(object):
         # yes, this is kind of redundent but its clearer that the individual metrics
         # are _not_ supposed to be modifying the things passed into it
         for team_id in team_results_dict:
-            team_results_dict[team_id]["luck"] = breakdown_results[team_id]["luck"] * 100
+            team_results_dict[team_id]["luck"] = breakdown_results[team_id]["luck"] #* 100
             team_results_dict[team_id]["breakdown"] = breakdown_results[team_id]["breakdown"]
-
-        # dependent on all previous weeks scores
-        zscore = ZScore(weekly_team_info + [team_results_dict])
-        zscore_results = zscore.execute()
-
-        for team_id in team_results_dict:
-            team_results_dict[team_id]["zscore"] = zscore_results[team_id]
 
         power_ranking_metric = PowerRanking()
         power_ranking_results = power_ranking_metric.execute_power_ranking(team_results_dict)
@@ -354,6 +354,7 @@ class FantasyFootballReport(object):
         # create luck data for table
         luck_results = sorted(iter(team_results_dict.items()),
                               key=lambda k_v: (k_v[1].get("luck"), k_v[0]), reverse=True)
+
         luck_results_data = calc_metrics.get_luck_data(luck_results)
 
         # create power ranking data for table
@@ -596,7 +597,8 @@ class FantasyFootballReport(object):
             time_series_efficiency_data, "coaching_efficiency_results_data", with_percent_bool=True)
         report_info_dict["luck_results_data"] = season_average_calculator.get_average(time_series_luck_data,
                                                                                       "luck_results_data",
-                                                                                      with_percent_bool=True)
+                                                                                      bench_column_bool=False, #what is this?
+                                                                                      with_percent_bool=False)
         report_info_dict["power_ranking_results_data"] = season_average_calculator.get_average(
             time_series_power_rank_data, "power_ranking_results_data", with_percent_bool=False, bench_column_bool=False,
             reverse_bool=False)
