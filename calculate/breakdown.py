@@ -10,7 +10,7 @@ class Breakdown(object):
     def execute_breakdown(teams, matchups_list):
 
         result = defaultdict(dict)
-        matchups = {name: value["result"] for pair in matchups_list for name, value in list(pair.items())}
+        matchups = {name: value for pair in matchups_list for name, value in list(pair.items())}
 
         for team_name in teams:
             team = teams[team_name]
@@ -41,16 +41,19 @@ class Breakdown(object):
             num_teams = float(len(list(teams.keys()))) - 1
 
             if record["W"] != 0 and record["L"] != 0:
-                matchup_result = matchups[team_name]
+                matchup_result = matchups[team_name]["result"]
                 if matchup_result == "W" or matchup_result == "T":
                     luck = (record["L"] + record["T"]) / num_teams
                 else:
                     luck = 0 - (record["W"] + record["T"]) / num_teams
 
-            result[team_name]["luck"] = luck
+            opponent_team_name = matchups[team_name]["opponent"]
+            opponent = teams[opponent_team_name]
+
+            result[team_name]["luck"] = luck + (0 if not team['zscore'] else team['zscore'] - opponent['zscore'])
 
         for team in teams:
-            teams[team]["luck"] = result[team]["luck"] * 100
+            teams[team]["luck"] = result[team]["luck"] #* 100
             teams[team]["breakdown"] = result[team]["breakdown"]
             teams[team]["matchup_result"] = result[team]
 
