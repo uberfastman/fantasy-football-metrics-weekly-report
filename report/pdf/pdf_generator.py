@@ -6,6 +6,7 @@ from configparser import ConfigParser
 from reportlab.graphics.shapes import Line, Drawing
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+from reportlab.lib.fonts import tt2ps
 from reportlab.lib.pagesizes import LETTER, inch, portrait
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.styles import getSampleStyleSheet
@@ -14,6 +15,7 @@ from reportlab.platypus import Image
 from reportlab.platypus import PageBreak
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.platypus import Spacer
+from reportlab.rl_config import canvas_basefontname as _baseFontName
 
 from report.pdf.line_chart_generator import LineChartGenerator
 from report.pdf.pie_chart_generator import BreakdownPieDrawing
@@ -110,6 +112,14 @@ class PdfGenerator(object):
         self.text_styleD = self.stylesheet["Heading1"]
         self.text_styleT = self.stylesheet["Heading2"]
         self.text_styleH = self.stylesheet["Heading3"]
+
+        self.text_styleH5 = ParagraphStyle(name='Heading4',
+                                  parent=self.text_styleN,
+                                  fontName = tt2ps(_baseFontName,1,1),
+                                  fontSize=8,
+                                  leading=10,
+                                  spaceBefore=0,
+                                  spaceAfter=0)
         self.text_style_title = self.stylesheet["HC"]
         self.text_style.wordWrap = "CJK"
 
@@ -191,9 +201,14 @@ class PdfGenerator(object):
         self.standings_title = self.create_title(standings_title_text, element_type="section",
                                                  anchor="<a name = page.html#0></a>")
         self.power_ranking_title = self.create_title(power_ranking_title_text, element_type="section",
-                                                     anchor="<a name = page.html#1></a>")
+                                                     anchor="<a name = page.html#1></a>",
+                                                     subtitle_text="Average of weekly score, coaching efficiency and luck ranks")
         self.zscores_title = self.create_title(zscores_title_text, element_type="section",
-                                               anchor="<a name = page.html#2></a>")
+                                               anchor="<a name = page.html#2></a>",
+                                               subtitle_text=[
+                                                   "Measure of standard deviations away from mean for a score. Shows teams performing ",
+                                                   "above or below their normal scores for the current week.  See <a href = 'https://en.wikipedia.org/wiki/Standard_score' color='blue'>Standard Score</a> "
+                                               ])
         self.scores_title = self.create_title(scores_title_text, element_type="section",
                                               anchor="<a name = page.html#3></a>")
         self.efficiency_title = self.create_title(coaching_efficiency_title_text, element_type="section",
@@ -357,7 +372,7 @@ class PdfGenerator(object):
             if self.tied_bad_boy_bool:
                 elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
 
-    def create_title(self, title_text, title_width=8.5, element_type=None, anchor=""):
+    def create_title(self, title_text, title_width=8.5, element_type=None, anchor="", subtitle_text=None):
 
         if element_type == "document":
             title_text_style = self.text_styleD
@@ -367,7 +382,19 @@ class PdfGenerator(object):
             title_text_style = self.text_styleH
 
         title = Paragraph('''<para align=center><b>''' + anchor + title_text + '''</b></para>''', title_text_style)
-        title_table = Table([[title]], colWidths=[title_width * inch] * 1)
+
+        rows = []
+        rows.append([title])
+
+        if subtitle_text:
+            if (not isinstance(subtitle_text, list)):
+                subtitle_text = [subtitle_text]
+                
+            text = "<br/>".join(subtitle_text)
+            subtitle = Paragraph('''<para align=center>''' + text + '''</para>''', self.text_styleH5)
+            rows.append([subtitle])
+
+        title_table = Table(rows, colWidths=[title_width * inch] * 1)
         title_table.setStyle(self.title_style)
         return title_table
 
