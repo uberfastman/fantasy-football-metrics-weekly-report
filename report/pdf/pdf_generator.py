@@ -166,7 +166,7 @@ class PdfGenerator(object):
         self.scores_headers = [["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]]
         self.weekly_top_scorer_headers = [["Week", "Team", "Manager", "Score"]]
         self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
-        self.luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)"]]
+        self.luck_headers = [["Place", "Team", "Manager", "Luck", "Season Avg. (Place)"]]
         self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]]
         self.zscores_headers = [["Place", "Team", "Manager", "Z-Score"]]
         self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
@@ -669,7 +669,7 @@ class PdfGenerator(object):
                                    "Weeks", "Coaching Efficiency (%)", 5.00))
         elements.append(self.spacer_twentieth_inch)
         elements.append(
-            self.create_line_chart(luck_data, len(points_data[0]), series_names, "Weekly Luck", "Weeks", "Luck (%)",
+            self.create_line_chart(luck_data, len(points_data[0]), series_names, "Weekly Luck", "Weeks", "Luck",
                                    20.00))
         elements.append(self.spacer_tenth_inch)
         elements.append(self.add_page_break())
