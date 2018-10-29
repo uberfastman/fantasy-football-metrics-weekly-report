@@ -1,6 +1,7 @@
 # written by Wren J.R.
 # contributors: Kevin N., Joe M., /u/softsign
 
+import copy
 from configparser import ConfigParser
 
 from reportlab.graphics.shapes import Line, Drawing
@@ -15,7 +16,7 @@ from reportlab.platypus import Image
 from reportlab.platypus import PageBreak
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.platypus import Spacer
-from reportlab.rl_config import canvas_basefontname as _baseFontName
+from reportlab.rl_settings import canvas_basefontname as bfn
 
 from report.pdf.line_chart_generator import LineChartGenerator
 from report.pdf.pie_chart_generator import BreakdownPieDrawing
@@ -114,12 +115,12 @@ class PdfGenerator(object):
         self.text_styleH = self.stylesheet["Heading3"]
 
         self.text_styleH5 = ParagraphStyle(name='Heading4',
-                                  parent=self.text_styleN,
-                                  fontName = tt2ps(_baseFontName,1,1),
-                                  fontSize=8,
-                                  leading=10,
-                                  spaceBefore=0,
-                                  spaceAfter=0)
+                                           parent=self.text_styleN,
+                                           fontName=tt2ps(bfn, 1, 1),
+                                           fontSize=8,
+                                           leading=10,
+                                           spaceBefore=0,
+                                           spaceAfter=0)
         self.text_style_title = self.stylesheet["HC"]
         self.text_style.wordWrap = "CJK"
 
@@ -303,7 +304,7 @@ class PdfGenerator(object):
 
     # noinspection PyProtectedMember
     def create_section(self, elements, title, headers, data, table_style, table_style_ties, col_widths,
-                       tied_metric_bool=False, metric_type=None):
+                       row_heights=None, tied_metric_bool=False, metric_type=None):
 
         self.toc.add_metric_section(title._cellvalues[0][0].getPlainText())
         elements.append(title)
@@ -332,7 +333,8 @@ class PdfGenerator(object):
                 temp_data.append(entry)
                 data = temp_data
 
-        data_table = self.create_data_table(headers, data, table_style, table_style_ties, col_widths, tied_metric_bool)
+        data_table = self.create_data_table(headers, data, table_style, table_style_ties, col_widths, row_heights,
+                                            tied_metric_bool)
 
         if metric_type == "coaching_efficiency":
             if self.efficiency_dq_count > 0:
@@ -383,11 +385,10 @@ class PdfGenerator(object):
 
         title = Paragraph('''<para align=center><b>''' + anchor + title_text + '''</b></para>''', title_text_style)
 
-        rows = []
-        rows.append([title])
+        rows = [[title]]
 
         if subtitle_text:
-            if (not isinstance(subtitle_text, list)):
+            if not isinstance(subtitle_text, list):
                 subtitle_text = [subtitle_text]
                 
             text = "<br/>".join(subtitle_text)
@@ -413,10 +414,10 @@ class PdfGenerator(object):
         return title_table
 
     def create_data_table(self, col_headers, data, table_style=None, table_style_for_ties=None, col_widths=None,
-                          tied_metric_bool=False):
+                          row_heights=None, tied_metric_bool=False):
 
         [col_headers.append(item) for item in data]
-        table = Table(col_headers, colWidths=col_widths)
+        table = Table(col_headers, colWidths=col_widths, rowHeights=row_heights)
 
         if tied_metric_bool:
             if col_headers[0][-1] == "Bench Points":
@@ -526,8 +527,7 @@ class PdfGenerator(object):
                                                     offending_players_data,
                                                     self.style_red_highlight,
                                                     self.style_tied_bad_boy,
-                                                    [2.50 * inch, 2.50 * inch, 2.75 * inch],
-                                                    False)
+                                                    [2.50 * inch, 2.50 * inch, 2.75 * inch])
 
             starting_players = sorted(starting_players, key=lambda x: x["fantasy_points"], reverse=True)
             best_weekly_player = starting_players[0]
@@ -578,15 +578,20 @@ class PdfGenerator(object):
 
         elements.append(self.add_page_break())
 
+        # update standings style to vertically justify all rows
+        standings_style = copy.deepcopy(self.style)
+        standings_style.add('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+
         # standings
         self.create_section(elements,
                             self.standings_title,
                             self.standings_headers,
                             self.current_standings_data,
-                            self.style,
-                            self.style,
-                            self.standings_col_widths)
-        elements.append(self.spacer_tenth_inch)
+                            standings_style,
+                            standings_style,
+                            self.standings_col_widths,
+                            row_heights=0.50 * inch)
+        elements.append(self.add_page_break())
 
         # power ranking
         self.create_section(elements,
