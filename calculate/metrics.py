@@ -95,7 +95,7 @@ class CalculateMetrics(object):
         for key, value in luck_results:
             ranked_team_name = key
             ranked_team_manager = value.get("manager")
-            ranked_luck = "%.2f" % value.get("luck")
+            ranked_luck = "%.2f%%" % value.get("luck")
 
             luck_results_data.append([place, ranked_team_name, ranked_team_manager, ranked_luck])
 
