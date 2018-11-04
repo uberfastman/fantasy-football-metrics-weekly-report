@@ -2,7 +2,6 @@
 # contributors: Kevin N., Joe M., /u/softsign
 
 import copy
-from configparser import ConfigParser
 
 from reportlab.graphics.shapes import Line, Drawing
 from reportlab.lib import colors
@@ -22,34 +21,26 @@ from report.pdf.line_chart_generator import LineChartGenerator
 from report.pdf.pie_chart_generator import BreakdownPieDrawing
 from report.pdf.utils import get_image
 
-config = ConfigParser()
-config.read("config.ini")
-
 
 class PdfGenerator(object):
     def __init__(self,
+                 config,
                  league_id,
                  week,
                  test_dir,
                  break_ties_bool,
                  report_title_text,
-                 standings_title_text,
-                 scores_title_text,
-                 top_scorers_title_text,
-                 coaching_efficiency_title_text,
-                 luck_title_text,
-                 power_ranking_title_text,
-                 zscores_title_text,
                  report_footer_text,
-                 report_info_dict,
-                 bad_boy_title_text
+                 report_info_dict
                  ):
 
+        self.config = config
         self.league_id = league_id
         self.week = week
         self.test_dir = test_dir
         self.break_ties_bool = break_ties_bool
         self.current_standings_data = report_info_dict.get("current_standings_data")
+        self.playoff_probs_data = report_info_dict.get("playoff_probs_data")
         self.score_results_data = report_info_dict.get("score_results_data")
         self.coaching_efficiency_results_data = report_info_dict.get("coaching_efficiency_results_data")
         self.luck_results_data = report_info_dict.get("luck_results_data")
@@ -172,6 +163,24 @@ class PdfGenerator(object):
              "Trades"]]
         self.standings_col_widths = [0.50 * inch, 1.75 * inch, 1.00 * inch, 1.00 * inch, 0.80 * inch, 1.10 * inch,
                                      0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]
+
+        ordinal_dict = {
+            1: "1st", 2: "2nd", 3: "3rd", 4: "4th",
+            5: "5th", 6: "6th", 7: "7th", 8: "8th",
+            9: "9th", 10: "10th", 11: "11th", 12: "12th"
+        }
+
+        ordinal_list = []
+        playoff_places = 1
+        playoff_slots = self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_slots")
+        while playoff_places <= playoff_slots:
+            ordinal_list.append(ordinal_dict[playoff_places])
+            playoff_places += 1
+        self.playoff_probs_headers = [
+            ["Team", "Manager", "Record", "Playoffs", "Needed"] + ordinal_list
+        ]
+        self.playoff_probs_col_widths = [1.75 * inch, 0.90 * inch, 0.90 * inch, 0.65 * inch, 0.65 * inch] +\
+                                        [round(3.3 / playoff_slots, 2) * inch] * playoff_slots
         self.bad_boy_col_widths = [0.75 * inch, 1.75 * inch, 1.25 * inch, 1.25 * inch, 1.75 * inch, 1.00 * inch]
         self.power_ranking_headers = [["Power Rank", "Team", "Manager", "Season Avg. (Place)"]]
         self.scores_headers = [["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]]
@@ -181,12 +190,14 @@ class PdfGenerator(object):
         self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]]
         self.zscores_headers = [["Place", "Team", "Manager", "Z-Score"]]
         self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
+        # self.break_efficiency_ties_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*The league commissioner will " \
+        #                                     "resolve coaching efficiency ties manually. The tiebreaker goes " \
+        #                                     "to the manager whose team contains the most players who have " \
+        #                                     "exceeded their average weekly fantasy points. If there is still " \
+        #                                     "a tie after that, the manager whose players exceeded their " \
+        #                                     "season average score by the highest cumulative percent wins.</i>"
         self.break_efficiency_ties_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*The league commissioner will " \
-                                            "resolve coaching efficiency ties manually. The tiebreaker goes " \
-                                            "to the manager whose team contains the most players who have " \
-                                            "exceeded their average weekly fantasy points. If there is still " \
-                                            "a tie after that, the manager whose players exceeded their " \
-                                            "season average score by the highest cumulative percent wins.</i>"
+                                            "resolve coaching efficiency ties manually.</i>"
 
         self.style_efficiency_dqs = None
         self.style_tied_scores = self.set_tied_values_style(self.num_tied_scores, table_style_list, "scores")
@@ -199,27 +210,29 @@ class PdfGenerator(object):
 
         # options: "document", "section", or None
         self.report_title = self.create_title(report_title_text, element_type="document")
-        self.standings_title = self.create_title(standings_title_text, element_type="section",
-                                                 anchor="<a name = page.html#0></a>")
-        self.power_ranking_title = self.create_title(power_ranking_title_text, element_type="section",
-                                                     anchor="<a name = page.html#1></a>",
-                                                     subtitle_text="Average of weekly score, coaching efficiency and luck ranks")
-        self.zscores_title = self.create_title(zscores_title_text, element_type="section",
-                                               anchor="<a name = page.html#2></a>",
-                                               subtitle_text=[
-                                                   "Measure of standard deviations away from mean for a score. Shows teams performing ",
-                                                   "above or below their normal scores for the current week.  See <a href = 'https://en.wikipedia.org/wiki/Standard_score' color='blue'>Standard Score</a> "
-                                               ])
-        self.scores_title = self.create_title(scores_title_text, element_type="section",
-                                              anchor="<a name = page.html#3></a>")
-        self.efficiency_title = self.create_title(coaching_efficiency_title_text, element_type="section",
-                                                  anchor="<a name = page.html#4></a>")
-        self.luck_title = self.create_title(luck_title_text, element_type="section",
-                                            anchor="<a name = page.html#5></a>")
-        self.top_scorers_title = self.create_title(top_scorers_title_text, element_type="section",
-                                                   anchor="<a name = page.html#6></a>")
-        self.bad_boy_title = self.create_title(bad_boy_title_text, element_type="section",
-                                               anchor="<a name = page.html#7></a>")
+        # self.standings_title = self.create_title(standings_title_text, element_type="section",
+        #                                          anchor="<a name = page.html#" + str(anchor_count) + "></a>")
+        # self.playoff_probs_title = self.create_title(standings_title_text, element_type="section",
+        #                                          anchor="<a name = page.html#1></a>")
+        # self.power_ranking_title = self.create_title(power_ranking_title_text, element_type="section",
+        #                                              anchor="<a name = page.html#2></a>",
+        #                                              subtitle_text="Average of weekly score, coaching efficiency and luck ranks")
+        # self.zscores_title = self.create_title(zscores_title_text, element_type="section",
+        #                                        anchor="<a name = page.html#2></a>",
+        #                                        subtitle_text=[
+        #                                            "Measure of standard deviations away from mean for a score. Shows teams performing ",
+        #                                            "above or below their normal scores for the current week.  See <a href = 'https://en.wikipedia.org/wiki/Standard_score' color='blue'>Standard Score</a> "
+        #                                        ])
+        # self.scores_title = self.create_title(scores_title_text, element_type="section",
+        #                                       anchor="<a name = page.html#3></a>")
+        # self.efficiency_title = self.create_title(coaching_efficiency_title_text, element_type="section",
+        #                                           anchor="<a name = page.html#4></a>")
+        # self.luck_title = self.create_title(luck_title_text, element_type="section",
+        #                                     anchor="<a name = page.html#5></a>")
+        # self.top_scorers_title = self.create_title(top_scorers_title_text, element_type="section",
+        #                                            anchor="<a name = page.html#6></a>")
+        # self.bad_boy_title = self.create_title(bad_boy_title_text, element_type="section",
+        #                                        anchor="<a name = page.html#7></a>")
         footer_data = [[self.spacer_five_inch],
                        [Paragraph(report_footer_text, getSampleStyleSheet()["Normal"])]]
         self.report_footer = Table(footer_data, colWidths=7.75 * inch)
@@ -303,10 +316,16 @@ class PdfGenerator(object):
         return TableStyle(tied_values_table_style_list)
 
     # noinspection PyProtectedMember
-    def create_section(self, elements, title, headers, data, table_style, table_style_ties, col_widths,
-                       row_heights=None, tied_metric_bool=False, metric_type=None):
+    def create_section(self, elements, title_text, headers, data, table_style, table_style_ties, col_widths,
+                       subtitle_text=None, row_heights=None, tied_metric_bool=False, metric_type=None):
 
-        self.toc.add_metric_section(title._cellvalues[0][0].getPlainText())
+        # self.toc.add_metric_section(title._cellvalues[0][0].getPlainText())
+
+        title = self.create_title(title_text, element_type="section",
+                                  anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>",
+                                  subtitle_text=subtitle_text)
+        self.toc.add_metric_section(title_text)
+
         elements.append(title)
         elements.append(self.spacer_tenth_inch)
 
@@ -480,9 +499,11 @@ class PdfGenerator(object):
         alphabetical_teams = sorted(weekly_team_data_by_position, key=lambda team_info: team_info[0])
         for team in alphabetical_teams:
 
-            doc_elements.append(self.create_title("<i>" + team[0] + "</i>", element_type="section",
-                                                  anchor="<a name = page.html#" + str(self.toc.toc_anchor) + "></a>"))
+            title = self.create_title("<i>" + team[0] + "</i>", element_type="section",
+                                      anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>")
             self.toc.add_team_section(team[0])
+
+            doc_elements.append(title)
 
             labels = []
             weekly_data = []
@@ -580,101 +601,160 @@ class PdfGenerator(object):
 
         # update standings style to vertically justify all rows
         standings_style = copy.deepcopy(self.style)
-        standings_style.add('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        standings_style.add("VALIGN", (0, 0), (-1, -1), "MIDDLE")
 
         # standings
-        self.create_section(elements,
-                            self.standings_title,
-                            self.standings_headers,
-                            self.current_standings_data,
-                            standings_style,
-                            standings_style,
-                            self.standings_col_widths,
-                            row_heights=0.50 * inch)
+        self.create_section(
+            elements,
+            "League Standings",
+            self.standings_headers,
+            self.current_standings_data,
+            standings_style,
+            standings_style,
+            self.standings_col_widths
+        )
+        elements.append(self.spacer_tenth_inch)
+
+        # update playoff probabilities style to make playoff teams green
+        playoff_slots = self.config.getint("Fantasy_Football_Report_Settings","num_playoff_slots")
+        playoff_probs_style = copy.deepcopy(self.style)
+        playoff_probs_style.add("TEXTCOLOR", (0, 1), (-1, playoff_slots), colors.green)
+        playoff_probs_style.add("FONT", (0, 1), (-1, -1), "Helvetica")
+
+        regular_season_weeks = self.config.getint("Fantasy_Football_Report_Settings", "num_regular_season_weeks")
+        team_num = 1
+        for team in self.playoff_probs_data:
+            if float(team[3].split("%")[0]) == 100.00 and int(team[4].split(" ")[0]) == 0:
+                playoff_probs_style.add("TEXTCOLOR", (0, team_num), (-1, team_num), colors.darkgreen)
+                playoff_probs_style.add("FONT", (0, team_num), (-1, team_num), "Helvetica-BoldOblique")
+
+            if (int(team[4].split(" ")[0]) + int(self.week)) > regular_season_weeks:
+                playoff_probs_style.add("TEXTCOLOR", (4, team_num), (4, team_num), colors.red)
+
+                if float(team[3].split("%")[0]) == 0.00:
+                    playoff_probs_style.add("TEXTCOLOR", (0, team_num), (-1, team_num), colors.darkred)
+                    playoff_probs_style.add("FONT", (0, team_num), (-1, team_num), "Helvetica-BoldOblique")
+
+            team_num += 1
+
+        # playoff probabilities
+        self.create_section(
+            elements,
+            "Playoff Probabilities",
+            self.playoff_probs_headers,
+            self.playoff_probs_data,
+            playoff_probs_style,
+            playoff_probs_style,
+            self.playoff_probs_col_widths,
+            subtitle_text="Playoff probabilities were calculated using %s Monte Carlo simulations to predict "
+                          "team performances through the end of the regular fantasy season." %
+                          "{0:,}".format(
+                              self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations"))
+        )
         elements.append(self.add_page_break())
 
         # power ranking
-        self.create_section(elements,
-                            self.power_ranking_title,
-                            self.power_ranking_headers,
-                            self.power_ranking_results_data,
-                            self.style,
-                            self.style_tied_power_rankings,
-                            self.power_ranking_col_widths,
-                            tied_metric_bool=self.tied_power_rankings_bool,
-                            metric_type="power_rank")
+        self.create_section(
+            elements,
+            "Team Power Rankings",
+            self.power_ranking_headers,
+            self.power_ranking_results_data,
+            self.style,
+            self.style_tied_power_rankings,
+            self.power_ranking_col_widths,
+            tied_metric_bool=self.tied_power_rankings_bool,
+            metric_type="power_rank",
+            subtitle_text="Average of weekly score, coaching efficiency and luck ranks."
+        )
         elements.append(self.spacer_twentieth_inch)
 
         # zscores
-        self.create_section(elements,
-                            self.zscores_title,
-                            self.zscores_headers,
-                            self.zscore_results_data,
-                            self.style,
-                            self.style_tied_power_rankings,
-                            self.metrics_4_col_widths,
-                            tied_metric_bool=False,
-                            metric_type="zscore")
+        self.create_section(
+            elements,
+            "Team Z-Score Rankings",
+            self.zscores_headers,
+            self.zscore_results_data,
+            self.style,
+            self.style_tied_power_rankings,
+            self.metrics_4_col_widths,
+            tied_metric_bool=False,
+            metric_type="zscore",
+            subtitle_text=[
+                "Measure of standard deviations away from mean for a score. Shows teams performing ",
+                "above or below their normal scores for the current week.  See <a href = "
+                "'https://en.wikipedia.org/wiki/Standard_score' color='blue'>Standard Score</a>."
+            ]
+        )
         elements.append(self.add_page_break())
 
         # scores
-        self.create_section(elements,
-                            self.scores_title,
-                            self.scores_headers,
-                            self.score_results_data,
-                            self.style,
-                            self.style,
-                            self.metrics_5_col_widths,
-                            tied_metric_bool=self.tied_scores_bool,
-                            metric_type="scores")
+        self.create_section(
+            elements,
+            "Team Score Rankings",
+            self.scores_headers,
+            self.score_results_data,
+            self.style,
+            self.style,
+            self.metrics_5_col_widths,
+            tied_metric_bool=self.tied_scores_bool,
+            metric_type="scores"
+        )
         elements.append(self.spacer_twentieth_inch)
 
         # coaching efficiency
-        self.create_section(elements,
-                            self.efficiency_title,
-                            self.efficiency_headers,
-                            self.coaching_efficiency_results_data,
-                            self.style,
-                            self.style_tied_efficiencies,
-                            self.metrics_5_col_widths,
-                            tied_metric_bool=self.tied_coaching_efficiencies_bool,
-                            metric_type="coaching_efficiency")
+        self.create_section(
+            elements,
+            "Team Coaching Efficiency Rankings",
+            self.efficiency_headers,
+            self.coaching_efficiency_results_data,
+            self.style,
+            self.style_tied_efficiencies,
+            self.metrics_5_col_widths,
+            tied_metric_bool=self.tied_coaching_efficiencies_bool,
+            metric_type="coaching_efficiency"
+        )
         elements.append(self.spacer_twentieth_inch)
 
         # luck
-        self.create_section(elements,
-                            self.luck_title,
-                            self.luck_headers,
-                            self.luck_results_data,
-                            self.style,
-                            self.style_tied_luck,
-                            self.metrics_5_col_widths,
-                            tied_metric_bool=self.tied_lucks_bool,
-                            metric_type="luck")
+        self.create_section(
+            elements,
+            "Team Luck Rankings",
+            self.luck_headers,
+            self.luck_results_data,
+            self.style,
+            self.style_tied_luck,
+            self.metrics_5_col_widths,
+            tied_metric_bool=self.tied_lucks_bool,
+            metric_type="luck"
+        )
         elements.append(self.add_page_break())
 
         # weekly top scorers
-        self.create_section(elements,
-                            self.top_scorers_title,
-                            self.weekly_top_scorer_headers,
-                            self.weekly_top_scorers,
-                            self.style_no_highlight,
-                            self.style_no_highlight,
-                            self.metrics_4_col_widths,
-                            tied_metric_bool=self.tied_scores_bool,
-                            metric_type="top_scorers")
+        self.create_section(
+            elements,
+            "Weekly Top Scorers",
+            self.weekly_top_scorer_headers,
+            self.weekly_top_scorers,
+            self.style_no_highlight,
+            self.style_no_highlight,
+            self.metrics_4_col_widths,
+            tied_metric_bool=self.tied_scores_bool,
+            metric_type="top_scorers"
+        )
         elements.append(self.spacer_twentieth_inch)
 
         # bad boy rankings
-        self.create_section(elements,
-                            self.bad_boy_title,
-                            self.bad_boy_headers,
-                            self.bad_boy_results_data,
-                            self.style,
-                            self.style_tied_bad_boy,
-                            self.bad_boy_col_widths,
-                            tied_metric_bool=self.tied_bad_boy_bool,
-                            metric_type="bad_boy")
+        self.create_section(
+            elements,
+            "Bad Boy Rankings",
+            self.bad_boy_headers,
+            self.bad_boy_results_data,
+            self.style,
+            self.style_tied_bad_boy,
+            self.bad_boy_col_widths,
+            tied_metric_bool=self.tied_bad_boy_bool,
+            metric_type="bad_boy"
+        )
         elements.append(self.add_page_break())
 
         series_names = line_chart_data_list[0]
@@ -789,6 +869,9 @@ class TableOfContents(object):
         ]
         self.toc_team_section_data.append(team_section)
         self.toc_anchor += 1
+
+    def get_current_anchor(self):
+        return self.toc_anchor
 
     def get_toc(self):
 

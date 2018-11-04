@@ -156,17 +156,20 @@ class YqlQuery(object):
         if not self.dev_bool:
             result = self.yql_query(
                 "select * from fantasysports.leagues.scoreboard where league_key='{0}' and week='{1}'".format(
-                    self.league_key, chosen_week))
+                    self.league_key, str(chosen_week)))
         else:
             with open(self.league_test_dir +
-                      "/week_" + chosen_week + "/" +
+                      "/week_" + str(chosen_week) + "/" +
                       "result_data.json", "r") as rsd_file:
                 result = json.load(rsd_file)
 
         if self.save_bool:
-            with open(self.league_test_dir +
-                      "/week_" + chosen_week + "/" +
-                      "result_data.json", "w") as rsd_file:
+
+            result_data_path = self.league_test_dir + "/week_" + str(chosen_week) + "/"
+
+            if not os.path.exists(result_data_path):
+                os.makedirs(result_data_path)
+            with open(result_data_path + "result_data.json", "w") as rsd_file:
                 json.dump(result, rsd_file)
 
         return result[0].get("scoreboard").get("matchups").get("matchup")

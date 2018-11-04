@@ -2,6 +2,7 @@
 # contributors: Kevin N., Joe M.
 
 import itertools
+from calculate.playoff_probabilities import Team, Record
 
 
 class CalculateMetrics(object):
@@ -9,9 +10,9 @@ class CalculateMetrics(object):
         self.league_id = league_id
         self.config = config
         self.coaching_efficiency_dq_count = 0
+        self.teams_info = {}
 
-    @staticmethod
-    def get_standings(league_standings_data):
+    def get_standings(self, league_standings_data):
         current_standings_data = []
 
         for team in league_standings_data.loc[0, "standings"].get("teams").get("team"):
@@ -48,7 +49,82 @@ class CalculateMetrics(object):
                 team.get("number_of_moves"),
                 team.get("number_of_trades")
             ])
+
+            self.teams_info[team.get("team_id")] = Team(
+                team.get("team_id"),
+                team.get("name"),
+                manager,
+                Record(
+                    int(team.get("team_standings").get("outcome_totals").get("wins")),
+                    int(team.get("team_standings").get("outcome_totals").get("losses")),
+                    int(team.get("team_standings").get("outcome_totals").get("ties")),
+                    team.get("team_standings").get("outcome_totals").get("percentage")
+                ),
+                float(team.get("team_standings").get("points_for")),
+                self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_slots"),
+                self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations")
+            )
+
         return current_standings_data
+
+    @staticmethod
+    def get_playoff_probs_data(league_standings_data, team_playoffs_data):
+
+        playoff_probs_data = []
+
+        for team in league_standings_data.loc[0, "standings"].get("teams").get("team"):
+
+            # sum rolling place percentages together to get a cumulative percentage chance of achieving that place
+            summed_stats = []
+            ndx = 1
+            team_stats = team_playoffs_data[int(team["team_id"])][2]
+            while ndx <= len(team_stats):
+                summed_stats.append(sum(team_stats[:ndx]))
+                ndx += 1
+
+            # Handle co-managers - if there are co-managers, select the primary manager's name to display
+            manager = ""
+            manager_info = team["managers"]["manager"]
+            if type(manager_info) is dict:
+                manager = manager_info["nickname"]
+            else:
+                for manager in manager_info:
+                    if manager["is_comanager"] is None:
+                        manager = manager_info["nickname"]
+
+            wins = int(team.get("team_standings").get("outcome_totals").get("wins"))
+
+            playoff_probs_data.append(
+                [
+                    team.get("name"),
+                    manager,
+                    str(wins) + "-" +
+                    team.get("team_standings").get("outcome_totals").get("losses") + "-" +
+                    team.get("team_standings").get("outcome_totals").get("ties") + " (" +
+                    team.get("team_standings").get("outcome_totals").get("percentage") + ")",
+                    team_playoffs_data[int(team["team_id"])][1],
+                    team_playoffs_data[int(team["team_id"])][3]
+                ] +
+                summed_stats
+                # [
+                #     team_playoffs_data[int(team["team_id"])][2][x] for x in range(self.config.getint(
+                #         "Fantasy_Football_Report_Settings", "num_playoff_slots"))
+                # ]
+            )
+
+        sorted_playoff_probs_data = sorted(playoff_probs_data, key=lambda x: x[3], reverse=True)
+        for team in sorted_playoff_probs_data:
+            team[3] = "%.2f%%" % team[3]
+            if team[4] == 1:
+                team[4] = "%d win" % team[4]
+            else:
+                team[4] = "%d wins" % team[4]
+            ndx = 5
+            for stat in team[5:]:
+                team[ndx] = "%.2f%%" % stat
+                ndx += 1
+
+        return sorted_playoff_probs_data
 
     @staticmethod
     def get_score_data(score_results):
