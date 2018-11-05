@@ -21,6 +21,8 @@ class PlayoffProbabilities(object):
 
         if int(self.week) == int(chosen_week):
 
+            print("Running %s Monte Carlo playoff simulations..." % "{0:,}".format(self.simulations))
+
             begin = datetime.datetime.now()
 
             team_data = {}
@@ -100,7 +102,7 @@ class PlayoffProbabilities(object):
             #     playoffs_made_count += 1
             #
             delta = datetime.datetime.now() - begin
-            print("Ran %s playoff simulations in %s\n" % ("{0:,}".format(self.simulations), str(delta)))
+            print("...ran %s playoff simulations in %s\n" % ("{0:,}".format(self.simulations), str(delta)))
 
             return team_data
         else:

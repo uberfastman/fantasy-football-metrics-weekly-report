@@ -28,8 +28,8 @@ class SeasonAverageCalculator(object):
             ordered_average_values[ordered_average_values.index(team)] = [index, team[0], team[1]]
             index += 1
 
-        ordered_average_values = CalculateMetrics(None, None).resolve_season_average_ties(ordered_average_values,
-                                                                                          with_percent_bool)
+        ordered_average_values = CalculateMetrics(None, None, None).resolve_season_average_ties(ordered_average_values,
+                                                                                                with_percent_bool)
 
         ordered_season_average_list = []
         for ordered_team in self.report_info_dict.get(key):

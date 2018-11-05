@@ -62,6 +62,8 @@ class FantasyFootballReport(object):
         self.league_standings_data = self.yql_query.get_league_standings_data()
         self.league_name = self.yql_query.league_name
         roster_data = self.yql_query.get_roster_data()
+        self.playoff_slots = self.yql_query.playoff_slots
+        self.num_regular_season_weeks = self.yql_query.num_regular_season_weeks
         self.teams_data = self.yql_query.get_teams_data()
 
         roster_slots = collections.defaultdict(int)
@@ -122,8 +124,7 @@ class FantasyFootballReport(object):
 
         # run yql queries requiring chosen week
         self.remaining_matchups_data = {}
-        for week in range(int(self.chosen_week) + 1,
-                          self.config.getint("Fantasy_Football_Report_Settings", "num_regular_season_weeks") + 1):
+        for week in range(int(self.chosen_week) + 1, self.num_regular_season_weeks + 1):
             self.remaining_matchups_data[week] = self.yql_query.get_matchups_data(week)
 
         # output league info for verification
@@ -300,7 +301,7 @@ class FantasyFootballReport(object):
         team_results_dict = self.retrieve_data(week)
 
         # get current standings
-        calc_metrics = CalculateMetrics(self.league_id, self.config)
+        calc_metrics = CalculateMetrics(self.config, self.league_id, self.playoff_slots)
 
         # calculate coaching efficiency metric and add values to team_results_dict, and get points by position
         points_by_position = PointsByPosition(self.roster, self.chosen_week)
@@ -360,9 +361,9 @@ class FantasyFootballReport(object):
 
         playoff_probs = PlayoffProbabilities(
             self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations"),
-            self.config.getint("Fantasy_Football_Report_Settings", "num_regular_season_weeks"),
+            self.num_regular_season_weeks,
             week,
-            self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_slots"),
+            self.playoff_slots,
             calc_metrics.teams_info,
             remaining_matchups
         )
@@ -677,6 +678,8 @@ class FantasyFootballReport(object):
         pdf_generator = PdfGenerator(
             config=self.config,
             league_id=self.league_id,
+            playoff_slots=self.playoff_slots,
+            num_regular_season_weeks=self.num_regular_season_weeks,
             week=self.chosen_week,
             test_dir=self.league_test_dir,
             break_ties_bool=self.break_ties_bool,

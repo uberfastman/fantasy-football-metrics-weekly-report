@@ -26,6 +26,8 @@ class PdfGenerator(object):
     def __init__(self,
                  config,
                  league_id,
+                 playoff_slots,
+                 num_regular_season_weeks,
                  week,
                  test_dir,
                  break_ties_bool,
@@ -36,6 +38,8 @@ class PdfGenerator(object):
 
         self.config = config
         self.league_id = league_id
+        self.playoff_slots = playoff_slots
+        self.num_regular_season_weeks = num_regular_season_weeks
         self.week = week
         self.test_dir = test_dir
         self.break_ties_bool = break_ties_bool
@@ -172,15 +176,14 @@ class PdfGenerator(object):
 
         ordinal_list = []
         playoff_places = 1
-        playoff_slots = self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_slots")
-        while playoff_places <= playoff_slots:
+        while playoff_places <= self.playoff_slots:
             ordinal_list.append(ordinal_dict[playoff_places])
             playoff_places += 1
         self.playoff_probs_headers = [
             ["Team", "Manager", "Record", "Playoffs", "Needed"] + ordinal_list
         ]
         self.playoff_probs_col_widths = [1.75 * inch, 0.90 * inch, 0.90 * inch, 0.65 * inch, 0.65 * inch] +\
-                                        [round(3.3 / playoff_slots, 2) * inch] * playoff_slots
+                                        [round(3.3 / self.playoff_slots, 2) * inch] * self.playoff_slots
         self.bad_boy_col_widths = [0.75 * inch, 1.75 * inch, 1.25 * inch, 1.25 * inch, 1.75 * inch, 1.00 * inch]
         self.power_ranking_headers = [["Power Rank", "Team", "Manager", "Season Avg. (Place)"]]
         self.scores_headers = [["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]]
@@ -616,19 +619,17 @@ class PdfGenerator(object):
         elements.append(self.spacer_tenth_inch)
 
         # update playoff probabilities style to make playoff teams green
-        playoff_slots = self.config.getint("Fantasy_Football_Report_Settings","num_playoff_slots")
         playoff_probs_style = copy.deepcopy(self.style)
-        playoff_probs_style.add("TEXTCOLOR", (0, 1), (-1, playoff_slots), colors.green)
+        playoff_probs_style.add("TEXTCOLOR", (0, 1), (-1, self.playoff_slots), colors.green)
         playoff_probs_style.add("FONT", (0, 1), (-1, -1), "Helvetica")
 
-        regular_season_weeks = self.config.getint("Fantasy_Football_Report_Settings", "num_regular_season_weeks")
         team_num = 1
         for team in self.playoff_probs_data:
             if float(team[3].split("%")[0]) == 100.00 and int(team[4].split(" ")[0]) == 0:
                 playoff_probs_style.add("TEXTCOLOR", (0, team_num), (-1, team_num), colors.darkgreen)
                 playoff_probs_style.add("FONT", (0, team_num), (-1, team_num), "Helvetica-BoldOblique")
 
-            if (int(team[4].split(" ")[0]) + int(self.week)) > regular_season_weeks:
+            if (int(team[4].split(" ")[0]) + int(self.week)) > self.num_regular_season_weeks:
                 playoff_probs_style.add("TEXTCOLOR", (4, team_num), (4, team_num), colors.red)
 
                 if float(team[3].split("%")[0]) == 0.00:

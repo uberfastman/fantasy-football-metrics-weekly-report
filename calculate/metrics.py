@@ -6,9 +6,10 @@ from calculate.playoff_probabilities import Team, Record
 
 
 class CalculateMetrics(object):
-    def __init__(self, league_id, config):
-        self.league_id = league_id
+    def __init__(self, config, league_id, playoff_slots):
         self.config = config
+        self.league_id = league_id
+        self.playoff_slots = playoff_slots
         self.coaching_efficiency_dq_count = 0
         self.teams_info = {}
 
@@ -61,7 +62,7 @@ class CalculateMetrics(object):
                     team.get("team_standings").get("outcome_totals").get("percentage")
                 ),
                 float(team.get("team_standings").get("points_for")),
-                self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_slots"),
+                self.playoff_slots,
                 self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations")
             )
 
