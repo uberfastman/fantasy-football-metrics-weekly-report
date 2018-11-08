@@ -82,6 +82,8 @@ class CalculateMetrics(object):
             while ndx <= len(team_stats):
                 summed_stats.append(sum(team_stats[:ndx]))
                 ndx += 1
+            if summed_stats[-1] > 100.00:
+                summed_stats[-1] = 100.00
 
             # Handle co-managers - if there are co-managers, select the primary manager's name to display
             manager = ""
