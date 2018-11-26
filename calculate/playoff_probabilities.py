@@ -2,8 +2,8 @@
 
 import copy
 import datetime
-import random
 import pickle
+import random
 
 import numpy as np
 
@@ -64,11 +64,6 @@ class PlayoffProbabilities(object):
                     sim_count += 1
 
                 for team in teams.values():
-                    # print(
-                    #     team.get_name() + "\t" +
-                    #     str(team.get_playoff_tally()) + "\t" +
-                    #     "\t".join([str(stat) for stat in team.get_playoff_stats()])
-                    # )
 
                     playoff_min_wins = round((avg_wins[self.playoff_slots - 1]) / self.simulations, 2)
                     if playoff_min_wins > team.get_wins():
@@ -83,26 +78,6 @@ class PlayoffProbabilities(object):
                         needed_wins
                     ]
 
-                # print()
-                # print("Average # of wins for playoff spot")
-                # playoff_count = 1
-                # while playoff_count <= self.playoff_slots:
-                #     print(str(playoff_count) + '\t' + str(round((avg_wins[playoff_count - 1]) / self.simulations, 2)))
-                #     playoff_count += 1
-
-                # print()
-                # print("Histogram of wins required for final playoff spot")
-                # playoffs_made_count = 1
-                # while playoffs_made_count <= len(num_wins_that_made_playoffs):
-                #     print(
-                #         str(playoffs_made_count) + "\t" +
-                #         str(round(((num_wins_that_made_playoffs[playoffs_made_count - 1]) /
-                #                    (self.simulations * 1.0)) * 100, 3)) + "\t" +
-                #         str(round(((num_wins_that_missed_playoffs[playoffs_made_count - 1]) /
-                #                      (self.simulations * 1.0)) * 100, 3))
-                #     )
-                #     playoffs_made_count += 1
-                #
                 delta = datetime.datetime.now() - begin
                 print("...ran %s playoff simulations in %s\n" % ("{0:,}".format(self.simulations), str(delta)))
 
@@ -211,72 +186,3 @@ class Record(object):
 
     def get_percentage(self):
         return self.percentage
-
-
-# if __name__ == '__main__':
-#
-#     sim = 1000
-#     number_weeks = 13
-#     current_week = 9
-#     play_slots = 6
-#
-#     all_teams = {
-#         1: Team(1, 'Kingsland Tough Bruddas', "joe", Record(3, 5, 0, .5), 715.3, play_slots, sim),
-#         2: Team(2, 'Schroedingers Cats', "joe", Record(6, 2, 0, .5), 834.4, play_slots, sim),
-#         3: Team(3, 'The Killer Brees', "joe", Record(5, 3, 0, .5), 767.3, play_slots, sim),
-#         4: Team(4, 'Deez Nuts 4 Prez', "joe", Record(2, 6, 0, .5), 687.0, play_slots, sim),
-#         5: Team(5, 'Oakeridge Overlords', "joe", Record(3, 5, 0, .5), 651.2, play_slots, sim),
-#         6: Team(6, 'College Hillbilly', "joe", Record(4, 4, 0, .5), 710.9, play_slots, sim),
-#         7: Team(7, 'Norwood Knuckles', "joe", Record(6, 2, 0, .5), 702.0, play_slots, sim),
-#         8: Team(8, 'West City Possums', "joe", Record(4, 4, 0, .5), 722.2, play_slots, sim),
-#         9: Team(9, 'Crazy Monkeys', "joe", Record(3, 5, 0, .5), 708.2, play_slots, sim),
-#         10: Team(10, 'Mount Thunderbolts', "joe", Record(4, 4, 0, .5), 700.3, play_slots, sim),
-#         11: Team(11, 'Southeast Bulls', "joe", Record(4, 4, 0, .5), 753.9, play_slots, sim),
-#         12: Team(12, 'Te Puke Thunder', "joe", Record(4, 4, 0, .5), 740.5, play_slots, sim)
-#     }
-#
-#     all_matchups = {
-#         9: [
-#             (3, 5),
-#             (4, 12),
-#             (6, 1),
-#             (8, 11),
-#             (9, 2),
-#             (10, 7)
-#         ],
-#         10: [
-#             (1, 8),
-#             (2, 10),
-#             (5, 9),
-#             (7, 6),
-#             (11, 4),
-#             (12, 3)
-#         ],
-#         11: [
-#             (3, 11),
-#             (4, 1),
-#             (6, 2),
-#             (8, 7),
-#             (9, 12),
-#             (10, 5)
-#         ],
-#         12: [
-#             (3, 1),
-#             (4, 7),
-#             (6, 5),
-#             (8, 2),
-#             (9, 11),
-#             (10, 12)
-#         ],
-#         13: [
-#             (1, 9),
-#             (2, 4),
-#             (5, 8),
-#             (7, 3),
-#             (11, 10),
-#             (12, 6)
-#         ],
-#     }
-#
-#     pp = PlayoffProbabilities(sim, number_weeks, current_week, play_slots, all_teams, all_matchups)
-#     pp.calculate()
