@@ -96,6 +96,14 @@ class FantasyFootballReport(object):
         }
 
         self.BadBoy = BadBoyStats(dev_bool, save_bool, self.league_test_dir)
+        self.PlayoffProbs = PlayoffProbabilities(
+            self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations"),
+            self.num_regular_season_weeks,
+            self.playoff_slots,
+            dev_bool,
+            save_bool,
+            self.league_test_dir
+        )
 
         # user input validation
         if user_input_chosen_week:
@@ -359,21 +367,12 @@ class FantasyFootballReport(object):
             ] for week, matchups in self.remaining_matchups_data.items()
         }
 
-        playoff_probs = PlayoffProbabilities(
-            self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations"),
-            self.num_regular_season_weeks,
-            week,
-            self.playoff_slots,
-            calc_metrics.teams_info,
-            remaining_matchups
-        )
+        playoff_probs_data = self.PlayoffProbs.calculate(week, chosen_week, calc_metrics.teams_info, remaining_matchups)
 
-        team_playoff_probs_data = playoff_probs.calculate(chosen_week)
-
-        if team_playoff_probs_data:
+        if playoff_probs_data:
             playoff_probs_data = calc_metrics.get_playoff_probs_data(
                 self.league_standings_data,
-                team_playoff_probs_data
+                playoff_probs_data
             )
         else:
             playoff_probs_data = None
@@ -433,7 +432,7 @@ class FantasyFootballReport(object):
             [list(group) for key, group in itertools.groupby(score_results_data, lambda x: x[3])][0])
 
         num_tied_coaching_efficiencies = calc_metrics.get_num_ties(coaching_efficiency_results_data,
-                                                                        "coaching_efficiency", self.break_ties_bool)
+                                                                   "coaching_efficiency", self.break_ties_bool)
         tie_for_first_coaching_efficiency = False
         if coaching_efficiency_results_data[0][0] == coaching_efficiency_results_data[1][0]:
             tie_for_first_coaching_efficiency = True
@@ -448,7 +447,7 @@ class FantasyFootballReport(object):
             [list(group) for key, group in itertools.groupby(luck_results_data, lambda x: x[3])][0])
 
         num_tied_power_rankings = calc_metrics.get_num_ties(power_ranking_results_data, "power_rank",
-                                                                 self.break_ties_bool)
+                                                            self.break_ties_bool)
         tie_for_first_power_ranking = False
         if power_ranking_results_data[0][0] == power_ranking_results_data[1][0]:
             tie_for_first_power_ranking = True

@@ -196,8 +196,8 @@ class PdfGenerator(object):
         # self.break_efficiency_ties_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*The league commissioner will " \
         #                                     "resolve coaching efficiency ties manually. The tiebreaker goes " \
         #                                     "to the manager whose team contains the most players who have " \
-        #                                     "exceeded their average weekly fantasy points. If there is still " \
-        #                                     "a tie after that, the manager whose players exceeded their " \
+        #                                     "met or exceeded their average weekly fantasy points. If there is " \
+        #                                     "still a tie after that, the manager whose players exceeded their " \
         #                                     "season average score by the highest cumulative percent wins.</i>"
         self.break_efficiency_ties_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*The league commissioner will " \
                                             "resolve coaching efficiency ties manually.</i>"

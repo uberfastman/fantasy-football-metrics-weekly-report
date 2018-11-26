@@ -3,106 +3,123 @@
 import copy
 import datetime
 import random
+import pickle
 
 import numpy as np
 
 
 class PlayoffProbabilities(object):
 
-    def __init__(self, simulations, num_weeks, week, playoff_slots, teams, matchups):
+    def __init__(self, simulations, num_weeks, playoff_slots, dev_bool, save_bool, league_test_dir):
         self.simulations = simulations
         self.num_weeks = num_weeks
-        self.week = week
         self.playoff_slots = playoff_slots
-        self.teams = teams
-        self.matchups = matchups
+        self.dev_bool = dev_bool
+        self.save_bool = save_bool
+        self.league_test_dir = league_test_dir
 
-    def calculate(self, chosen_week):
+    def calculate(self, week, chosen_week, teams, remaining_matchups):
 
-        if int(self.week) == int(chosen_week):
+        if int(week) == int(chosen_week):
 
-            print("Running %s Monte Carlo playoff simulations..." % "{0:,}".format(self.simulations))
+            if not self.dev_bool:
+                print("Running %s Monte Carlo playoff simulations..." % "{0:,}".format(self.simulations))
 
-            begin = datetime.datetime.now()
+                begin = datetime.datetime.now()
 
-            team_data = {}
+                team_data = {}
 
-            num_wins_that_made_playoffs = [0] * self.num_weeks
-            num_wins_that_missed_playoffs = [0] * self.num_weeks
-            avg_wins = [0.0] * self.playoff_slots
+                num_wins_that_made_playoffs = [0] * self.num_weeks
+                num_wins_that_missed_playoffs = [0] * self.num_weeks
+                avg_wins = [0.0] * self.playoff_slots
 
-            sim_count = 1
-            while sim_count <= self.simulations:
+                sim_count = 1
+                while sim_count <= self.simulations:
 
-                temp_teams = copy.deepcopy(self.teams)
+                    temp_teams = copy.deepcopy(teams)
 
-                # create random binary results representing the rest of the matchups and add them to the existing wins
-                for week, matchups in self.matchups.items():
-                    for matchup in matchups:
-                        result = int(random.getrandbits(1))
-                        if result == 1:
-                            temp_teams[matchup[0]].add_win()
-                        else:
-                            temp_teams[matchup[1]].add_win()
+                    # create random binary results representing the rest of the matchups and add them to the existing wins
+                    for week, matchups in remaining_matchups.items():
+                        for matchup in matchups:
+                            result = int(random.getrandbits(1))
+                            if result == 1:
+                                temp_teams[matchup[0]].add_win()
+                            else:
+                                temp_teams[matchup[1]].add_win()
 
-                # sort the teams
-                sorted_teams = sorted(temp_teams.values(), key=lambda x: x.get_wins_with_points(), reverse=True)
+                    # sort the teams
+                    sorted_teams = sorted(temp_teams.values(), key=lambda x: x.get_wins_with_points(), reverse=True)
 
-                num_wins_that_made_playoffs[int(round(sorted_teams[self.playoff_slots - 1].get_wins_with_points(), 0)) - 1] += 1
-                num_wins_that_missed_playoffs[int(round(sorted_teams[self.playoff_slots].get_wins_with_points(), 0)) - 1] += 1
+                    num_wins_that_made_playoffs[int(round(sorted_teams[self.playoff_slots - 1].get_wins_with_points(), 0)) - 1] += 1
+                    num_wins_that_missed_playoffs[int(round(sorted_teams[self.playoff_slots].get_wins_with_points(), 0)) - 1] += 1
 
-                # pick the teams making the playoffs
-                playoff_count = 1
-                while playoff_count <= self.playoff_slots:
-                    self.teams[sorted_teams[playoff_count - 1].get_id()].add_playoff_tally()
-                    avg_wins[playoff_count - 1] += round(sorted_teams[playoff_count - 1].get_wins_with_points(), 0)
-                    self.teams[sorted_teams[playoff_count - 1].get_id()].add_playoff_stats(playoff_count)
-                    playoff_count += 1
+                    # pick the teams making the playoffs
+                    playoff_count = 1
+                    while playoff_count <= self.playoff_slots:
+                        teams[sorted_teams[playoff_count - 1].get_id()].add_playoff_tally()
+                        avg_wins[playoff_count - 1] += round(sorted_teams[playoff_count - 1].get_wins_with_points(), 0)
+                        teams[sorted_teams[playoff_count - 1].get_id()].add_playoff_stats(playoff_count)
+                        playoff_count += 1
 
-                sim_count += 1
+                    sim_count += 1
 
-            for team in self.teams.values():
-                # print(
-                #     team.get_name() + "\t" +
-                #     str(team.get_playoff_tally()) + "\t" +
-                #     "\t".join([str(stat) for stat in team.get_playoff_stats()])
-                # )
+                for team in teams.values():
+                    # print(
+                    #     team.get_name() + "\t" +
+                    #     str(team.get_playoff_tally()) + "\t" +
+                    #     "\t".join([str(stat) for stat in team.get_playoff_stats()])
+                    # )
 
-                playoff_min_wins = round((avg_wins[self.playoff_slots - 1]) / self.simulations, 2)
-                if playoff_min_wins > team.get_wins():
-                    needed_wins = np.rint(playoff_min_wins - team.get_wins())
-                else:
-                    needed_wins = 0
+                    playoff_min_wins = round((avg_wins[self.playoff_slots - 1]) / self.simulations, 2)
+                    if playoff_min_wins > team.get_wins():
+                        needed_wins = np.rint(playoff_min_wins - team.get_wins())
+                    else:
+                        needed_wins = 0
 
-                team_data[int(team.get_id())] = [
-                    team.get_name(),
-                    team.get_playoff_tally(),
-                    team.get_playoff_stats(),
-                    needed_wins
-                ]
+                    team_data[int(team.get_id())] = [
+                        team.get_name(),
+                        team.get_playoff_tally(),
+                        team.get_playoff_stats(),
+                        needed_wins
+                    ]
 
-            # print()
-            # print("Average # of wins for playoff spot")
-            # playoff_count = 1
-            # while playoff_count <= self.playoff_slots:
-            #     print(str(playoff_count) + '\t' + str(round((avg_wins[playoff_count - 1]) / self.simulations, 2)))
-            #     playoff_count += 1
+                # print()
+                # print("Average # of wins for playoff spot")
+                # playoff_count = 1
+                # while playoff_count <= self.playoff_slots:
+                #     print(str(playoff_count) + '\t' + str(round((avg_wins[playoff_count - 1]) / self.simulations, 2)))
+                #     playoff_count += 1
 
-            # print()
-            # print("Histogram of wins required for final playoff spot")
-            # playoffs_made_count = 1
-            # while playoffs_made_count <= len(num_wins_that_made_playoffs):
-            #     print(
-            #         str(playoffs_made_count) + "\t" +
-            #         str(round(((num_wins_that_made_playoffs[playoffs_made_count - 1]) /
-            #                    (self.simulations * 1.0)) * 100, 3)) + "\t" +
-            #         str(round(((num_wins_that_missed_playoffs[playoffs_made_count - 1]) /
-            #                      (self.simulations * 1.0)) * 100, 3))
-            #     )
-            #     playoffs_made_count += 1
-            #
-            delta = datetime.datetime.now() - begin
-            print("...ran %s playoff simulations in %s\n" % ("{0:,}".format(self.simulations), str(delta)))
+                # print()
+                # print("Histogram of wins required for final playoff spot")
+                # playoffs_made_count = 1
+                # while playoffs_made_count <= len(num_wins_that_made_playoffs):
+                #     print(
+                #         str(playoffs_made_count) + "\t" +
+                #         str(round(((num_wins_that_made_playoffs[playoffs_made_count - 1]) /
+                #                    (self.simulations * 1.0)) * 100, 3)) + "\t" +
+                #         str(round(((num_wins_that_missed_playoffs[playoffs_made_count - 1]) /
+                #                      (self.simulations * 1.0)) * 100, 3))
+                #     )
+                #     playoffs_made_count += 1
+                #
+                delta = datetime.datetime.now() - begin
+                print("...ran %s playoff simulations in %s\n" % ("{0:,}".format(self.simulations), str(delta)))
+
+                if self.save_bool:
+                    with open(self.league_test_dir +
+                              "/" +
+                              "playoff_probs_data.pkl", "wb") as pp_out:
+                        pickle.dump(team_data, pp_out, pickle.HIGHEST_PROTOCOL)
+
+            else:
+
+                print("Using saved Monte Carlo playoff simulations for playoff probabilities.")
+
+                with open(self.league_test_dir +
+                          "/" +
+                          "playoff_probs_data.pkl", "rb") as pp_in:
+                    team_data = pickle.load(pp_in)
 
             return team_data
         else:
