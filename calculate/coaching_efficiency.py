@@ -7,7 +7,7 @@ from collections import defaultdict, Counter
 
 class CoachingEfficiency(object):
     # prohibited statuses to check team coaching efficiency eligibility
-    prohibited_status_list = ["PUP-P", "SUSP", "O", "IR", "INACTIVE"]
+    prohibited_status_list = ["PUP-P", "SUSP", "O", "IR", "INACTIVE", "IR-R"]
 
     def __init__(self, roster_settings):
         self.roster_slots = roster_settings["slots"]
@@ -145,13 +145,12 @@ class CoachingEfficiency(object):
             positions_filled_active = team_info["positions_filled_active"]
 
             if Counter(league_roster_active_slots) == Counter(positions_filled_active):
-                # divide bench slots by 2 and DQ team if number of ineligible players exceeds the ceiling of that value
-                if ineligible_efficiency_player_count <= math.ceil(self.roster_slots.get("BN") / 2.0):
+                # divide bench slots by 2 and DQ team if number of ineligible players >= the ceiling of that value
+                if ineligible_efficiency_player_count < math.ceil(self.roster_slots.get("BN") / 2.0):
                     efficiency_disqualification = False
                 else:
                     efficiency_disqualification = True
                     self.coaching_efficiency_dq_dict[team_name] = ineligible_efficiency_player_count
-
             else:
                 efficiency_disqualification = True
                 self.coaching_efficiency_dq_dict[team_name] = -1
