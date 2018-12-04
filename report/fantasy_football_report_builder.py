@@ -23,8 +23,8 @@ from utils.yql_query import YqlQuery
 
 class FantasyFootballReport(object):
     def __init__(self,
-                 user_input_league_id=None,
-                 user_input_chosen_week=None,
+                 league_id=None,
+                 week=None,
                  dq_ce_bool=False,
                  break_ties_bool=False,
                  test_bool=False,
@@ -34,8 +34,8 @@ class FantasyFootballReport(object):
         # config vars
         self.config = ConfigParser()
         self.config.read("config.ini")
-        if user_input_league_id:
-            self.league_id = user_input_league_id
+        if league_id:
+            self.league_id = league_id
         else:
             self.league_id = self.config.get("Fantasy_Football_Report_Settings", "league_id")
 
@@ -106,8 +106,8 @@ class FantasyFootballReport(object):
         )
 
         # user input validation
-        if user_input_chosen_week:
-            chosen_week = user_input_chosen_week
+        if week:
+            chosen_week = week
         else:
             chosen_week = self.config.get("Fantasy_Football_Report_Settings", "chosen_week")
         try:
@@ -656,7 +656,7 @@ class FantasyFootballReport(object):
         filename = self.league_name.replace(" ",
                                             "-") + "(" + self.league_id + ")_week-" + self.chosen_week + "_report.pdf"
         report_save_dir = self.config.get("Fantasy_Football_Report_Settings",
-                                          "report_directory_base_path") + \
+                                          "output_dir") + \
             "/" + self.league_name.replace(" ", "-") + "(" + self.league_id + ")"
         report_title_text = self.league_name + " (" + self.league_id + ") Week " + self.chosen_week + " Report"
         report_footer_text = \
@@ -670,7 +670,7 @@ class FantasyFootballReport(object):
             filename_with_path = os.path.join(report_save_dir, filename)
         else:
             filename_with_path = os.path.join(
-                self.config.get("Fantasy_Football_Report_Settings", "report_directory_base_path") + "/",
+                self.config.get("Fantasy_Football_Report_Settings", "output_dir") + "/",
                 "test_report.pdf")
 
         # instantiate pdf generator

@@ -64,7 +64,7 @@ def select_league(league_id, week, dq_ce_bool, break_ties_bool, test_bool, dev_b
         else:
             chosen_week = week
 
-        return FantasyFootballReport(user_input_chosen_week=chosen_week,
+        return FantasyFootballReport(week=chosen_week,
                                      dq_ce_bool=dq_ce_bool,
                                      break_ties_bool=break_ties_bool,
                                      test_bool=test_bool,
@@ -80,8 +80,8 @@ def select_league(league_id, week, dq_ce_bool, break_ties_bool, test_bool, dev_b
             chosen_week = week
 
         try:
-            return FantasyFootballReport(user_input_league_id=league_id,
-                                         user_input_chosen_week=chosen_week,
+            return FantasyFootballReport(league_id=league_id,
+                                         week=chosen_week,
                                          dq_ce_bool=dq_ce_bool,
                                          break_ties_bool=break_ties_bool,
                                          test_bool=test_bool,
