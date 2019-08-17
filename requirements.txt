@@ -1,11 +1,11 @@
-oauth2
+yahoo_oauth
 httplib2
 reportlab==3.3.0
 google-api-python-client
 PyDrive
 oauth2client
 pyyaml
-slackclient
+slackclient==1.3.1
 requests
 websocket-client
 simplejson

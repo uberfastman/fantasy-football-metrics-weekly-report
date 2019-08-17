@@ -1,9 +1,0 @@
-Jinja2
-Pygments
-Sphinx
-coverage
-docutils
-httplib2
-nose
-oauth2
-wsgiref

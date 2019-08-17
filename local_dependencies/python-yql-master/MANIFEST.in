@@ -1,4 +1,0 @@
-include distribute_setup.py
-include README.rst AUTHORS LICENSE CHANGELOG
-recursive-include yql *.py
-

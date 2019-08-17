@@ -1,7 +1,7 @@
 .idea/
 *.pyc
 authentication/
-reports/
+output/
 legacy_code/
 local_dependencies/python-yql-master/__pycache__/
 resources/local_dependencies/logs/

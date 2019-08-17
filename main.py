@@ -50,12 +50,12 @@ def main(argv):
     return options_dict
 
 
-def select_league(league_id, week, dq_ce_bool, break_ties_bool, test_bool, dev_bool, save_bool):
+def select_league(league_id, week, refresh_data, dq_ce_bool, break_ties_bool, test_bool, dev_bool, save_bool):
 
     if not league_id:
         default = input("Generate report for default league? (y/n) -> ")
     else:
-        default = None
+        default = "selected"
 
     if default == "y":
 
@@ -65,6 +65,7 @@ def select_league(league_id, week, dq_ce_bool, break_ties_bool, test_bool, dev_b
             chosen_week = week
 
         return FantasyFootballReport(week=chosen_week,
+                                     refresh_data=refresh_data,
                                      dq_ce_bool=dq_ce_bool,
                                      break_ties_bool=break_ties_bool,
                                      test_bool=test_bool,
@@ -90,11 +91,24 @@ def select_league(league_id, week, dq_ce_bool, break_ties_bool, test_bool, dev_b
 
         except IndexError:
             print("The league ID you have selected is not valid.")
-            select_league(week, dq_ce_bool, break_ties_bool, test_bool, dev_bool, save_bool)
+            select_league(None, week, refresh_data, dq_ce_bool, break_ties_bool, test_bool, dev_bool, save_bool)
+    elif default == "selected":
 
+        if not week:
+            chosen_week = select_week()
+        else:
+            chosen_week = week
+
+        return FantasyFootballReport(league_id=league_id,
+                                     week=chosen_week,
+                                     dq_ce_bool=dq_ce_bool,
+                                     break_ties_bool=break_ties_bool,
+                                     test_bool=test_bool,
+                                     dev_bool=dev_bool,
+                                     save_bool=save_bool)
     else:
         print("You must select either 'y' or 'n'.")
-        select_league(week, dq_ce_bool, break_ties_bool, test_bool, dev_bool, save_bool)
+        select_league(None, week, refresh_data, dq_ce_bool, break_ties_bool, test_bool, dev_bool, save_bool)
 
 
 def select_week():
@@ -120,6 +134,7 @@ if __name__ == '__main__':
 
     report = select_league(options.get("league_id", None),
                            options.get("week", None),
+                           bool(distutils.strtobool(config.get("Fantasy_Football_Report_Settings", "refresh_data"))),
                            options.get("dq_ce_bool", False),
                            options.get("break_ties_bool", False),
                            options.get("test_bool", False),

@@ -18,13 +18,14 @@ from calculate.power_ranking import PowerRanking
 from calculate.season_averages import SeasonAverageCalculator
 from calculate.z_score import ZScore
 from report.pdf.pdf_generator import PdfGenerator
-from utils.yql_query import YqlQuery
+from utils.yahoo_query import YahooQuery
 
 
 class FantasyFootballReport(object):
     def __init__(self,
                  league_id=None,
                  week=None,
+                 refresh_data=False,
                  dq_ce_bool=False,
                  break_ties_bool=False,
                  test_bool=False,
@@ -48,16 +49,16 @@ class FantasyFootballReport(object):
         print("\nGenerating%s fantasy football report for league with id: %s on %s..." % (
             " TEST" if test_bool else "", self.league_id, "{:%b %d, %Y}".format(datetime.datetime.now())))
 
-        self.league_test_dir = "test/league_id-" + self.league_id
-        if not os.path.exists(self.league_test_dir):
+        self.data_dir = self.config.get("Fantasy_Football_Report_Settings", "data_dir") + self.league_id
+        if not os.path.exists(self.data_dir):
             if dev_bool:
                 print("CANNOT USE DEV MODE WITHOUT FIRST SAVING DATA WITH SAVE MODE!")
                 sys.exit(2)
             elif save_bool:
-                os.makedirs(self.league_test_dir)
+                os.makedirs(self.data_dir)
 
         # run base yql queries
-        self.yql_query = YqlQuery(self.config, self.league_id, save_bool, dev_bool, self.league_test_dir)
+        self.yql_query = YahooQuery(self.config, self.league_id, refresh_data, save_bool, dev_bool, self.data_dir)
         self.league_key = self.yql_query.get_league_key()
         self.league_standings_data = self.yql_query.get_league_standings_data()
         self.league_name = self.yql_query.league_name
@@ -95,14 +96,14 @@ class FantasyFootballReport(object):
             "flex_positions": flex_positions
         }
 
-        self.BadBoy = BadBoyStats(dev_bool, save_bool, self.league_test_dir)
+        self.BadBoy = BadBoyStats(dev_bool, save_bool, self.data_dir)
         self.PlayoffProbs = PlayoffProbabilities(
             self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations"),
             self.num_regular_season_weeks,
             self.playoff_slots,
             dev_bool,
             save_bool,
-            self.league_test_dir
+            self.data_dir
         )
 
         # user input validation
@@ -169,17 +170,17 @@ class FantasyFootballReport(object):
         ]
         """
 
-        if not os.path.exists(self.league_test_dir):
-            os.makedirs(self.league_test_dir)
+        if not os.path.exists(self.data_dir):
+            os.makedirs(self.data_dir)
 
-        if not os.path.exists(self.league_test_dir + "/week_" + chosen_week):
-            os.makedirs(self.league_test_dir + "/week_" + chosen_week)
+        if not os.path.exists(self.data_dir + "/week_" + chosen_week):
+            os.makedirs(self.data_dir + "/week_" + chosen_week)
 
-        if not os.path.exists(self.league_test_dir + "/week_" + chosen_week + "/roster_data"):
-            os.makedirs(self.league_test_dir + "/week_" + chosen_week + "/roster_data")
+        if not os.path.exists(self.data_dir + "/week_" + chosen_week + "/roster_data"):
+            os.makedirs(self.data_dir + "/week_" + chosen_week + "/roster_data")
 
-        if not os.path.exists(self.league_test_dir + "/week_" + chosen_week + "/player_headshots"):
-            os.makedirs(self.league_test_dir + "/week_" + chosen_week + "/player_headshots")
+        if not os.path.exists(self.data_dir + "/week_" + chosen_week + "/player_headshots"):
+            os.makedirs(self.data_dir + "/week_" + chosen_week + "/player_headshots")
 
         matchups = self.yql_query.get_matchups_data(chosen_week)
 
@@ -468,8 +469,6 @@ class FantasyFootballReport(object):
         print("              SCORE tie(s): {}".format(num_tied_scores))
         print("COACHING EFFICIENCY tie(s): {}".format(num_tied_coaching_efficiencies))
         print("               LUCK tie(s): {}".format(num_tied_lucks))
-        print("      POWER RANKING tie(s): {}".format(num_tied_power_rankings))
-        print("            BAD BOY tie(s): {}".format(num_tied_bad_boys))
         coaching_efficiency_dq_dict = points_by_position.coaching_efficiency_dq_dict
         if coaching_efficiency_dq_dict:
             ce_dq_str = ""
@@ -680,7 +679,7 @@ class FantasyFootballReport(object):
             playoff_slots=self.playoff_slots,
             num_regular_season_weeks=self.num_regular_season_weeks,
             week=self.chosen_week,
-            test_dir=self.league_test_dir,
+            test_dir=self.data_dir,
             break_ties_bool=self.break_ties_bool,
             report_title_text=report_title_text,
             report_footer_text=report_footer_text,
