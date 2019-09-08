@@ -76,13 +76,28 @@ After completing the above setup steps, you should now be able to simply run `py
 
 * `-h`: print command line usage
 
-* `-t`: generate a "test" report (for development)
+Generate report:
 
 * `-l [league_id]`: pre-specify the league id for which you wish to generate a report
 
 * `-w [week]`: pre-specify the NFL week for which you wish to generate a report
 
-When you are done working within the `virtualenv`, you can run the `deactivate` within the environment to exit:
+* `-s`: save all retrieved data for faster future report generation
+
+
+Configuration:
+
+* `-b`: break ties in metric rankings
+
+* `-q`: automatically disqualify teams ineligible for coaching efficiency metric
+
+For Developers:
+
+* `-t`: generate a "test" report (for development)
+
+* `-d`: run ***offline*** for development. Must have previously run report with -s option.
+
+When you are done working within the `virtualenv`, you can run `deactivate` within the environment to exit:
 ```
 (fantasy-football-metrics)host-machine:yahoo-fantasy-football-metrics user$ deactivate
 ```
