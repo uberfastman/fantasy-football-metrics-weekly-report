@@ -2,6 +2,7 @@
 # contributors: Kevin N., Joe M.
 
 import itertools
+
 from calculate.playoff_probabilities import Team, Record
 
 
@@ -16,8 +17,12 @@ class CalculateMetrics(object):
     def get_standings(self, league_standings_data):
         current_standings_data = []
 
-        for team in league_standings_data.loc[0, "standings"].get("teams").get("team"):
-            streak_type = team.get("team_standings").get("streak").get("type")
+        for team in league_standings_data.teams.values():
+
+            team = team.get("team")
+            team_standings = team.team_standings
+
+            streak_type = team_standings.streak.type
             if streak_type == "loss":
                 streak_type = "L"
             elif streak_type == "win":
@@ -25,43 +30,38 @@ class CalculateMetrics(object):
             else:
                 streak_type = "T"
 
-            # Handle co-managers - if there are co-managers, select the primary manager's name to display
-            manager = ""
-            manager_info = team["managers"]["manager"]
-            if type(manager_info) is dict:
-                manager = manager_info["nickname"]
+            if isinstance(team.managers, list):
+                manager = ", ".join([manager.get("manager").nickname for manager in team.managers])
             else:
-                for manager in manager_info:
-                    if manager["is_comanager"] is None:
-                        manager = manager_info["nickname"]
+                manager = team.managers.get("manager").nickname
 
             current_standings_data.append([
-                team.get("team_standings").get("rank"),
-                team.get("name"),
+                team_standings.rank,
+                team.name,
                 manager,
-                team.get("team_standings").get("outcome_totals").get("wins") + "-" +
-                team.get("team_standings").get("outcome_totals").get("losses") + "-" +
-                team.get("team_standings").get("outcome_totals").get("ties") + " (" +
-                team.get("team_standings").get("outcome_totals").get("percentage") + ")",
-                team.get("team_standings").get("points_for"),
-                team.get("team_standings").get("points_against"),
-                streak_type + "-" + team.get("team_standings").get("streak").get("value"),
-                team.get("waiver_priority"),
-                team.get("number_of_moves"),
-                team.get("number_of_trades")
+                str(team_standings.outcome_totals.wins) + "-" +
+                str(team_standings.outcome_totals.losses) + "-" +
+                str(team_standings.outcome_totals.ties) + " (" +
+                str(team_standings.outcome_totals.percentage) + ")",
+                round(float(team_standings.points_for), 2),
+                round(float(team_standings.points_against), 2),
+                streak_type + "-" + team_standings.streak.value,
+                team.waiver_priority,
+                int(team.number_of_moves) if team.number_of_moves else 0,
+                int(team.number_of_trades) if team.number_of_trades else 0
             ])
 
-            self.teams_info[team.get("team_id")] = Team(
-                team.get("team_id"),
-                team.get("name"),
+            self.teams_info[team.team_id] = Team(
+                team.team_id,
+                team.name,
                 manager,
                 Record(
-                    int(team.get("team_standings").get("outcome_totals").get("wins")),
-                    int(team.get("team_standings").get("outcome_totals").get("losses")),
-                    int(team.get("team_standings").get("outcome_totals").get("ties")),
-                    team.get("team_standings").get("outcome_totals").get("percentage")
+                    int(team_standings.outcome_totals.wins),
+                    int(team_standings.outcome_totals.losses),
+                    int(team_standings.outcome_totals.ties),
+                    team_standings.outcome_totals.percentage
                 ),
-                float(team.get("team_standings").get("points_for")),
+                float(team_standings.points_for),
                 self.playoff_slots,
                 self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations")
             )
@@ -72,41 +72,37 @@ class CalculateMetrics(object):
     def get_playoff_probs_data(league_standings_data, team_playoffs_data):
 
         playoff_probs_data = []
+        for team in league_standings_data.teams.values():
 
-        for team in league_standings_data.loc[0, "standings"].get("teams").get("team"):
+            team = team.get("team")
 
             # sum rolling place percentages together to get a cumulative percentage chance of achieving that place
             summed_stats = []
             ndx = 1
-            team_stats = team_playoffs_data[int(team["team_id"])][2]
+            team_stats = team_playoffs_data[int(team.team_id)][2]
             while ndx <= len(team_stats):
                 summed_stats.append(sum(team_stats[:ndx]))
                 ndx += 1
             if summed_stats[-1] > 100.00:
                 summed_stats[-1] = 100.00
 
-            # Handle co-managers - if there are co-managers, select the primary manager's name to display
-            manager = ""
-            manager_info = team["managers"]["manager"]
-            if type(manager_info) is dict:
-                manager = manager_info["nickname"]
+            if isinstance(team.managers, list):
+                manager = ", ".join([manager.get("manager").nickname for manager in team.managers])
             else:
-                for manager in manager_info:
-                    if manager["is_comanager"] is None:
-                        manager = manager_info["nickname"]
+                manager = team.managers.get("manager").nickname
 
-            wins = int(team.get("team_standings").get("outcome_totals").get("wins"))
+            wins = int(team.team_standings.outcome_totals.wins)
 
             playoff_probs_data.append(
                 [
-                    team.get("name"),
+                    team.name,
                     manager,
                     str(wins) + "-" +
-                    team.get("team_standings").get("outcome_totals").get("losses") + "-" +
-                    team.get("team_standings").get("outcome_totals").get("ties") + " (" +
-                    team.get("team_standings").get("outcome_totals").get("percentage") + ")",
-                    team_playoffs_data[int(team["team_id"])][1],
-                    team_playoffs_data[int(team["team_id"])][3]
+                    str(team.team_standings.outcome_totals.losses) + "-" +
+                    str(team.team_standings.outcome_totals.ties) + " (" +
+                    str(team.team_standings.outcome_totals.percentage) + ")",
+                    team_playoffs_data[int(team.team_id)][1],
+                    team_playoffs_data[int(team.team_id)][3]
                 ] +
                 summed_stats
                 # [

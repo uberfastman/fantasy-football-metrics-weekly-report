@@ -2,6 +2,7 @@
 # contributors: Kevin N., Joe M., /u/softsign
 
 import copy
+import logging
 
 from reportlab.graphics.shapes import Line, Drawing
 from reportlab.lib import colors
@@ -21,6 +22,11 @@ from report.pdf.line_chart_generator import LineChartGenerator
 from report.pdf.pie_chart_generator import BreakdownPieDrawing
 from report.pdf.utils import get_image
 
+logger = logging.getLogger(__name__)
+# logger.setLevel(level=logging.INFO)
+
+logging.getLogger("PIL.PngImagePlugin").setLevel(level=logging.INFO)
+
 
 class PdfGenerator(object):
     def __init__(self,
@@ -29,7 +35,7 @@ class PdfGenerator(object):
                  playoff_slots,
                  num_regular_season_weeks,
                  week,
-                 test_dir,
+                 data_dir,
                  break_ties_bool,
                  report_title_text,
                  report_footer_text,
@@ -38,10 +44,10 @@ class PdfGenerator(object):
 
         self.config = config
         self.league_id = league_id
-        self.playoff_slots = playoff_slots
-        self.num_regular_season_weeks = num_regular_season_weeks
+        self.playoff_slots = int(playoff_slots)
+        self.num_regular_season_weeks = int(num_regular_season_weeks)
         self.week = week
-        self.test_dir = test_dir
+        self.data_dir = data_dir
         self.break_ties_bool = break_ties_bool
         self.current_standings_data = report_info_dict.get("current_standings_data")
         self.playoff_probs_data = report_info_dict.get("playoff_probs_data")
@@ -514,6 +520,7 @@ class PdfGenerator(object):
             for week in team[1]:
                 labels.append(week[0])
                 weekly_data.append(week[1])
+
             team_table = Table(
                 [[self.create_title("Weekly Points by Position", title_width=2.00),
                   self.create_title("Season Average Points by Position", title_width=2.00)],
@@ -532,18 +539,18 @@ class PdfGenerator(object):
             starting_players = []
             player_info = self.team_data[team[0]]["players"]
             for player in player_info:
-                if player["bad_boy_points"] > 0:
+                if player.bad_boy_points > 0:
                     offending_players.append(player)
-                if player["selected_position"] != "BN":
+                if player.selected_position.position != "BN":
                     starting_players.append(player)
 
             doc_elements.append(self.spacer_half_inch)
             doc_elements.append(self.create_title("Whodunnit?", 8.5, "section"))
             doc_elements.append(self.spacer_tenth_inch)
-            offending_players = sorted(offending_players, key=lambda x: x["bad_boy_points"], reverse=True)
+            offending_players = sorted(offending_players, key=lambda x: x.bad_boy_points, reverse=True)
             offending_players_data = []
             for player in offending_players:
-                offending_players_data.append([player["name"], player["bad_boy_points"], player["bad_boy_crime"]])
+                offending_players_data.append([player.name.full, player.bad_boy_points, player.bad_boy_crime])
             # if there are no offending players, add a dummy row to avoid breaking
             if not offending_players_data:
                 offending_players_data = [["N/A", "N/A", "N/A"]]
@@ -553,7 +560,7 @@ class PdfGenerator(object):
                                                     self.style_tied_bad_boy,
                                                     [2.50 * inch, 2.50 * inch, 2.75 * inch])
 
-            starting_players = sorted(starting_players, key=lambda x: x["fantasy_points"], reverse=True)
+            starting_players = sorted(starting_players, key=lambda x: x.player_points.total, reverse=True)
             best_weekly_player = starting_players[0]
             worst_weekly_player = starting_players[-1]
           
@@ -561,14 +568,14 @@ class PdfGenerator(object):
 
             doc_elements.append(self.spacer_tenth_inch)
 
-            best_player_headshot = get_image(best_weekly_player["headshot_url"], self.test_dir, self.week, 1 * inch)
-            worst_player_headshot = get_image(worst_weekly_player["headshot_url"], self.test_dir, self.week, 1 * inch)
+            best_player_headshot = get_image(best_weekly_player.headshot.url, self.data_dir, self.week, 1 * inch)
+            worst_player_headshot = get_image(worst_weekly_player.headshot.url, self.data_dir, self.week, 1 * inch)
 
             data = [["BOOOOOOOOM", "...b... U... s... T"],
-                    [best_weekly_player["name"] + " -- " + best_weekly_player["nfl_team"],
-                     worst_weekly_player["name"] + " -- " + worst_weekly_player["nfl_team"]],
+                    [best_weekly_player.name.full + " -- " + best_weekly_player.editorial_team_full_name,
+                     worst_weekly_player.name.full + " -- " + worst_weekly_player.editorial_team_full_name],
                     [best_player_headshot, worst_player_headshot],
-                    [best_weekly_player["fantasy_points"], worst_weekly_player["fantasy_points"]]]
+                    [best_weekly_player.player_points.total, worst_weekly_player.player_points.total]]
             table = Table(data, colWidths=4.0 * inch)
             table.setStyle(self.boom_bust_table_style)
             doc_elements.append(self.spacer_half_inch)
@@ -624,34 +631,36 @@ class PdfGenerator(object):
         playoff_probs_style.add("FONT", (0, 1), (-1, -1), "Helvetica")
 
         team_num = 1
-        for team in self.playoff_probs_data:
-            if float(team[3].split("%")[0]) == 100.00 and int(team[4].split(" ")[0]) == 0:
-                playoff_probs_style.add("TEXTCOLOR", (0, team_num), (-1, team_num), colors.darkgreen)
-                playoff_probs_style.add("FONT", (0, team_num), (-1, team_num), "Helvetica-BoldOblique")
-
-            if (int(team[4].split(" ")[0]) + int(self.week)) > self.num_regular_season_weeks:
-                playoff_probs_style.add("TEXTCOLOR", (4, team_num), (4, team_num), colors.red)
-
-                if float(team[3].split("%")[0]) == 0.00:
-                    playoff_probs_style.add("TEXTCOLOR", (0, team_num), (-1, team_num), colors.darkred)
+        if self.playoff_probs_data:
+            for team in self.playoff_probs_data:
+                if float(team[3].split("%")[0]) == 100.00 and int(team[4].split(" ")[0]) == 0:
+                    playoff_probs_style.add("TEXTCOLOR", (0, team_num), (-1, team_num), colors.darkgreen)
                     playoff_probs_style.add("FONT", (0, team_num), (-1, team_num), "Helvetica-BoldOblique")
 
-            team_num += 1
+                if (int(team[4].split(" ")[0]) + int(self.week)) > self.num_regular_season_weeks:
+                    playoff_probs_style.add("TEXTCOLOR", (4, team_num), (4, team_num), colors.red)
+
+                    if float(team[3].split("%")[0]) == 0.00:
+                        playoff_probs_style.add("TEXTCOLOR", (0, team_num), (-1, team_num), colors.darkred)
+                        playoff_probs_style.add("FONT", (0, team_num), (-1, team_num), "Helvetica-BoldOblique")
+
+                team_num += 1
 
         # playoff probabilities
-        self.create_section(
-            elements,
-            "Playoff Probabilities",
-            self.playoff_probs_headers,
-            self.playoff_probs_data,
-            playoff_probs_style,
-            playoff_probs_style,
-            self.playoff_probs_col_widths,
-            subtitle_text="Playoff probabilities were calculated using %s Monte Carlo simulations to predict "
-                          "team performances through the end of the regular fantasy season." %
-                          "{0:,}".format(
-                              self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations"))
-        )
+        if self.playoff_probs_data:
+            self.create_section(
+                elements,
+                "Playoff Probabilities",
+                self.playoff_probs_headers,
+                self.playoff_probs_data,
+                playoff_probs_style,
+                playoff_probs_style,
+                self.playoff_probs_col_widths,
+                subtitle_text="Playoff probabilities were calculated using %s Monte Carlo simulations to predict "
+                              "team performances through the end of the regular fantasy season." %
+                              "{0:,}".format(
+                                  self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations"))
+            )
         elements.append(self.add_page_break())
 
         # power ranking
@@ -804,7 +813,7 @@ class PdfGenerator(object):
         elements.append(self.report_footer)
 
         # build pdf
-        print("generating PDF ({})...".format(filename_with_path.split("/")[-1]))
+        logger.info("generating PDF ({})...".format(filename_with_path.split("/")[-1]))
         doc.build(elements, onFirstPage=self.add_page_number, onLaterPages=self.add_page_number)
 
         return doc.filename

@@ -1,11 +1,13 @@
-oauth2
-httplib2
+inflect
+yahoo_oauth==0.1.9
 reportlab==3.3.0
+pillow==5.4.1
+httplib2
 google-api-python-client
 PyDrive
 oauth2client
 pyyaml
-slackclient
+slackclient==1.3.1
 requests
 websocket-client
 simplejson
@@ -13,3 +15,5 @@ pandas
 numpy
 six
 bs4
+stringcase
+yffpy

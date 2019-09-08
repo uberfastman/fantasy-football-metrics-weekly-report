@@ -1,19 +1,24 @@
 import csv
+import json
+import os
 import pickle
+import logging
 
 import requests
 from bs4 import BeautifulSoup
 
+logger = logging.getLogger(__name__)
+
 
 class BadBoyStats(object):
 
-    def __init__(self, dev_bool, save_bool, league_test_dir):
+    def __init__(self, data_dir, save_data=False, dev_offline=False):
         """ Initialize class, load data from USA Today NFL Arrest DB. Combine defensive player data
         """
 
         self.rankings = {}
         # Load the scoring based on crime categories
-        with open("resources/crime_category_scoring.csv", mode="r", encoding="utf-8-sig") as infile:
+        with open(os.path.join("resources", "crime_category_scoring.csv"), mode="r", encoding="utf-8-sig") as infile:
             reader = csv.reader(infile)
             for rows in reader:
                 crime_category = rows[0].upper().strip()
@@ -22,7 +27,7 @@ class BadBoyStats(object):
                 rank = int(rows[1])
                 self.rankings[crime_category] = rank
 
-        if not dev_bool:
+        if not dev_offline:
             url = "https://www.usatoday.com/sports/nfl/arrests/"
             r = requests.get(url)
             data = r.text
@@ -46,7 +51,7 @@ class BadBoyStats(object):
                             score = self.rankings.get(category)
                         else:
                             score = 0
-                            print("Crime ranking not found: %s\nAssigning score of 0." % category)
+                            logging.info("Crime ranking not found: %s\nAssigning score of 0." % category)
 
                         if name not in self.bad_boy_data:
                             self.bad_boy_data[name] = {
@@ -74,22 +79,25 @@ class BadBoyStats(object):
                             else:
                                 points = self.bad_boy_data[name].get("points") + score
                                 self.bad_boy_data[name]["points"] = points
-            if save_bool:
-                with open(league_test_dir +
-                          "/" +
-                          "bad_boy_data.pkl", "wb") as bb_out:
+            if save_data:
+                with open(os.path.join(data_dir, "bad_boy_data.pkl"), "wb") as bb_out:
                     pickle.dump(self.bad_boy_data, bb_out, pickle.HIGHEST_PROTOCOL)
         else:
-            with open(league_test_dir +
-                      "/" +
-                      "bad_boy_data.pkl", "rb") as bb_in:
-                self.bad_boy_data = pickle.load(bb_in)
+            bb_data_file_path = os.path.join(data_dir, "bad_boy_data.pkl")
+            if os.path.exists(bb_data_file_path):
+                with open(bb_data_file_path, "rb") as bb_in:
+                    self.bad_boy_data = pickle.load(bb_in)
+            else:
+                raise FileNotFoundError(
+                    "FILE {} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY PERSISTED DATA!".format(
+                        bb_data_file_path))
 
         if len(self.bad_boy_data) == 0:
-            print("NO bad boy records were loaded, please check your internet connection or the availability of "
-                  "'https://www.usatoday.com/sports/nfl/arrests/' and try generating a new report.")
+            logger.warning(
+                "NO bad boy records were loaded, please check your internet connection or the availability of "
+                "'https://www.usatoday.com/sports/nfl/arrests/' and try generating a new report.")
         else:
-            print("{} bad boy records loaded".format(len(self.bad_boy_data)))
+            logger.info("{} bad boy records loaded".format(len(self.bad_boy_data)))
 
     def check_bad_boy_status(self, name, team, pos):
         """ Looks up given player and returns number of 'bad boy' points based on scoring.
@@ -109,3 +117,9 @@ class BadBoyStats(object):
             total = crime.get("points")
             category = crime.get("category")
         return total, category
+
+    def __str__(self):
+        return json.dumps(self.bad_boy_data, indent=2, ensure_ascii=False)
+
+    def __repr__(self):
+        return json.dumps(self.bad_boy_data, indent=2, ensure_ascii=False)

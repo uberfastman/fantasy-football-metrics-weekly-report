@@ -33,9 +33,12 @@ class CoachingEfficiency(object):
         eligible = []
 
         for position in self.roster_slots:
-            eligible_positions = player["eligible_positions"]
-            if not isinstance(eligible_positions, list):
-                eligible_positions = [eligible_positions]
+            eligible_positions = player.eligible_positions
+
+            if isinstance(eligible_positions, dict):
+                eligible_positions = [eligible_positions.get("position")]
+            else:
+                eligible_positions = [pos.get("position") for pos in eligible_positions]
             if position in eligible_positions:
                 # special case, because all defensive players get D as an eligible position
                 # whereas for offense, there is no special eligible position for FLEX
@@ -51,10 +54,8 @@ class CoachingEfficiency(object):
 
     def get_optimal_players(self, eligible_players, position):
         player_list = eligible_players[position]
-
         num_slots = self.roster_slots[position]
-
-        return sorted(player_list, key=lambda x: x["fantasy_points"], reverse=True)[:num_slots]
+        return sorted(player_list, key=lambda x: x.player_points.total, reverse=True)[:num_slots]
 
     def get_optimal_flex(self, eligible_positions, optimal):
 
@@ -62,8 +63,8 @@ class CoachingEfficiency(object):
         # should just have a class, but w/e
         def create_tuple(player_info):
             return (
-                player_info["name"],
-                player_info["fantasy_points"]
+                player_info.name,
+                player_info.player_points.total
             )
 
         for flex_position, base_positions in list(self.flex_positions.items()):
@@ -93,7 +94,7 @@ class CoachingEfficiency(object):
                         yield player
 
     def is_player_eligible(self, player, week):
-        return player["status"] in self.prohibited_status_list or player["bye_week"] == week
+        return player.status in self.prohibited_status_list or player.bye_week == week
 
     def execute_coaching_efficiency(self, team_name, team_info, week, league_roster_active_slots,
                                     disqualification_eligible=False):
@@ -129,18 +130,21 @@ class CoachingEfficiency(object):
         optimal_lineup = [item for sublist in optimal_players for item in sublist]
 
         # calculate optimal score
-        optimal_score = sum([x["fantasy_points"] for x in optimal_lineup])
+        optimal_score = sum([x.player_points.total for x in optimal_lineup])
 
         # calculate coaching efficiency
         actual_weekly_score = team_info["score"]
 
-        coaching_efficiency = (actual_weekly_score / optimal_score) * 100
+        try:
+            coaching_efficiency = (actual_weekly_score / optimal_score) * 100
+        except ZeroDivisionError:
+            coaching_efficiency = 0.0
 
         # apply coaching efficiency eligibility requirements if coaching efficiency disqualification bool (dq_ce_bool)
         # is set to True
         if disqualification_eligible:
 
-            bench_players = [p for p in players if p["selected_position"] == "BN"]
+            bench_players = [p for p in players if p.selected_position.position == "BN"]
             ineligible_efficiency_player_count = len([p for p in bench_players if self.is_player_eligible(p, week)])
             positions_filled_active = team_info["positions_filled_active"]
 
