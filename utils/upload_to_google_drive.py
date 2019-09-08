@@ -46,16 +46,18 @@ class GoogleDriveUploader(object):
         all_pdfs = drive.ListFile({"q": "mimeType='application/pdf' and trashed=false"}).GetList()
 
         # Check for "Fantasy_Football" root folder and create it if it does not exist
-        root_folder_name = self.config.get("Google_Drive_Settings", "root_folder_name")
-        root_folder_id = self.make_root_folder(drive, self.check_file_existence(root_folder_name, root_folders),
-                                               root_folder_name)
+        google_drive_root_folder_name = self.config.get("Google_Drive_Settings", "google_drive_root_folder_name")
+        google_drive_root_folder_id = self.make_root_folder(
+            drive,
+            self.check_file_existence(google_drive_root_folder_name, root_folders),
+            google_drive_root_folder_name)
 
         if not test_bool:
             # Check for parent folder for league and create it if it does not exist
             league_folder_name = self.filename.split("/")[2].replace("-", "_")
             league_folder_id = self.make_parent_folder(drive,
                                                        self.check_file_existence(league_folder_name, all_folders),
-                                                       league_folder_name, root_folder_id)
+                                                       league_folder_name, google_drive_root_folder_id)
 
             # Check for league report and create if if it does not exist
             report_file_name = self.filename.split("/")[-1]

@@ -1,10 +1,8 @@
 .idea/
 *.pyc
-authentication/
+private.json
+token.json
+credentials.json
 data/
-output/
 logs/
-legacy_code/
-local_dependencies/python-yql-master/__pycache__/
-resources/local_dependencies/logs/
-test/
+output/

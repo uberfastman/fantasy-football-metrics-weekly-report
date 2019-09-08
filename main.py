@@ -15,19 +15,38 @@ config.read("config.ini")
 
 
 def main(argv):
+
+    usage_str = \
+        "\n"\
+        "Yahoo Fantasy Football report application usage:\n\n"\
+        "    python main.py [optional_parameters]\n\n"\
+        "  Options:\n" \
+        "      -h                    Print this usage message.\n" \
+        "    Generate report:\n"\
+        "      -l <yahoo_league_id>  Yahoo Fantasy Football league ID.\n"\
+        "      -w <chosen_week>      Chosen week for which to generate report.\n"\
+        "      -s                    Save all retrieved data for faster future report generation.\n"\
+        "    Configuration:\n" \
+        "      -b                    Break ties in metric rankings.\n" \
+        "      -q                    Automatically disqualify teams ineligible for coaching efficiency metric.\n" \
+        "    For Developers:\n"\
+        "      -t                    Generate TEST report.\n"\
+        "      -d                    Run OFFLINE for development. Must have previously run report with -s option.\n"\
+
     try:
         opts, args = getopt.getopt(argv, "hl:w:qbtsd")
     except getopt.GetoptError:
-        print("\nYahoo Fantasy Football report application usage:\n"
-              "     python main.py -t -l <yahoo_league_id> -w <chosen_week>\n")
+        print(usage_str)
         sys.exit(2)
 
     options_dict = {}
     for opt, arg in opts:
+        # help/manual
         if opt == "-h":
-            print("\nYahoo Fantasy Football report application usage:\n"
-                  "     python main.py -t -l <yahoo_league_id> -w <chosen_week>\n")
+            print(usage_str)
             sys.exit()
+
+        # generate report
         elif opt in ("-l", "--league-id"):
             options_dict["league_id"] = arg
         elif opt in ("-w", "--week"):
@@ -36,14 +55,18 @@ def main(argv):
                 options_dict["week"] = select_week()
             else:
                 options_dict["week"] = arg
-        elif opt in ("-q", "--disqualify-ce"):
-            options_dict["dq_ce_bool"] = True
-        elif opt in ("-b", "--break-ties"):
-            options_dict["break_ties_bool"] = True
-        elif opt in ("-t", "--test"):
-            options_dict["test_bool"] = True
         elif opt in ("-s", "--save-data"):
             options_dict["save_data"] = True
+
+        # report configuration
+        elif opt in ("-b", "--break-ties"):
+            options_dict["break_ties_bool"] = True
+        elif opt in ("-q", "--disqualify-ce"):
+            options_dict["dq_ce_bool"] = True
+
+        # for developers
+        elif opt in ("-t", "--test"):
+            options_dict["test_bool"] = True
         elif opt in ("-d", "--dev-offline"):
             options_dict["dev_offline"] = True
 

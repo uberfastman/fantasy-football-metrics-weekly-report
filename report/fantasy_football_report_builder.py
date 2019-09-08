@@ -43,7 +43,7 @@ class FantasyFootballReport(object):
         self.config = ConfigParser()
         self.config.read("config.ini")
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.auth_dir = os.path.join(base_dir, "..", self.config.get("Fantasy_Football_Report_Settings", "auth_dir"))
+        self.yahoo_auth_dir = os.path.join(base_dir, "..", self.config.get("Yahoo_Settings", "yahoo_auth_dir"))
         self.data_dir = os.path.join(base_dir, "..", self.config.get("Fantasy_Football_Report_Settings", "data_dir"))
         self.game_id = self.config.get("Fantasy_Football_Report_Settings", "game_id")
         self.season = self.config.get("Fantasy_Football_Report_Settings", "season")
@@ -68,7 +68,7 @@ class FantasyFootballReport(object):
         yahoo_data = Data(self.data_dir, save_data=self.save_data, dev_offline=self.dev_offline)
 
         # run base yahoo queries
-        yahoo_query = YahooFantasyFootballQuery(self.auth_dir, self.league_id, self.game_id, offline=self.dev_offline)
+        yahoo_query = YahooFantasyFootballQuery(self.yahoo_auth_dir, self.league_id, self.game_id, offline=self.dev_offline)
 
         # TODO: REMOVE LEAGUE KEY OVERRIDE
         yahoo_query.league_key = "380.l.169896"
@@ -738,7 +738,7 @@ class FantasyFootballReport(object):
             playoff_slots=self.playoff_slots,
             num_regular_season_weeks=self.num_regular_season_weeks,
             week=self.chosen_week,
-            data_dir=self.data_dir,
+            data_dir=os.path.join(self.data_dir, str(self.season), self.league_key),
             break_ties_bool=self.break_ties_bool,
             report_title_text=report_title_text,
             report_footer_text=report_footer_text,

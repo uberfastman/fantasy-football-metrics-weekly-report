@@ -39,7 +39,7 @@ class SlackMessenger(object):
                 channels="#apitests",
                 username="fantasy_football_report_bot",
                 icon_emoji=":football:",
-                filename="test_file.pdf",
+                filename="test/test_file.pdf",
                 filetype="pdf",
                 file=file_to_upload
             )

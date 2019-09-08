@@ -1,23 +1,29 @@
-# Yahoo Fantasy Football Metrics Report Generator
+# Yahoo Fantasy Football Report
 
+<a name="about"></a>
 ### About
-The Yahoo Fantasy Football Metrics Report Generator is a small application designed to automatically generate a report in the form of a PDF file that contains a host of metrics and rankings for teams in a given Yahoo Fantasy Football league.
+The Yahoo Fantasy Football Report application automatically generates a report in the form of a PDF file that contains a host of metrics and rankings for teams in a given Yahoo Fantasy Football league.
 
+<a name="dependencies"></a>
 ### Dependencies
-The application has only been tested in macOS, and has now been adapted to run only on Python 3. While previous versions of the app were only compatible with Python 2, Python 2 is now no longer supported.
+The application has only been tested in macOS, but should be cross-platform compatible. The app requires Python 3 (Python 2 is no longer supported).
 
 Project dependencies can be viewed in the `requirements.txt` file.
 
-### Report Generator Setup*
+<a name="setup"></a>
+### Setup*
 
-* Go to [https://developer.yahoo.com/apps/create/](https://developer.yahoo.com/apps/create/) and create an app (you must be logged into your Yahoo account). For the app, select the following options:
-    * Set `Application Name` to `fantasy-football-metrics` (you can name your app whatever you want, but this is just an example).
-    * For `Application Type`, select the `Installed Application` radio button.
-    * For `Description`, you may write a description of what the app does (optional).
-    * For `API Permissions`, check the `Fantasy Sports` checkbox. You can leave the `Read` option selected (appears in an accordion expansion underneath the `Fantasy Sports` checkbox once you select it).
+* Log in to a Yahoo account with access to whatever fantasy football leagues from which you wish to retrieve data.
+* Go to [https://developer.yahoo.com/apps/create/](https://developer.yahoo.com/apps/create/) and create an app (you must be logged into your Yahoo account as stated above). For the app, select the following options:
+    * `Application Name` (**Required**): `yffpy` (you can name your app whatever you want, but this is just an example).
+    * `Application Type` (**Required**): select the `Installed Application` radio button.
+    * `Description` (*Optional*): you *may* write a description of what the app does.
+    * `Home Page URL` (*Optional*): if you have a web address related to your app you *may* add it here.
+    * `Redirect URI(s)` (**Required**): this field must contain a valid redirect address, so you can use `localhost:8080`
+    * `API Permissions` (**Required**): check the `Fantasy Sports` checkbox. You can leave the `Read` option selected (appears in an accordion expansion underneath the `Fantasy Sports` checkbox once you select it).
     * Click the `Create App` button.
     * Once the app is created, it should redirect you to a page for your app, which will show both a `Client ID` and a `Client Secret`.
-    * Copy the `Client ID` to the first line of `yahoo-fantasy-football-metrics/authentication/yahoo/private.txt`, and then copy the `Client Secret` to the second line of the `private.txt` file.
+    * Rename `EXAMPLE-private.json` (located in the `authentication/yahoo` directory) to just `private.json`, and copy the `Client ID` and `Client Secret` values to their respective fields (make sure the strings are wrapped regular quotes (`""`), NOT formatted quotes (`“”`)). The path to this file will be needed to point YFFPY to your credentials.
     * Now you should be ready to initialize the OAuth connection between the report generator and your Yahoo account.
     
 * Open a Terminal window (command line prompt)
@@ -42,28 +48,28 @@ Project dependencies can be viewed in the `requirements.txt` file.
 
     ![yahoo-fantasy-football-league-id-location.png](resources/yahoo-fantasy-football-league-id-location.png)
 
-* In the `config.ini`, change the value for `chosen_league_id` to your above located league id.
+* In the `config.ini`, change the value for `league_id` to your above located league id.
 
 * Run `pip install -r requirements.txt`
 
-* Run `python generate_report.py`. You should see the following prompts: 
+* Run `python main.py`. You should see the following prompts: 
     * `Generate report for default league? (y/n) -> `. 
     
         Type `y` and hit enter. 
     * `Generate report for default week? (y/n) ->`. 
         
         Type `y` and hit enter.
-    * ```
-      Visit url https://api.login.yahoo.com/oauth/v2/request_auth?oauth_token=bwu6hgt and get a verifier string
-      Enter the code:
+    * The ***FIRST*** time you run the app, a browser window will automatically open, and if you correctly followed the instructions in the [Report Setup](#setup) section, you should see a verifier code (something like `w6nwjvz`).
+    * Copy the above verifier code and return to the command line window, where you should now see the following prompt:
       ```
- 
-        Copy the above URL into a browser window and hit enter, hit the "Agree" button, and then type in the provided code where the command prompt says `Enter the code:`
-
-* Assuming the above went as expected, the application should now generate a report for your fantasy league for the previous NFL week.
+      Enter verifier :
+      ```
+      Paste the verifier code there and hit enter.
+    * Assuming the above went as expected, the application should now generate a report for your fantasy league for the selected NFL week.
 
 _\* General setup excludes Google Drive and Slack integrations. See below sections for details on including those additional features._
 
+<a name="usage"></a>
 ### Usage
 
 After completing the above setup steps, you should now be able to simply run `python generate_report.py` to regenerate a report. The report generator script (`generate_report.py`) also supports several command line options that allow you to specify the following:
@@ -89,33 +95,32 @@ When you wish to work within the `virtualenv` once more, do the following:
  
  * Run `workon fantasy-football-metrics`
 
-
+<a name="features"></a>
 ### Additional Features
 
 The Yahoo Fantasy Football Metrics Report Generator also supports several additional features if you choose to utilize them. Currently it is capable of uploading your generated reports to Google Drive, and also directly posting your generated reports to the Slack Messenger app.
 
+<a name="google"></a>
 #### Google Drive Integration Setup
 
 `Coming soon!`
 
+<a name="slack"></a>
 #### Slack Integration Setup
 
 `Coming soon!`
 
+<a name="troubleshooting"></a>
 ### Troubleshooting
 
-Occasionally when you run the report generator, you encounter an error like this:
+Occasionally when you use the Yahoo fantasy football API, there are hangups on the other end that can cause data not to transmit, and you might encounter an error similar to this:
 ```
 Traceback (most recent call last):
-  File "generate_report.py", line 114, in <module>
-    generated_report = fantasy_football_report.create_pdf_report()
-  File "/Users/your_username/PATH/T0/LOCAL/PROJECT/yahoo-fantasy-football-metrics/fantasy_football_report_builder.py", line 429, in create_pdf_report
-    report_info_dict = self.calculate_metrics(chosen_week=str(week_counter))
-  File "/Users/your_username/PATH/T0/LOCAL/PROJECT/yahoo-fantasy-football-metrics/fantasy_football_report_builder.py", line 296, in calculate_metrics
-    team_results_dict = self.retrieve_data(chosen_week)
-  File "/Users/your_username/PATH/T0/LOCAL/PROJECT/yahoo-fantasy-football-metrics/fantasy_football_report_builder.py", line 250, in retrieve_data
-    for player in roster_stats_data[0].get("roster").get("players").get("player"):
+  File "yffpy-app.py", line 114, in <module>
+    var = app.run()
+  File "/Users/your_username/PATH/T0/LOCAL/PROJECT/yffpy-app.py", line 429, in run
+    for team in team_standings:
 IndexError: list index out of range
 ```
 
-Typically when the above error (or a similar error) occurs, it simply means that one of the Yahoo Fantasy Football API calls failed and so the data needed to generate the report is missing. This can be fixed by simply re-running the report generator.
+Typically when the above error (or a similar error) occurs, it simply means that one of the Yahoo Fantasy Football API calls failed and so no data was retrieved. This can be fixed by simply re-running data query.
