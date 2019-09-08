@@ -1,7 +1,10 @@
 # written by Wren J.R.
 import datetime
+import logging
 
 from slackclient import SlackClient
+
+logger = logging.getLogger(__name__)
 
 
 class SlackMessenger(object):
@@ -21,14 +24,14 @@ class SlackMessenger(object):
         return self.sc.api_call("channels.list")
 
     def test_post_to_slack(self, message):
-        print(self.sc.api_call("channels.info", channel="C0A56L9A4"))
+        logger.info(self.sc.api_call("channels.info", channel="C0A56L9A4"))
         return self.sc.api_call(
             "chat.postMessage", channel="#apitests", text="<!here|here>:\n" + message,
             username="fantasy_football_report_bot", icon_emoji=":football:"
         )
 
     def test_file_upload_to_slack(self, upload_file):
-        print(self.sc.api_call("channels.info", channel="C0A56L9A4"))
+        logger.info(self.sc.api_call("channels.info", channel="C0A56L9A4"))
         with open(upload_file, "r") as uf:
             file_to_upload = uf.read()
             response = self.sc.api_call(
@@ -42,7 +45,7 @@ class SlackMessenger(object):
             )
         if "ok" not in response or not response["ok"]:
             # error
-            print("fileUpload failed %s", response["error"])
+            logger.error("fileUpload failed %s", response["error"])
         return response
 
     def post_to_selected_slack_channel(self, message):
@@ -71,5 +74,5 @@ class SlackMessenger(object):
             )
         if "ok" not in response or not response["ok"]:
             # error
-            print("fileUpload failed %s", response["error"])
+            logger.error("fileUpload failed %s", response["error"])
         return response

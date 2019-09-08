@@ -16,7 +16,7 @@ config.read("config.ini")
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, "hl:w:qbtds")
+        opts, args = getopt.getopt(argv, "hl:w:qbtsd")
     except getopt.GetoptError:
         print("\nYahoo Fantasy Football report application usage:\n"
               "     python main.py -t -l <yahoo_league_id> -w <chosen_week>\n")
@@ -42,15 +42,15 @@ def main(argv):
             options_dict["break_ties_bool"] = True
         elif opt in ("-t", "--test"):
             options_dict["test_bool"] = True
-        elif opt in ("-d", "--dev"):
-            options_dict["dev_bool"] = True
-        elif opt in ("-s", "--save"):
-            options_dict["save_bool"] = True
+        elif opt in ("-s", "--save-data"):
+            options_dict["save_data"] = True
+        elif opt in ("-d", "--dev-offline"):
+            options_dict["dev_offline"] = True
 
     return options_dict
 
 
-def select_league(league_id, week, refresh_data, dq_ce_bool, break_ties_bool, test_bool, dev_bool, save_bool):
+def select_league(league_id, week, dq_ce_bool, break_ties_bool, test_bool, save_data, dev_offline):
 
     if not league_id:
         default = input("Generate report for default league? (y/n) -> ")
@@ -65,12 +65,11 @@ def select_league(league_id, week, refresh_data, dq_ce_bool, break_ties_bool, te
             chosen_week = week
 
         return FantasyFootballReport(week=chosen_week,
-                                     refresh_data=refresh_data,
                                      dq_ce_bool=dq_ce_bool,
                                      break_ties_bool=break_ties_bool,
                                      test_bool=test_bool,
-                                     dev_bool=dev_bool,
-                                     save_bool=save_bool)
+                                     save_data=save_data,
+                                     dev_offline=dev_offline)
     elif default == "n":
         league_id = input(
             "What is the league ID of the Yahoo league for which you want to generate a report? -> ")
@@ -86,12 +85,12 @@ def select_league(league_id, week, refresh_data, dq_ce_bool, break_ties_bool, te
                                          dq_ce_bool=dq_ce_bool,
                                          break_ties_bool=break_ties_bool,
                                          test_bool=test_bool,
-                                         dev_bool=dev_bool,
-                                         save_bool=save_bool)
+                                         save_data=save_data,
+                                         dev_offline=dev_offline)
 
         except IndexError:
             print("The league ID you have selected is not valid.")
-            select_league(None, week, refresh_data, dq_ce_bool, break_ties_bool, test_bool, dev_bool, save_bool)
+            select_league(None, week, dq_ce_bool, break_ties_bool, test_bool, save_data, dev_offline)
     elif default == "selected":
 
         if not week:
@@ -104,11 +103,11 @@ def select_league(league_id, week, refresh_data, dq_ce_bool, break_ties_bool, te
                                      dq_ce_bool=dq_ce_bool,
                                      break_ties_bool=break_ties_bool,
                                      test_bool=test_bool,
-                                     dev_bool=dev_bool,
-                                     save_bool=save_bool)
+                                     save_data=save_data,
+                                     dev_offline=dev_offline)
     else:
         print("You must select either 'y' or 'n'.")
-        select_league(None, week, refresh_data, dq_ce_bool, break_ties_bool, test_bool, dev_bool, save_bool)
+        select_league(None, week, dq_ce_bool, break_ties_bool, test_bool, save_data, dev_offline)
 
 
 def select_week():
@@ -134,12 +133,11 @@ if __name__ == '__main__':
 
     report = select_league(options.get("league_id", None),
                            options.get("week", None),
-                           bool(distutils.strtobool(config.get("Fantasy_Football_Report_Settings", "refresh_data"))),
                            options.get("dq_ce_bool", False),
                            options.get("break_ties_bool", False),
                            options.get("test_bool", False),
-                           options.get("dev_bool", False),
-                           options.get("save_bool", False))
+                           options.get("save_data", False),
+                           options.get("dev_offline", False))
     report_pdf = report.create_pdf_report()
 
     upload_file_to_google_drive_bool = bool(

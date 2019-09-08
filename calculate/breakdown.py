@@ -10,7 +10,8 @@ class Breakdown(object):
     def execute_breakdown(teams, matchups_list):
 
         result = defaultdict(dict)
-        matchups = {name: value["result"] for pair in matchups_list for name, value in list(pair.items())}
+        matchups = {name.decode("utf-8"): value["result"] for pair in matchups_list for name, value in
+                    list(pair.items())}
 
         for team_name in teams:
             team = teams[team_name]

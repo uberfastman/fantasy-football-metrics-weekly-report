@@ -1,4 +1,8 @@
+import logging
+
 from calculate.coaching_efficiency import CoachingEfficiency
+
+logger = logging.getLogger(__name__)
 
 
 class PointsByPosition(object):
@@ -14,17 +18,21 @@ class PointsByPosition(object):
 
     @staticmethod
     def get_starting_players(players):
-        return [p for p in players if p["selected_position"] != "BN"]
+        return [p for p in players if p.selected_position.position != "BN"]
 
     @staticmethod
     def get_points_for_position(players, position):
         total_points_by_position = 0
         for player in players:
-            player_positions = player["eligible_positions"]
-            if not isinstance(player_positions, list):
-                player_positions = [player_positions]
-            if position in player_positions and player["selected_position"] != "BN":
-                total_points_by_position += float(player["fantasy_points"])
+            player_positions = player.eligible_positions
+
+            if isinstance(player_positions, dict):
+                player_positions = [player_positions.get("position")]
+            else:
+                player_positions = [player_position.get("position") for player_position in player_positions]
+
+            if position in player_positions and player.selected_position.position != "BN":
+                total_points_by_position += float(player.player_points.total)
 
         return total_points_by_position
 
@@ -86,7 +94,7 @@ class PointsByPosition(object):
                                             "coaching_efficiency_disqualified_teams")
             if disqualified_teams:
                 for team in disqualified_teams.split(","):
-                    print("{} has been manually disqualified from coaching efficiency eligibility!".format(team))
+                    logger.info("{} has been manually disqualified from coaching efficiency eligibility!".format(team))
                     team_results_dict.get(team)["coaching_efficiency"] = 0.0
 
         return weekly_points_by_position_data
