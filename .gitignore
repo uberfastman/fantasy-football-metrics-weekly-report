@@ -3,6 +3,7 @@
 private.json
 token.json
 credentials.json
+config.ini
 data/
 logs/
 output/

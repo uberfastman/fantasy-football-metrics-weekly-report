@@ -7,7 +7,7 @@ import datetime
 import itertools
 import logging
 import os
-# import sys
+import sys
 from configparser import ConfigParser
 
 from yffpy import Data
@@ -15,6 +15,7 @@ from yffpy.models import Game, League, Standings, Settings
 from yffpy.query import YahooFantasyFootballQuery
 
 from calculate.bad_boy_stats import BadBoyStats
+from calculate.beef_stats import BeefStats
 from calculate.breakdown import Breakdown
 from calculate.metrics import CalculateMetrics
 from calculate.playoff_probabilities import PlayoffProbabilities
@@ -71,7 +72,7 @@ class FantasyFootballReport(object):
         yahoo_query = YahooFantasyFootballQuery(self.yahoo_auth_dir, self.league_id, self.game_id, offline=self.dev_offline)
 
         # TODO: REMOVE LEAGUE KEY OVERRIDE
-        yahoo_query.league_key = "380.l.169896"
+        # yahoo_query.league_key = "380.l.169896"
 
         if self.season and self.game_id:
             self.yahoo_fantasy_game = yahoo_data.retrieve(str(self.game_id) + "-yahoo_nfl_fantasy_game",
@@ -87,14 +88,16 @@ class FantasyFootballReport(object):
         self.league_key = self.yahoo_fantasy_game.game_key + ".l." + self.league_id
         self.season = self.yahoo_fantasy_game.season
 
+        # print(self.league_key)
         # sys.exit()
 
         league_overview = yahoo_data.retrieve("overview", yahoo_query.get_overview, data_type_class=League,
                                               new_data_dir=os.path.join(self.data_dir, str(self.season),
                                                                         self.league_key))
         self.league_name = league_overview.name
-        # print(league_overview)
+
         # print(self.league_name)
+        # print(league_overview)
         # sys.exit()
 
         self.league_standings_data = yahoo_data.retrieve("standings", yahoo_query.get_standings,
@@ -161,6 +164,12 @@ class FantasyFootballReport(object):
         # print(self.bad_boy_stats)
         # sys.exit()
 
+        self.beef_rank = BeefStats(os.path.join(self.data_dir, str(self.season), self.league_key),
+                                   save_data=self.save_data, dev_offline=self.dev_offline)
+
+        # print(self.beef_rank)
+        # sys.exit()
+
         # TODO: UPDATE USAGE OF recalculate PARAM (could use self.dev_offline)
         self.playoff_probs_data = PlayoffProbabilities(
             self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations"),
@@ -181,7 +190,19 @@ class FantasyFootballReport(object):
         try:
             current_week = league_overview.current_week
             if chosen_week == "default":
-                self.chosen_week = str(int(current_week) - 1)
+                if (int(current_week) - 1) > 0:
+                    self.chosen_week = str(int(current_week) - 1)
+                else:
+                    first_week_incomplete = input(
+                        "The first week of the season is not yet complete. "
+                        "Are you sure you want to generate a report for an incomplete week? (y/n) -> ")
+                    if first_week_incomplete == "y":
+                        self.chosen_week = current_week
+                    elif first_week_incomplete == "n":
+                        raise ValueError("It is recommended that you NOT generate a report for an incomplete week.")
+                    else:
+                        raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
+
             elif 0 < int(chosen_week) < 18:
                 if 0 < int(chosen_week) <= int(current_week) - 1:
                     self.chosen_week = chosen_week
@@ -191,7 +212,7 @@ class FantasyFootballReport(object):
                     if incomplete_week == "y":
                         self.chosen_week = chosen_week
                     elif incomplete_week == "n":
-                        raise ValueError("It is recommended that you not generate a report for an incomplete week.")
+                        raise ValueError("It is recommended that you NOT generate a report for an incomplete week.")
                     else:
                         raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
             else:
@@ -315,7 +336,7 @@ class FantasyFootballReport(object):
 
                 player = player.get("player")
 
-                custom_field_dict = {"bad_boy_crime": str, "bad_boy_points": int}
+                custom_field_dict = {"bad_boy_crime": str, "bad_boy_points": int, "weight": float, "tabbu": float}
                 player._keys.extend(list(custom_field_dict.keys()))
                 for field, data_type in custom_field_dict.items():
                     player.__dict__[field] = data_type()
@@ -323,6 +344,10 @@ class FantasyFootballReport(object):
                 if player.selected_position.position != "BN":
                     player.bad_boy_points, player.bad_boy_crime = self.bad_boy_stats.check_bad_boy_status(
                         player.name.full, player.editorial_team_abbr, player.selected_position.position)
+                    player.weight = self.beef_rank.get_player_weight(player.name.first, player.name.last,
+                                                                     player.editorial_team_abbr)
+                    player.tabbu = self.beef_rank.get_player_tabbu(player.name.first, player.name.last,
+                                                                   player.editorial_team_abbr)
                     positions_filled_active.append(player.selected_position.position)
 
                 players.append(player)
@@ -351,6 +376,8 @@ class FantasyFootballReport(object):
                 "bad_boy_points": bad_boy_total,
                 "worst_offense": worst_offense,
                 "num_offenders": num_offenders,
+                "total_weight": sum([p.weight for p in players if p.selected_position.position != "BN"]),
+                "tabbu": sum([p.tabbu for p in players if p.selected_position.position != "BN"]),
                 "positions_filled_active": positions_filled_active
             }
 
@@ -475,6 +502,11 @@ class FantasyFootballReport(object):
                                  key=lambda k_v: (float(k_v[1].get("bad_boy_points")), k_v[0]), reverse=True)
         bad_boy_results_data = calc_metrics.get_bad_boy_data(bad_boy_results)
 
+        # create beef rank data for table
+        beef_results = sorted(iter(team_results_dict.items()),
+                              key=lambda k_v: (float(k_v[1].get("tabbu")), k_v[0]), reverse=True)
+        beef_results_data = calc_metrics.get_beef_rank_data(beef_results)
+
         # count number of ties for points, coaching efficiency, luck, power ranking, or bad boy ranking
         # tie_type can be "score", "coaching_efficiency", "luck", "power_rank", or "bad_boy"
 
@@ -521,6 +553,15 @@ class FantasyFootballReport(object):
         num_tied_for_first_bad_boy = len(
             [list(group) for key, group in itertools.groupby(bad_boy_results_data, lambda x: x[3])][0])
 
+        num_tied_beef = calc_metrics.get_num_ties(beef_results_data, "beef", self.break_ties_bool)
+
+        tie_for_first_beef = False
+        if num_tied_beef > 0:
+            if beef_results_data[0][0] == beef_results_data[1][0]:
+                tie_for_first_beef = True
+        num_tied_for_first_beef = len(
+            [list(group) for key, group in itertools.groupby(beef_results_data, lambda x: x[3])][0])
+
         # output weekly metrics info
         logger.info("\n~~~~~ WEEK {} METRICS INFO ~~~~~\n"
                     "              SCORE tie(s): {}\n"
@@ -552,27 +593,32 @@ class FantasyFootballReport(object):
             "power_ranking_results_data": power_ranking_results_data,
             "zscore_results_data": zscore_results_data,
             "bad_boy_results_data": bad_boy_results_data,
+            "beef_results_data": beef_results_data,
             "num_tied_scores": num_tied_scores,
             "num_tied_coaching_efficiencies": num_tied_coaching_efficiencies,
             "num_tied_lucks": num_tied_lucks,
             "num_tied_power_rankings": num_tied_power_rankings,
             "num_tied_bad_boys": num_tied_bad_boys,
+            "num_tied_beef": num_tied_beef,
             "efficiency_dq_count": efficiency_dq_count,
             "tied_scores_bool": num_tied_scores > 0,
             "tied_coaching_efficiencies_bool": num_tied_coaching_efficiencies > 0,
             "tied_lucks_bool": num_tied_lucks > 0,
             "tied_power_rankings_bool": num_tied_power_rankings > 0,
             "tied_bad_boy_bool": num_tied_bad_boys > 0,
+            "tied_beef_bool": num_tied_beef > 0,
             "tie_for_first_score": tie_for_first_score,
             "tie_for_first_coaching_efficiency": tie_for_first_coaching_efficiency,
             "tie_for_first_luck": tie_for_first_luck,
             "tie_for_first_power_ranking": tie_for_first_power_ranking,
             "tie_for_first_bad_boy": tie_for_first_bad_boy,
+            "tie_for_first_beef": tie_for_first_beef,
             "num_tied_for_first_scores": num_tied_for_first_scores,
             "num_tied_for_first_coaching_efficiency": num_tied_for_first_coaching_efficiency,
             "num_tied_for_first_luck": num_tied_for_first_luck,
             "num_tied_for_first_power_ranking": num_tied_for_first_power_ranking,
             "num_tied_for_first_bad_boy": num_tied_for_first_bad_boy,
+            "num_tied_for_first_beef": num_tied_for_first_beef,
             "weekly_points_by_position_data": weekly_points_by_position_data
         }
 
@@ -711,12 +757,11 @@ class FantasyFootballReport(object):
         PointsByPosition.calculate_points_by_position_season_averages(season_average_points_by_position_dict,
                                                                       report_info_dict)
 
-        filename = self.league_name.replace(" ",
-                                            "-") + "(" + self.league_id + ")_week-" + self.chosen_week + "_report.pdf"
-        report_save_dir = self.config.get("Fantasy_Football_Report_Settings",
-                                          "output_dir") + \
-                          "/" + self.league_name.replace(" ", "-") + "(" + self.league_id + ")"
-        report_title_text = self.league_name + " (" + self.league_id + ") Week " + self.chosen_week + " Report"
+        filename = self.league_name.replace(" ", "-") + \
+            "(" + str(self.league_id) + ")_week-" + str(self.chosen_week) + "_report.pdf"
+        report_save_dir = os.path.join(self.config.get("Fantasy_Football_Report_Settings", "output_dir"),
+                                       self.league_name.replace(" ", "-") + "(" + self.league_id + ")")
+        report_title_text = self.league_name + " (" + str(self.league_id) + ") Week " + str(self.chosen_week) + " Report"
         report_footer_text = \
             "<para alignment='center'>Report generated %s for Yahoo Fantasy Football league '%s' (%s).</para>" % \
             ("{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), self.league_name, self.league_id)
@@ -727,9 +772,8 @@ class FantasyFootballReport(object):
         if not self.test_bool:
             filename_with_path = os.path.join(report_save_dir, filename)
         else:
-            filename_with_path = os.path.join(
-                self.config.get("Fantasy_Football_Report_Settings", "output_dir") + "/",
-                "test_report.pdf")
+            filename_with_path = os.path.join(self.config.get("Fantasy_Football_Report_Settings", "output_dir"),
+                                              "test_report.pdf")
 
         # instantiate pdf generator
         pdf_generator = PdfGenerator(

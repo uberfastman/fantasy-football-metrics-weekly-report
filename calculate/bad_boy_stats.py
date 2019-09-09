@@ -51,7 +51,7 @@ class BadBoyStats(object):
                             score = self.rankings.get(category)
                         else:
                             score = 0
-                            logging.info("Crime ranking not found: %s\nAssigning score of 0." % category)
+                            logger.info("Crime ranking not found: %s\nAssigning score of 0." % category)
 
                         if name not in self.bad_boy_data:
                             self.bad_boy_data[name] = {
