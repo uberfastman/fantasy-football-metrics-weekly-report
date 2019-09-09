@@ -57,27 +57,32 @@ class PdfGenerator(object):
         self.power_ranking_results_data = report_info_dict.get("power_ranking_results_data")
         self.zscore_results_data = report_info_dict.get("zscore_results_data")
         self.bad_boy_results_data = report_info_dict.get("bad_boy_results_data")
+        self.beef_results_data = report_info_dict.get("beef_results_data")
         self.num_tied_scores = report_info_dict.get("num_tied_scores")
         self.num_tied_coaching_efficiencies = report_info_dict.get("num_tied_coaching_efficiencies")
         self.num_tied_lucks = report_info_dict.get("num_tied_lucks")
         self.num_tied_power_rankings = report_info_dict.get("num_tied_power_rankings")
         self.num_tied_bad_boys = report_info_dict.get("num_tied_bad_boys")
+        self.num_tied_beef = report_info_dict.get("num_tied_beef")
         self.efficiency_dq_count = report_info_dict.get("efficiency_dq_count")
         self.tied_scores_bool = report_info_dict.get("tied_scores_bool")
         self.tied_coaching_efficiencies_bool = report_info_dict.get("tied_coaching_efficiencies_bool")
         self.tied_lucks_bool = report_info_dict.get("tied_lucks_bool")
         self.tied_power_rankings_bool = report_info_dict.get("tied_power_rankings_bool")
         self.tied_bad_boy_bool = report_info_dict.get("tied_bad_boy_bool")
+        self.tied_beef_bool = report_info_dict.get("tied_beef_bool")
         self.tie_for_first_score = report_info_dict.get("tie_for_first_score")
         self.tie_for_first_coaching_efficiency = report_info_dict.get("tie_for_first_coaching_efficiency")
         self.tie_for_first_luck = report_info_dict.get("tie_for_first_luck")
         self.tie_for_first_power_ranking = report_info_dict.get("tie_for_first_power_ranking")
         self.tie_for_first_bad_boy = report_info_dict.get("tie_for_first_bad_boy")
+        self.tie_for_first_beef = report_info_dict.get("tie_for_first_beef")
         self.num_tied_for_first_scores = report_info_dict.get("num_tied_for_first_scores")
         self.num_tied_for_first_coaching_efficiency = report_info_dict.get("num_tied_for_first_coaching_efficiency")
         self.num_tied_for_first_luck = report_info_dict.get("num_tied_for_first_luck")
         self.num_tied_for_first_power_ranking = report_info_dict.get("num_tied_for_first_power_ranking")
         self.num_tied_for_first_bad_boy = report_info_dict.get("num_tied_for_first_bad_boy")
+        self.num_tied_for_first_beef = report_info_dict.get("num_tied_for_first_beef")
         self.weekly_points_by_position_data = report_info_dict.get("weekly_points_by_position_data")
         self.season_average_team_points_by_position = report_info_dict.get("season_average_points_by_position")
         self.weekly_top_scorers = report_info_dict.get("weekly_top_scorers")
@@ -97,6 +102,7 @@ class PdfGenerator(object):
         self.line_separator.add(Line(0, -65, 550, -65, strokeColor=colors.black, strokeWidth=1))
         self.spacer_twentieth_inch = Spacer(1, 0.05 * inch)
         self.spacer_tenth_inch = Spacer(1, 0.10 * inch)
+        self.spacer_quarter_inch = Spacer(1, 0.25 * inch)
         self.spacer_half_inch = Spacer(1, 0.50 * inch)
         self.spacer_five_inch = Spacer(1, 5.00 * inch)
 
@@ -197,6 +203,7 @@ class PdfGenerator(object):
         self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
         self.luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)"]]
         self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]]
+        self.beef_headers = [["Place", "Team", "Manager", "TABBU(s)"]]
         self.zscores_headers = [["Place", "Team", "Manager", "Z-Score"]]
         self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
         # self.break_efficiency_ties_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*The league commissioner will " \
@@ -216,6 +223,7 @@ class PdfGenerator(object):
         self.style_tied_power_rankings = self.set_tied_values_style(self.num_tied_power_rankings, table_style_list,
                                                                     "power_ranking")
         self.style_tied_bad_boy = self.set_tied_values_style(self.num_tied_bad_boys, table_style_list, "bad_boy")
+        self.style_tied_beef = self.set_tied_values_style(self.num_tied_beef, table_style_list, "beef")
 
         # options: "document", "section", or None
         self.report_title = self.create_title(report_title_text, element_type="document")
@@ -288,6 +296,11 @@ class PdfGenerator(object):
                 num_tied_for_first = 0
             else:
                 num_tied_for_first = self.num_tied_for_first_bad_boy
+        elif metric_type == "beef":
+            if not self.tie_for_first_beef:
+                num_tied_for_first = 0
+            else:
+                num_tied_for_first = self.num_tied_for_first_beef
 
         tied_values_table_style_list = list(table_style_list)
         if metric_type == "scores" and self.break_ties_bool:
@@ -296,7 +309,7 @@ class PdfGenerator(object):
         else:
             iterator = num_tied_for_first
             index = 1
-            if metric_type == "bad_boy":
+            if metric_type == "bad_boy" or metric_type == "beef":
                 color = colors.darkred
             else:
                 color = colors.green
@@ -402,6 +415,10 @@ class PdfGenerator(object):
             if self.tied_bad_boy_bool:
                 elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
 
+        elif metric_type == "beef":
+            if self.tied_beef_bool:
+                elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
+
     def create_title(self, title_text, title_width=8.5, element_type=None, anchor="", subtitle_text=None):
 
         if element_type == "document":
@@ -504,7 +521,6 @@ class PdfGenerator(object):
         return Image(path, width=width, height=(width * aspect))
 
     def create_team_stats_pages(self, doc_elements, weekly_team_data_by_position, season_average_team_data_by_position):
-        team_number = 1
         alphabetical_teams = sorted(weekly_team_data_by_position, key=lambda team_info: team_info[0])
         for team in alphabetical_teams:
 
@@ -534,6 +550,7 @@ class PdfGenerator(object):
                     ("VALIGN", (0, 0), (-1, 0), "MIDDLE")
                 ]))
             doc_elements.append(team_table)
+            doc_elements.append(self.spacer_quarter_inch)
 
             offending_players = []
             starting_players = []
@@ -544,29 +561,47 @@ class PdfGenerator(object):
                 if player.selected_position.position != "BN":
                     starting_players.append(player)
 
-            doc_elements.append(self.spacer_half_inch)
-            doc_elements.append(self.create_title("Whodunnit?", 8.5, "section"))
-            doc_elements.append(self.spacer_tenth_inch)
             offending_players = sorted(offending_players, key=lambda x: x.bad_boy_points, reverse=True)
             offending_players_data = []
             for player in offending_players:
                 offending_players_data.append([player.name.full, player.bad_boy_points, player.bad_boy_crime])
-            # if there are no offending players, add a dummy row to avoid breaking
-            if not offending_players_data:
-                offending_players_data = [["N/A", "N/A", "N/A"]]
-            bad_boys_table = self.create_data_table([["Starting Player", "Bad Boy Points", "Worst Offense"]],
-                                                    offending_players_data,
-                                                    self.style_red_highlight,
-                                                    self.style_tied_bad_boy,
-                                                    [2.50 * inch, 2.50 * inch, 2.75 * inch])
+            # if there are no offending players, skip table
+            if offending_players_data:
+                doc_elements.append(self.create_title("Whodunnit?", 8.5, "section"))
+                doc_elements.append(self.spacer_tenth_inch)
+                bad_boys_table = self.create_data_table(
+                    [["Starting Player", "Bad Boy Points", "Worst Offense"]],
+                    offending_players_data,
+                    self.style_red_highlight,
+                    self.style_tied_bad_boy,
+                    [2.50 * inch, 2.50 * inch, 2.75 * inch])
+                doc_elements.append(bad_boys_table)
+                doc_elements.append(self.spacer_tenth_inch)
+
+            doc_elements.append(self.create_title("Beefiest Boi(s)", 8.5, "section"))
+            doc_elements.append(self.spacer_tenth_inch)
+            beefy_players = sorted(player_info, key=lambda x: x.tabbu, reverse=True)
+            beefy_players_data = []
+            num_beefy_bois = 3
+            ndx = 0
+            count = 0
+            while count < num_beefy_bois:
+                player = beefy_players[ndx]
+                if player.name.last:
+                    beefy_players_data.append([player.name.full, player.tabbu, player.weight])
+                    count += 1
+                ndx += 1
+            beefy_boi_table = self.create_data_table([["Starting Player", "TABBU(s)", "Weight (lbs.)"]],
+                                                     beefy_players_data,
+                                                     self.style_red_highlight,
+                                                     self.style_tied_bad_boy,
+                                                     [2.50 * inch, 2.50 * inch, 2.75 * inch])
+            doc_elements.append(beefy_boi_table)
+            doc_elements.append(self.spacer_tenth_inch)
 
             starting_players = sorted(starting_players, key=lambda x: x.player_points.total, reverse=True)
             best_weekly_player = starting_players[0]
             worst_weekly_player = starting_players[-1]
-          
-            doc_elements.append(bad_boys_table)
-
-            doc_elements.append(self.spacer_tenth_inch)
 
             best_player_headshot = get_image(best_weekly_player.headshot.url, self.data_dir, self.week, 1 * inch)
             worst_player_headshot = get_image(worst_weekly_player.headshot.url, self.data_dir, self.week, 1 * inch)
@@ -582,17 +617,7 @@ class PdfGenerator(object):
             doc_elements.append(self.create_title("Boom... or Bust", 8.5, "section"))
             doc_elements.append(self.spacer_tenth_inch)
             doc_elements.append(table)
-
-            if team_number == len(alphabetical_teams):
-                doc_elements.append(Spacer(1, 1.75 * inch), )
-            else:
-                doc_elements.append(self.add_page_break())
-            # elif team_number % 2 == 1:
-            #     doc_elements.append(self.line_separator)
-            #     doc_elements.append(self.spacer_inch)
-            # elif team_number % 2 == 0:
-            #     doc_elements.append(self.page_break)
-            team_number += 1
+            doc_elements.append(self.add_page_break())
 
     def generate_pdf(self, filename_with_path, line_chart_data_list):
 
@@ -765,6 +790,27 @@ class PdfGenerator(object):
             tied_metric_bool=self.tied_bad_boy_bool,
             metric_type="bad_boy"
         )
+        elements.append(self.spacer_twentieth_inch)
+
+        # beef rankings
+        self.create_section(
+            elements,
+            "Beef Rankings",
+            self.beef_headers,
+            self.beef_results_data,
+            self.style,
+            self.style_tied_beef,
+            self.metrics_4_col_widths,
+            tied_metric_bool=self.tied_beef_bool,
+            metric_type="beef",
+            subtitle_text=[
+                "Team Beef Ranking is measured in TABBUs (Trimmed And Boneless Beef Units). "
+                "One TABBU is currently established as 500 lbs.",
+                "TABBU derivation stems from academic research done for the beef industry found <a href = "
+                "'https://extension.tennessee.edu/publications/Documents/PB1822.pdf' color='blue'>here</a>."
+            ]
+        )
+
         elements.append(self.add_page_break())
 
         series_names = line_chart_data_list[0]
@@ -809,7 +855,6 @@ class PdfGenerator(object):
         # insert table of contents after report title and spacer
         elements.insert(2, self.toc.get_toc())
 
-        elements.append(self.add_page_break())
         elements.append(self.report_footer)
 
         # build pdf

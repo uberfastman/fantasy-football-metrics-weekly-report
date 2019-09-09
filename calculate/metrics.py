@@ -194,6 +194,19 @@ class CalculateMetrics(object):
             place += 1
         return bad_boy_results_data
 
+    @staticmethod
+    def get_beef_rank_data(beef_results):
+        beef_results_data = []
+        place = 1
+        for key, value in beef_results:
+            ranked_team_name = key
+            ranked_team_manager = value.get("manager")
+            ranked_beef_points = "%.3f" % value.get("tabbu")
+
+            beef_results_data.append([place, ranked_team_name, ranked_team_manager, ranked_beef_points])
+            place += 1
+        return beef_results_data
+
     def get_num_ties(self, results_data, tie_type, break_ties_bool):
 
         if tie_type == "power_rank":

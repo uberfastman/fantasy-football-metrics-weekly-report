@@ -69,10 +69,39 @@ Project dependencies can be viewed in the `requirements.txt` file.
 
 _\* General setup excludes Google Drive and Slack integrations. See below sections for details on including those additional features._
 
+<a name="configuration"></a>
+### Configuration
+
+The Yahoo Fantasy Football Report application allows certain aspects of the generated report to be configured with a `.ini` file. Included in the repository is `EXAMPLE-config.ini`, containing default values, as well as league settings that point to a public Yahoo league as a "demo" of the app.
+
+The app ***REQUIRES*** that `config.ini` be present, so you will need to rename `EXAMPLE-config.ini` to just `config.ini`. Then update the values to reflect the league for which you wish to generate a report, as well as any other settings you wish to change from the default values.
+
+The available settings are as follows:
+
+|                  Option                  | Description |
+| ---------------------------------------: | :---------- |
+| `league_id`                              | The league id of the Yahoo fantasy football for which you are running the report. |
+| `game_id`                                | Yahoo NFL game id by season (see: [Game Resource](https://developer.yahoo.com/fantasysports/guide/game-resource.html#game-resource-desc)) |
+| `season`                                 | Year of chosen NFL season |
+| `data_dir`                               | Directory where saved data is stored. |
+| `output_dir`                             | Directory where generated reports are created. |
+| `chosen_week`                            | Selected NFL season week for which to generate a report.|
+| `num_playoff_simulations`                | Number of Monte Carlo simulations to run for playoff predictions. The more sims, the longer the report will take to generate. |
+| `num_teams`                              | Number of teams in selected league. |
+| `num_regular_season_weeks`               | Number of regular season weeks in selected league. |
+| `num_playoff_slots`                      | Number of playoff slots in selected league. |
+| `coaching_efficiency_disqualified_teams` | Teams manually DQed from coaching efficiency rankings (if any). |
+| `yahoo_auth_dir`                         | Directory where Yahoo OAuth accesses and stores credentials and refresh tokens. |
+| `google_drive_upload`                    | Turn on (`True`) or off (`False`) the Google Drive upload functionality. |
+| `google_auth_token`                      | Google OAuth refresh token. |
+| `google_drive_root_folder_name`          | Online folder in Google Drive where reports are uploaded. |
+| `post_to_slack`                          | Turn on (`True`) or off (`False`) the Slack upload functionality. |
+| `slack_channel`                          | Selected Slack channel where reports are uploaded. |
+
 <a name="usage"></a>
 ### Usage
 
-After completing the above setup steps, you should now be able to simply run `python generate_report.py` to regenerate a report. The report generator script (`generate_report.py`) also supports several command line options that allow you to specify the following:
+After completing the above setup and configuration steps, you should now be able to simply run `python generate_report.py` to regenerate a report. The report generator script (`generate_report.py`) also supports several command line options that allow you to specify the following:
 
 * `-h`: print command line usage
 
