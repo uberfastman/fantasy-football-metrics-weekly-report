@@ -35,7 +35,7 @@ class BeefStats(object):
                         player_full_name = player.get("firstName") + " " + player.get("lastName")
 
                         if player_full_name not in self.beef_data.keys():
-                            self.add_player(player_full_name, player)
+                            self.add_player(player_full_name, player, team)
 
                         if player.get("position").get("abbreviation") in ["CB", "LB", "DE", "DT", "S"]:
                             if team.get("abbreviation") not in self.beef_data.keys():
@@ -73,7 +73,7 @@ class BeefStats(object):
             with open(self.beef_data_file_path, "w", encoding="utf-8") as beef_out:
                 json.dump(self.beef_data, beef_out, ensure_ascii=False, indent=2)
 
-    def add_player(self, player_full_name, player_json=None, update_saved_beef_data=False):
+    def add_player(self, player_full_name, player_json=None, team_json=None, update_saved_beef_data=False):
 
         if player_json:
             player_beef_dict = {
@@ -83,7 +83,7 @@ class BeefStats(object):
                 "weight": player_json.get("weight"),
                 "tabbu": float(player_json.get("weight")) / float(self.tabbu_value),
                 "position": player_json.get("position").get("abbreviation"),
-                "team": player_json.get("abbreviation")
+                "team": team_json.get("abbreviation")
             }
         else:
             player_beef_dict = {
@@ -126,7 +126,7 @@ class BeefStats(object):
                 team_roster = requests.get(team_url, self.fox_sports_public_api_key).json()
                 for player in team_roster.get("page"):
                     if player.get("firstName") == player_first_name and player.get("lastName") == player_last_name:
-                        return self.add_player(player_full_name, player, update_saved_beef_data=True)
+                        return self.add_player(player_full_name, player, team, update_saved_beef_data=True)
 
         logger.info("Player not found: {}. Setting weight and TABBU to 0.".format(player_full_name))
         return self.add_player(player_full_name, update_saved_beef_data=True)
