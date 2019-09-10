@@ -148,7 +148,39 @@ The Yahoo Fantasy Football Metrics Report Generator also supports several additi
 <a name="google"></a>
 #### Google Drive Integration Setup
 
-`Coming soon!`
+The Yahoo Fantasy Football Report application includes Google Drive integration, allowing your generated reports to be uploaded and stored in Google Drive, making it easy to share the report with all league members.
+
+The following setup steps are ***required*** in order to allow the Google Drive integration to function properly:
+
+* Log in to your Google account (or make one if you don't have one).
+* Create a [new project](https://console.developers.google.com/projectcreate?folder=&organizationId=0) in the Google Developers Console.
+* Accept the terms & conditions.
+* Name your project, something like `yyff-report-drive-uploader`, but it can be anything you like.
+* Click "CREATE".
+* It will take a few moments for the project to be created, but once it is there will be a notification.
+* Go to the [Google Developers Console](https://console.developers.google.com/apis/dashboard).
+* Your new project should automatically load in the dashboard, but in the event it does not or you have other projects (a different project might load by default), click the project name on the top left of the page (to the right of where it says "Google APIs"), and select your new project.
+* Either click the `+ ENABLE APIS AND SERVICES` button on the top of the page, or select "Library" from the menu on the left, search for "Google Drive API", and click "Google Drive API" when it comes up.
+* Click `ENABLE`.
+* After a moment it will be enabled. Click "Credentials" from the left menu and then click "Create Credentials".
+* From the menu that drops down, select "OAuth client ID".
+* Click on "Configure Consent Screen".
+* Put `yff-report-drive-uploader` in `Application name`.
+* Click `Add Scope`, check the box next to the `../auth/drive` scope, and click `ADD`.
+* Click `SAVE` at the bottom of the screen.
+* Now go click "Credentials" again from the left menu and then click "Create Credentials", then select "OAuth client ID".
+* Select "Other" from the radio buttons, and put `yff-report-drive-uploader-client-id`.
+* Click "Create".
+* A popup with your `client ID` and `client secret` will appear. Click "OK".
+* On the far right of your new credential, click the little arrow that displays "Download JSON" when you hover over it.
+* Your credentials JSON file will download. Rename it `credentials.json`, and put it in the `authentication/google/` directory where `EXAMPLE-credentials.json` is located.
+* Open a terminal window and run `python utils/quickstart.py`.
+* A browser window will open asking you to either select a Google account to log into (if you have multiple) or log in. Select your account/login.
+* A warning screen will appear saying "This app isn't verified". Click "Advanced" and then "Go to yff-report-drive-uploader (unsafe)" (this screen may vary depending on your web browser, but the point is you need to proceed past the warning).
+* On the next screen, a popup saying "Grant yff-report-drive-uploader permission" will appear. Click "Allow", then "Allow" again on the following "Confirm your choices" screen.
+* You will see a screen that says only "The authentication flow has completed.", which you can close.
+* Go back to your terminal window where you ran `python utils/quickstart.py`. It should have printed "Authentication successful.", as well as a list of 10 files in your Google Drive to confirm it can access your drive. It will also have automatically generated a `token.json` file in `authentication/google/`, which you should just leave where it is and do ***NOT*** edit or modify in any way!
+* *You can now upload your reports to Google Drive, either by changing the value of `google_drive_upload` to `True` in `config.ini`, or by setting the value of `reupload_file` in `config.ini` to the filepath to the report you wish to upload, opening a Terminal window, and running `python utils/upload_to_google_drive.py`*.
 
 <a name="slack"></a>
 #### Slack Integration Setup

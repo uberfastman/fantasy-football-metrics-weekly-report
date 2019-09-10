@@ -1,3 +1,4 @@
+google-api-python-client
 inflect
 yahoo_oauth==0.1.9
 reportlab==3.3.0

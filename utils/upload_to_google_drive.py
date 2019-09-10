@@ -7,6 +7,10 @@ from configparser import ConfigParser
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class GoogleDriveUploader(object):
     def __init__(self, filename):
@@ -123,3 +127,13 @@ class GoogleDriveUploader(object):
             parent_folder_id = folder["id"]
 
         return parent_folder_id
+
+
+if __name__ == '__main__':
+    config = ConfigParser()
+    config.read("config.ini")
+    reupload_file = config.get("Google_Drive_Settings", "reupload_file")
+
+    google_drive_uploader = GoogleDriveUploader(reupload_file)
+    upload_message = google_drive_uploader.upload_file()
+    logger.info(upload_message)
