@@ -35,7 +35,6 @@ class FantasyFootballReport(object):
                  league_id=None,
                  week=None,
                  game_id=None,
-                 year=None,
                  save_data=False,
                  break_ties_bool=False,
                  dq_ce_bool=False,
@@ -56,10 +55,6 @@ class FantasyFootballReport(object):
             self.game_id = game_id
         else:
             self.game_id = self.config.get("Fantasy_Football_Report_Settings", "game_id")
-        if year:
-            self.season = year
-        else:
-            self.season = self.config.get("Fantasy_Football_Report_Settings", "season")
 
         self.dq_ce_bool = dq_ce_bool
         self.break_ties_bool = break_ties_bool
@@ -71,34 +66,28 @@ class FantasyFootballReport(object):
 
         # verification output message
         logger.info(
-            "\nGenerating%s fantasy football report (yahoo fantasy game id: %s, season: %s, week: %s) for league with id: %s on %s..." % (
+            "\nGenerating%s Yahoo Fantasy Football report (league id: %s, game id: %s, week: %s) on %s..." % (
                 " TEST" if test_bool else "",
-                str(self.game_id),
-                str(self.season),
+                str(self.league_id),
+                str(self.game_id) if self.game_id else "nfl (current season)",
                 str(week) if week else "selected/default",
-                self.league_id,
                 "{:%b %d, %Y}".format(datetime.datetime.now()))
         )
 
         # set up yahoo data obj
         yahoo_data = Data(self.data_dir, save_data=self.save_data, dev_offline=self.dev_offline)
 
-        # run base yahoo queries
+        # set up yahoo query obj
         yahoo_query = YahooFantasyFootballQuery(self.yahoo_auth_dir, self.league_id, self.game_id, offline=self.dev_offline)
 
-        # TODO: REMOVE LEAGUE KEY OVERRIDE
-        # yahoo_query.league_key = "380.l.169896"
-
-        if self.season and self.game_id:
+        if self.game_id and self.game_id != "nfl":
             self.yahoo_fantasy_game = yahoo_data.retrieve(str(self.game_id) + "-yahoo_nfl_fantasy_game",
                                                           yahoo_query.get_nfl_fantasy_game,
-                                                          params={"game_id": self.game_id}, data_type_class=Game,
-                                                          new_data_dir=os.path.join(self.data_dir, str(self.season)))
+                                                          params={"game_id": self.game_id}, data_type_class=Game)
         else:
-            self.yahoo_fantasy_game = yahoo_data.retrieve(str(self.game_id) + "-yahoo_nfl_fantasy_game",
+            self.yahoo_fantasy_game = yahoo_data.retrieve("current-yahoo_nfl_fantasy_game",
                                                           yahoo_query.get_current_nfl_fantasy_game,
-                                                          data_type_class=Game,
-                                                          new_data_dir=os.path.join(self.data_dir, str(self.season)))
+                                                          data_type_class=Game)
 
         self.league_key = self.yahoo_fantasy_game.game_key + ".l." + self.league_id
         self.season = self.yahoo_fantasy_game.season
@@ -136,6 +125,7 @@ class FantasyFootballReport(object):
 
         self.playoff_slots = league_settings.num_playoff_teams
         self.num_regular_season_weeks = int(league_settings.playoff_start_week) - 1
+
         # print(self.playoff_slots)
         # print(self.num_regular_season_weeks)
         # sys.exit()

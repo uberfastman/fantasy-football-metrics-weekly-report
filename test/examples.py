@@ -30,8 +30,7 @@ if __name__ == "__main__":
     data_dir = os.path.join(base_dir, config.get("Fantasy_Football_Report_Settings", "data_dir"), "test")
 
     # Example vars using a public Yahoo league (still requires auth through any personal Yahoo account - see README.md)
-    game_id = "331"
-    season = "2014"
+    game_id = "331"  # if set to "nfl", defaults to current season
     league_id = "729259"
     public_league_url = "https://archive.fantasysports.yahoo.com/nfl/2014/729259"
 
@@ -57,6 +56,8 @@ if __name__ == "__main__":
         pprint.pprint(result_data)
         print("-" * 100)
         print()
+
+    season = result_data.season
 
     new_data_dir = os.path.join(data_dir, str(season))
     result_data = yahoo_data.save(str(game_id) + "-nfl_fantasy_game", yahoo_query.get_nfl_fantasy_game,

@@ -25,8 +25,7 @@ def main(argv):
         "    Generate report:\n"\
         "      -l, --league-id <yahoo_league_id>  Yahoo Fantasy Football league ID.\n"\
         "      -w, --week <chosen_week>           Chosen week for which to generate report.\n"\
-        "      -g, --game-id <chosen_game_id>     Chosen Yahoo NFL fantasy game id for which to generate report.\n"\
-        "      -y, --year <chosen_year>           Chosen year (NFL season) for which to generate report.\n"\
+        "      -g, --game-id <chosen_game_id>     Chosen Yahoo NFL fantasy game id for which to generate report. Defaults to \"nfl\", which Yahoo interprets as the current season.\n"\
         "      -s, --save-data                    Save all retrieved data locally for faster future report generation.\n"\
         "    Configuration:\n" \
         "      -b, --break-ties                   Break ties in metric rankings.\n" \
@@ -79,7 +78,7 @@ def main(argv):
     return options_dict
 
 
-def select_league(league_id, week, game_id, year, save_data, break_ties_bool, dq_ce_bool, test_bool, dev_offline):
+def select_league(league_id, week, game_id, save_data, break_ties_bool, dq_ce_bool, test_bool, dev_offline):
 
     if not league_id:
         default = input("Generate report for default league? (y/n) -> ")
@@ -95,7 +94,6 @@ def select_league(league_id, week, game_id, year, save_data, break_ties_bool, dq
 
         return FantasyFootballReport(week=chosen_week,
                                      game_id=game_id,
-                                     year=year,
                                      save_data=save_data,
                                      break_ties_bool=break_ties_bool,
                                      dq_ce_bool=dq_ce_bool,
@@ -114,7 +112,6 @@ def select_league(league_id, week, game_id, year, save_data, break_ties_bool, dq
             return FantasyFootballReport(league_id=league_id,
                                          week=chosen_week,
                                          game_id=game_id,
-                                         year=year,
                                          save_data=save_data,
                                          break_ties_bool=break_ties_bool,
                                          dq_ce_bool=dq_ce_bool,
@@ -123,7 +120,7 @@ def select_league(league_id, week, game_id, year, save_data, break_ties_bool, dq
 
         except IndexError:
             print("The league ID you have selected is not valid.")
-            select_league(None, week, game_id, year, save_data, break_ties_bool, dq_ce_bool, test_bool, dev_offline)
+            select_league(None, week, game_id, save_data, break_ties_bool, dq_ce_bool, test_bool, dev_offline)
     elif default == "selected":
 
         if not week:
@@ -134,7 +131,6 @@ def select_league(league_id, week, game_id, year, save_data, break_ties_bool, dq
         return FantasyFootballReport(league_id=league_id,
                                      week=chosen_week,
                                      game_id=game_id,
-                                     year=year,
                                      save_data=save_data,
                                      break_ties_bool=break_ties_bool,
                                      dq_ce_bool=dq_ce_bool,
@@ -142,7 +138,7 @@ def select_league(league_id, week, game_id, year, save_data, break_ties_bool, dq
                                      dev_offline=dev_offline)
     else:
         print("You must select either 'y' or 'n'.")
-        select_league(None, week, game_id, year, save_data, break_ties_bool, dq_ce_bool, test_bool, dev_offline)
+        select_league(None, week, game_id, save_data, break_ties_bool, dq_ce_bool, test_bool, dev_offline)
 
 
 def select_week():
@@ -169,7 +165,6 @@ if __name__ == '__main__':
     report = select_league(options.get("league_id", None),
                            options.get("week", None),
                            options.get("game_id", None),
-                           options.get("year", None),
                            options.get("save_data", False),
                            options.get("break_ties_bool", False),
                            options.get("dq_ce_bool", False),

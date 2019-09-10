@@ -82,7 +82,6 @@ The available settings are as follows:
 | ---------------------------------------: | :---------- |
 | `league_id`                              | The league id of the Yahoo fantasy football for which you are running the report. |
 | `game_id`                                | Yahoo NFL game id by season (see: [Game Resource](https://developer.yahoo.com/fantasysports/guide/game-resource.html#game-resource-desc)) |
-| `season`                                 | Year of chosen NFL season |
 | `data_dir`                               | Directory where saved data is stored. |
 | `output_dir`                             | Directory where generated reports are created. |
 | `chosen_week`                            | Selected NFL season week for which to generate a report.|
@@ -108,8 +107,7 @@ After completing the above setup and configuration steps, you should now be able
 | `-h, --help`                 | Print command line usage message.                                                    |
 | `-l --league-id <league_id>` | Yahoo Fantasy Football league ID.                                                    |
 | `-w --week <week>`           | Chosen week for which to generate report.                                            |
-| `-g --game-id <game_id>`     | Chosen Yahoo NFL fantasy game id for which to generate report.                       |
-| `-y --year <year>`           | Chosen year (NFL season) for which to generate report.                               |
+| `-g --game-id <game_id>`     | Chosen Yahoo NFL fantasy game id for which to generate report. Defaults to "nfl", which Yahoo interprets as the current season. |
 | `-s, --save-data`            | Save all retrieved data locally for faster future report generation.                 |
 | `-b, --break-ties`           | Break ties in metric rankings.                                                       |
 | `-q, --disqualify-ce`        | Automatically disqualify teams ineligible for coaching efficiency metric.            |

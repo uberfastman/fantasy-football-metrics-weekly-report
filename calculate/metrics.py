@@ -105,6 +105,7 @@ class CalculateMetrics(object):
                     team_playoffs_data[int(team.team_id)][3]
                 ] +
                 summed_stats
+                # FOR LEAGUES WITH CUSTOM PLAYOFFS NOT SUPPORTED BY YAHOO
                 # [
                 #     team_playoffs_data[int(team["team_id"])][2][x] for x in range(self.config.getint(
                 #         "Fantasy_Football_Report_Settings", "num_playoff_slots"))
