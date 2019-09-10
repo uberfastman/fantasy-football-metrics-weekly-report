@@ -3,6 +3,7 @@
 
 import copy
 import logging
+import os
 
 from reportlab.graphics.shapes import Line, Drawing
 from reportlab.lib import colors
@@ -95,6 +96,7 @@ class PdfGenerator(object):
 
         # generic document elements
         self.metrics_5_col_widths = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch]
+        self.metrics_5_col_widths_wide_right = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.25 * inch, 2.25 * inch]
         self.metrics_4_col_widths = [1.00 * inch, 2.25 * inch, 2.25 * inch, 2.25 * inch]
 
         self.power_ranking_col_widths = [1.00 * inch, 2.50 * inch, 2.50 * inch, 1.75 * inch]
@@ -203,7 +205,7 @@ class PdfGenerator(object):
         self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
         self.luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)"]]
         self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]]
-        self.beef_headers = [["Place", "Team", "Manager", "TABBU(s)"]]
+        self.beef_headers = [["Place", "Team", "Manager", "TABBU(s)", "Got Beef?"]]
         self.zscores_headers = [["Place", "Team", "Manager", "Z-Score"]]
         self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
         # self.break_efficiency_ties_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*The league commissioner will " \
@@ -227,29 +229,7 @@ class PdfGenerator(object):
 
         # options: "document", "section", or None
         self.report_title = self.create_title(report_title_text, element_type="document")
-        # self.standings_title = self.create_title(standings_title_text, element_type="section",
-        #                                          anchor="<a name = page.html#" + str(anchor_count) + "></a>")
-        # self.playoff_probs_title = self.create_title(standings_title_text, element_type="section",
-        #                                          anchor="<a name = page.html#1></a>")
-        # self.power_ranking_title = self.create_title(power_ranking_title_text, element_type="section",
-        #                                              anchor="<a name = page.html#2></a>",
-        #                                              subtitle_text="Average of weekly score, coaching efficiency and luck ranks")
-        # self.zscores_title = self.create_title(zscores_title_text, element_type="section",
-        #                                        anchor="<a name = page.html#2></a>",
-        #                                        subtitle_text=[
-        #                                            "Measure of standard deviations away from mean for a score. Shows teams performing ",
-        #                                            "above or below their normal scores for the current week.  See <a href = 'https://en.wikipedia.org/wiki/Standard_score' color='blue'>Standard Score</a> "
-        #                                        ])
-        # self.scores_title = self.create_title(scores_title_text, element_type="section",
-        #                                       anchor="<a name = page.html#3></a>")
-        # self.efficiency_title = self.create_title(coaching_efficiency_title_text, element_type="section",
-        #                                           anchor="<a name = page.html#4></a>")
-        # self.luck_title = self.create_title(luck_title_text, element_type="section",
-        #                                     anchor="<a name = page.html#5></a>")
-        # self.top_scorers_title = self.create_title(top_scorers_title_text, element_type="section",
-        #                                            anchor="<a name = page.html#6></a>")
-        # self.bad_boy_title = self.create_title(bad_boy_title_text, element_type="section",
-        #                                        anchor="<a name = page.html#7></a>")
+
         footer_data = [[self.spacer_five_inch],
                        [Paragraph(report_footer_text, getSampleStyleSheet()["Normal"])]]
         self.report_footer = Table(footer_data, colWidths=7.75 * inch)
@@ -373,6 +353,24 @@ class PdfGenerator(object):
                 ]
                 temp_data.append(entry)
                 data = temp_data
+
+        if metric_type == "beef":
+            beef_icon = self.get_image(os.path.join("resources", "beef.png"), width=0.2 * inch)
+            half_beef_icon = self.get_image(os.path.join("resources", "beef-half.png"), width=0.1 * inch)
+            lowest_tabbu = float(data[-1][3])
+            mod_5_remainder = lowest_tabbu % 5
+            beef_count_floor = lowest_tabbu - mod_5_remainder
+
+            for team in data:
+                num_beefs = int((float(team[3]) - beef_count_floor) / 0.5)
+                if num_beefs % 2 == 0:
+                    beefs = [beef_icon] * int((num_beefs / 2))
+                else:
+                    beefs = [beef_icon] * int((num_beefs / 2))
+                    beefs.append(half_beef_icon)
+                beefs = [beefs]
+                beefs_table = Table(beefs, colWidths=[0.20 * inch] * num_beefs, rowHeights=0.25 * inch)
+                team.append(beefs_table)
 
         data_table = self.create_data_table(headers, data, table_style, table_style_ties, col_widths, row_heights,
                                             tied_metric_bool)
@@ -578,7 +576,7 @@ class PdfGenerator(object):
                 doc_elements.append(bad_boys_table)
                 doc_elements.append(self.spacer_tenth_inch)
 
-            doc_elements.append(self.create_title("Beefiest Boi(s)", 8.5, "section"))
+            doc_elements.append(self.create_title("Beefiest Bois", 8.5, "section"))
             doc_elements.append(self.spacer_tenth_inch)
             beefy_players = sorted(player_info, key=lambda x: x.tabbu, reverse=True)
             beefy_players_data = []
@@ -800,7 +798,7 @@ class PdfGenerator(object):
             self.beef_results_data,
             self.style,
             self.style_tied_beef,
-            self.metrics_4_col_widths,
+            self.metrics_5_col_widths_wide_right,
             tied_metric_bool=self.tied_beef_bool,
             metric_type="beef",
             subtitle_text=[

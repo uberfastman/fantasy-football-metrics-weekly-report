@@ -78,7 +78,7 @@ class BeefStats(object):
         if player_json:
             player_beef_dict = {
                 "fullName": player_full_name,
-                "firstName": player_json.get("firstName"),
+                "firstName": player_json.get("firstName").replace(".", ""),
                 "lastName": player_json.get("lastName"),
                 "weight": player_json.get("weight"),
                 "tabbu": float(player_json.get("weight")) / float(self.tabbu_value),
@@ -125,29 +125,8 @@ class BeefStats(object):
                 team_url = team.get("links").get("api").get("athletes")
                 team_roster = requests.get(team_url, self.fox_sports_public_api_key).json()
                 for player in team_roster.get("page"):
-                    if player.get("firstName") == player_first_name and player.get("lastName") == player_last_name:
+                    if player_first_name == player.get("firstName").replace(".", "") and player_last_name in player.get("lastName"):
                         return self.add_player(player_full_name, player, team, update_saved_beef_data=True)
 
         logger.info("Player not found: {}. Setting weight and TABBU to 0.".format(player_full_name))
         return self.add_player(player_full_name, update_saved_beef_data=True)
-
-# br = BeefStats()
-
-# params = {"apikey": "jE7yBJVRNAwdDesMgTzTXUUSx1It41Fq"}
-#
-# teams = requests.get("https://api.foxsports.com/sportsdata/v1/football/nfl/teams.json", params=params).json()
-#
-# player_first_name = "Josh"
-# player_last_name = "Norman"
-# prof_token = player_first_name.lower() + "-" + player_last_name.lower()
-# team_abbr = "WAS"
-# for team in teams.get("page"):
-#
-#     if team.get("abbreviation") == team_abbr:
-#         url = team.get("links").get("api").get("athletes")
-#         roster = requests.get(url, params).json()
-#
-#         for player in roster.get("page"):
-#             if player.get("profileToken") == prof_token:
-#                 print(player.get("firstName") + " " + player.get("lastName") + ": " + str(player.get("weight")) + " lbs.")
-#                 print(player)
