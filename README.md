@@ -103,28 +103,29 @@ The available settings are as follows:
 
 After completing the above setup and configuration steps, you should now be able to simply run `python generate_report.py` to regenerate a report. The report generator script (`generate_report.py`) also supports several command line options that allow you to specify the following:
 
-* `-h`: print command line usage
+|             Flag             |                                      Description                                     |
+| :--------------------------- | :----------------------------------------------------------------------------------- |
+| `-h, --help`                 | Print command line usage message.                                                    |
+| `-l --league-id <league_id>` | Yahoo Fantasy Football league ID.                                                    |
+| `-w --week <week>`           | Chosen week for which to generate report.                                            |
+| `-g --game-id <game_id>`     | Chosen Yahoo NFL fantasy game id for which to generate report.                       |
+| `-y --year <year>`           | Chosen year (NFL season) for which to generate report.                               |
+| `-s, --save-data`            | Save all retrieved data locally for faster future report generation.                 |
+| `-b, --break-ties`           | Break ties in metric rankings.                                                       |
+| `-q, --disqualify-ce`        | Automatically disqualify teams ineligible for coaching efficiency metric.            |
+| `-t, --test`                 | Generate TEST report (for development).                                              |
+| `-d, --dev-offline`          | Run ***OFFLINE*** (for development). Must have previously run report with -s option. |
 
 Generate report:
-
-* `-l [league_id]`: pre-specify the league id for which you wish to generate a report
-
-* `-w [week]`: pre-specify the NFL week for which you wish to generate a report
-
-* `-s`: save all retrieved data for faster future report generation
 
 
 Configuration:
 
-* `-b`: break ties in metric rankings
-
-* `-q`: automatically disqualify teams ineligible for coaching efficiency metric
-
 For Developers:
 
-* `-t`: generate a "test" report (for development)
+* `-t`: Generate TEST report (for development).
 
-* `-d`: run ***offline*** for development. Must have previously run report with -s option.
+* `-d`: Run ***OFFLINE*** (for development). Must have previously run report with -s option.
 
 When you are done working within the `virtualenv`, you can run `deactivate` within the environment to exit:
 ```

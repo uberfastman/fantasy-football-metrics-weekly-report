@@ -87,6 +87,7 @@ class PdfGenerator(object):
         self.weekly_points_by_position_data = report_info_dict.get("weekly_points_by_position_data")
         self.season_average_team_points_by_position = report_info_dict.get("season_average_points_by_position")
         self.weekly_top_scorers = report_info_dict.get("weekly_top_scorers")
+        self.weekly_highest_ce = report_info_dict.get("weekly_highest_ce")
 
         # table of contents
         self.toc = TableOfContents(self.break_ties_bool)
@@ -95,9 +96,9 @@ class PdfGenerator(object):
         self.team_data = report_info_dict.get("team_results")
 
         # generic document elements
-        self.metrics_5_col_widths = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch]
-        self.metrics_5_col_widths_wide_right = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.25 * inch, 2.25 * inch]
         self.metrics_4_col_widths = [1.00 * inch, 2.25 * inch, 2.25 * inch, 2.25 * inch]
+        self.metrics_4_col_widths_wide_right = [1.00 * inch, 2.50 * inch, 2.00 * inch, 2.25 * inch]
+        self.metrics_5_col_widths = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch]
 
         self.power_ranking_col_widths = [1.00 * inch, 2.50 * inch, 2.50 * inch, 1.75 * inch]
         self.line_separator = Drawing(100, 1)
@@ -157,6 +158,9 @@ class PdfGenerator(object):
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey)
         ]
         self.style = TableStyle(table_style_list)
+        style_left_alight_right_col_list = copy.deepcopy(table_style_list)
+        style_left_alight_right_col_list.append(("ALIGN", (-1, 1), (-1, -1), "LEFT"))
+        self.style_left_alighn_right_col = TableStyle(style_left_alight_right_col_list)
         self.style_no_highlight = TableStyle(table_style_list[2:])
         red_highlight = table_style_list.copy()
         red_highlight[0] = ("TEXTCOLOR", (0, 1), (-1, 1), colors.darkred)
@@ -202,10 +206,11 @@ class PdfGenerator(object):
         self.power_ranking_headers = [["Power Rank", "Team", "Manager", "Season Avg. (Place)"]]
         self.scores_headers = [["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]]
         self.weekly_top_scorer_headers = [["Week", "Team", "Manager", "Score"]]
+        self.weekly_highest_ce_headers = [["Week", "Team", "Manager", "Coaching Efficiency (%)"]]
         self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
         self.luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)"]]
         self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]]
-        self.beef_headers = [["Place", "Team", "Manager", "TABBU(s)", "Got Beef?"]]
+        self.beef_headers = [["Place", "Team", "Manager", "TABBU(s)"]]
         self.zscores_headers = [["Place", "Team", "Manager", "Z-Score"]]
         self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
         # self.break_efficiency_ties_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*The league commissioner will " \
@@ -225,7 +230,7 @@ class PdfGenerator(object):
         self.style_tied_power_rankings = self.set_tied_values_style(self.num_tied_power_rankings, table_style_list,
                                                                     "power_ranking")
         self.style_tied_bad_boy = self.set_tied_values_style(self.num_tied_bad_boys, table_style_list, "bad_boy")
-        self.style_tied_beef = self.set_tied_values_style(self.num_tied_beef, table_style_list, "beef")
+        self.style_tied_beef = self.set_tied_values_style(self.num_tied_beef, style_left_alight_right_col_list, "beef")
 
         # options: "document", "section", or None
         self.report_title = self.create_title(report_title_text, element_type="document")
@@ -354,9 +359,21 @@ class PdfGenerator(object):
                 temp_data.append(entry)
                 data = temp_data
 
+        if metric_type == "highest_ce":
+            temp_data = []
+            for wk in data:
+                entry = [
+                    wk["week"],
+                    wk["team"],
+                    wk["manager"],
+                    wk["ce"]
+                ]
+                temp_data.append(entry)
+                data = temp_data
+
         if metric_type == "beef":
-            beef_icon = self.get_image(os.path.join("resources", "beef.png"), width=0.2 * inch)
-            half_beef_icon = self.get_image(os.path.join("resources", "beef-half.png"), width=0.1 * inch)
+            beef_icon = self.get_image(os.path.join("resources", "beef.png"), width=0.20 * inch)
+            half_beef_icon = self.get_image(os.path.join("resources", "beef-half.png"), width=0.10 * inch)
             lowest_tabbu = float(data[-1][3])
             mod_5_remainder = lowest_tabbu % 5
             beef_count_floor = lowest_tabbu - mod_5_remainder
@@ -368,9 +385,16 @@ class PdfGenerator(object):
                 else:
                     beefs = [beef_icon] * int((num_beefs / 2))
                     beefs.append(half_beef_icon)
+                beefs.insert(0, team[-1] + " ")
                 beefs = [beefs]
-                beefs_table = Table(beefs, colWidths=[0.20 * inch] * num_beefs, rowHeights=0.25 * inch)
-                team.append(beefs_table)
+                beefs_col_widths = [0.20 * inch] * num_beefs
+                beefs_col_widths.insert(0, 0.50 * inch)
+                beefs_table = Table(beefs, colWidths=beefs_col_widths, rowHeights=0.25 * inch)
+                if data.index(team) == 0:
+                    beefs_table_style = TableStyle([("TEXTCOLOR", (0, 0), (-1, -1), colors.green),
+                                                    ("FONT", (0, 0), (-1, -1), "Helvetica-Oblique")])
+                    beefs_table.setStyle(beefs_table_style)
+                team[-1] = beefs_table
 
         data_table = self.create_data_table(headers, data, table_style, table_style_ties, col_widths, row_heights,
                                             tied_metric_bool)
@@ -776,6 +800,21 @@ class PdfGenerator(object):
         )
         elements.append(self.spacer_twentieth_inch)
 
+        # weekly highest coaching efficiency
+        self.create_section(
+            elements,
+            "Weekly Highest Coaching Efficiency",
+            self.weekly_highest_ce_headers,
+            self.weekly_highest_ce,
+            self.style_no_highlight,
+            self.style_no_highlight,
+            self.metrics_4_col_widths,
+            tied_metric_bool=self.tied_coaching_efficiencies_bool,
+            metric_type="highest_ce"
+        )
+
+        elements.append(self.add_page_break())
+
         # bad boy rankings
         self.create_section(
             elements,
@@ -796,9 +835,9 @@ class PdfGenerator(object):
             "Beef Rankings",
             self.beef_headers,
             self.beef_results_data,
-            self.style,
+            self.style_left_alighn_right_col,
             self.style_tied_beef,
-            self.metrics_5_col_widths_wide_right,
+            self.metrics_4_col_widths_wide_right,
             tied_metric_bool=self.tied_beef_bool,
             metric_type="beef",
             subtitle_text=[

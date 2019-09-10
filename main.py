@@ -21,20 +21,22 @@ def main(argv):
         "Yahoo Fantasy Football report application usage:\n\n"\
         "    python main.py [optional_parameters]\n\n"\
         "  Options:\n" \
-        "      -h                    Print this usage message.\n" \
+        "      -h, --help                         Print command line usage message.\n" \
         "    Generate report:\n"\
-        "      -l <yahoo_league_id>  Yahoo Fantasy Football league ID.\n"\
-        "      -w <chosen_week>      Chosen week for which to generate report.\n"\
-        "      -s                    Save all retrieved data for faster future report generation.\n"\
+        "      -l, --league-id <yahoo_league_id>  Yahoo Fantasy Football league ID.\n"\
+        "      -w, --week <chosen_week>           Chosen week for which to generate report.\n"\
+        "      -g, --game-id <chosen_game_id>     Chosen Yahoo NFL fantasy game id for which to generate report.\n"\
+        "      -y, --year <chosen_year>           Chosen year (NFL season) for which to generate report.\n"\
+        "      -s, --save-data                    Save all retrieved data locally for faster future report generation.\n"\
         "    Configuration:\n" \
-        "      -b                    Break ties in metric rankings.\n" \
-        "      -q                    Automatically disqualify teams ineligible for coaching efficiency metric.\n" \
+        "      -b, --break-ties                   Break ties in metric rankings.\n" \
+        "      -q, --disqualify-ce                Automatically disqualify teams ineligible for coaching efficiency metric.\n" \
         "    For Developers:\n"\
-        "      -t                    Generate TEST report.\n"\
-        "      -d                    Run OFFLINE for development. Must have previously run report with -s option.\n"\
+        "      -t, --test                         Generate TEST report.\n"\
+        "      -d, --dev-offline                  Run OFFLINE for development. Must have previously run report with -s option.\n"\
 
     try:
-        opts, args = getopt.getopt(argv, "hl:w:qbtsd")
+        opts, args = getopt.getopt(argv, "hl:w:g:y:sbqtd")
     except getopt.GetoptError:
         print(usage_str)
         sys.exit(2)
@@ -42,7 +44,7 @@ def main(argv):
     options_dict = {}
     for opt, arg in opts:
         # help/manual
-        if opt == "-h":
+        if opt in ("-h", "--help"):
             print(usage_str)
             sys.exit()
 
@@ -55,6 +57,10 @@ def main(argv):
                 options_dict["week"] = select_week()
             else:
                 options_dict["week"] = arg
+        elif opt in ("-g", "--game-id"):
+            options_dict["game_id"] = arg
+        elif opt in ("-y", "--year"):
+            options_dict["year"] = arg
         elif opt in ("-s", "--save-data"):
             options_dict["save_data"] = True
 
@@ -73,7 +79,7 @@ def main(argv):
     return options_dict
 
 
-def select_league(league_id, week, dq_ce_bool, break_ties_bool, test_bool, save_data, dev_offline):
+def select_league(league_id, week, game_id, year, save_data, break_ties_bool, dq_ce_bool, test_bool, dev_offline):
 
     if not league_id:
         default = input("Generate report for default league? (y/n) -> ")
@@ -88,10 +94,12 @@ def select_league(league_id, week, dq_ce_bool, break_ties_bool, test_bool, save_
             chosen_week = week
 
         return FantasyFootballReport(week=chosen_week,
-                                     dq_ce_bool=dq_ce_bool,
-                                     break_ties_bool=break_ties_bool,
-                                     test_bool=test_bool,
+                                     game_id=game_id,
+                                     year=year,
                                      save_data=save_data,
+                                     break_ties_bool=break_ties_bool,
+                                     dq_ce_bool=dq_ce_bool,
+                                     test_bool=test_bool,
                                      dev_offline=dev_offline)
     elif default == "n":
         league_id = input(
@@ -105,15 +113,17 @@ def select_league(league_id, week, dq_ce_bool, break_ties_bool, test_bool, save_
         try:
             return FantasyFootballReport(league_id=league_id,
                                          week=chosen_week,
-                                         dq_ce_bool=dq_ce_bool,
-                                         break_ties_bool=break_ties_bool,
-                                         test_bool=test_bool,
+                                         game_id=game_id,
+                                         year=year,
                                          save_data=save_data,
+                                         break_ties_bool=break_ties_bool,
+                                         dq_ce_bool=dq_ce_bool,
+                                         test_bool=test_bool,
                                          dev_offline=dev_offline)
 
         except IndexError:
             print("The league ID you have selected is not valid.")
-            select_league(None, week, dq_ce_bool, break_ties_bool, test_bool, save_data, dev_offline)
+            select_league(None, week, game_id, year, save_data, break_ties_bool, dq_ce_bool, test_bool, dev_offline)
     elif default == "selected":
 
         if not week:
@@ -123,14 +133,16 @@ def select_league(league_id, week, dq_ce_bool, break_ties_bool, test_bool, save_
 
         return FantasyFootballReport(league_id=league_id,
                                      week=chosen_week,
-                                     dq_ce_bool=dq_ce_bool,
-                                     break_ties_bool=break_ties_bool,
-                                     test_bool=test_bool,
+                                     game_id=game_id,
+                                     year=year,
                                      save_data=save_data,
+                                     break_ties_bool=break_ties_bool,
+                                     dq_ce_bool=dq_ce_bool,
+                                     test_bool=test_bool,
                                      dev_offline=dev_offline)
     else:
         print("You must select either 'y' or 'n'.")
-        select_league(None, week, dq_ce_bool, break_ties_bool, test_bool, save_data, dev_offline)
+        select_league(None, week, game_id, year, save_data, break_ties_bool, dq_ce_bool, test_bool, dev_offline)
 
 
 def select_week():
@@ -156,10 +168,12 @@ if __name__ == '__main__':
 
     report = select_league(options.get("league_id", None),
                            options.get("week", None),
-                           options.get("dq_ce_bool", False),
-                           options.get("break_ties_bool", False),
-                           options.get("test_bool", False),
+                           options.get("game_id", None),
+                           options.get("year", None),
                            options.get("save_data", False),
+                           options.get("break_ties_bool", False),
+                           options.get("dq_ce_bool", False),
+                           options.get("test_bool", False),
                            options.get("dev_offline", False))
     report_pdf = report.create_pdf_report()
 

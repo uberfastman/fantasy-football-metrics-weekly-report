@@ -34,24 +34,32 @@ class FantasyFootballReport(object):
     def __init__(self,
                  league_id=None,
                  week=None,
-                 dq_ce_bool=False,
-                 break_ties_bool=False,
-                 test_bool=False,
+                 game_id=None,
+                 year=None,
                  save_data=False,
+                 break_ties_bool=False,
+                 dq_ce_bool=False,
+                 test_bool=False,
                  dev_offline=False):
 
         # config vars
         self.config = ConfigParser()
         self.config.read("config.ini")
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.yahoo_auth_dir = os.path.join(base_dir, "..", self.config.get("Yahoo_Settings", "yahoo_auth_dir"))
-        self.data_dir = os.path.join(base_dir, "..", self.config.get("Fantasy_Football_Report_Settings", "data_dir"))
-        self.game_id = self.config.get("Fantasy_Football_Report_Settings", "game_id")
-        self.season = self.config.get("Fantasy_Football_Report_Settings", "season")
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.yahoo_auth_dir = os.path.join(base_dir, self.config.get("Yahoo_Settings", "yahoo_auth_dir"))
+        self.data_dir = os.path.join(base_dir, self.config.get("Fantasy_Football_Report_Settings", "data_dir"))
         if league_id:
             self.league_id = league_id
         else:
             self.league_id = self.config.get("Fantasy_Football_Report_Settings", "league_id")
+        if game_id:
+            self.game_id = game_id
+        else:
+            self.game_id = self.config.get("Fantasy_Football_Report_Settings", "game_id")
+        if year:
+            self.season = year
+        else:
+            self.season = self.config.get("Fantasy_Football_Report_Settings", "season")
 
         self.dq_ce_bool = dq_ce_bool
         self.break_ties_bool = break_ties_bool
@@ -62,8 +70,15 @@ class FantasyFootballReport(object):
         self.dev_offline = dev_offline
 
         # verification output message
-        logger.info("\nGenerating%s fantasy football report for league with id: %s on %s..." % (
-            " TEST" if test_bool else "", self.league_id, "{:%b %d, %Y}".format(datetime.datetime.now())))
+        logger.info(
+            "\nGenerating%s fantasy football report (yahoo fantasy game id: %s, season: %s, week: %s) for league with id: %s on %s..." % (
+                " TEST" if test_bool else "",
+                str(self.game_id),
+                str(self.season),
+                str(week) if week else "selected/default",
+                self.league_id,
+                "{:%b %d, %Y}".format(datetime.datetime.now()))
+        )
 
         # set up yahoo data obj
         yahoo_data = Data(self.data_dir, save_data=self.save_data, dev_offline=self.dev_offline)
@@ -639,6 +654,7 @@ class FantasyFootballReport(object):
         time_series_zscore_data = []
 
         weekly_top_scores = []
+        weekly_highest_ce = []
 
         season_average_points_by_position_dict = collections.defaultdict(list)
 
@@ -655,6 +671,14 @@ class FantasyFootballReport(object):
                 "score": report_info_dict.get("score_results_data")[0][3]
             }
             weekly_top_scores.append(top_scorer)
+
+            highest_ce = {
+                "week": week_counter,
+                "team": report_info_dict.get("coaching_efficiency_results_data")[0][1],
+                "manager": report_info_dict.get("coaching_efficiency_results_data")[0][2],
+                "ce": report_info_dict.get("coaching_efficiency_results_data")[0][3]
+            }
+            weekly_highest_ce.append(highest_ce)
 
             weekly_team_info.append(report_info_dict.get("team_results"))
 
@@ -727,6 +751,7 @@ class FantasyFootballReport(object):
             week_counter += 1
 
         report_info_dict["weekly_top_scorers"] = weekly_top_scores
+        report_info_dict["weekly_highest_ce"] = weekly_highest_ce
 
         # calculate season average metrics and then add columns for them to their respective metric table data
         season_average_calculator = SeasonAverageCalculator(chosen_week_ordered_team_names, report_info_dict)
