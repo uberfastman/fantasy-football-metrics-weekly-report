@@ -94,7 +94,7 @@ class CoachingEfficiency(object):
                         yield player
 
     def is_player_eligible(self, player, week):
-        return player.status in self.prohibited_status_list or player.bye_week == week
+        return player.status in self.prohibited_status_list or player.bye_weeks.week == week
 
     def execute_coaching_efficiency(self, team_name, team_info, week, league_roster_active_slots,
                                     disqualification_eligible=False):
