@@ -100,7 +100,7 @@ The available settings are as follows:
 <a name="usage"></a>
 ### Usage
 
-After completing the above setup and configuration steps, you should now be able to simply run `python generate_report.py` to regenerate a report. The report generator script (`generate_report.py`) also supports several command line options that allow you to specify the following:
+After completing the above setup and configuration steps, you should now be able to simply run `python main.py` to regenerate a report. The report generator script (`main.py`) also supports several command line options that allow you to specify the following:
 
 |             Flag             |                                      Description                                     |
 | :--------------------------- | :----------------------------------------------------------------------------------- |
