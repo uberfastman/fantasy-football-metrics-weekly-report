@@ -12,21 +12,21 @@ logger.setLevel(level=logging.INFO)
 logging.getLogger("PIL.PngImagePlugin").setLevel(level=logging.INFO)
 
 
-def get_image(path, data_dir, week, width=1 * inch):
+def get_image(url, data_dir, week, width=1 * inch):
 
     headshots_dir = os.path.join(data_dir, "week_" + str(week), "player_headshots")
 
     if not os.path.exists(headshots_dir):
         os.makedirs(headshots_dir)
 
-    img_name = path.split(os.path.sep)[-1]
+    img_name = url.split("/")[-1]
     local_img_path = os.path.join(headshots_dir, img_name)
 
     if not os.path.exists(local_img_path):
         try:
-            urllib.request.urlretrieve(path, local_img_path)
+            urllib.request.urlretrieve(url, local_img_path)
         except URLError:
-            logger.error("Unable to retrieve player headshot at url {}".format(path))
+            logger.error("Unable to retrieve player headshot at url {}".format(url))
             local_img_path = os.path.join("resources", "photo-not-available.jpeg")
 
     img = ImageReader(local_img_path)

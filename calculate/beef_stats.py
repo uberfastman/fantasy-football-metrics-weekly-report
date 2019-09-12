@@ -117,7 +117,8 @@ class BeefStats(object):
 
     def _fetch_specific_player(self, player_first_name, player_last_name, player_full_name, team_abbr):
 
-        player_last_name = player_last_name.split(" ")[0] if len(player_last_name.split(" ")) > 1 else player_last_name
+        if player_last_name:
+            player_last_name = player_last_name.split(" ")[0] if len(player_last_name.split(" ")) > 1 else player_last_name
 
         fox_sports_nfl_teams_data = requests.get(self.teams_url, params=self.fox_sports_public_api_key).json()
         for team in fox_sports_nfl_teams_data.get("page"):
