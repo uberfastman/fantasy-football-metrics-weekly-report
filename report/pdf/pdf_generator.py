@@ -580,7 +580,7 @@ class PdfGenerator(object):
             for player in player_info:
                 if player.bad_boy_points > 0:
                     offending_players.append(player)
-                if player.selected_position.position != "BN":
+                if not player.selected_position.position in ['BN', 'IR']:
                     starting_players.append(player)
 
             offending_players = sorted(offending_players, key=lambda x: x.bad_boy_points, reverse=True)

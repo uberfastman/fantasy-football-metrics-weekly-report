@@ -18,7 +18,7 @@ class PointsByPosition(object):
 
     @staticmethod
     def get_starting_players(players):
-        return [p for p in players if p.selected_position.position != "BN"]
+        return [p for p in players if not p.selected_position.position in ['IR', 'BN']]
 
     @staticmethod
     def get_points_for_position(players, position):
@@ -65,7 +65,7 @@ class PointsByPosition(object):
         player_points_by_position = []
         starting_players = self.get_starting_players(players)
         for slot in list(self.roster_slots.keys()):
-            if slot != "BN" and slot != "FLEX":
+            if not slot in ['BN','IR', 'FLEX']:
                 player_points_by_position.append([slot, self.get_points_for_position(starting_players, slot)])
 
         player_points_by_position = sorted(player_points_by_position, key=lambda x: x[0])

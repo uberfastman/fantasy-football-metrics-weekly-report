@@ -6,3 +6,5 @@ credentials.json
 config.ini
 logs/
 output/
+.venv
+.vscode
