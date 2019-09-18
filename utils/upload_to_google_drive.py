@@ -2,14 +2,17 @@
 # code snippets taken from: http://stackoverflow.com/questions/24419188/automating-pydrive-verification-process
 
 import datetime
+import logging
 from configparser import ConfigParser
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
-import logging
-
 logger = logging.getLogger(__name__)
+logger.setLevel(level=logging.INFO)
+
+# Suppress verbose googleapiclient info/warning logging
+logging.getLogger("googleapiclient").setLevel(level=logging.ERROR)
 
 
 class GoogleDriveUploader(object):

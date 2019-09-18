@@ -14,14 +14,13 @@ class PointsByPosition(object):
             "FLEX": roster_settings["flex_positions"],
             "D": ["D", "DB", "DL", "LB", "DT", "DE", "S", "CB"]
         }
+        self.bench_positions = ["BN", "IR"]
         self.coaching_efficiency_dq_dict = {}
 
-    @staticmethod
-    def get_starting_players(players):
-        return [p for p in players if p.selected_position.position != "BN"]
+    def get_starting_players(self, players):
+        return [p for p in players if p.selected_position.position not in self.bench_positions]
 
-    @staticmethod
-    def get_points_for_position(players, position):
+    def get_points_for_position(self, players, position):
         total_points_by_position = 0
         for player in players:
             player_positions = player.eligible_positions
@@ -31,7 +30,7 @@ class PointsByPosition(object):
             else:
                 player_positions = [player_position.get("position") for player_position in player_positions]
 
-            if position in player_positions and player.selected_position.position != "BN":
+            if position in player_positions and player.selected_position.position not in self.bench_positions:
                 total_points_by_position += float(player.player_points.total)
 
         return total_points_by_position
@@ -65,7 +64,7 @@ class PointsByPosition(object):
         player_points_by_position = []
         starting_players = self.get_starting_players(players)
         for slot in list(self.roster_slots.keys()):
-            if slot != "BN" and slot != "FLEX":
+            if slot not in self.bench_positions and slot != "FLEX":
                 player_points_by_position.append([slot, self.get_points_for_position(starting_players, slot)])
 
         player_points_by_position = sorted(player_points_by_position, key=lambda x: x[0])

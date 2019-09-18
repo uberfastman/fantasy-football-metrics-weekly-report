@@ -8,6 +8,7 @@ from collections import defaultdict, Counter
 class CoachingEfficiency(object):
     # prohibited statuses to check team coaching efficiency eligibility
     prohibited_status_list = ["PUP-P", "SUSP", "O", "IR", "INACTIVE", "IR-R"]
+    bench_positions = ["BN", "IR"]
 
     def __init__(self, roster_settings):
         self.roster_slots = roster_settings["slots"]
@@ -25,7 +26,7 @@ class CoachingEfficiency(object):
                 break
 
         if self.has_flex_def:
-            self.flex_positions['D'] = flex_def_positions
+            self.flex_positions["D"] = flex_def_positions
 
         self.coaching_efficiency_dq_dict = {}
 
@@ -42,7 +43,7 @@ class CoachingEfficiency(object):
             if position in eligible_positions:
                 # special case, because all defensive players get D as an eligible position
                 # whereas for offense, there is no special eligible position for FLEX
-                if not self.has_flex_def or position != 'D':
+                if not self.has_flex_def or position != "D":
                     eligible.append(position)
 
                 # assign all flex positions the player is eligible for
@@ -144,13 +145,13 @@ class CoachingEfficiency(object):
         # is set to True
         if disqualification_eligible:
 
-            bench_players = [p for p in players if p.selected_position.position == "BN"]
+            bench_players = [p for p in players if p.selected_position.position == "BN"]  # exclude IR players
             ineligible_efficiency_player_count = len([p for p in bench_players if self.is_player_eligible(p, week)])
             positions_filled_active = team_info["positions_filled_active"]
 
             if Counter(league_roster_active_slots) == Counter(positions_filled_active):
                 # divide bench slots by 2 and DQ team if number of ineligible players >= the ceiling of that value
-                if ineligible_efficiency_player_count < math.ceil(self.roster_slots.get("BN") / 2.0):
+                if ineligible_efficiency_player_count < math.ceil(self.roster_slots.get("BN", 0) / 2.0):  # exclude IR players
                     efficiency_disqualification = False
                 else:
                     efficiency_disqualification = True

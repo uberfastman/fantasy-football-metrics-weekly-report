@@ -580,7 +580,7 @@ class PdfGenerator(object):
             for player in player_info:
                 if player.bad_boy_points > 0:
                     offending_players.append(player)
-                if player.selected_position.position != "BN":
+                if player.selected_position.position not in ["BN", "IR"]:
                     starting_players.append(player)
 
             offending_players = sorted(offending_players, key=lambda x: x.bad_boy_points, reverse=True)
@@ -725,23 +725,24 @@ class PdfGenerator(object):
         )
         elements.append(self.spacer_twentieth_inch)
 
-        # zscores
-        self.create_section(
-            elements,
-            "Team Z-Score Rankings",
-            self.zscores_headers,
-            self.zscore_results_data,
-            self.style,
-            self.style_tied_power_rankings,
-            self.metrics_4_col_widths,
-            tied_metric_bool=False,
-            metric_type="zscore",
-            subtitle_text=[
-                "Measure of standard deviations away from mean for a score. Shows teams performing ",
-                "above or below their normal scores for the current week.  See <a href = "
-                "'https://en.wikipedia.org/wiki/Standard_score' color='blue'>Standard Score</a>."
-            ]
-        )
+        # z-scores (if week 3 or later, once meaningful z-scores can be calculated)
+        if self.zscore_results_data[0][3] != "N/A":
+            self.create_section(
+                elements,
+                "Team Z-Score Rankings",
+                self.zscores_headers,
+                self.zscore_results_data,
+                self.style,
+                self.style_tied_power_rankings,
+                self.metrics_4_col_widths,
+                tied_metric_bool=False,
+                metric_type="zscore",
+                subtitle_text=[
+                    "Measure of standard deviations away from mean for a score. Shows teams performing ",
+                    "above or below their normal scores for the current week.  See <a href = "
+                    "'https://en.wikipedia.org/wiki/Standard_score' color='blue'>Standard Score</a>."
+                ]
+            )
         elements.append(self.add_page_break())
 
         # scores

@@ -131,6 +131,7 @@ class FantasyFootballReport(object):
         # sys.exit()
 
         roster_slots = collections.defaultdict(int)
+        self.bench_positions = ["BN", "IR"]
         self.league_roster_active_slots = []
         flex_positions = []
         for roster_position in league_settings.roster_positions:
@@ -142,7 +143,7 @@ class FantasyFootballReport(object):
 
             count = position_count
             while count > 0:
-                if position_name != "BN":
+                if position_name not in self.bench_positions:
                     self.league_roster_active_slots.append(position_name)
                 count -= 1
 
@@ -150,6 +151,8 @@ class FantasyFootballReport(object):
                 flex_positions = ["WR", "RB"]
             if position_name == "W/R/T":
                 flex_positions = ["WR", "RB", "TE"]
+            if position_name == "Q/W/R/T":
+                flex_positions = ["QB", "WR", "RB", "TE"]
 
             if "/" in position_name:
                 position_name = "FLEX"
@@ -346,7 +349,7 @@ class FantasyFootballReport(object):
                 for field, data_type in custom_field_dict.items():
                     player.__dict__[field] = data_type()
 
-                if player.selected_position.position != "BN":
+                if player.selected_position.position not in self.bench_positions:
                     player.bad_boy_points, player.bad_boy_crime = self.bad_boy_stats.check_bad_boy_status(
                         player.name.full, player.editorial_team_abbr, player.selected_position.position)
                     player.weight = self.beef_rank.get_player_weight(player.name.first, player.name.last,
@@ -363,7 +366,7 @@ class FantasyFootballReport(object):
             worst_offense_score = 0
             num_offenders = 0
             for p in players:
-                if p.selected_position.position != "BN":
+                if p.selected_position.position not in self.bench_positions:
                     bad_boy_total = bad_boy_total + p.bad_boy_points
                     if p.bad_boy_points > 0:
                         num_offenders = num_offenders + 1
@@ -375,14 +378,14 @@ class FantasyFootballReport(object):
                 "name": team_name,
                 "manager": teams_dict[team_id]["manager"],
                 "players": players,
-                "score": sum([p.player_points.total for p in players if p.selected_position.position != "BN"]),
-                "bench_score": sum([p.player_points.total for p in players if p.selected_position.position == "BN"]),
+                "score": sum([p.player_points.total for p in players if p.selected_position.position not in self.bench_positions]),
+                "bench_score": sum([p.player_points.total for p in players if p.selected_position.position in self.bench_positions]),
                 "team_id": team_id,
                 "bad_boy_points": bad_boy_total,
                 "worst_offense": worst_offense,
                 "num_offenders": num_offenders,
-                "total_weight": sum([p.weight for p in players if p.selected_position.position != "BN"]),
-                "tabbu": sum([p.tabbu for p in players if p.selected_position.position != "BN"]),
+                "total_weight": sum([p.weight for p in players if p.selected_position.position not in self.bench_positions]),
+                "tabbu": sum([p.tabbu for p in players if p.selected_position.position not in self.bench_positions]),
                 "positions_filled_active": positions_filled_active
             }
 
