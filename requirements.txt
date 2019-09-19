@@ -17,4 +17,4 @@ numpy
 six
 bs4
 stringcase
-yffpy
+yffpy==1.1.3
