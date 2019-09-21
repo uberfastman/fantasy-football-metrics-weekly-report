@@ -81,12 +81,12 @@ class FantasyFootballReport(object):
         yahoo_query = YahooFantasyFootballQuery(self.yahoo_auth_dir, self.league_id, self.game_id, offline=self.dev_offline)
 
         if self.game_id and self.game_id != "nfl":
-            self.yahoo_fantasy_game = yahoo_data.retrieve(str(self.game_id) + "-yahoo_nfl_fantasy_game",
-                                                          yahoo_query.get_nfl_fantasy_game,
+            self.yahoo_fantasy_game = yahoo_data.retrieve(str(self.game_id) + "-game-metadata",
+                                                          yahoo_query.get_game_metadata_by_game_id,
                                                           params={"game_id": self.game_id}, data_type_class=Game)
         else:
-            self.yahoo_fantasy_game = yahoo_data.retrieve("current-yahoo_nfl_fantasy_game",
-                                                          yahoo_query.get_current_nfl_fantasy_game,
+            self.yahoo_fantasy_game = yahoo_data.retrieve("current-game-metadata",
+                                                          yahoo_query.get_current_game_metadata,
                                                           data_type_class=Game)
 
         self.league_key = self.yahoo_fantasy_game.game_key + ".l." + self.league_id
@@ -95,7 +95,8 @@ class FantasyFootballReport(object):
         # print(self.league_key)
         # sys.exit()
 
-        league_overview = yahoo_data.retrieve("overview", yahoo_query.get_overview, data_type_class=League,
+        league_overview = yahoo_data.retrieve(str(self.league_id) + "-league-metadata", yahoo_query.get_league_metadata,
+                                              data_type_class=League,
                                               new_data_dir=os.path.join(self.data_dir, str(self.season),
                                                                         self.league_key))
         self.league_name = league_overview.name
@@ -104,20 +105,8 @@ class FantasyFootballReport(object):
         # print(league_overview)
         # sys.exit()
 
-        self.league_standings_data = yahoo_data.retrieve("standings", yahoo_query.get_standings,
-                                                         data_type_class=Standings,
-                                                         new_data_dir=os.path.join(self.data_dir, str(self.season),
-                                                                                   self.league_key))
-        # print(self.league_standings_data)
-        # sys.exit()
-
-        self.teams_data = yahoo_data.retrieve("teams", yahoo_query.get_teams,
-                                              new_data_dir=os.path.join(self.data_dir, str(self.season),
-                                                                        self.league_key))
-        # print(self.teams_data)
-        # sys.exit()
-
-        league_settings = yahoo_data.retrieve("settings", yahoo_query.get_settings, data_type_class=Settings,
+        league_settings = yahoo_data.retrieve(str(self.league_id) + "-league-settings", yahoo_query.get_league_settings,
+                                              data_type_class=Settings,
                                               new_data_dir=os.path.join(self.data_dir, str(self.season),
                                                                         self.league_key))
         # print(league_settings)
@@ -128,6 +117,20 @@ class FantasyFootballReport(object):
 
         # print(self.playoff_slots)
         # print(self.num_regular_season_weeks)
+        # sys.exit()
+
+        self.league_standings_data = yahoo_data.retrieve(str(self.league_id) + "-league-standings",
+                                                         yahoo_query.get_league_standings,
+                                                         data_type_class=Standings,
+                                                         new_data_dir=os.path.join(self.data_dir, str(self.season),
+                                                                                   self.league_key))
+        # print(self.league_standings_data)
+        # sys.exit()
+
+        self.teams_data = yahoo_data.retrieve(str(self.league_id) + "-league-teams", yahoo_query.get_league_teams,
+                                              new_data_dir=os.path.join(self.data_dir, str(self.season),
+                                                                        self.league_key))
+        # print(self.teams_data)
         # sys.exit()
 
         roster_slots = collections.defaultdict(int)
@@ -231,7 +234,8 @@ class FantasyFootballReport(object):
         # run yahoo queries requiring chosen week
         self.matchups = {}
         for wk in range(1, self.num_regular_season_weeks + 1):
-            self.matchups[wk] = yahoo_data.retrieve("matchups", yahoo_query.get_matchups, params={"chosen_week": wk},
+            self.matchups[wk] = yahoo_data.retrieve("week_" + str(self.chosen_week) + "-matchups",
+                                                    yahoo_query.get_league_matchups_by_week, params={"chosen_week": wk},
                                                     new_data_dir=os.path.join(self.data_dir, str(self.season),
                                                                               self.league_key, "week_" + str(wk)))
         # print(self.matchups)
@@ -242,13 +246,13 @@ class FantasyFootballReport(object):
             self.rosters[str(wk)] = {
                 str(team.get("team").team_id):
                     yahoo_data.retrieve(
-                        str(team.get("team").team_id) + "-" + str(team.get("team").name.decode("utf-8")).replace(" ",
-                                                                                                                 "_"),
-                        yahoo_query.get_team_roster,
+                        str(team.get("team").team_id) + "-" +
+                        str(team.get("team").name.decode("utf-8")).replace(" ", "_") + "-roster",
+                        yahoo_query.get_team_roster_player_stats_by_week,
                         params={"team_id": str(team.get("team").team_id), "chosen_week": str(wk)},
                         new_data_dir=os.path.join(
                             self.data_dir, str(self.season), self.league_key, "week_" + str(wk), "rosters")
-                    ) for team in self.teams_data.values()
+                    ) for team in self.teams_data
             }
         # print(self.rosters.keys())
         # sys.exit()
@@ -289,7 +293,7 @@ class FantasyFootballReport(object):
 
         matchups = self.matchups.get(int(chosen_week))
         matchup_list = []
-        for matchup in matchups.values():
+        for matchup in matchups:
 
             matchup = matchup.get("matchup")
             if matchup.status == "postevent":
@@ -303,7 +307,7 @@ class FantasyFootballReport(object):
                 is_tied = 0
 
             teams = {}
-            for team in matchup.teams.values():
+            for team in matchup.teams:
                 team = team.get("team")
                 teams[team.name] = {
                     "result": "T" if is_tied else "W" if team.team_key == winning_team else "L",
@@ -316,7 +320,7 @@ class FantasyFootballReport(object):
     def retrieve_data(self, chosen_week):
 
         teams_dict = {}
-        for team in self.teams_data.values():
+        for team in self.teams_data:
 
             team = team.get("team")
 
@@ -340,7 +344,7 @@ class FantasyFootballReport(object):
 
             players = []
             positions_filled_active = []
-            for player in self.rosters[chosen_week].get(team_id).values():
+            for player in self.rosters[chosen_week].get(str(team_id)):
 
                 player = player.get("player")
 
@@ -452,11 +456,11 @@ class FantasyFootballReport(object):
         remaining_matchups = {
             int(week): [
                 (
-                    matchup.get("matchup").teams["0"].get("team").team_id,
-                    matchup.get("matchup").teams["1"].get("team").team_id
+                    matchup.get("matchup").teams[0].get("team").team_id,
+                    matchup.get("matchup").teams[1].get("team").team_id
 
-                ) for matchup in matchups.values()
-            ] for week, matchups in self.matchups.items() if int(week) != int(chosen_week)
+                ) for matchup in matchups
+            ] for week, matchups in self.matchups.items() if int(week) > int(chosen_week)
         }
 
         playoff_probs_data = self.playoff_probs_data.calculate(week, chosen_week, calc_metrics.teams_info,
