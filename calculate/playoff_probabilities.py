@@ -1,4 +1,6 @@
-# code based on https://github.com/cdtdev/ff_monte_carlo (originally written by https://github.com/cdtdev)
+__author__ = "Wren J. R. (uberfastman)"
+__email__ = "wrenjr@yahoo.com"
+# code snippets: https://github.com/cdtdev/ff_monte_carlo (originally written by https://github.com/cdtdev)
 
 import copy
 import datetime
@@ -43,7 +45,7 @@ class PlayoffProbabilities(object):
 
                         temp_teams = copy.deepcopy(teams)
 
-                        # create random binary results representing the rest of the matchups and add them to the existing wins
+                        # create random binary results representing the rest of the matchups_by_week and add them to the existing wins
                         for week, matchups in remaining_matchups.items():
                             for matchup in matchups:
                                 result = int(random.getrandbits(1))

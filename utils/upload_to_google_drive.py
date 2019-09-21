@@ -1,4 +1,5 @@
-# written by Wren J.R.
+__author__ = "Wren J. R. (uberfastman)"
+__email__ = "wrenjr@yahoo.com"
 # code snippets taken from: http://stackoverflow.com/questions/24419188/automating-pydrive-verification-process
 
 import datetime

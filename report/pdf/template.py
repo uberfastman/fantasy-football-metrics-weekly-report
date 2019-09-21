@@ -1,3 +1,6 @@
+__author__ = "Wren J. R. (uberfastman)"
+__email__ = "wrenjr@yahoo.com"
+
 from reportlab.lib.styles import ParagraphStyle as PS
 from reportlab.platypus import PageBreak
 from reportlab.platypus.paragraph import Paragraph

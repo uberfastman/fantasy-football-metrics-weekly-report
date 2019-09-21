@@ -1,4 +1,6 @@
-# code taken from https://www.reportlab.com/snippets/4/ and modified by Wren J.R.
+__author__ = "Wren J. R. (uberfastman)"
+__email__ = "wrenjr@yahoo.com"
+# code snippets: https://www.reportlab.com/snippets/4/
 
 from reportlab.graphics.charts.legends import Legend
 from reportlab.graphics.charts.piecharts import Pie

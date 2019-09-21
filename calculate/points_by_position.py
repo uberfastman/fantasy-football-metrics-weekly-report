@@ -1,3 +1,6 @@
+__author__ = "Wren J. R. (uberfastman)"
+__email__ = "wrenjr@yahoo.com"
+
 import logging
 
 from calculate.coaching_efficiency import CoachingEfficiency
@@ -9,12 +12,12 @@ class PointsByPosition(object):
     def __init__(self, roster_settings, chosen_week):
 
         self.chosen_week = chosen_week
-        self.roster_slots = roster_settings.get("slots")
+        self.roster_slot_counts = roster_settings.get("position_counts")
         self.flex_positions = {
-            "FLEX": roster_settings["flex_positions"],
+            "FLEX": roster_settings["positions_flex"],
             "D": ["D", "DB", "DL", "LB", "DT", "DE", "S", "CB"]
         }
-        self.bench_positions = ["BN", "IR"]
+        self.bench_positions = roster_settings.get("positions_bench")
         self.coaching_efficiency_dq_dict = {}
 
     def get_starting_players(self, players):
@@ -63,14 +66,14 @@ class PointsByPosition(object):
 
         player_points_by_position = []
         starting_players = self.get_starting_players(players)
-        for slot in list(self.roster_slots.keys()):
+        for slot in list(self.roster_slot_counts.keys()):
             if slot not in self.bench_positions and slot != "FLEX":
                 player_points_by_position.append([slot, self.get_points_for_position(starting_players, slot)])
 
         player_points_by_position = sorted(player_points_by_position, key=lambda x: x[0])
         return player_points_by_position
 
-    def get_weekly_points_by_position(self, dq_ce_bool, config, week, roster, active_slots, team_results_dict):
+    def get_weekly_points_by_position(self, dq_ce_bool, config, week, roster, team_results_dict):
 
         coaching_efficiency = CoachingEfficiency(roster)
         weekly_points_by_position_data = []
@@ -78,10 +81,10 @@ class PointsByPosition(object):
         for team_name in team_results_dict:
             team_info = team_results_dict[team_name]
             team_info["coaching_efficiency"] = coaching_efficiency.execute_coaching_efficiency(
-                team_name, team_info, int(week), active_slots, disqualification_eligible=dq_ce_bool)
-            for slot in list(roster["slots"].keys()):
-                if roster["slots"].get(slot) == 0:
-                    del roster["slots"][slot]
+                team_name, team_info, int(week), roster.get("positions_active"), disqualification_eligible=dq_ce_bool)
+            for slot in list(self.roster_slot_counts.keys()):
+                if self.roster_slot_counts.get(slot) == 0:
+                    del self.roster_slot_counts[slot]
             player_points_by_position = self.execute_points_by_position(team_info)
             weekly_points_by_position_data.append([team_name, player_points_by_position])
 

@@ -1,5 +1,5 @@
-# written by Wren J.R.
-# contributors: Kevin N., Joe M., /u/softsign
+__author__ = "Wren J. R. (uberfastman)"
+__email__ = "wrenjr@yahoo.com"
 
 import copy
 import logging

@@ -1,4 +1,6 @@
-# written by Wren J.R.
+__author__ = "Wren J. R. (uberfastman)"
+__email__ = "wrenjr@yahoo.com"
+
 import datetime
 import logging
 

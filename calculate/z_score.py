@@ -1,3 +1,6 @@
+__author__ = "Wren J. R. (uberfastman)"
+__email__ = "wrenjr@yahoo.com"
+
 import numpy as np
 
 

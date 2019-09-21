@@ -1,5 +1,5 @@
-# written by Wren J.R.
-# contributors: Kevin N., Joe M.
+__author__ = "Wren J. R. (uberfastman)"
+__email__ = "wrenjr@yahoo.com"
 
 import math
 from collections import defaultdict, Counter
@@ -11,16 +11,16 @@ class CoachingEfficiency(object):
     bench_positions = ["BN", "IR"]
 
     def __init__(self, roster_settings):
-        self.roster_slots = roster_settings["slots"]
+        self.roster_slot_counts = roster_settings["position_counts"]
 
         self.flex_positions = {
-            "FLEX": roster_settings["flex_positions"]
+            "FLEX": roster_settings["positions_flex"]
         }
 
         flex_def_positions = ["DB", "DL", "LB", "DT", "DE", "S", "CB"]
 
         self.has_flex_def = False
-        for rs in self.roster_slots:
+        for rs in self.roster_slot_counts:
             if rs in flex_def_positions:
                 self.has_flex_def = True
                 break
@@ -33,7 +33,7 @@ class CoachingEfficiency(object):
     def get_eligible_positions(self, player):
         eligible = []
 
-        for position in self.roster_slots:
+        for position in self.roster_slot_counts:
             eligible_positions = player.eligible_positions
 
             if isinstance(eligible_positions, dict):
@@ -55,7 +55,7 @@ class CoachingEfficiency(object):
 
     def get_optimal_players(self, eligible_players, position):
         player_list = eligible_players[position]
-        num_slots = self.roster_slots[position]
+        num_slots = self.roster_slot_counts[position]
         return sorted(player_list, key=lambda x: x.player_points.total, reverse=True)[:num_slots]
 
     def get_optimal_flex(self, eligible_positions, optimal):
@@ -81,7 +81,7 @@ class CoachingEfficiency(object):
             # extract already allocated players from candidates
             available = candidates - optimal_allocated
 
-            num_slots = self.roster_slots[flex_position]
+            num_slots = self.roster_slot_counts[flex_position]
 
             # convert back to list, sort, take as many as there are slots available
             optimal_flex = sorted(list(available), key=lambda x: x[1], reverse=True)[:num_slots]
@@ -116,7 +116,7 @@ class CoachingEfficiency(object):
         optimal_players = []
         optimal = {}
 
-        for position in self.roster_slots:
+        for position in self.roster_slot_counts:
             if position in list(self.flex_positions.keys()):
                 # handle flex positions later...
                 continue
@@ -151,7 +151,7 @@ class CoachingEfficiency(object):
 
             if Counter(league_roster_active_slots) == Counter(positions_filled_active):
                 # divide bench slots by 2 and DQ team if number of ineligible players >= the ceiling of that value
-                if ineligible_efficiency_player_count < math.ceil(self.roster_slots.get("BN", 0) / 2.0):  # exclude IR players
+                if ineligible_efficiency_player_count < math.ceil(self.roster_slot_counts.get("BN", 0) / 2.0):  # exclude IR players
                     efficiency_disqualification = False
                 else:
                     efficiency_disqualification = True

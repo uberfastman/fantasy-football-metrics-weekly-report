@@ -1,5 +1,6 @@
-# written by Wren J.R.
-# code snippets taken from: http://www.reportlab.com/chartgallery/
+__author__ = "Wren J. R. (uberfastman)"
+__email__ = "wrenjr@yahoo.com"
+# code snippets: http://www.reportlab.com/chartgallery/
 
 from reportlab.graphics.charts.axes import XValueAxis
 from reportlab.graphics.charts.legends import LineLegend
