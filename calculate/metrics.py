@@ -1,5 +1,5 @@
-# written by Wren J.R.
-# contributors: Kevin N., Joe M.
+__author__ = "Wren J. R. (uberfastman)"
+__email__ = "wrenjr@yahoo.com"
 
 import itertools
 

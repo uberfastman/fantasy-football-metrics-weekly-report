@@ -1,3 +1,6 @@
+__author__ = "Wren J. R. (uberfastman)"
+__email__ = "wrenjr@yahoo.com"
+
 from reportlab.lib.utils import ImageReader
 from reportlab.platypus import Image
 from reportlab.lib.pagesizes import inch

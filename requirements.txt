@@ -8,3 +8,5 @@ numpy
 pandas
 PyDrive
 requests
+httplib2
+oauth2client

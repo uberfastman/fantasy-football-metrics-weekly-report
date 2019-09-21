@@ -1,28 +1,23 @@
-# written by Wren J.R.
-# contributors: Kevin N., Joe M.
-# code snippets taken from: http://tech.thejoestory.com/2014/12/yahoo-fantasy-football-api-using-python.html
+__author__ = "Wren J. R. (uberfastman)"
+__email__ = "wrenjr@yahoo.com"
 
 import collections
 import datetime
 import itertools
 import logging
 import os
-import sys
 from configparser import ConfigParser
 
 from yffpy import Data
-from yffpy.models import Game, League, Standings, Settings
 from yffpy.query import YahooFantasyFootballQuery
 
-from calculate.bad_boy_stats import BadBoyStats
-from calculate.beef_stats import BeefStats
 from calculate.breakdown import Breakdown
 from calculate.metrics import CalculateMetrics
-from calculate.playoff_probabilities import PlayoffProbabilities
 from calculate.points_by_position import PointsByPosition
 from calculate.power_ranking import PowerRanking
 from calculate.season_averages import SeasonAverageCalculator
 from calculate.z_score import ZScore
+from data.retrieve import RetrieveYffLeagueData
 from report.pdf.pdf_generator import PdfGenerator
 
 logger = logging.getLogger(__name__)
@@ -74,193 +69,26 @@ class FantasyFootballReport(object):
                 "{:%b %d, %Y}".format(datetime.datetime.now()))
         )
 
-        # set up yahoo data obj
-        yahoo_data = Data(self.data_dir, save_data=self.save_data, dev_offline=self.dev_offline)
-
-        # set up yahoo query obj
-        yahoo_query = YahooFantasyFootballQuery(self.yahoo_auth_dir, self.league_id, self.game_id, offline=self.dev_offline)
-
-        if self.game_id and self.game_id != "nfl":
-            self.yahoo_fantasy_game = yahoo_data.retrieve(str(self.game_id) + "-game-metadata",
-                                                          yahoo_query.get_game_metadata_by_game_id,
-                                                          params={"game_id": self.game_id}, data_type_class=Game)
-        else:
-            self.yahoo_fantasy_game = yahoo_data.retrieve("current-game-metadata",
-                                                          yahoo_query.get_current_game_metadata,
-                                                          data_type_class=Game)
-
-        self.league_key = self.yahoo_fantasy_game.game_key + ".l." + self.league_id
-        self.season = self.yahoo_fantasy_game.season
-
-        # print(self.league_key)
-        # sys.exit()
-
-        league_overview = yahoo_data.retrieve(str(self.league_id) + "-league-metadata", yahoo_query.get_league_metadata,
-                                              data_type_class=League,
-                                              new_data_dir=os.path.join(self.data_dir, str(self.season),
-                                                                        self.league_key))
-        self.league_name = league_overview.name
-
-        # print(self.league_name)
-        # print(league_overview)
-        # sys.exit()
-
-        league_settings = yahoo_data.retrieve(str(self.league_id) + "-league-settings", yahoo_query.get_league_settings,
-                                              data_type_class=Settings,
-                                              new_data_dir=os.path.join(self.data_dir, str(self.season),
-                                                                        self.league_key))
-        # print(league_settings)
-        # sys.exit()
-
-        self.playoff_slots = league_settings.num_playoff_teams
-        self.num_regular_season_weeks = int(league_settings.playoff_start_week) - 1
-
-        # print(self.playoff_slots)
-        # print(self.num_regular_season_weeks)
-        # sys.exit()
-
-        self.league_standings_data = yahoo_data.retrieve(str(self.league_id) + "-league-standings",
-                                                         yahoo_query.get_league_standings,
-                                                         data_type_class=Standings,
-                                                         new_data_dir=os.path.join(self.data_dir, str(self.season),
-                                                                                   self.league_key))
-        # print(self.league_standings_data)
-        # sys.exit()
-
-        self.teams_data = yahoo_data.retrieve(str(self.league_id) + "-league-teams", yahoo_query.get_league_teams,
-                                              new_data_dir=os.path.join(self.data_dir, str(self.season),
-                                                                        self.league_key))
-        # print(self.teams_data)
-        # sys.exit()
-
-        roster_slots = collections.defaultdict(int)
-        self.bench_positions = ["BN", "IR"]
-        self.league_roster_active_slots = []
-        flex_positions = []
-        for roster_position in league_settings.roster_positions:
-
-            roster_position = roster_position.get("roster_position")
-
-            position_name = roster_position.position
-            position_count = int(roster_position.count)
-
-            count = position_count
-            while count > 0:
-                if position_name not in self.bench_positions:
-                    self.league_roster_active_slots.append(position_name)
-                count -= 1
-
-            if position_name == "W/R":
-                flex_positions = ["WR", "RB"]
-            if position_name == "W/R/T":
-                flex_positions = ["WR", "RB", "TE"]
-            if position_name == "Q/W/R/T":
-                flex_positions = ["QB", "WR", "RB", "TE"]
-
-            if "/" in position_name:
-                position_name = "FLEX"
-
-            roster_slots[position_name] += position_count
-
-        self.roster = {
-            "slots": roster_slots,
-            "flex_positions": flex_positions
-        }
-
-        # print(self.roster)
-        # sys.exit()
-
-        self.bad_boy_stats = BadBoyStats(os.path.join(self.data_dir, str(self.season), self.league_key),
-                                         save_data=self.save_data, dev_offline=self.dev_offline)
-        # print(self.bad_boy_stats)
-        # sys.exit()
-
-        self.beef_rank = BeefStats(os.path.join(self.data_dir, str(self.season), self.league_key),
-                                   save_data=self.save_data, dev_offline=self.dev_offline)
-
-        # print(self.beef_rank)
-        # sys.exit()
-
-        # TODO: UPDATE USAGE OF recalculate PARAM (could use self.dev_offline)
-        self.playoff_probs_data = PlayoffProbabilities(
-            self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations"),
-            self.num_regular_season_weeks,
-            self.playoff_slots,
-            data_dir=os.path.join(self.data_dir, str(self.season), self.league_key),
-            save_data=self.save_data,
-            recalculate=True
+        # retrieve all yahoo league data from API
+        self.league_data = RetrieveYffLeagueData(
+            config=self.config,
+            yahoo_data=Data(self.data_dir, save_data=self.save_data, dev_offline=self.dev_offline),
+            yahoo_query=YahooFantasyFootballQuery(
+                self.yahoo_auth_dir, self.league_id, self.game_id, offline=self.dev_offline),
+            yahoo_game_id=self.game_id,
+            yahoo_league_id=self.league_id,
+            data_dir=self.data_dir,
+            selected_week=week
         )
-        # print(self.playoff_probs_data)
-        # sys.exit()
 
-        # user input validation
-        if week:
-            chosen_week = week
-        else:
-            chosen_week = self.config.get("Fantasy_Football_Report_Settings", "chosen_week")
-        try:
-            current_week = league_overview.current_week
-            if chosen_week == "default":
-                if (int(current_week) - 1) > 0:
-                    self.chosen_week = str(int(current_week) - 1)
-                else:
-                    first_week_incomplete = input(
-                        "The first week of the season is not yet complete. "
-                        "Are you sure you want to generate a report for an incomplete week? (y/n) -> ")
-                    if first_week_incomplete == "y":
-                        self.chosen_week = current_week
-                    elif first_week_incomplete == "n":
-                        raise ValueError("It is recommended that you NOT generate a report for an incomplete week.")
-                    else:
-                        raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
-
-            elif 0 < int(chosen_week) < 18:
-                if 0 < int(chosen_week) <= int(current_week) - 1:
-                    self.chosen_week = chosen_week
-                else:
-                    incomplete_week = input(
-                        "Are you sure you want to generate a report for an incomplete week? (y/n) -> ")
-                    if incomplete_week == "y":
-                        self.chosen_week = chosen_week
-                    elif incomplete_week == "n":
-                        raise ValueError("It is recommended that you NOT generate a report for an incomplete week.")
-                    else:
-                        raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
-            else:
-                raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
-        except ValueError:
-            raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
-
-        # run yahoo queries requiring chosen week
-        self.matchups = {}
-        for wk in range(1, self.num_regular_season_weeks + 1):
-            self.matchups[wk] = yahoo_data.retrieve("week_" + str(self.chosen_week) + "-matchups",
-                                                    yahoo_query.get_league_matchups_by_week, params={"chosen_week": wk},
-                                                    new_data_dir=os.path.join(self.data_dir, str(self.season),
-                                                                              self.league_key, "week_" + str(wk)))
-        # print(self.matchups)
-        # sys.exit()
-
-        self.rosters = {}
-        for wk in range(1, int(self.chosen_week) + 1):
-            self.rosters[str(wk)] = {
-                str(team.get("team").team_id):
-                    yahoo_data.retrieve(
-                        str(team.get("team").team_id) + "-" +
-                        str(team.get("team").name.decode("utf-8")).replace(" ", "_") + "-roster",
-                        yahoo_query.get_team_roster_player_stats_by_week,
-                        params={"team_id": str(team.get("team").team_id), "chosen_week": str(wk)},
-                        new_data_dir=os.path.join(
-                            self.data_dir, str(self.season), self.league_key, "week_" + str(wk), "rosters")
-                    ) for team in self.teams_data
-            }
-        # print(self.rosters.keys())
-        # sys.exit()
+        self.playoff_probs = self.league_data.get_playoff_probs(self.save_data, self.dev_offline, recalculate=True)
+        self.bad_boy_stats = self.league_data.get_bad_boy_stats(self.save_data, self.dev_offline)
+        self.beef_stats = self.league_data.get_beef_stats(self.save_data, self.dev_offline)
 
         # output league info for verification
-        logger.info("...setup complete for \"{}\" ({}) week {} report.\n".format(self.league_name.upper(),
+        logger.info("...setup complete for \"{}\" ({}) week {} report.\n".format(self.league_data.name.upper(),
                                                                                  self.league_id,
-                                                                                 self.chosen_week))
+                                                                                 self.league_data.chosen_week))
 
     def retrieve_scoreboard(self, chosen_week):
         """
@@ -291,7 +119,7 @@ class FantasyFootballReport(object):
         ]
         """
 
-        matchups = self.matchups.get(int(chosen_week))
+        matchups = self.league_data.matchups_by_week.get(int(chosen_week))
         matchup_list = []
         for matchup in matchups:
 
@@ -320,7 +148,7 @@ class FantasyFootballReport(object):
     def retrieve_data(self, chosen_week):
 
         teams_dict = {}
-        for team in self.teams_data:
+        for team in self.league_data.teams:
 
             team = team.get("team")
 
@@ -336,6 +164,7 @@ class FantasyFootballReport(object):
             teams_dict[team_id] = team_info_dict
 
         team_results_dict = {}
+        bench_positions = self.league_data.roster_positions_by_type.get("positions_bench")
 
         # iterate through all teams and build team_results_dict containing all relevant team stat information
         for team_id, team_info in teams_dict.items():
@@ -344,7 +173,7 @@ class FantasyFootballReport(object):
 
             players = []
             positions_filled_active = []
-            for player in self.rosters[chosen_week].get(str(team_id)):
+            for player in self.league_data.rosters_by_week[chosen_week].get(str(team_id)):
 
                 player = player.get("player")
 
@@ -353,14 +182,14 @@ class FantasyFootballReport(object):
                 for field, data_type in custom_field_dict.items():
                     player.__dict__[field] = data_type()
 
-                if player.selected_position.position not in self.bench_positions:
+                if player.selected_position_value not in bench_positions:
                     player.bad_boy_points, player.bad_boy_crime = self.bad_boy_stats.check_bad_boy_status(
-                        player.name.full, player.editorial_team_abbr, player.selected_position.position)
-                    player.weight = self.beef_rank.get_player_weight(player.name.first, player.name.last,
+                        player.name.full, player.editorial_team_abbr, player.selected_position_value)
+                    player.weight = self.beef_stats.get_player_weight(player.first_name, player.last_name,
                                                                      player.editorial_team_abbr)
-                    player.tabbu = self.beef_rank.get_player_tabbu(player.name.first, player.name.last,
+                    player.tabbu = self.beef_stats.get_player_tabbu(player.first_name, player.last_name,
                                                                    player.editorial_team_abbr)
-                    positions_filled_active.append(player.selected_position.position)
+                    positions_filled_active.append(player.selected_position_value)
 
                 players.append(player)
 
@@ -370,7 +199,7 @@ class FantasyFootballReport(object):
             worst_offense_score = 0
             num_offenders = 0
             for p in players:
-                if p.selected_position.position not in self.bench_positions:
+                if p.selected_position.position not in bench_positions:
                     bad_boy_total = bad_boy_total + p.bad_boy_points
                     if p.bad_boy_points > 0:
                         num_offenders = num_offenders + 1
@@ -382,14 +211,14 @@ class FantasyFootballReport(object):
                 "name": team_name,
                 "manager": teams_dict[team_id]["manager"],
                 "players": players,
-                "score": sum([p.player_points.total for p in players if p.selected_position.position not in self.bench_positions]),
-                "bench_score": sum([p.player_points.total for p in players if p.selected_position.position in self.bench_positions]),
+                "score": sum([p.player_points_value for p in players if p.selected_position_value not in bench_positions]),
+                "bench_score": sum([p.player_points_value for p in players if p.selected_position_value in bench_positions]),
                 "team_id": team_id,
                 "bad_boy_points": bad_boy_total,
                 "worst_offense": worst_offense,
                 "num_offenders": num_offenders,
-                "total_weight": sum([p.weight for p in players if p.selected_position.position not in self.bench_positions]),
-                "tabbu": sum([p.tabbu for p in players if p.selected_position.position not in self.bench_positions]),
+                "total_weight": sum([p.weight for p in players if p.selected_position_value not in bench_positions]),
+                "tabbu": sum([p.tabbu for p in players if p.selected_position_value not in bench_positions]),
                 "positions_filled_active": positions_filled_active
             }
 
@@ -401,13 +230,13 @@ class FantasyFootballReport(object):
         team_results_dict = self.retrieve_data(week)
 
         # get current standings
-        calc_metrics = CalculateMetrics(self.config, self.league_id, self.playoff_slots)
+        calc_metrics = CalculateMetrics(self.config, self.league_id, self.league_data.playoff_slots)
 
         # calculate coaching efficiency metric and add values to team_results_dict, and get points by position
-        points_by_position = PointsByPosition(self.roster, self.chosen_week)
+        points_by_position = PointsByPosition(self.league_data.roster_positions_by_type, self.league_data.chosen_week)
         weekly_points_by_position_data = \
             points_by_position.get_weekly_points_by_position(self.dq_ce_bool, self.config, week,
-                                                             self.roster, self.league_roster_active_slots,
+                                                             self.league_data.roster_positions_by_type,
                                                              team_results_dict)
 
         # calculate luck metric and add values to team_results_dict
@@ -450,7 +279,7 @@ class FantasyFootballReport(object):
                                key=lambda k_v: (float(k_v[1].get("score")), k_v[0]), reverse=True)
         score_results_data = calc_metrics.get_score_data(score_results)
 
-        current_standings_data = calc_metrics.get_standings(self.league_standings_data)
+        current_standings_data = calc_metrics.get_standings(self.league_data.standings)
 
         # create playoff probabilities data for table
         remaining_matchups = {
@@ -460,15 +289,15 @@ class FantasyFootballReport(object):
                     matchup.get("matchup").teams[1].get("team").team_id
 
                 ) for matchup in matchups
-            ] for week, matchups in self.matchups.items() if int(week) > int(chosen_week)
+            ] for week, matchups in self.league_data.matchups_by_week.items() if int(week) > int(chosen_week)
         }
 
-        playoff_probs_data = self.playoff_probs_data.calculate(week, chosen_week, calc_metrics.teams_info,
+        playoff_probs_data = self.playoff_probs.calculate(week, chosen_week, calc_metrics.teams_info,
                                                                remaining_matchups)
 
         if playoff_probs_data:
             playoff_probs_data = calc_metrics.get_playoff_probs_data(
-                self.league_standings_data,
+                self.league_data.standings,
                 playoff_probs_data
             )
         else:
@@ -588,9 +417,10 @@ class FantasyFootballReport(object):
                 if coaching_efficiency_dq_dict.get(team) == -1:
                     ce_dq_str += "{} (incomplete active squad), ".format(team)
                 else:
-                    ce_dq_str += "{} (ineligible bench players: {}/{}), ".format(team,
-                                                                                 coaching_efficiency_dq_dict.get(team),
-                                                                                 self.roster.get("slots").get("BN"))
+                    ce_dq_str += "{} (ineligible bench players: {}/{}), ".format(
+                        team,
+                        coaching_efficiency_dq_dict.get(team),
+                        self.league_data.roster_positions_by_type.get("position_counts").get("BN"))
             logger.info("   COACHING EFFICIENCY DQs: {}\n".format(ce_dq_str[:-2]))
         else:
             logger.info("")
@@ -656,10 +486,10 @@ class FantasyFootballReport(object):
         season_average_points_by_position_dict = collections.defaultdict(list)
 
         week_counter = 1
-        while week_counter <= int(self.chosen_week):
+        while week_counter <= int(self.league_data.chosen_week):
             report_info_dict = self.calculate_metrics(weekly_team_info,
                                                       week=str(week_counter),
-                                                      chosen_week=self.chosen_week)
+                                                      chosen_week=self.league_data.chosen_week)
 
             top_scorer = {
                 "week": week_counter,
@@ -779,14 +609,15 @@ class FantasyFootballReport(object):
         PointsByPosition.calculate_points_by_position_season_averages(season_average_points_by_position_dict,
                                                                       report_info_dict)
 
-        filename = self.league_name.replace(" ", "-") + \
-            "(" + str(self.league_id) + ")_week-" + str(self.chosen_week) + "_report.pdf"
+        filename = self.league_data.name.replace(" ", "-") + \
+            "(" + str(self.league_id) + ")_week-" + str(self.league_data.chosen_week) + "_report.pdf"
         report_save_dir = os.path.join(self.config.get("Fantasy_Football_Report_Settings", "output_dir"),
-                                       self.league_name.replace(" ", "-") + "(" + self.league_id + ")")
-        report_title_text = self.league_name + " (" + str(self.league_id) + ") Week " + str(self.chosen_week) + " Report"
+                                       self.league_data.name.replace(" ", "-") + "(" + self.league_id + ")")
+        report_title_text = self.league_data.name + " (" + str(self.league_id) + ") Week " + \
+                            str(self.league_data.chosen_week) + " Report"
         report_footer_text = \
             "<para alignment='center'>Report generated %s for Yahoo Fantasy Football league '%s' (%s).</para>" % \
-            ("{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), self.league_name, self.league_id)
+            ("{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), self.league_data.name, self.league_id)
 
         if not os.path.isdir(report_save_dir):
             os.makedirs(report_save_dir)
@@ -801,10 +632,10 @@ class FantasyFootballReport(object):
         pdf_generator = PdfGenerator(
             config=self.config,
             league_id=self.league_id,
-            playoff_slots=self.playoff_slots,
-            num_regular_season_weeks=self.num_regular_season_weeks,
-            week=self.chosen_week,
-            data_dir=os.path.join(self.data_dir, str(self.season), self.league_key),
+            playoff_slots=self.league_data.playoff_slots,
+            num_regular_season_weeks=self.league_data.num_regular_season_weeks,
+            week=self.league_data.chosen_week,
+            data_dir=os.path.join(self.data_dir, str(self.league_data.season), self.league_data.league_key),
             break_ties_bool=self.break_ties_bool,
             report_title_text=report_title_text,
             report_footer_text=report_footer_text,
