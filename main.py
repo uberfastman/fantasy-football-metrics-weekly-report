@@ -2,12 +2,21 @@
 
 import distutils.util as distutils
 import getopt
+import logging
+import os
+import re
 import sys
+import traceback
 from configparser import ConfigParser
+
+import pkg_resources
+from pkg_resources import DistributionNotFound, VersionConflict
 
 from report.fantasy_football_report_builder import FantasyFootballReport
 from utils.slack_messenger import SlackMessenger
 from utils.upload_to_google_drive import GoogleDriveUploader
+
+logger = logging.getLogger(__name__)
 
 # local config vars
 config = ConfigParser()
@@ -15,6 +24,35 @@ config.read("config.ini")
 
 
 def main(argv):
+
+    dependencies = []
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "requirements.txt"), "r") as reqs:
+        for line in reqs.readlines():
+            if not line.startswith("#"):
+                dependencies.append(line.strip())
+
+    missing_dependency_count = 0
+    for dependency in dependencies:
+        try:
+            pkg_resources.require(dependency)
+        except DistributionNotFound as dnfe:
+            missing_dependency_count += 1
+            logger.error("Error: {}\n{}".format(dnfe, traceback.format_exc()))
+            logger.error(
+                "MISSING DEPENDENCY: {}. Please run `pip install {}` and retry the report generation.".format(
+                    dependency, re.split("\W+", dependency)[0]))
+        except VersionConflict as vce:
+            missing_dependency_count += 1
+            logger.error("Error: {}\n{}".format(vce, traceback.format_exc()))
+            logger.error(
+                "MISSING DEPENDENCY: {}. Please run `pip install {}` and retry the report generation.".format(
+                    dependency, dependency))
+
+    if missing_dependency_count > 0:
+        logger.error(
+            "MISSING {} ".format(str(missing_dependency_count)) + ("DEPENDENCY" if missing_dependency_count == 1 else "DEPENDENCIES") +
+            ". Report generation aborted.")
+        sys.exit()
 
     usage_str = \
         "\n"\

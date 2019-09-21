@@ -17,7 +17,7 @@ class CalculateMetrics(object):
     def get_standings(self, league_standings_data):
         current_standings_data = []
 
-        for team in league_standings_data.teams.values():
+        for team in league_standings_data.teams:
 
             team = team.get("team")
             team_standings = team.team_standings

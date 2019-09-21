@@ -64,8 +64,8 @@ class CoachingEfficiency(object):
         # should just have a class, but w/e
         def create_tuple(player_info):
             return (
-                player_info.name,
-                player_info.player_points.total
+                player_info.full_name,
+                player_info.player_points_value,
             )
 
         for flex_position, base_positions in list(self.flex_positions.items()):
