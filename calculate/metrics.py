@@ -72,7 +72,7 @@ class CalculateMetrics(object):
     def get_playoff_probs_data(league_standings_data, team_playoffs_data):
 
         playoff_probs_data = []
-        for team in league_standings_data.teams.values():
+        for team in league_standings_data.teams:
 
             team = team.get("team")
 
