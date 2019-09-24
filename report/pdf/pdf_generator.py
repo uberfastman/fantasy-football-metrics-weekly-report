@@ -733,7 +733,7 @@ class PdfGenerator(object):
                 self.zscores_headers,
                 self.zscore_results_data,
                 self.style,
-                self.style_tied_power_rankings,
+                None,
                 self.metrics_4_col_widths,
                 tied_metric_bool=False,
                 metric_type="zscore",

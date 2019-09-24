@@ -1,7 +1,7 @@
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
-import collections
+from collections import defaultdict
 import datetime
 import itertools
 import logging
@@ -69,12 +69,15 @@ class FantasyFootballReport(object):
                 "{:%b %d, %Y}".format(datetime.datetime.now()))
         )
 
+        self.yahoo_data = Data(self.data_dir, save_data=self.save_data, dev_offline=self.dev_offline)
+        self.yahoo_query = YahooFantasyFootballQuery(self.yahoo_auth_dir, self.league_id, self.game_id,
+                                                     offline=self.dev_offline)
+
         # retrieve all yahoo league data from API
         self.league_data = RetrieveYffLeagueData(
             config=self.config,
-            yahoo_data=Data(self.data_dir, save_data=self.save_data, dev_offline=self.dev_offline),
-            yahoo_query=YahooFantasyFootballQuery(
-                self.yahoo_auth_dir, self.league_id, self.game_id, offline=self.dev_offline),
+            yahoo_data=self.yahoo_data,
+            yahoo_query=self.yahoo_query,
             yahoo_game_id=self.game_id,
             yahoo_league_id=self.league_id,
             data_dir=self.data_dir,
@@ -186,9 +189,9 @@ class FantasyFootballReport(object):
                     player.bad_boy_points, player.bad_boy_crime = self.bad_boy_stats.check_bad_boy_status(
                         player.name.full, player.editorial_team_abbr, player.selected_position_value)
                     player.weight = self.beef_stats.get_player_weight(player.first_name, player.last_name,
-                                                                     player.editorial_team_abbr)
+                                                                      player.editorial_team_abbr)
                     player.tabbu = self.beef_stats.get_player_tabbu(player.first_name, player.last_name,
-                                                                   player.editorial_team_abbr)
+                                                                    player.editorial_team_abbr)
                     positions_filled_active.append(player.selected_position_value)
 
                 players.append(player)
@@ -211,8 +214,10 @@ class FantasyFootballReport(object):
                 "name": team_name,
                 "manager": teams_dict[team_id]["manager"],
                 "players": players,
-                "score": sum([p.player_points_value for p in players if p.selected_position_value not in bench_positions]),
-                "bench_score": sum([p.player_points_value for p in players if p.selected_position_value in bench_positions]),
+                "score": sum(
+                    [p.player_points_value for p in players if p.selected_position_value not in bench_positions]),
+                "bench_score": sum(
+                    [p.player_points_value for p in players if p.selected_position_value in bench_positions]),
                 "team_id": team_id,
                 "bad_boy_points": bad_boy_total,
                 "worst_offense": worst_offense,
@@ -293,7 +298,7 @@ class FantasyFootballReport(object):
         }
 
         playoff_probs_data = self.playoff_probs.calculate(week, chosen_week, calc_metrics.teams_info,
-                                                               remaining_matchups)
+                                                          remaining_matchups)
 
         if playoff_probs_data:
             playoff_probs_data = calc_metrics.get_playoff_probs_data(
@@ -483,13 +488,31 @@ class FantasyFootballReport(object):
         weekly_top_scores = []
         weekly_highest_ce = []
 
-        season_average_points_by_position_dict = collections.defaultdict(list)
+        season_average_points_by_position_dict = defaultdict(list)
 
         week_counter = 1
         while week_counter <= int(self.league_data.chosen_week):
             report_info_dict = self.calculate_metrics(weekly_team_info,
                                                       week=str(week_counter),
                                                       chosen_week=self.league_data.chosen_week)
+
+            num_tied_ce = int(report_info_dict.get("num_tied_coaching_efficiencies"))
+            if num_tied_ce > 0:
+                ce_results = report_info_dict.get("coaching_efficiency_results_data")
+                player_season_avg_points = defaultdict(list)
+                for ce_result in ce_results:
+                    if ce_result[0] == "1*":
+                        for player in report_info_dict.get("team_results").get(ce_result[1]).get("players"):
+                            week = 1
+                            while week < week_counter:
+                                weekly_player_points = self.yahoo_query.get_player_stats_by_week(
+                                    player.player_key,week).player_points.total
+                                player_season_avg_points[player.player_key].append(weekly_player_points)
+                                week += 1
+                            player_season_avg_points[player.player_key].append(player.player_points_value)
+
+                print("SEASON AVG POINTS:")
+                print(player_season_avg_points)
 
             top_scorer = {
                 "week": week_counter,
@@ -610,7 +633,7 @@ class FantasyFootballReport(object):
                                                                       report_info_dict)
 
         filename = self.league_data.name.replace(" ", "-") + \
-            "(" + str(self.league_id) + ")_week-" + str(self.league_data.chosen_week) + "_report.pdf"
+                   "(" + str(self.league_id) + ")_week-" + str(self.league_data.chosen_week) + "_report.pdf"
         report_save_dir = os.path.join(self.config.get("Fantasy_Football_Report_Settings", "output_dir"),
                                        self.league_data.name.replace(" ", "-") + "(" + self.league_id + ")")
         report_title_text = self.league_data.name + " (" + str(self.league_id) + ") Week " + \
