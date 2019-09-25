@@ -4,9 +4,10 @@ __email__ = "wrenjr@yahoo.com"
 import collections
 import datetime
 import itertools
+import json
 import logging
 import os
-import json
+# import sys
 from configparser import ConfigParser
 
 from yffpy import Data
@@ -417,6 +418,9 @@ class FantasyFootballReport(object):
                 tie_for_first_bad_boy = True
         num_tied_for_first_bad_boy = len(
             [list(group) for key, group in itertools.groupby(bad_boy_results_data, lambda x: x[3])][0])
+
+        # filter out teams that have no bad boys in their starting lineup
+        bad_boy_results_data = [result for result in bad_boy_results_data if int(result[5]) != 0]
 
         num_tied_beef = calc_metrics.get_num_ties(beef_results_data, "beef", self.break_ties_bool)
 

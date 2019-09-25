@@ -4,7 +4,7 @@ __email__ = "wrenjr@yahoo.com"
 import collections
 import os
 import logging
-import sys
+# import sys
 
 from yffpy.models import Game, League, Settings, Standings
 
@@ -138,7 +138,7 @@ class RetrieveYffLeagueData(object):
         # run yahoo queries requiring chosen week
         self.matchups_by_week = {}
         for wk in range(1, self.num_regular_season_weeks + 1):
-            self.matchups_by_week[wk] = yahoo_data.retrieve("week_" + str(self.chosen_week) + "-matchups_by_week",
+            self.matchups_by_week[wk] = yahoo_data.retrieve("week_" + str(wk) + "-matchups_by_week",
                                                             yahoo_query.get_league_matchups_by_week,
                                                             params={"chosen_week": wk},
                                                             new_data_dir=os.path.join(self.data_dir,
@@ -154,11 +154,11 @@ class RetrieveYffLeagueData(object):
                 str(team.get("team").team_id):
                     yahoo_data.retrieve(
                         str(team.get("team").team_id) + "-" +
-                        str(team.get("team").name.decode("utf-8")).replace(" ", "_") + "-roster_positions",
+                        str(team.get("team").name.decode("utf-8")).replace(" ", "_") + "-roster",
                         yahoo_query.get_team_roster_player_stats_by_week,
                         params={"team_id": str(team.get("team").team_id), "chosen_week": str(wk)},
                         new_data_dir=os.path.join(
-                            self.data_dir, str(self.season), self.league_key, "week_" + str(wk), "rosters_by_week")
+                            self.data_dir, str(self.season), self.league_key, "week_" + str(wk), "rosters")
                     ) for team in self.teams
             }
         # print(self.rosters_by_week.keys())
