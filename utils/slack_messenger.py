@@ -7,6 +7,7 @@ import logging
 from slackclient import SlackClient
 
 logger = logging.getLogger(__name__)
+logger.setLevel(level=logging.INFO)
 
 
 class SlackMessenger(object):

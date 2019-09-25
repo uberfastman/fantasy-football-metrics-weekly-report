@@ -90,10 +90,12 @@ The available settings are as follows:
 | `num_regular_season_weeks`               | Number of regular season weeks in selected league. |
 | `num_playoff_slots`                      | Number of playoff slots in selected league. |
 | `coaching_efficiency_disqualified_teams` | Teams manually DQed from coaching efficiency rankings (if any). |
+| `weekly_highest_ce`                      | Dictionary of weeks when multiple teams are tied for highest coaching efficiency and the weekly winner needs to be manually assigned (until such a time as a coaching efficiency tie-break is programmatically implemented) |
 | `yahoo_auth_dir`                         | Directory where Yahoo OAuth accesses and stores credentials and refresh tokens. |
 | `google_drive_upload`                    | Turn on (`True`) or off (`False`) the Google Drive upload functionality. |
 | `google_auth_token`                      | Google OAuth refresh token. |
 | `google_drive_root_folder_name`          | Online folder in Google Drive where reports are uploaded. |
+| `reupload_file`                          | File path to selected report that you wish to re-upload to Google Drive by running `upload_to_google_drive.py` as a standalone script. |
 | `post_to_slack`                          | Turn on (`True`) or off (`False`) the Slack upload functionality. |
 | `slack_channel`                          | Selected Slack channel where reports are uploaded. |
 
@@ -104,26 +106,18 @@ After completing the above setup and configuration steps, you should now be able
 
 |             Flag             |                                      Description                                     |
 | :--------------------------- | :----------------------------------------------------------------------------------- |
-| `-h, --help`                 | Print command line usage message.                                                    |
-| `-l --league-id <league_id>` | Yahoo Fantasy Football league ID.                                                    |
-| `-w --week <week>`           | Chosen week for which to generate report.                                            |
+| `-h, --help`                 | Print command line usage message |
+| `-l --league-id <league_id>` | Yahoo Fantasy Football league ID |
+| `-w --week <week>`           | Chosen week for which to generate report |
 | `-g --game-id <game_id>`     | Chosen Yahoo NFL fantasy game id for which to generate report. Defaults to "nfl", which Yahoo interprets as the current season. |
-| `-s, --save-data`            | Save all retrieved data locally for faster future report generation.                 |
-| `-b, --break-ties`           | Break ties in metric rankings.                                                       |
-| `-q, --disqualify-ce`        | Automatically disqualify teams ineligible for coaching efficiency metric.            |
-| `-t, --test`                 | Generate TEST report (for development).                                              |
+| `-y, --year <year>`          | Chosen year (season) of the league for which a report is being generated. | 
+| `-s, --save-data`            | Save all retrieved data locally for faster future report generation |
+| `-p, --playoff-prob-sims <int>` | Number of Monte Carlo playoff probability simulations to run." |
+| `-b, --break-ties`           | Break ties in metric rankings |
+| `-q, --disqualify-ce`        | Automatically disqualify teams ineligible for coaching efficiency metric |
+| `-t, --test`                 | Generate TEST report (for development) |
 | `-d, --dev-offline`          | Run ***OFFLINE*** (for development). Must have previously run report with -s option. |
 
-Generate report:
-
-
-Configuration:
-
-For Developers:
-
-* `-t`: Generate TEST report (for development).
-
-* `-d`: Run ***OFFLINE*** (for development). Must have previously run report with -s option.
 
 When you are done working within the `virtualenv`, you can run `deactivate` within the environment to exit:
 ```

@@ -6,6 +6,7 @@ import logging
 from calculate.coaching_efficiency import CoachingEfficiency
 
 logger = logging.getLogger(__name__)
+logger.setLevel(level=logging.INFO)
 
 
 class PointsByPosition(object):
