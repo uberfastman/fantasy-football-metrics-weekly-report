@@ -102,6 +102,8 @@ class PdfGenerator(object):
         self.metrics_4_col_widths = [1.00 * inch, 2.25 * inch, 2.25 * inch, 2.25 * inch]
         self.metrics_4_col_widths_wide_right = [1.00 * inch, 2.50 * inch, 2.00 * inch, 2.25 * inch]
         self.metrics_5_col_widths = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch]
+        self.metrics_6_col_widths = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.00 * inch, 1.50 * inch, 1.00 * inch]
+        self.metrics_7_col_widths = [0.50 * inch, 1.75 * inch, 1.50 * inch, 0.75 * inch, 1.50 * inch, 0.75 * inch, 1.00 * inch]
 
         self.power_ranking_col_widths = [1.00 * inch, 2.50 * inch, 2.50 * inch, 1.75 * inch]
         self.line_separator = Drawing(100, 1)
@@ -216,14 +218,6 @@ class PdfGenerator(object):
         self.beef_headers = [["Place", "Team", "Manager", "TABBU(s)"]]
         self.zscores_headers = [["Place", "Team", "Manager", "Z-Score"]]
         self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
-        # self.break_efficiency_ties_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*The league commissioner will " \
-        #                                     "resolve coaching efficiency ties manually. The tiebreaker goes " \
-        #                                     "to the manager whose team contains the most players who have " \
-        #                                     "met or exceeded their average weekly fantasy points. If there is " \
-        #                                     "still a tie after that, the manager whose players exceeded their " \
-        #                                     "season average score by the highest cumulative percent wins.</i>"
-        self.break_efficiency_ties_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*The league commissioner will " \
-                                            "resolve coaching efficiency ties manually.</i>"
 
         self.style_efficiency_dqs = None
         self.style_tied_scores = self.set_tied_values_style(self.num_tied_scores, table_style_list, "scores")
@@ -325,11 +319,8 @@ class PdfGenerator(object):
 
         return TableStyle(tied_values_table_style_list)
 
-    # noinspection PyProtectedMember
     def create_section(self, elements, title_text, headers, data, table_style, table_style_ties, col_widths,
                        subtitle_text=None, row_heights=None, tied_metric_bool=False, metric_type=None):
-
-        # self.toc.add_metric_section(title._cellvalues[0][0].getPlainText())
 
         title = self.create_title(title_text, element_type="section",
                                   anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>",
@@ -349,6 +340,18 @@ class PdfGenerator(object):
             else:
                 for index, team in enumerate(self.score_results_data):
                     self.score_results_data[index] = team[:-1]
+
+        if metric_type == "coaching_efficiency":
+            if self.num_tied_coaching_efficiencies > 0:
+                if self.break_ties_bool:
+                    self.efficiency_headers[0][3] = "CE (%)"
+                    self.efficiency_headers[0].extend(["# > Avg.", "Sum % > Avg."])
+                else:
+                    for index, team in enumerate(self.coaching_efficiency_results_data):
+                        self.coaching_efficiency_results_data[index] = team[:-2]
+            else:
+                for index, team in enumerate(self.coaching_efficiency_results_data):
+                    self.coaching_efficiency_results_data[index] = team[:-2]
 
         if metric_type == "top_scorers":
             temp_data = []
@@ -421,11 +424,8 @@ class PdfGenerator(object):
 
         elif metric_type == "coaching_efficiency":
             if self.tied_coaching_efficiencies_bool:
-                elements.append(self.spacer_twentieth_inch)
-                if self.break_ties_bool:
-                    elements.append(
-                        Paragraph(self.break_efficiency_ties_footer, getSampleStyleSheet()["Normal"]))
-                else:
+                if not self.break_ties_bool:
+                    elements.append(self.spacer_twentieth_inch)
                     elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
 
         elif metric_type == "luck":
@@ -491,8 +491,9 @@ class PdfGenerator(object):
 
         if tied_metric_bool:
             if col_headers[0][-1] == "Bench Points":
-                tied_score_col_widths = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.00 * inch, 1.50 * inch, 1.00 * inch]
-                table = Table(col_headers, colWidths=tied_score_col_widths)
+                table = Table(col_headers, colWidths=self.metrics_6_col_widths)
+            elif col_headers[0][-1] == "Sum % > Avg.":
+                table = Table(col_headers, colWidths=self.metrics_7_col_widths)
             table.setStyle(table_style_for_ties)
         elif table_style:
             table.setStyle(table_style)
@@ -756,7 +757,7 @@ class PdfGenerator(object):
             self.scores_headers,
             self.score_results_data,
             self.style,
-            self.style,
+            self.style_tied_scores,
             self.metrics_5_col_widths,
             tied_metric_bool=self.tied_scores_bool,
             metric_type="scores"

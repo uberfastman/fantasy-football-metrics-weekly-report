@@ -90,7 +90,6 @@ The available settings are as follows:
 | `num_regular_season_weeks`               | Number of regular season weeks in selected league. |
 | `num_playoff_slots`                      | Number of playoff slots in selected league. |
 | `coaching_efficiency_disqualified_teams` | Teams manually DQed from coaching efficiency rankings (if any). |
-| `weekly_highest_ce`                      | Dictionary of weeks when multiple teams are tied for highest coaching efficiency and the weekly winner needs to be manually assigned (until such a time as a coaching efficiency tie-break is programmatically implemented) |
 | `yahoo_auth_dir`                         | Directory where Yahoo OAuth accesses and stores credentials and refresh tokens. |
 | `google_drive_upload`                    | Turn on (`True`) or off (`False`) the Google Drive upload functionality. |
 | `google_auth_token`                      | Google OAuth refresh token. |

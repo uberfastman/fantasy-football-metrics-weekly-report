@@ -17,7 +17,6 @@ class SeasonAverageCalculator(object):
         team_index = 0
         for team in data:
             team_name = self.team_names[team_index]
-            # season_average_value = "{0:.2f}".format(sum([float(week[1]) for week in team]) / float(len(team)))
 
             valid_values = [value[1] if value[1] else 0 for value in team]
             average = np.mean(valid_values)
@@ -41,7 +40,11 @@ class SeasonAverageCalculator(object):
                     if with_percent_bool:
                         ordered_team[3] = "{0:.2f}%".format(float(str(ordered_team[3]).replace("%", ""))) if \
                             ordered_team[3] != "DQ" else "DQ"
-                        ordered_team.append(str(team[2]))
+
+                        if key == "coaching_efficiency_results_data":
+                            ordered_team.insert(-2, str(team[2]))
+                        else:
+                            ordered_team.append(str(team[2]))
 
                     elif bench_column_bool:
                         ordered_team[3] = "{0:.2f}".format(float(str(ordered_team[3])))
