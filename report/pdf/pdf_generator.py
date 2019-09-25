@@ -487,15 +487,19 @@ class PdfGenerator(object):
                           row_heights=None, tied_metric_bool=False):
 
         [col_headers.append(item) for item in data]
-        table = Table(col_headers, colWidths=col_widths, rowHeights=row_heights)
 
         if tied_metric_bool:
             if col_headers[0][-1] == "Bench Points":
                 table = Table(col_headers, colWidths=self.metrics_6_col_widths)
             elif col_headers[0][-1] == "Sum % > Avg.":
                 table = Table(col_headers, colWidths=self.metrics_7_col_widths)
+            else:
+                table = Table(col_headers, colWidths=col_widths, rowHeights=row_heights)
             table.setStyle(table_style_for_ties)
-        elif table_style:
+        else:
+            table = Table(col_headers, colWidths=col_widths, rowHeights=row_heights)
+
+        if table_style:
             table.setStyle(table_style)
         else:
             table.setStyle(self.style)
