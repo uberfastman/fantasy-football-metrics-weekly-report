@@ -6,6 +6,7 @@ import datetime
 import itertools
 import logging
 import os
+import json
 from configparser import ConfigParser
 
 from yffpy import Data
@@ -21,6 +22,8 @@ from data.retrieve import RetrieveYffLeagueData
 from report.pdf.pdf_generator import PdfGenerator
 
 logger = logging.getLogger(__name__)
+logger.setLevel(level=logging.INFO)
+
 # Suppress YahooFantasyFootballQuery debug logging
 logging.getLogger("yffpy.query").setLevel(level=logging.INFO)
 
@@ -31,6 +34,7 @@ class FantasyFootballReport(object):
                  week=None,
                  game_id=None,
                  save_data=False,
+                 playoff_prob_sims=None,
                  break_ties_bool=False,
                  dq_ce_bool=False,
                  test_bool=False,
@@ -51,22 +55,39 @@ class FantasyFootballReport(object):
         else:
             self.game_id = self.config.get("Fantasy_Football_Report_Settings", "game_id")
 
-        self.dq_ce_bool = dq_ce_bool
+        self.save_data = save_data
+        self.playoff_prob_sims = playoff_prob_sims
         self.break_ties_bool = break_ties_bool
+        self.dq_ce_bool = dq_ce_bool
 
         self.test_bool = test_bool
-
-        self.save_data = save_data
         self.dev_offline = dev_offline
 
         # verification output message
         logger.info(
-            "\nGenerating%s Yahoo Fantasy Football report (league id: %s, game id: %s, week: %s) on %s..." % (
-                " TEST" if test_bool else "",
+            "\nGenerating%s Yahoo Fantasy Football report with settings:\n"
+            "    league id: %s\n"
+            "    game id: %s\n"
+            "    week: %s\n"
+            "%s"
+            "    playoff_prob_sims: %s\n"
+            "%s"
+            "%s"
+            "%s"
+            "%s"
+            "on %s..." % (
+                " TEST" if self.test_bool else "",
                 str(self.league_id),
                 str(self.game_id) if self.game_id else "nfl (current season)",
                 str(week) if week else "selected/default",
-                "{:%b %d, %Y}".format(datetime.datetime.now()))
+                "    save_data: " + str(self.save_data) + "\n" if self.save_data else "",
+                str(self.playoff_prob_sims),
+                "    break_ties_bool: " + str(self.break_ties_bool) + "\n" if self.break_ties_bool else "",
+                "    dq_ce_bool: " + str(self.dq_ce_bool) + "\n" if self.dq_ce_bool else "",
+                "    test_bool: " + str(self.test_bool) + "\n" if self.test_bool else "",
+                "    dev_offline: " + str(self.dev_offline) + "\n" if self.dev_offline else "",
+                "{:%b %d, %Y}".format(datetime.datetime.now())
+            )
         )
 
         # retrieve all yahoo league data from API
@@ -81,7 +102,8 @@ class FantasyFootballReport(object):
             selected_week=week
         )
 
-        self.playoff_probs = self.league_data.get_playoff_probs(self.save_data, self.dev_offline, recalculate=True)
+        self.playoff_probs = self.league_data.get_playoff_probs(self.save_data, self.playoff_prob_sims,
+                                                                self.dev_offline, recalculate=True)
         self.bad_boy_stats = self.league_data.get_bad_boy_stats(self.save_data, self.dev_offline)
         self.beef_stats = self.league_data.get_beef_stats(self.save_data, self.dev_offline)
 
@@ -186,9 +208,9 @@ class FantasyFootballReport(object):
                     player.bad_boy_points, player.bad_boy_crime = self.bad_boy_stats.check_bad_boy_status(
                         player.name.full, player.editorial_team_abbr, player.selected_position_value)
                     player.weight = self.beef_stats.get_player_weight(player.first_name, player.last_name,
-                                                                     player.editorial_team_abbr)
+                                                                      player.editorial_team_abbr)
                     player.tabbu = self.beef_stats.get_player_tabbu(player.first_name, player.last_name,
-                                                                   player.editorial_team_abbr)
+                                                                    player.editorial_team_abbr)
                     positions_filled_active.append(player.selected_position_value)
 
                 players.append(player)
@@ -211,8 +233,10 @@ class FantasyFootballReport(object):
                 "name": team_name,
                 "manager": teams_dict[team_id]["manager"],
                 "players": players,
-                "score": sum([p.player_points_value for p in players if p.selected_position_value not in bench_positions]),
-                "bench_score": sum([p.player_points_value for p in players if p.selected_position_value in bench_positions]),
+                "score": sum(
+                    [p.player_points_value for p in players if p.selected_position_value not in bench_positions]),
+                "bench_score": sum(
+                    [p.player_points_value for p in players if p.selected_position_value in bench_positions]),
                 "team_id": team_id,
                 "bad_boy_points": bad_boy_total,
                 "worst_offense": worst_offense,
@@ -293,7 +317,7 @@ class FantasyFootballReport(object):
         }
 
         playoff_probs_data = self.playoff_probs.calculate(week, chosen_week, calc_metrics.teams_info,
-                                                               remaining_matchups)
+                                                          remaining_matchups)
 
         if playoff_probs_data:
             playoff_probs_data = calc_metrics.get_playoff_probs_data(
@@ -499,11 +523,28 @@ class FantasyFootballReport(object):
             }
             weekly_top_scores.append(top_scorer)
 
+            # check for manually assigned weekly highest coaching efficiency winner
+            if report_info_dict.get("tied_coaching_efficiencies_bool"):
+                try:
+                    weekly_highest_ce_ndx_dict = json.loads(
+                        self.config.get("Fantasy_Football_Report_Settings", "weekly_highest_ce"))
+                    if str(week_counter) in weekly_highest_ce_ndx_dict.keys():
+                        weekly_highest_ce_ndx = weekly_highest_ce_ndx_dict[str(week_counter)]
+                    else:
+                        weekly_highest_ce_ndx = 0
+                except ValueError:
+                    logger.warning(
+                        "No manual weekly highest coaching efficiency winner has been set but there are coaching "
+                        "efficiency ties. Please be aware that the top coaching efficiency team selected will be drawn "
+                        "arbitrarily from all teams tied for first.")
+                    weekly_highest_ce_ndx = 0
+            else:
+                weekly_highest_ce_ndx = 0
             highest_ce = {
                 "week": week_counter,
-                "team": report_info_dict.get("coaching_efficiency_results_data")[0][1],
-                "manager": report_info_dict.get("coaching_efficiency_results_data")[0][2],
-                "ce": report_info_dict.get("coaching_efficiency_results_data")[0][3]
+                "team": report_info_dict.get("coaching_efficiency_results_data")[weekly_highest_ce_ndx][1],
+                "manager": report_info_dict.get("coaching_efficiency_results_data")[weekly_highest_ce_ndx][2],
+                "ce": report_info_dict.get("coaching_efficiency_results_data")[weekly_highest_ce_ndx][3]
             }
             weekly_highest_ce.append(highest_ce)
 
@@ -610,7 +651,7 @@ class FantasyFootballReport(object):
                                                                       report_info_dict)
 
         filename = self.league_data.name.replace(" ", "-") + \
-            "(" + str(self.league_id) + ")_week-" + str(self.league_data.chosen_week) + "_report.pdf"
+                   "(" + str(self.league_id) + ")_week-" + str(self.league_data.chosen_week) + "_report.pdf"
         report_save_dir = os.path.join(self.config.get("Fantasy_Football_Report_Settings", "output_dir"),
                                        self.league_data.name.replace(" ", "-") + "(" + self.league_id + ")")
         report_title_text = self.league_data.name + " (" + str(self.league_id) + ") Week " + \
@@ -633,6 +674,7 @@ class FantasyFootballReport(object):
             config=self.config,
             league_id=self.league_id,
             playoff_slots=self.league_data.playoff_slots,
+            playoff_prob_sims=self.playoff_prob_sims,
             num_regular_season_weeks=self.league_data.num_regular_season_weeks,
             week=self.league_data.chosen_week,
             data_dir=os.path.join(self.data_dir, str(self.league_data.season), self.league_data.league_key),

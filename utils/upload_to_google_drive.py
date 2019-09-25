@@ -14,6 +14,9 @@ logger.setLevel(level=logging.INFO)
 
 # Suppress verbose googleapiclient info/warning logging
 logging.getLogger("googleapiclient").setLevel(level=logging.ERROR)
+logging.getLogger("googleapiclient.discovery").setLevel(level=logging.ERROR)
+logging.getLogger("googleapiclient.discovery_cache").setLevel(level=logging.ERROR)
+logging.getLogger("googleapiclient.discovery_cache.file_cache").setLevel(level=logging.ERROR)
 
 
 class GoogleDriveUploader(object):
@@ -140,4 +143,4 @@ if __name__ == '__main__':
 
     google_drive_uploader = GoogleDriveUploader(reupload_file)
     upload_message = google_drive_uploader.upload_file()
-    logger.info(upload_message)
+    print(upload_message)

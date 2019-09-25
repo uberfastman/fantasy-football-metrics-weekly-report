@@ -1,17 +1,19 @@
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
-from reportlab.lib.utils import ImageReader
-from reportlab.platypus import Image
-from reportlab.lib.pagesizes import inch
+import logging
+import os
 import urllib.request
 from urllib.error import URLError
-import os
 
-import logging
+from reportlab.lib.pagesizes import inch
+from reportlab.lib.utils import ImageReader
+from reportlab.platypus import Image
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
+
+# suppress verbose PIL debug logging
 logging.getLogger("PIL.PngImagePlugin").setLevel(level=logging.INFO)
 
 

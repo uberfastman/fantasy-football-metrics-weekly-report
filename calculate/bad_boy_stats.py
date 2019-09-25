@@ -11,6 +11,7 @@ import requests
 from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
+logger.setLevel(level=logging.INFO)
 
 
 class BadBoyStats(object):

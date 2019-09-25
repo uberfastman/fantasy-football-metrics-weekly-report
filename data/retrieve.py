@@ -4,7 +4,7 @@ __email__ = "wrenjr@yahoo.com"
 import collections
 import os
 import logging
-# import sys
+import sys
 
 from yffpy.models import Game, League, Settings, Standings
 
@@ -13,6 +13,8 @@ from calculate.beef_stats import BeefStats
 from calculate.playoff_probabilities import PlayoffProbabilities
 
 logger = logging.getLogger(__name__)
+logger.setLevel(level=logging.INFO)
+
 # Suppress YahooFantasyFootballQuery debug logging
 logging.getLogger("yffpy.query").setLevel(level=logging.INFO)
 
@@ -162,8 +164,6 @@ class RetrieveYffLeagueData(object):
         # print(self.rosters_by_week.keys())
         # sys.exit()
 
-        self.playoff_probs = self.get_playoff_probs()
-
     @staticmethod
     def get_roster_slots(roster_positions):
 
@@ -208,10 +208,12 @@ class RetrieveYffLeagueData(object):
 
         return roster_positions_by_type
 
-    def get_playoff_probs(self, save_data=False, dev_offline=False, recalculate=True):
+    def get_playoff_probs(self, save_data=False, playoff_prob_sims=None, dev_offline=False, recalculate=True):
         # TODO: UPDATE USAGE OF recalculate PARAM (could use self.dev_offline)
+
         playoff_probs = PlayoffProbabilities(
-            self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations"),
+            int(playoff_prob_sims) if playoff_prob_sims is not None else self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations"),
+            # self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations"),
             self.num_regular_season_weeks,
             self.playoff_slots,
             data_dir=os.path.join(self.data_dir, str(self.season), self.league_key),

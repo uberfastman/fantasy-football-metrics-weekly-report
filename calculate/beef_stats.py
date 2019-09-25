@@ -8,6 +8,7 @@ import os
 import requests
 
 logger = logging.getLogger(__name__)
+logger.setLevel(level=logging.INFO)
 
 
 class BeefStats(object):
@@ -47,8 +48,10 @@ class BeefStats(object):
                                     "tabbu": float(player.get("weight")) / self.tabbu_value,
                                 }
                             else:
-                                weight = self.beef_data[team.get("abbreviation")].get("weight") + float(player.get("weight"))
-                                tabbu = self.beef_data[team.get("abbreviation")].get("tabbu") + (float(player.get("weight")) / self.tabbu_value)
+                                weight = self.beef_data[team.get("abbreviation")].get("weight") + float(
+                                    player.get("weight"))
+                                tabbu = self.beef_data[team.get("abbreviation")].get("tabbu") + (
+                                            float(player.get("weight")) / self.tabbu_value)
                                 self.beef_data[team.get("abbreviation")]["weight"] = weight
                                 self.beef_data[team.get("abbreviation")]["tabbu"] = tabbu
                 self.save_beef_data()
@@ -121,7 +124,8 @@ class BeefStats(object):
     def _fetch_specific_player(self, player_first_name, player_last_name, player_full_name, team_abbr):
 
         if player_last_name:
-            player_last_name = player_last_name.split(" ")[0] if len(player_last_name.split(" ")) > 1 else player_last_name
+            player_last_name = player_last_name.split(" ")[0] if len(
+                player_last_name.split(" ")) > 1 else player_last_name
 
         fox_sports_nfl_teams_data = requests.get(self.teams_url, params=self.fox_sports_public_api_key).json()
         for team in fox_sports_nfl_teams_data.get("page"):
@@ -129,7 +133,8 @@ class BeefStats(object):
                 team_url = team.get("links").get("api").get("athletes")
                 team_roster = requests.get(team_url, self.fox_sports_public_api_key).json()
                 for player in team_roster.get("page"):
-                    if player_first_name == player.get("firstName").replace(".", "") and player_last_name in player.get("lastName"):
+                    if player_first_name == player.get("firstName").replace(".", "") and player_last_name in player.get(
+                            "lastName"):
                         return self.add_player(player_full_name, player, team, update_saved_beef_data=True)
 
         logger.info("Player not found: {}. Setting weight and TABBU to 0.".format(player_full_name))

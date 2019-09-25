@@ -24,8 +24,9 @@ from report.pdf.pie_chart_generator import BreakdownPieDrawing
 from report.pdf.utils import get_image
 
 logger = logging.getLogger(__name__)
-# logger.setLevel(level=logging.INFO)
+logger.setLevel(level=logging.INFO)
 
+# suppress verbose PIL debug logging
 logging.getLogger("PIL.PngImagePlugin").setLevel(level=logging.INFO)
 
 
@@ -34,6 +35,7 @@ class PdfGenerator(object):
                  config,
                  league_id,
                  playoff_slots,
+                 playoff_prob_sims,
                  num_regular_season_weeks,
                  week,
                  data_dir,
@@ -51,6 +53,7 @@ class PdfGenerator(object):
         self.data_dir = data_dir
         self.break_ties_bool = break_ties_bool
         self.current_standings_data = report_info_dict.get("current_standings_data")
+        self.playoff_prob_sims = int(playoff_prob_sims)
         self.playoff_probs_data = report_info_dict.get("playoff_probs_data")
         self.score_results_data = report_info_dict.get("score_results_data")
         self.coaching_efficiency_results_data = report_info_dict.get("coaching_efficiency_results_data")
@@ -200,7 +203,7 @@ class PdfGenerator(object):
         self.playoff_probs_headers = [
             ["Team", "Manager", "Record", "Playoffs", "Needed"] + ordinal_list
         ]
-        self.playoff_probs_col_widths = [1.75 * inch, 0.90 * inch, 0.90 * inch, 0.65 * inch, 0.65 * inch] +\
+        self.playoff_probs_col_widths = [1.75 * inch, 0.90 * inch, 0.90 * inch, 0.65 * inch, 0.65 * inch] + \
                                         [round(3.3 / self.playoff_slots, 2) * inch] * self.playoff_slots
         self.bad_boy_col_widths = [0.75 * inch, 1.75 * inch, 1.25 * inch, 1.25 * inch, 1.75 * inch, 1.00 * inch]
         self.power_ranking_headers = [["Power Rank", "Team", "Manager", "Season Avg. (Place)"]]
@@ -457,7 +460,7 @@ class PdfGenerator(object):
         if subtitle_text:
             if not isinstance(subtitle_text, list):
                 subtitle_text = [subtitle_text]
-                
+
             text = "<br/>".join(subtitle_text)
             subtitle = Paragraph('''<para align=center>''' + text + '''</para>''', self.text_styleH5)
             rows.append([subtitle])
@@ -706,7 +709,8 @@ class PdfGenerator(object):
                 subtitle_text="Playoff probabilities were calculated using %s Monte Carlo simulations to predict "
                               "team performances through the end of the regular fantasy season." %
                               "{0:,}".format(
-                                  self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations"))
+                                  self.playoff_prob_sims if self.playoff_prob_sims is not None else self.config.getint(
+                                      "Fantasy_Football_Report_Settings", "num_playoff_simulations"))
             )
         elements.append(self.add_page_break())
 
@@ -733,7 +737,7 @@ class PdfGenerator(object):
                 self.zscores_headers,
                 self.zscore_results_data,
                 self.style,
-                self.style_tied_power_rankings,
+                None,
                 self.metrics_4_col_widths,
                 tied_metric_bool=False,
                 metric_type="zscore",
@@ -944,8 +948,9 @@ class TableOfContents(object):
             color = "blue"
 
         metric_section = [
-            Paragraph("<a href = page.html#" + str(self.toc_anchor) + " color=" + color + "><b><u>" + title + "</u></b></a>",
-                      self.toc_style_right),
+            Paragraph(
+                "<a href = page.html#" + str(self.toc_anchor) + " color=" + color + "><b><u>" + title + "</u></b></a>",
+                self.toc_style_right),
             Paragraph(". . . . . . . . . .", self.toc_style_center),
             Paragraph(str(self.toc_page), self.toc_style_left)
         ]
@@ -969,4 +974,4 @@ class TableOfContents(object):
     def get_toc(self):
 
         return Table(self.toc_metric_section_data + [["", "", ""]] + self.toc_team_section_data,
-                     colWidths=[3.25 * inch, 2 * inch,  2.50 * inch], rowHeights=0.35 * inch)
+                     colWidths=[3.25 * inch, 2 * inch, 2.50 * inch], rowHeights=0.35 * inch)
