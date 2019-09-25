@@ -1,12 +1,11 @@
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
-import collections
 import datetime
 import itertools
-import json
 import logging
 import os
+from collections import defaultdict
 # import sys
 from configparser import ConfigParser
 
@@ -91,12 +90,15 @@ class FantasyFootballReport(object):
             )
         )
 
+        self.yahoo_data = Data(self.data_dir, save_data=self.save_data, dev_offline=self.dev_offline)
+        self.yahoo_query = YahooFantasyFootballQuery(self.yahoo_auth_dir, self.league_id, self.game_id,
+                                                     offline=self.dev_offline)
+
         # retrieve all yahoo league data from API
         self.league_data = RetrieveYffLeagueData(
             config=self.config,
-            yahoo_data=Data(self.data_dir, save_data=self.save_data, dev_offline=self.dev_offline),
-            yahoo_query=YahooFantasyFootballQuery(
-                self.yahoo_auth_dir, self.league_id, self.game_id, offline=self.dev_offline),
+            yahoo_data=self.yahoo_data,
+            yahoo_query=self.yahoo_query,
             yahoo_game_id=self.game_id,
             yahoo_league_id=self.league_id,
             data_dir=self.data_dir,
@@ -168,6 +170,7 @@ class FantasyFootballReport(object):
             matchup_list.append(teams)
         return matchup_list
 
+    # noinspection PyProtectedMember
     def retrieve_data(self, chosen_week):
 
         teams_dict = {}
@@ -377,7 +380,7 @@ class FantasyFootballReport(object):
         # tie_type can be "score", "coaching_efficiency", "luck", "power_rank", or "bad_boy"
 
         num_tied_scores = calc_metrics.get_num_ties(score_results_data, "score", self.break_ties_bool)
-        # reorder score data based on bench points
+        # reorder score data based on bench points if there are ties and break_ties_bool = True
         if num_tied_scores > 0:
             score_results_data = calc_metrics.resolve_score_ties(score_results_data, self.break_ties_bool)
             calc_metrics.get_num_ties(score_results_data, "score", self.break_ties_bool)
@@ -389,11 +392,15 @@ class FantasyFootballReport(object):
 
         num_tied_coaching_efficiencies = calc_metrics.get_num_ties(coaching_efficiency_results_data,
                                                                    "coaching_efficiency", self.break_ties_bool)
+        if num_tied_coaching_efficiencies > 0:
+            coaching_efficiency_results_data = calc_metrics.resolve_coaching_efficiency_ties(
+                coaching_efficiency_results_data, num_tied_coaching_efficiencies, self.league_data, team_results_dict,
+                week, self.league_data.roster_positions_by_type.get("positions_bench"), self.break_ties_bool)
         tie_for_first_coaching_efficiency = False
         if coaching_efficiency_results_data[0][0] == coaching_efficiency_results_data[1][0]:
             tie_for_first_coaching_efficiency = True
         num_tied_for_first_coaching_efficiency = len(
-            [list(group) for key, group in itertools.groupby(coaching_efficiency_results_data, lambda x: x[3])][0])
+            [list(group) for key, group in itertools.groupby(coaching_efficiency_results_data, lambda x: x[0])][0])
 
         num_tied_lucks = calc_metrics.get_num_ties(luck_results_data, "luck", self.break_ties_bool)
         tie_for_first_luck = False
@@ -511,7 +518,7 @@ class FantasyFootballReport(object):
         weekly_top_scores = []
         weekly_highest_ce = []
 
-        season_average_points_by_position_dict = collections.defaultdict(list)
+        season_average_points_by_position_dict = defaultdict(list)
 
         week_counter = 1
         while week_counter <= int(self.league_data.chosen_week):
@@ -527,28 +534,11 @@ class FantasyFootballReport(object):
             }
             weekly_top_scores.append(top_scorer)
 
-            # check for manually assigned weekly highest coaching efficiency winner
-            if report_info_dict.get("tied_coaching_efficiencies_bool"):
-                try:
-                    weekly_highest_ce_ndx_dict = json.loads(
-                        self.config.get("Fantasy_Football_Report_Settings", "weekly_highest_ce"))
-                    if str(week_counter) in weekly_highest_ce_ndx_dict.keys():
-                        weekly_highest_ce_ndx = weekly_highest_ce_ndx_dict[str(week_counter)]
-                    else:
-                        weekly_highest_ce_ndx = 0
-                except ValueError:
-                    logger.warning(
-                        "No manual weekly highest coaching efficiency winner has been set but there are coaching "
-                        "efficiency ties. Please be aware that the top coaching efficiency team selected will be drawn "
-                        "arbitrarily from all teams tied for first.")
-                    weekly_highest_ce_ndx = 0
-            else:
-                weekly_highest_ce_ndx = 0
             highest_ce = {
                 "week": week_counter,
-                "team": report_info_dict.get("coaching_efficiency_results_data")[weekly_highest_ce_ndx][1],
-                "manager": report_info_dict.get("coaching_efficiency_results_data")[weekly_highest_ce_ndx][2],
-                "ce": report_info_dict.get("coaching_efficiency_results_data")[weekly_highest_ce_ndx][3]
+                "team": report_info_dict.get("coaching_efficiency_results_data")[0][1],
+                "manager": report_info_dict.get("coaching_efficiency_results_data")[0][2],
+                "ce": report_info_dict.get("coaching_efficiency_results_data")[0][3]
             }
             weekly_highest_ce.append(highest_ce)
 

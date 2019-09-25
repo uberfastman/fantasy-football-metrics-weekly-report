@@ -6,7 +6,7 @@ import os
 import logging
 # import sys
 
-from yffpy.models import Game, League, Settings, Standings
+from yffpy.models import Game, League, Settings, Standings, Player
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
@@ -67,16 +67,18 @@ class RetrieveYffLeagueData(object):
 
         self.config = config
         self.data_dir = data_dir
+        self.yahoo_data = yahoo_data
+        self.yahoo_query = yahoo_query
 
         if yahoo_game_id and yahoo_game_id != "nfl":
-            yahoo_fantasy_game = yahoo_data.retrieve(str(yahoo_game_id) + "-game-metadata",
-                                                     yahoo_query.get_game_metadata_by_game_id,
-                                                     params={"game_id": yahoo_game_id},
-                                                     data_type_class=Game)
+            yahoo_fantasy_game = self.yahoo_data.retrieve(str(yahoo_game_id) + "-game-metadata",
+                                                          self.yahoo_query.get_game_metadata_by_game_id,
+                                                          params={"game_id": yahoo_game_id},
+                                                          data_type_class=Game)
         else:
-            yahoo_fantasy_game = yahoo_data.retrieve("current-game-metadata",
-                                                     yahoo_query.get_current_game_metadata,
-                                                     data_type_class=Game)
+            yahoo_fantasy_game = self.yahoo_data.retrieve("current-game-metadata",
+                                                          self.yahoo_query.get_current_game_metadata,
+                                                          data_type_class=Game)
 
         self.league_key = yahoo_fantasy_game.game_key + ".l." + yahoo_league_id
         self.season = yahoo_fantasy_game.season
@@ -84,24 +86,24 @@ class RetrieveYffLeagueData(object):
         # print(self.league_key)
         # sys.exit()
 
-        league_metadata = yahoo_data.retrieve(str(yahoo_league_id) + "-league-metadata",
-                                              yahoo_query.get_league_metadata,
-                                              data_type_class=League,
-                                              new_data_dir=os.path.join(self.data_dir,
-                                                                        str(self.season),
-                                                                        self.league_key))
+        league_metadata = self.yahoo_data.retrieve(str(yahoo_league_id) + "-league-metadata",
+                                                   self.yahoo_query.get_league_metadata,
+                                                   data_type_class=League,
+                                                   new_data_dir=os.path.join(self.data_dir,
+                                                                             str(self.season),
+                                                                             self.league_key))
         self.name = league_metadata.name
 
         # print(self.name)
         # print(league_metadata)
         # sys.exit()
 
-        league_settings = yahoo_data.retrieve(str(yahoo_league_id) + "-league-settings",
-                                              yahoo_query.get_league_settings,
-                                              data_type_class=Settings,
-                                              new_data_dir=os.path.join(self.data_dir,
-                                                                        str(self.season),
-                                                                        self.league_key))
+        league_settings = self.yahoo_data.retrieve(str(yahoo_league_id) + "-league-settings",
+                                                   self.yahoo_query.get_league_settings,
+                                                   data_type_class=Settings,
+                                                   new_data_dir=os.path.join(self.data_dir,
+                                                                             str(self.season),
+                                                                             self.league_key))
         # print(league_settings)
         # sys.exit()
 
@@ -115,20 +117,20 @@ class RetrieveYffLeagueData(object):
         # print(self.roster_positions)
         # sys.exit()
 
-        self.standings = yahoo_data.retrieve(str(yahoo_league_id) + "-league-standings",
-                                             yahoo_query.get_league_standings,
-                                             data_type_class=Standings,
-                                             new_data_dir=os.path.join(self.data_dir,
-                                                                       str(self.season),
-                                                                       self.league_key))
+        self.standings = self.yahoo_data.retrieve(str(yahoo_league_id) + "-league-standings",
+                                                  self.yahoo_query.get_league_standings,
+                                                  data_type_class=Standings,
+                                                  new_data_dir=os.path.join(self.data_dir,
+                                                                            str(self.season),
+                                                                            self.league_key))
         # print(self.league_standings_data)
         # sys.exit()
 
-        self.teams = yahoo_data.retrieve(str(yahoo_league_id) + "-league-teams",
-                                         yahoo_query.get_league_teams,
-                                         new_data_dir=os.path.join(self.data_dir,
-                                                                   str(self.season),
-                                                                   self.league_key))
+        self.teams = self.yahoo_data.retrieve(str(yahoo_league_id) + "-league-teams",
+                                              self.yahoo_query.get_league_teams,
+                                              new_data_dir=os.path.join(self.data_dir,
+                                                                        str(self.season),
+                                                                        self.league_key))
         # print(self.teams)
         # sys.exit()
 
@@ -138,13 +140,13 @@ class RetrieveYffLeagueData(object):
         # run yahoo queries requiring chosen week
         self.matchups_by_week = {}
         for wk in range(1, self.num_regular_season_weeks + 1):
-            self.matchups_by_week[wk] = yahoo_data.retrieve("week_" + str(wk) + "-matchups_by_week",
-                                                            yahoo_query.get_league_matchups_by_week,
-                                                            params={"chosen_week": wk},
-                                                            new_data_dir=os.path.join(self.data_dir,
-                                                                                      str(self.season),
-                                                                                      self.league_key,
-                                                                                      "week_" + str(wk)))
+            self.matchups_by_week[wk] = self.yahoo_data.retrieve("week_" + str(wk) + "-matchups_by_week",
+                                                                 self.yahoo_query.get_league_matchups_by_week,
+                                                                 params={"chosen_week": wk},
+                                                                 new_data_dir=os.path.join(self.data_dir,
+                                                                                           str(self.season),
+                                                                                           self.league_key,
+                                                                                           "week_" + str(wk)))
         # print(self.matchups_by_week)
         # sys.exit()
 
@@ -152,10 +154,10 @@ class RetrieveYffLeagueData(object):
         for wk in range(1, int(self.chosen_week) + 1):
             self.rosters_by_week[str(wk)] = {
                 str(team.get("team").team_id):
-                    yahoo_data.retrieve(
+                    self.yahoo_data.retrieve(
                         str(team.get("team").team_id) + "-" +
                         str(team.get("team").name.decode("utf-8")).replace(" ", "_") + "-roster",
-                        yahoo_query.get_team_roster_player_stats_by_week,
+                        self.yahoo_query.get_team_roster_player_stats_by_week,
                         params={"team_id": str(team.get("team").team_id), "chosen_week": str(wk)},
                         new_data_dir=os.path.join(
                             self.data_dir, str(self.season), self.league_key, "week_" + str(wk), "rosters")
@@ -163,6 +165,15 @@ class RetrieveYffLeagueData(object):
             }
         # print(self.rosters_by_week.keys())
         # sys.exit()
+
+    def get_player_data(self, player_key, week):
+        return self.yahoo_data.retrieve(
+            player_key,
+            self.yahoo_query.get_player_stats_by_week,
+            params={"player_key": player_key, "chosen_week": str(week)},
+            new_data_dir=os.path.join(self.data_dir, str(self.season), self.league_key, "week_" + str(week), "players"),
+            data_type_class=Player
+        )
 
     @staticmethod
     def get_roster_slots(roster_positions):
@@ -212,7 +223,8 @@ class RetrieveYffLeagueData(object):
         # TODO: UPDATE USAGE OF recalculate PARAM (could use self.dev_offline)
 
         playoff_probs = PlayoffProbabilities(
-            int(playoff_prob_sims) if playoff_prob_sims is not None else self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations"),
+            int(playoff_prob_sims) if playoff_prob_sims is not None else self.config.getint(
+                "Fantasy_Football_Report_Settings", "num_playoff_simulations"),
             # self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations"),
             self.num_regular_season_weeks,
             self.playoff_slots,

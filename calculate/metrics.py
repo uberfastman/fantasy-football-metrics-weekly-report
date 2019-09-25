@@ -2,6 +2,8 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
 import itertools
+from collections import defaultdict
+from statistics import mean
 
 from calculate.playoff_probabilities import Team, Record
 
@@ -328,6 +330,60 @@ class CalculateMetrics(object):
                 place += 1
 
         return resolved_score_results_data
+
+    @staticmethod
+    def resolve_coaching_efficiency_ties(coaching_efficiency_results_data, num_tied_coaching_efficiencies,
+                                         league_data, team_results_dict, week, bench_positions, break_ties_bool):
+
+        coaching_efficiency_results_data_with_tiebreakers = []
+
+        season_average_points_by_player_dict = defaultdict(list)
+        if num_tied_coaching_efficiencies > 0:
+            for ce_result in coaching_efficiency_results_data:
+                if ce_result[0] == "1*":
+                    num_players_exceeded_season_avg_points = 0
+                    total_percentage_points_players_exceeded_season_avg_points = 0
+                    for player in team_results_dict.get(ce_result[1]).get("players"):
+                        if player.selected_position not in bench_positions:
+                            week_counter = 1
+                            while week_counter <= int(week):
+                                weekly_player_points = league_data.get_player_data(
+                                    player.player_key, week_counter).player_points_value
+                                season_average_points_by_player_dict[player.player_key].append(weekly_player_points)
+                                week_counter += 1
+
+                            player_last_week_points = season_average_points_by_player_dict[player.player_key][-1]
+                            player_season_avg_points = mean(season_average_points_by_player_dict[player.player_key][:-2])
+                            if player_last_week_points > player_season_avg_points:
+                                num_players_exceeded_season_avg_points += 1
+
+                                if player_season_avg_points > 0:
+                                    total_percentage_points_players_exceeded_season_avg_points += (((player_last_week_points - player_season_avg_points) / player_season_avg_points) * 100.0)
+                                else:
+                                    total_percentage_points_players_exceeded_season_avg_points += 100.0
+
+                    ce_result.extend([num_players_exceeded_season_avg_points, round(total_percentage_points_players_exceeded_season_avg_points, 2)])
+                    coaching_efficiency_results_data_with_tiebreakers.append(ce_result)
+                else:
+                    ce_result.extend(["N/A", "N/A"])
+                    coaching_efficiency_results_data_with_tiebreakers.append(ce_result)
+
+        groups = [list(group) for key, group in itertools.groupby(coaching_efficiency_results_data_with_tiebreakers, lambda x: x[3])]
+
+        resolved_coaching_efficiency_results_data = []
+        place = 1
+        for group in groups:
+            # for team in sorted(group, key=lambda x: x[-2], reverse=True):
+            for team in sorted(group, key=lambda x: (x[-2], x[-1]), reverse=True):
+                if groups.index(group) != 0:
+                    team[0] = place
+                else:
+                    if break_ties_bool:
+                        team[0] = place
+                resolved_coaching_efficiency_results_data.append(team)
+                place += 1
+
+        return resolved_coaching_efficiency_results_data
 
     @staticmethod
     def resolve_season_average_ties(season_average_results_data, with_percent_bool):
