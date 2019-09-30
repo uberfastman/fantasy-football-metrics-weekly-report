@@ -20,16 +20,13 @@ logging.getLogger("googleapiclient.discovery_cache.file_cache").setLevel(level=l
 
 
 class GoogleDriveUploader(object):
-    def __init__(self, filename):
-        # local config vars
-        self.config = ConfigParser()
-        self.config.read("config.ini")
+    def __init__(self, filename, config):
 
         self.filename = filename
-
+        self.config = config
         self.gauth = GoogleAuth()
 
-        auth_token = self.config.get("Google_Drive_Settings", "google_auth_token")
+        auth_token = self.config.get("Drive", "google_auth_token")
 
         # Try to load saved client credentials
         self.gauth.LoadCredentialsFile(auth_token)
@@ -45,7 +42,7 @@ class GoogleDriveUploader(object):
         # Save the current credentials to a file
         self.gauth.SaveCredentialsFile(auth_token)
 
-    def upload_file(self, test_bool=False):
+    def upload_file(self, test=False):
 
         # Create GoogleDrive instance with authenticated GoogleAuth instance.
         drive = GoogleDrive(self.gauth)
@@ -57,13 +54,13 @@ class GoogleDriveUploader(object):
         all_pdfs = drive.ListFile({"q": "mimeType='application/pdf' and trashed=false"}).GetList()
 
         # Check for "Fantasy_Football" root folder and create it if it does not exist
-        google_drive_root_folder_name = self.config.get("Google_Drive_Settings", "google_drive_root_folder_name")
+        google_drive_root_folder_name = self.config.get("Drive", "google_drive_root_folder_name")
         google_drive_root_folder_id = self.make_root_folder(
             drive,
             self.check_file_existence(google_drive_root_folder_name, root_folders),
             google_drive_root_folder_name)
 
-        if not test_bool:
+        if not test:
             # Check for parent folder for league and create it if it does not exist
             league_folder_name = self.filename.split("/")[2].replace("-", "_")
             league_folder_id = self.make_parent_folder(drive,
@@ -137,10 +134,10 @@ class GoogleDriveUploader(object):
 
 
 if __name__ == '__main__':
-    config = ConfigParser()
-    config.read("config.ini")
-    reupload_file = config.get("Google_Drive_Settings", "reupload_file")
+    local_config = ConfigParser()
+    local_config.read("config.ini")
+    reupload_file = local_config.get("Drive", "reupload_file")
 
-    google_drive_uploader = GoogleDriveUploader(reupload_file)
+    google_drive_uploader = GoogleDriveUploader(reupload_file, local_config)
     upload_message = google_drive_uploader.upload_file()
     print(upload_message)

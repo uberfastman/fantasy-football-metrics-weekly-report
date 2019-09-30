@@ -2,15 +2,17 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
 import collections
-import os
 import logging
-# import sys
+import os
 
+from yffpy.data import Data
 from yffpy.models import Game, League, Settings, Standings, Player
+from yffpy.query import YahooFantasyFootballQuery
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
 from calculate.playoff_probabilities import PlayoffProbabilities
+from report.utils import user_week_input_validation
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
@@ -19,56 +21,24 @@ logger.setLevel(level=logging.INFO)
 logging.getLogger("yffpy.query").setLevel(level=logging.INFO)
 
 
-def user_week_input_validation(config, week, retrieved_current_week):
-    # user input validation
-    if week:
-        chosen_week = week
-    else:
-        chosen_week = config.get("Fantasy_Football_Report_Settings", "chosen_week")
-    try:
-        current_week = retrieved_current_week
-        if chosen_week == "default":
-            if (int(current_week) - 1) > 0:
-                chosen_week = str(int(current_week) - 1)
-            else:
-                first_week_incomplete = input(
-                    "The first week of the season is not yet complete. "
-                    "Are you sure you want to generate a report for an incomplete week? (y/n) -> ")
-                if first_week_incomplete == "y":
-                    chosen_week = current_week
-                elif first_week_incomplete == "n":
-                    raise ValueError("It is recommended that you NOT generate a report for an incomplete week.")
-                else:
-                    raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
+class LeagueData(object):
 
-        elif 0 < int(chosen_week) < 18:
-            if 0 < int(chosen_week) <= int(current_week) - 1:
-                chosen_week = chosen_week
-            else:
-                incomplete_week = input(
-                    "Are you sure you want to generate a report for an incomplete week? (y/n) -> ")
-                if incomplete_week == "y":
-                    chosen_week = chosen_week
-                elif incomplete_week == "n":
-                    raise ValueError("It is recommended that you NOT generate a report for an incomplete week.")
-                else:
-                    raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
-        else:
-            raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
-    except ValueError:
-        raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
-
-    return chosen_week
-
-
-class RetrieveYffLeagueData(object):
-
-    def __init__(self, config, yahoo_data, yahoo_query, yahoo_game_id, yahoo_league_id, data_dir, selected_week):
+    def __init__(self,
+                 config,
+                 yahoo_game_id,
+                 yahoo_league_id,
+                 yahoo_auth_dir,
+                 data_dir,
+                 week_for_report,
+                 save_data=True,
+                 dev_offline=False):
 
         self.config = config
         self.data_dir = data_dir
-        self.yahoo_data = yahoo_data
-        self.yahoo_query = yahoo_query
+        self.league_id = yahoo_league_id
+        self.yahoo_data = Data(self.data_dir, save_data=save_data, dev_offline=dev_offline)
+        self.yahoo_query = YahooFantasyFootballQuery(yahoo_auth_dir, self.league_id, yahoo_game_id,
+                                                     offline=dev_offline)
 
         if yahoo_game_id and yahoo_game_id != "nfl":
             yahoo_fantasy_game = self.yahoo_data.retrieve(str(yahoo_game_id) + "-game-metadata",
@@ -80,30 +50,35 @@ class RetrieveYffLeagueData(object):
                                                           self.yahoo_query.get_current_game_metadata,
                                                           data_type_class=Game)
 
-        self.league_key = yahoo_fantasy_game.game_key + ".l." + yahoo_league_id
+        self.league_key = yahoo_fantasy_game.game_key + ".l." + self.league_id
         self.season = yahoo_fantasy_game.season
 
+        # import sys
         # print(self.league_key)
         # sys.exit()
 
-        league_metadata = self.yahoo_data.retrieve(str(yahoo_league_id) + "-league-metadata",
+        league_metadata = self.yahoo_data.retrieve(str(self.league_id) + "-league-metadata",
                                                    self.yahoo_query.get_league_metadata,
                                                    data_type_class=League,
                                                    new_data_dir=os.path.join(self.data_dir,
                                                                              str(self.season),
                                                                              self.league_key))
         self.name = league_metadata.name
+        self.season = league_metadata.season
 
+        # import sys
         # print(self.name)
         # print(league_metadata)
         # sys.exit()
 
-        league_settings = self.yahoo_data.retrieve(str(yahoo_league_id) + "-league-settings",
+        league_settings = self.yahoo_data.retrieve(str(self.league_id) + "-league-settings",
                                                    self.yahoo_query.get_league_settings,
                                                    data_type_class=Settings,
                                                    new_data_dir=os.path.join(self.data_dir,
                                                                              str(self.season),
                                                                              self.league_key))
+
+        # import sys
         # print(league_settings)
         # sys.exit()
 
@@ -112,30 +87,36 @@ class RetrieveYffLeagueData(object):
         self.roster_positions = league_settings.roster_positions
         self.roster_positions_by_type = self.get_roster_slots(self.roster_positions)
 
+        # import sys
         # print(self.playoff_slots)
         # print(self.num_regular_season_weeks)
         # print(self.roster_positions)
         # sys.exit()
 
-        self.standings = self.yahoo_data.retrieve(str(yahoo_league_id) + "-league-standings",
+        self.standings = self.yahoo_data.retrieve(str(self.league_id) + "-league-standings",
                                                   self.yahoo_query.get_league_standings,
                                                   data_type_class=Standings,
                                                   new_data_dir=os.path.join(self.data_dir,
                                                                             str(self.season),
                                                                             self.league_key))
+
+        # import sys
         # print(self.league_standings_data)
         # sys.exit()
 
-        self.teams = self.yahoo_data.retrieve(str(yahoo_league_id) + "-league-teams",
+        self.teams = self.yahoo_data.retrieve(str(self.league_id) + "-league-teams",
                                               self.yahoo_query.get_league_teams,
                                               new_data_dir=os.path.join(self.data_dir,
                                                                         str(self.season),
                                                                         self.league_key))
+
+        # import sys
         # print(self.teams)
         # sys.exit()
 
         # validate user selection of week for which to generate report
-        self.chosen_week = user_week_input_validation(self.config, selected_week, league_metadata.current_week)
+        self.chosen_week_for_report = user_week_input_validation(self.config, week_for_report,
+                                                                 league_metadata.current_week)
 
         # run yahoo queries requiring chosen week
         self.matchups_by_week = {}
@@ -147,11 +128,13 @@ class RetrieveYffLeagueData(object):
                                                                                            str(self.season),
                                                                                            self.league_key,
                                                                                            "week_" + str(wk)))
+
+        # import sys
         # print(self.matchups_by_week)
         # sys.exit()
 
         self.rosters_by_week = {}
-        for wk in range(1, int(self.chosen_week) + 1):
+        for wk in range(1, int(self.chosen_week_for_report) + 1):
             self.rosters_by_week[str(wk)] = {
                 str(team.get("team").team_id):
                     self.yahoo_data.retrieve(
@@ -163,6 +146,8 @@ class RetrieveYffLeagueData(object):
                             self.data_dir, str(self.season), self.league_key, "week_" + str(wk), "rosters")
                     ) for team in self.teams
             }
+
+        # import sys
         # print(self.rosters_by_week.keys())
         # sys.exit()
 
@@ -174,6 +159,71 @@ class RetrieveYffLeagueData(object):
             new_data_dir=os.path.join(self.data_dir, str(self.season), self.league_key, "week_" + str(week), "players"),
             data_type_class=Player
         )
+
+    def get_custom_scoreboard(self, chosen_week):
+        """
+        get weekly matchup data
+
+        result format is like:
+        [
+            {
+                'team1': {
+                    'result': 'W',
+                    'score': 100
+                },
+                'team2': {
+                    'result': 'L',
+                    'score': 50
+                }
+            },
+            {
+                'team3': {
+                    'result': 'T',
+                    'score': 75
+                },
+                'team4': {
+                    'result': 'T',
+                    'score': 75
+                }371.l.52364
+            }
+        ]
+        """
+
+        matchups = self.matchups_by_week.get(int(chosen_week))
+        matchup_list = []
+        for matchup in matchups:
+
+            matchup = matchup.get("matchup")
+            if matchup.status == "postevent":
+                winning_team = matchup.winner_team_key
+                is_tied = int(matchup.is_tied) if matchup.is_tied else 0
+            elif matchup.status == "midevent":
+                winning_team = ""
+                is_tied = 1
+            else:
+                winning_team = ""
+                is_tied = 0
+
+            teams = {}
+            for team in matchup.teams:
+                team = team.get("team")
+                teams[team.name] = {
+                    "result": "T" if is_tied else "W" if team.team_key == winning_team else "L",
+                    "score": team.team_points.total
+                }
+
+            matchup_list.append(teams)
+        return matchup_list
+
+    def get_teams_with_points(self, week_for_report):
+
+        matchups = self.matchups_by_week.get(int(week_for_report))
+        teams_with_points = []
+        for matchup in matchups:
+            for team in matchup.get("matchup").teams:
+                teams_with_points.append(team.get("team"))
+
+        return teams_with_points
 
     @staticmethod
     def get_roster_slots(roster_positions):
@@ -214,6 +264,7 @@ class RetrieveYffLeagueData(object):
             "positions_bench": positions_bench
         }
 
+        # import sys
         # print(self.roster_positions)
         # sys.exit()
 
@@ -223,17 +274,20 @@ class RetrieveYffLeagueData(object):
         # TODO: UPDATE USAGE OF recalculate PARAM (could use self.dev_offline)
 
         playoff_probs = PlayoffProbabilities(
-            int(playoff_prob_sims) if playoff_prob_sims is not None else self.config.getint(
-                "Fantasy_Football_Report_Settings", "num_playoff_simulations"),
-            # self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations"),
+            int(playoff_prob_sims) if playoff_prob_sims is not None else self.config.getint("Configuration",
+                                                                                            "num_playoff_simulations"),
             self.num_regular_season_weeks,
             self.playoff_slots,
             data_dir=os.path.join(self.data_dir, str(self.season), self.league_key),
             save_data=save_data,
-            recalculate=recalculate
+            recalculate=recalculate,
+            dev_offline=dev_offline
         )
+
+        # import sys
         # print(self.playoff_probs_data)
         # sys.exit()
+
         return playoff_probs
 
     def get_bad_boy_stats(self, save_data=False, dev_offline=False):
@@ -241,8 +295,11 @@ class RetrieveYffLeagueData(object):
             os.path.join(self.data_dir, str(self.season), self.league_key),
             save_data=save_data,
             dev_offline=dev_offline)
+
+        # import sys
         # print(self.bad_boy_stats)
         # sys.exit()
+
         return bad_boy_stats
 
     def get_beef_stats(self, save_data=False, dev_offline=False):
@@ -251,6 +308,9 @@ class RetrieveYffLeagueData(object):
             os.path.join(self.data_dir, str(self.season), self.league_key),
             save_data=save_data,
             dev_offline=dev_offline)
+
+        # import sys
         # print(self.beef_rank)
         # sys.exit()
+
         return beef_stats

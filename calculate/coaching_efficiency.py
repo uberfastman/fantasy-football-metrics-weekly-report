@@ -13,6 +13,8 @@ class CoachingEfficiency(object):
     def __init__(self, roster_settings):
         self.roster_slot_counts = roster_settings["position_counts"]
 
+        self.roster_active_slots = roster_settings.get("positions_active")
+
         self.flex_positions = {
             "FLEX": roster_settings["positions_flex"]
         }
@@ -28,11 +30,10 @@ class CoachingEfficiency(object):
         if self.has_flex_def:
             self.flex_positions["D"] = flex_def_positions
 
-        self.coaching_efficiency_dq_dict = {}
+        self.coaching_efficiency_dqs = {}
 
     def get_eligible_positions(self, player):
         eligible = []
-
         for position in self.roster_slot_counts:
             eligible_positions = player.eligible_positions
 
@@ -97,35 +98,25 @@ class CoachingEfficiency(object):
     def is_player_eligible(self, player, week):
         return player.status in self.prohibited_status_list or player.bye_weeks.week == week
 
-    def execute_coaching_efficiency(self, team_name, team_info, week, league_roster_active_slots,
-                                    disqualification_eligible=False):
+    def execute_coaching_efficiency(self, team_name, players, score, positions_filled_active, week, dq_eligible=False):
 
-        players = team_info["players"]
-
-        eligible_positions = defaultdict(list)
-
+        eligible_players = defaultdict(list)
         for player in players:
             for position in self.get_eligible_positions(player):
-                eligible_positions[position].append(player)
-
-        # debug stuff
-        # import json
-        # for position, players in eligible_positions.items():
-        #     print("{0}: {1}".format(position, [p["name"] for p in players]))
+                eligible_players[position].append(player)
 
         optimal_players = []
         optimal = {}
-
         for position in self.roster_slot_counts:
             if position in list(self.flex_positions.keys()):
                 # handle flex positions later...
                 continue
-            optimal_position = self.get_optimal_players(eligible_positions, position)
+            optimal_position = self.get_optimal_players(eligible_players, position)
             optimal_players.append(optimal_position)
             optimal[position] = optimal_position
 
         # now that we have optimal by position, figure out flex positions
-        optimal_flexes = list(self.get_optimal_flex(eligible_positions, optimal))
+        optimal_flexes = list(self.get_optimal_flex(eligible_players, optimal))
         optimal_players.append(optimal_flexes)
 
         optimal_lineup = [item for sublist in optimal_players for item in sublist]
@@ -134,31 +125,27 @@ class CoachingEfficiency(object):
         optimal_score = sum([x.player_points.total for x in optimal_lineup])
 
         # calculate coaching efficiency
-        actual_weekly_score = team_info["score"]
-
         try:
-            coaching_efficiency = (actual_weekly_score / optimal_score) * 100
+            coaching_efficiency = (score / optimal_score) * 100
         except ZeroDivisionError:
             coaching_efficiency = 0.0
 
-        # apply coaching efficiency eligibility requirements if coaching efficiency disqualification bool (dq_ce_bool)
-        # is set to True
-        if disqualification_eligible:
-
+        # apply coaching efficiency eligibility requirements if CE disqualification enabled (dq_ce=True)
+        if dq_eligible:
             bench_players = [p for p in players if p.selected_position.position == "BN"]  # exclude IR players
             ineligible_efficiency_player_count = len([p for p in bench_players if self.is_player_eligible(p, week)])
-            positions_filled_active = team_info["positions_filled_active"]
 
-            if Counter(league_roster_active_slots) == Counter(positions_filled_active):
+            if Counter(self.roster_active_slots) == Counter(positions_filled_active):
                 # divide bench slots by 2 and DQ team if number of ineligible players >= the ceiling of that value
-                if ineligible_efficiency_player_count < math.ceil(self.roster_slot_counts.get("BN", 0) / 2.0):  # exclude IR players
+                if ineligible_efficiency_player_count < math.ceil(
+                        self.roster_slot_counts.get("BN", 0) / 2.0):  # exclude IR players
                     efficiency_disqualification = False
                 else:
                     efficiency_disqualification = True
-                    self.coaching_efficiency_dq_dict[team_name] = ineligible_efficiency_player_count
+                    self.coaching_efficiency_dqs[team_name] = ineligible_efficiency_player_count
             else:
                 efficiency_disqualification = True
-                self.coaching_efficiency_dq_dict[team_name] = -1
+                self.coaching_efficiency_dqs[team_name] = -1
 
             if efficiency_disqualification:
                 coaching_efficiency = 0.0

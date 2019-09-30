@@ -51,7 +51,7 @@ class BeefStats(object):
                                 weight = self.beef_data[team.get("abbreviation")].get("weight") + float(
                                     player.get("weight"))
                                 tabbu = self.beef_data[team.get("abbreviation")].get("tabbu") + (
-                                            float(player.get("weight")) / self.tabbu_value)
+                                        float(player.get("weight")) / self.tabbu_value)
                                 self.beef_data[team.get("abbreviation")]["weight"] = weight
                                 self.beef_data[team.get("abbreviation")]["tabbu"] = tabbu
                 self.save_beef_data()

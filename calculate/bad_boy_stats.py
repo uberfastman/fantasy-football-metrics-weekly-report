@@ -3,9 +3,9 @@ __email__ = "wrenjr@yahoo.com"
 
 import csv
 import json
+import logging
 import os
 import pickle
-import logging
 
 import requests
 from bs4 import BeautifulSoup

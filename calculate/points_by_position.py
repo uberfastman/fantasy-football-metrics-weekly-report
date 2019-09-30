@@ -1,25 +1,23 @@
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
+import copy
 import logging
-
-from calculate.coaching_efficiency import CoachingEfficiency
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
 
 class PointsByPosition(object):
-    def __init__(self, roster_settings, chosen_week):
+    def __init__(self, roster_settings, week_for_report):
 
-        self.chosen_week = chosen_week
+        self.week_for_report = week_for_report
         self.roster_slot_counts = roster_settings.get("position_counts")
         self.flex_positions = {
             "FLEX": roster_settings["positions_flex"],
             "D": ["D", "DB", "DL", "LB", "DT", "DE", "S", "CB"]
         }
         self.bench_positions = roster_settings.get("positions_bench")
-        self.coaching_efficiency_dq_dict = {}
 
     def get_starting_players(self, players):
         return [p for p in players if p.selected_position.position not in self.bench_positions]
@@ -40,7 +38,7 @@ class PointsByPosition(object):
         return total_points_by_position
 
     @staticmethod
-    def calculate_points_by_position_season_averages(season_average_points_by_position_dict, report_info_dict):
+    def calculate_points_by_position_season_averages(season_average_points_by_position_dict):
 
         for team in list(season_average_points_by_position_dict.keys()):
             points_by_position = season_average_points_by_position_dict.get(team)
@@ -59,11 +57,9 @@ class PointsByPosition(object):
             season_average_points_by_position_list = sorted(season_average_points_by_position_list, key=lambda x: x[0])
             season_average_points_by_position_dict[team] = season_average_points_by_position_list
 
-        report_info_dict["season_average_points_by_position"] = season_average_points_by_position_dict
+        return season_average_points_by_position_dict
 
-    def execute_points_by_position(self, team_info):
-
-        players = team_info["players"]
+    def execute_points_by_position(self, players):
 
         player_points_by_position = []
         starting_players = self.get_starting_players(players)
@@ -74,30 +70,16 @@ class PointsByPosition(object):
         player_points_by_position = sorted(player_points_by_position, key=lambda x: x[0])
         return player_points_by_position
 
-    def get_weekly_points_by_position(self, dq_ce_bool, config, week, roster, team_results_dict):
+    def get_weekly_points_by_position(self, teams_results):
 
-        coaching_efficiency = CoachingEfficiency(roster)
         weekly_points_by_position_data = []
-
-        for team_name in team_results_dict:
-            team_info = team_results_dict[team_name]
-            team_info["coaching_efficiency"] = coaching_efficiency.execute_coaching_efficiency(
-                team_name, team_info, int(week), roster.get("positions_active"), disqualification_eligible=dq_ce_bool)
-            for slot in list(self.roster_slot_counts.keys()):
+        for team_result in teams_results.values():
+            team_roster_slot_counts = copy.deepcopy(self.roster_slot_counts)
+            for slot in list(team_roster_slot_counts.keys()):
                 if self.roster_slot_counts.get(slot) == 0:
                     del self.roster_slot_counts[slot]
-            player_points_by_position = self.execute_points_by_position(team_info)
-            weekly_points_by_position_data.append([team_name, player_points_by_position])
 
-        self.coaching_efficiency_dq_dict = coaching_efficiency.coaching_efficiency_dq_dict
-
-        # Option to disqualify chosen team(s) for current week of coaching efficiency
-        if week == self.chosen_week:
-            disqualified_teams = config.get("Fantasy_Football_Report_Settings",
-                                            "coaching_efficiency_disqualified_teams")
-            if disqualified_teams:
-                for team in disqualified_teams.split(","):
-                    logger.info("{} has been manually disqualified from coaching efficiency eligibility!".format(team))
-                    team_results_dict.get(team)["coaching_efficiency"] = 0.0
+            player_points_by_position = self.execute_points_by_position(team_result.players)
+            weekly_points_by_position_data.append([team_result.team_key, player_points_by_position])
 
         return weekly_points_by_position_data
