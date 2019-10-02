@@ -504,9 +504,10 @@ class CalculateMetrics(object):
                     continue
                 score_1 = team_1.points
                 score_2 = team_2.points
-                if score_1 > score_2:
+
+                if float(score_1) > float(score_2):
                     record["W"] += 1
-                elif score_1 < score_2:
+                elif float(score_1) < float(score_2):
                     record["L"] += 1
                 else:
                     record["T"] += 1
@@ -526,6 +527,7 @@ class CalculateMetrics(object):
                 else:
                     luck = 0 - (record["W"] + record["T"]) / num_teams
 
+            # noinspection PyTypeChecker
             results[team_1.team_key]["luck"] = luck * 100
 
         return results

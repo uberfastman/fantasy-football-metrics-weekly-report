@@ -35,7 +35,6 @@ class ReportData(object):
                 league_data,
                 week_counter,
                 metrics,
-                metrics_calculator,  # type: CalculateMetrics
                 dq_ce,
             ) for team in league_data.get_teams_with_points(week_counter)
         }

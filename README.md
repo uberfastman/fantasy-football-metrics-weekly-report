@@ -116,11 +116,12 @@ After completing the above setup and configuration steps, you should now be able
 | `-g --game-id <game_id>`     | Chosen fantasy game id for which to generate report. Defaults to "nfl", interpreted as the current season if using Yahoo. |
 | `-y, --year <year>`          | Chosen year (season) of the league for which a report is being generated. | 
 | `-s, --save-data`            | Save all retrieved data locally for faster future report generation |
+| `-s, --refresh-web-data`     | Refresh all web data from external APIs (such as bad boy and beef data) |
 | `-p, --playoff-prob-sims <int>` | Number of Monte Carlo playoff probability simulations to run." |
 | `-b, --break-ties`           | Break ties in metric rankings |
 | `-q, --disqualify-ce`        | Automatically disqualify teams ineligible for coaching efficiency metric |
-| `-t, --test`                 | Generate TEST report (for development) |
 | `-d, --dev-offline`          | Run ***OFFLINE*** (for development). Must have previously run report with -s option. |
+| `-t, --test`                 | Generate TEST report (for development) |
 
 
 When you are done working within the `virtualenv`, you can run `deactivate` within the environment to exit:

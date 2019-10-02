@@ -4,6 +4,7 @@ __email__ = "wrenjr@yahoo.com"
 import collections
 import logging
 import os
+import sys
 
 from yffpy.data import Data
 from yffpy.models import Game, League, Settings, Standings, Player
@@ -19,6 +20,12 @@ logger.setLevel(level=logging.INFO)
 
 # Suppress YahooFantasyFootballQuery debug logging
 logging.getLogger("yffpy.query").setLevel(level=logging.INFO)
+
+# FOR DEVELOPMENT ONLY!
+output_data_and_exit_run = {
+    1: False, 2: False, 3: False, 4: False, 5: False, 6: False,
+    7: False, 8: False, 9: False, 10: False, 11: False, 12: False
+}
 
 
 class LeagueData(object):
@@ -53,9 +60,10 @@ class LeagueData(object):
         self.league_key = yahoo_fantasy_game.game_key + ".l." + self.league_id
         self.season = yahoo_fantasy_game.season
 
-        # import sys
-        # print(self.league_key)
-        # sys.exit()
+        # FOR DEVELOPMENT ONLY!
+        if output_data_and_exit_run[1]:
+            logger.info(self.league_key)
+            sys.exit()
 
         league_metadata = self.yahoo_data.retrieve(str(self.league_id) + "-league-metadata",
                                                    self.yahoo_query.get_league_metadata,
@@ -66,10 +74,11 @@ class LeagueData(object):
         self.name = league_metadata.name
         self.season = league_metadata.season
 
-        # import sys
-        # print(self.name)
-        # print(league_metadata)
-        # sys.exit()
+        # FOR DEVELOPMENT ONLY!
+        if output_data_and_exit_run[2]:
+            logger.info(self.name)
+            logger.info(league_metadata)
+            sys.exit()
 
         league_settings = self.yahoo_data.retrieve(str(self.league_id) + "-league-settings",
                                                    self.yahoo_query.get_league_settings,
@@ -77,21 +86,23 @@ class LeagueData(object):
                                                    new_data_dir=os.path.join(self.data_dir,
                                                                              str(self.season),
                                                                              self.league_key))
-
-        # import sys
-        # print(league_settings)
-        # sys.exit()
+        # FOR DEVELOPMENT ONLY!
+        if output_data_and_exit_run[3]:
+            logger.info(league_settings)
+            sys.exit()
 
         self.playoff_slots = league_settings.num_playoff_teams
         self.num_regular_season_weeks = int(league_settings.playoff_start_week) - 1
         self.roster_positions = league_settings.roster_positions
         self.roster_positions_by_type = self.get_roster_slots(self.roster_positions)
 
-        # import sys
-        # print(self.playoff_slots)
-        # print(self.num_regular_season_weeks)
-        # print(self.roster_positions)
-        # sys.exit()
+        # FOR DEVELOPMENT ONLY!
+        if output_data_and_exit_run[4]:
+            logger.info(self.playoff_slots)
+            logger.info(self.num_regular_season_weeks)
+            logger.info(self.roster_positions)
+            logger.info(self.roster_positions_by_type)
+            sys.exit()
 
         self.standings = self.yahoo_data.retrieve(str(self.league_id) + "-league-standings",
                                                   self.yahoo_query.get_league_standings,
@@ -100,9 +111,10 @@ class LeagueData(object):
                                                                             str(self.season),
                                                                             self.league_key))
 
-        # import sys
-        # print(self.league_standings_data)
-        # sys.exit()
+        # FOR DEVELOPMENT ONLY!
+        if output_data_and_exit_run[5]:
+            logger.info(self.standings)
+            sys.exit()
 
         self.teams = self.yahoo_data.retrieve(str(self.league_id) + "-league-teams",
                                               self.yahoo_query.get_league_teams,
@@ -110,9 +122,10 @@ class LeagueData(object):
                                                                         str(self.season),
                                                                         self.league_key))
 
-        # import sys
-        # print(self.teams)
-        # sys.exit()
+        # FOR DEVELOPMENT ONLY!
+        if output_data_and_exit_run[6]:
+            logger.info(self.teams)
+            sys.exit()
 
         # validate user selection of week for which to generate report
         self.chosen_week_for_report = user_week_input_validation(self.config, week_for_report,
@@ -129,9 +142,10 @@ class LeagueData(object):
                                                                                            self.league_key,
                                                                                            "week_" + str(wk)))
 
-        # import sys
-        # print(self.matchups_by_week)
-        # sys.exit()
+        # FOR DEVELOPMENT ONLY!
+        if output_data_and_exit_run[7]:
+            logger.info(self.matchups_by_week)
+            sys.exit()
 
         self.rosters_by_week = {}
         for wk in range(1, int(self.chosen_week_for_report) + 1):
@@ -147,9 +161,10 @@ class LeagueData(object):
                     ) for team in self.teams
             }
 
-        # import sys
-        # print(self.rosters_by_week.keys())
-        # sys.exit()
+        # FOR DEVELOPMENT ONLY!
+        if output_data_and_exit_run[8]:
+            logger.info(self.rosters_by_week)
+            sys.exit()
 
     def get_player_data(self, player_key, week):
         return self.yahoo_data.retrieve(
@@ -264,9 +279,10 @@ class LeagueData(object):
             "positions_bench": positions_bench
         }
 
-        # import sys
-        # print(self.roster_positions)
-        # sys.exit()
+        # FOR DEVELOPMENT ONLY!
+        if output_data_and_exit_run[9]:
+            logger.info(roster_positions_by_type)
+            sys.exit()
 
         return roster_positions_by_type
 
@@ -284,33 +300,40 @@ class LeagueData(object):
             dev_offline=dev_offline
         )
 
-        # import sys
-        # print(self.playoff_probs_data)
-        # sys.exit()
+        # FOR DEVELOPMENT ONLY!
+        if output_data_and_exit_run[10]:
+            logger.info(playoff_probs)
+            sys.exit()
 
         return playoff_probs
 
-    def get_bad_boy_stats(self, save_data=False, dev_offline=False):
+    def get_bad_boy_stats(self, save_data=False, dev_offline=False, refresh=False):
         bad_boy_stats = BadBoyStats(
             os.path.join(self.data_dir, str(self.season), self.league_key),
             save_data=save_data,
-            dev_offline=dev_offline)
+            dev_offline=dev_offline,
+            refresh=refresh
+        )
 
-        # import sys
-        # print(self.bad_boy_stats)
-        # sys.exit()
+        # FOR DEVELOPMENT ONLY!
+        if output_data_and_exit_run[11]:
+            logger.info(bad_boy_stats)
+            sys.exit()
 
         return bad_boy_stats
 
-    def get_beef_stats(self, save_data=False, dev_offline=False):
+    def get_beef_stats(self, save_data=False, dev_offline=False, refresh=False):
 
         beef_stats = BeefStats(
             os.path.join(self.data_dir, str(self.season), self.league_key),
             save_data=save_data,
-            dev_offline=dev_offline)
+            dev_offline=dev_offline,
+            refresh=refresh
+        )
 
-        # import sys
-        # print(self.beef_rank)
-        # sys.exit()
+        # FOR DEVELOPMENT ONLY!
+        if output_data_and_exit_run[12]:
+            logger.info(beef_stats)
+            sys.exit()
 
         return beef_stats

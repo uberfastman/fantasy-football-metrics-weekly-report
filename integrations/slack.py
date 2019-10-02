@@ -79,7 +79,7 @@ class SlackMessenger(object):
                                                                         "{:%Y-%b-%d %H:%M:%S}".format(
                                                                             datetime.datetime.now()))
         with open(upload_file, "rb") as uf:
-            # post message witn no message to trigger @here
+            # post message with no additional content to trigger @here
             self.post_to_selected_slack_channel("")
 
             file_to_upload = uf.read()

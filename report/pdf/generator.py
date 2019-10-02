@@ -106,7 +106,7 @@ class PdfGenerator(object):
         self.widths_4_cols_3 = [1.00 * inch, 2.50 * inch, 2.00 * inch, 2.25 * inch]
         self.widths_5_cols_1 = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch]
         self.widths_6_cols_1 = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.00 * inch, 1.50 * inch, 1.00 * inch]
-        self.widths_6_cols_2 = [0.75 * inch, 1.75 * inch, 1.25 * inch, 1.25 * inch, 1.75 * inch, 1.00 * inch]
+        self.widths_6_cols_2 = [0.75 * inch, 1.75 * inch, 1.25 * inch, 1.00 * inch, 2.00 * inch, 1.00 * inch]
         self.widths_7_cols_1 = [0.50 * inch, 1.75 * inch, 1.50 * inch, 0.75 * inch, 1.50 * inch, 0.75 * inch,
                                 1.00 * inch]
         self.widths_10_cols_1 = [0.50 * inch, 1.75 * inch, 1.00 * inch, 1.00 * inch, 0.80 * inch, 1.10 * inch,

@@ -25,11 +25,12 @@ class FantasyFootballReport(object):
                  week_for_report=None,
                  game_id=None,
                  save_data=False,
+                 refresh_web_data=False,
                  playoff_prob_sims=None,
                  break_ties=False,
                  dq_ce=False,
-                 test=False,
-                 dev_offline=False):
+                 dev_offline=False,
+                 test=False):
 
         # config vars
         self.config = ConfigParser()
@@ -47,12 +48,14 @@ class FantasyFootballReport(object):
             self.game_id = self.config.get("Configuration", "game_id")
 
         self.save_data = save_data
+        # refresh data pulled from external web sources: bad boy data from USA Today, beef data from Fox Sports
+        self.refresh_web_data = refresh_web_data
         self.playoff_prob_sims = playoff_prob_sims
         self.break_ties = break_ties
         self.dq_ce = dq_ce
 
-        self.test = test
         self.dev_offline = dev_offline
+        self.test = test
 
         # verification output message
         logger.info(
@@ -61,27 +64,31 @@ class FantasyFootballReport(object):
             "    game id: %s\n"
             "    week: %s\n"
             "%s"
+            "%s"
             "    playoff_prob_sims: %s\n"
             "%s"
             "%s"
             "%s"
             "%s"
             "on %s..." % (
-                " TEST" if self.test else "",
-                self.platform_str,
+                " TEST" if self.test else "", self.platform_str,
                 str(self.league_id),
                 str(self.game_id) if self.game_id else "nfl (current season)",
                 str(week_for_report) if week_for_report else "selected/default",
-                "    save_data: " + str(self.save_data) + "\n" if self.save_data else "",
+                "    save_data: " + str(self.save_data) + "\n",
+                "    refresh_web_data: " + str(self.refresh_web_data) + "\n",
                 str(self.playoff_prob_sims),
-                "    break_ties: " + str(self.break_ties) + "\n" if self.break_ties else "",
-                "    dq_ce: " + str(self.dq_ce) + "\n" if self.dq_ce else "",
-                "    test: " + str(self.test) + "\n" if self.test else "",
-                "    dev_offline: " + str(self.dev_offline) + "\n" if self.dev_offline else "",
+                "    break_ties: " + str(self.break_ties) + "\n",
+                "    dq_ce: " + str(self.dq_ce) + "\n",
+                "    dev_offline: " + str(self.dev_offline) + "\n",
+                "    test: " + str(self.test) + "\n",
                 "{:%b %d, %Y}".format(datetime.datetime.now())
             )
         )
 
+        begin = datetime.datetime.now()
+        logger.info("Retrieving fantasy football data from {}...".format(
+            self.platform_str + (" API" if not self.dev_offline else " saved data")))
         # retrieve all league data from respective platform API
         self.league_data = league_data_class_factory(
             config=self.config,
@@ -93,11 +100,28 @@ class FantasyFootballReport(object):
             save_data=self.save_data,
             dev_offline=self.dev_offline
         )
+        delta = datetime.datetime.now() - begin
+        logger.info("...retrieved all fantasy football data from {} in {}\n".format(
+            self.platform_str + (" API" if not self.dev_offline else " saved data"), str(delta)))
 
         self.playoff_probs = self.league_data.get_playoff_probs(self.save_data, self.playoff_prob_sims,
                                                                 self.dev_offline, recalculate=True)
-        self.bad_boy_stats = self.league_data.get_bad_boy_stats(self.save_data, self.dev_offline)
-        self.beef_stats = self.league_data.get_beef_stats(self.save_data, self.dev_offline)
+
+        begin = datetime.datetime.now()
+        logger.info("Retrieving bad boy data from http://nflarrest.com {}...".format(
+            "website" if not self.dev_offline or self.refresh_web_data else "saved data"))
+        self.bad_boy_stats = self.league_data.get_bad_boy_stats(self.save_data, self.dev_offline, self.refresh_web_data)
+        delta = datetime.datetime.now() - begin
+        logger.info("...retrieved all bad boy data from http://nflarrest.com {} in {}\n".format(
+            "website" if not self.dev_offline else "saved data", str(delta)))
+
+        begin = datetime.datetime.now()
+        logger.info("Retrieving beef data from Fox Sports {}...".format(
+            "API" if not self.dev_offline or self.refresh_web_data else "saved data"))
+        self.beef_stats = self.league_data.get_beef_stats(self.save_data, self.dev_offline, self.refresh_web_data)
+        delta = datetime.datetime.now() - begin
+        logger.info("...retrieved all beef data from Fox Sports {} in {}\n".format(
+            "API" if not self.dev_offline else "saved data", str(delta)))
 
         # output league info for verification
         logger.info("...setup complete for \"{}\" ({}) week {} report.\n".format(self.league_data.name.upper(),
@@ -138,6 +162,10 @@ class FantasyFootballReport(object):
                 metrics_calculator=metrics_calculator,
                 metrics={
                     "coaching_efficiency": CoachingEfficiency(self.league_data.roster_positions_by_type),
+                    "matchups_results": metrics_calculator.calculate_luck_and_record(
+                        self.league_data.get_teams_with_points(week_counter),
+                        self.league_data.get_custom_scoreboard(week_counter)
+                    ),
                     "playoff_probs": self.playoff_probs,
                     "bad_boy_stats": self.bad_boy_stats,
                     "beef_stats": self.beef_stats
@@ -227,7 +255,7 @@ class FantasyFootballReport(object):
 
         report_data.data_for_coaching_efficiency = season_average_calculator.get_average(
             time_series_efficiency_data, "data_for_coaching_efficiency",
-            ce_first_ties=report_data.num_first_place_for_coaching_efficiency > 0, with_percent=True)
+            ce_first_ties=report_data.num_first_place_for_coaching_efficiency > 1, with_percent=True)
         report_data.data_for_luck = season_average_calculator.get_average(time_series_luck_data, "data_for_luck",
                                                                           with_percent=True)
         report_data.data_for_power_rankings = season_average_calculator.get_average(

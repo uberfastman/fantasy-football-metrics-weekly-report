@@ -3,7 +3,8 @@ __email__ = "wrenjr@yahoo.com"
 
 from yffpy.models import Team, Player
 
-from calculate.metrics import CalculateMetrics
+from calculate.bad_boy_stats import BadBoyStats
+from calculate.beef_stats import BeefStats
 
 
 class ReportPlayer(Player):
@@ -13,16 +14,22 @@ class ReportPlayer(Player):
 
         self.bad_boy_crime = str()
         self.bad_boy_points = int()
+        self.bad_boy_num_offenders = int()
         self.weight = float()
         self.tabbu = float()
 
         if self.selected_position_value not in bench_positions:
-            self.bad_boy_points, self.bad_boy_crime = metrics.get("bad_boy_stats").check_bad_boy_status(
-                self.full_name, self.editorial_team_abbr, self.selected_position_value)
-            self.weight = metrics.get("beef_stats").get_player_weight(self.first_name, self.last_name,
-                                                                      self.editorial_team_abbr)
-            self.tabbu = metrics.get("beef_stats").get_player_tabbu(self.first_name, self.last_name,
-                                                                    self.editorial_team_abbr)
+            bad_boy_stats = metrics.get("bad_boy_stats")  # type: BadBoyStats
+            self.bad_boy_crime = bad_boy_stats.get_player_bad_boy_crime(
+                self.full_name, self.editorial_team_abbr, self.primary_position)
+            self.bad_boy_points = bad_boy_stats.get_player_bad_boy_points(
+                self.full_name, self.editorial_team_abbr, self.primary_position)
+            self.bad_boy_num_offenders = bad_boy_stats.get_player_bad_boy_num_offenders(
+                self.full_name, self.editorial_team_abbr, self.primary_position)
+
+            beef_stats = metrics.get("beef_stats")  # type: BeefStats
+            self.weight = beef_stats.get_player_weight(self.first_name, self.last_name, self.editorial_team_abbr)
+            self.tabbu = beef_stats.get_player_tabbu(self.first_name, self.last_name, self.editorial_team_abbr)
 
 
 class ReportTeam(Team):
@@ -32,7 +39,6 @@ class ReportTeam(Team):
                  league_data,
                  week_counter,
                  metrics,
-                 metrics_calculator,  # type: CalculateMetrics
                  dq_ce):
         Team.__init__(self, yffpy_team.extracted_data)
 
@@ -61,7 +67,10 @@ class ReportTeam(Team):
             if p.selected_position_value not in bench_positions:
                 if p.bad_boy_points > 0:
                     self.bad_boy_points += p.bad_boy_points
-                    self.num_offenders += 1
+                    if p.selected_position_value == "DEF":
+                        self.num_offenders += p.bad_boy_num_offenders
+                    else:
+                        self.num_offenders += 1
                     if p.bad_boy_points > worst_offense_score:
                         self.worst_offense = p.bad_boy_crime
                         worst_offense_score = p.bad_boy_points
@@ -81,13 +90,9 @@ class ReportTeam(Team):
             dq_eligible=dq_ce
         )
 
-        # calculate luck and record
-        matchups_results = metrics_calculator.calculate_luck_and_record(
-            league_data.get_teams_with_points(week_counter),
-            league_data.get_custom_scoreboard(week_counter)
-        )
-        self.luck = matchups_results.get(self.team_key).get("luck")
-        self.record = matchups_results.get(self.team_key).get("record")
+        # # retrieve luck and record
+        self.luck = metrics.get("matchups_results").get(self.team_key).get("luck")
+        self.record = metrics.get("matchups_results").get(self.team_key).get("record")
 
         # add new attributes to _keys list in order to allow ReportTeam objects to be output to stdout/console
         dict_keys = set(self.__dict__.keys()).difference({"extracted_data", "_index", "_keys"})
