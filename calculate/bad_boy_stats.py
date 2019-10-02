@@ -199,6 +199,7 @@ class BadBoyStats(object):
                 "worst_offense": None,
                 "worst_offense_points": 0
             }
+            return self.bad_boy_data[player_full_name][key_str] if key_str else self.bad_boy_data[player_full_name]
 
     def get_player_bad_boy_crime(self, player_full_name, player_team, player_pos):
         return self.get_player_bad_boy_stats(player_full_name, player_team, player_pos, "worst_offense")
