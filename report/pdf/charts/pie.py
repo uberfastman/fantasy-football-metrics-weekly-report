@@ -28,7 +28,7 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
             HexColor("#e6beff")  # lavender
         ]
 
-        Drawing.__init__(self,width,height,*args,**kw)
+        Drawing.__init__(self, width, height, *args, **kw)
         # adding a pie chart to the drawing
         self._add(self, Pie(), name='pie', validate=None, desc=None)
         self.pie.width = 150

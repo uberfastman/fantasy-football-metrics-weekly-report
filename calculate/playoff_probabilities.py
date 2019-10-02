@@ -2,7 +2,6 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 # code snippets: https://github.com/cdtdev/ff_monte_carlo (originally written by https://github.com/cdtdev)
 
-import copy
 import datetime
 import json
 import logging
@@ -19,78 +18,95 @@ logger.setLevel(level=logging.INFO)
 
 class PlayoffProbabilities(object):
 
-    def __init__(self, simulations, num_weeks, playoff_slots, data_dir, save_data=False, recalculate=False):
+    def __init__(self, simulations, num_weeks, playoff_slots, data_dir, save_data=False, recalculate=False,
+                 dev_offline=False):
         self.simulations = int(simulations)
         self.num_weeks = int(num_weeks)
         self.playoff_slots = int(playoff_slots)
         self.data_dir = data_dir
         self.save_data = save_data
         self.recalculate = recalculate
+        self.dev_offline = dev_offline
         self.playoff_probs_data = {}
 
     def calculate(self, week, chosen_week, teams, remaining_matchups):
 
+        teams_for_playoff_probs = {}
+        for team in teams:
+            team = team.get("team")
+            # noinspection PyTypeChecker
+            teams_for_playoff_probs[team.team_id] = TeamWithPlayoffProbs(
+                team.team_id,
+                team.name,
+                ", ".join([manager.get("manager").nickname for manager in team.managers]) if
+                isinstance(team.managers, list) else team.managers["manager"].nickname,
+                int(team.wins),
+                int(team.losses),
+                int(team.ties),
+                float(team.points_for),
+                self.playoff_slots,
+                self.simulations
+            )
+
         try:
             if int(week) == int(chosen_week):
                 if self.recalculate:
-                    logger.info("Running %s Monte Carlo playoff simulations..." % "{0:,}".format(self.simulations))
+                    logger.info("Running %s Monte Carlo playoff simulation%s..." % ("{0:,}".format(
+                        self.simulations), ("s" if self.simulations > 1 else "")))
 
                     begin = datetime.datetime.now()
-
-                    num_wins_that_made_playoffs = [0] * self.num_weeks
-                    num_wins_that_missed_playoffs = [0] * self.num_weeks
                     avg_wins = [0.0] * self.playoff_slots
-
                     sim_count = 1
                     while sim_count <= self.simulations:
-
-                        temp_teams = copy.deepcopy(teams)
 
                         # create random binary results representing the rest of the matchups_by_week and add them to the existing wins
                         for week, matchups in remaining_matchups.items():
                             for matchup in matchups:
                                 result = int(random.getrandbits(1))
                                 if result == 1:
-                                    temp_teams[matchup[0]].add_win()
+                                    teams_for_playoff_probs[matchup[0]].add_win()
+                                    teams_for_playoff_probs[matchup[1]].add_loss()
                                 else:
-                                    temp_teams[matchup[1]].add_win()
+                                    teams_for_playoff_probs[matchup[1]].add_win()
+                                    teams_for_playoff_probs[matchup[0]].add_loss()
 
                         # sort the teams
-                        sorted_teams = sorted(temp_teams.values(), key=lambda x: x.wins_with_points, reverse=True)
-
-                        num_wins_that_made_playoffs[
-                            int(round(sorted_teams[self.playoff_slots - 1].get_wins_with_points(), 0)) - 1] += 1
-                        num_wins_that_missed_playoffs[
-                            int(round(sorted_teams[self.playoff_slots].get_wins_with_points(), 0)) - 1] += 1
+                        sorted_teams = sorted(teams_for_playoff_probs.values(), key=lambda x: x.get_wins_with_points(),
+                                              reverse=True)
 
                         # pick the teams making the playoffs
                         playoff_count = 1
                         while playoff_count <= self.playoff_slots:
-                            teams[sorted_teams[playoff_count - 1].get_id()].add_playoff_tally()
-                            avg_wins[playoff_count - 1] += round(sorted_teams[playoff_count - 1].get_wins_with_points(),
-                                                                 0)
-                            teams[sorted_teams[playoff_count - 1].get_id()].add_playoff_stats(playoff_count)
+                            teams_for_playoff_probs[sorted_teams[playoff_count - 1].team_id].add_playoff_tally()
+                            avg_wins[playoff_count - 1] += \
+                                round(sorted_teams[playoff_count - 1].get_wins_with_points(), 0)
+                            teams_for_playoff_probs[sorted_teams[playoff_count - 1].team_id].add_playoff_stats(
+                                playoff_count)
                             playoff_count += 1
+
+                        for team in teams_for_playoff_probs.values():
+                            team.reset_to_base_record()
 
                         sim_count += 1
 
-                    for team in teams.values():
+                    for team in teams_for_playoff_probs.values():
 
                         playoff_min_wins = round((avg_wins[self.playoff_slots - 1]) / self.simulations, 2)
-                        if playoff_min_wins > team.get_wins():
-                            needed_wins = np.rint(playoff_min_wins - team.get_wins())
+                        if playoff_min_wins > team.wins:
+                            needed_wins = np.rint(playoff_min_wins - team.wins)
                         else:
                             needed_wins = 0
 
-                        self.playoff_probs_data[int(team.get_id())] = [
-                            team.get_name(),
+                        self.playoff_probs_data[int(team.team_id)] = [
+                            team.name,
                             team.get_playoff_tally(),
                             team.get_playoff_stats(),
                             needed_wins
                         ]
 
                     delta = datetime.datetime.now() - begin
-                    logger.info("...ran %s playoff simulations in %s\n" % ("{0:,}".format(self.simulations), str(delta)))
+                    logger.info("...ran %s playoff simulation%s in %s\n" % ("{0:,}".format(
+                        self.simulations), ("s" if self.simulations > 1 else ""), str(delta)))
 
                     if self.save_data:
                         with open(os.path.join(
@@ -124,15 +140,18 @@ class PlayoffProbabilities(object):
         return json.dumps(self.__dict__, indent=2, ensure_ascii=False)
 
 
-class Team(object):
+class TeamWithPlayoffProbs(object):
 
-    def __init__(self, team_id, name, manager, record, points_for, playoff_slots, simulations):
+    def __init__(self, team_id, name, manager, wins, losses, ties, points_for, playoff_slots, simulations):
         self.team_id = team_id
         self.name = name
         self.manager = manager
-        self.record = record
+        self.base_wins = wins
+        self.wins = wins
+        self.base_losses = losses
+        self.losses = losses
+        self.ties = ties
         self.points_for = float(points_for)
-        self.wins_with_points = self.record.wins + (self.points_for / 1000000)
         self.playoff_tally = 0
         self.playoff_stats = [0] * int(playoff_slots)
         self.simulations = int(simulations)
@@ -144,7 +163,10 @@ class Team(object):
         return str(self.__dict__)
 
     def add_win(self):
-        self.wins_with_points += 1
+        self.wins += 1
+
+    def add_loss(self):
+        self.losses += 1
 
     def add_playoff_tally(self):
         self.playoff_tally += 1
@@ -152,29 +174,8 @@ class Team(object):
     def add_playoff_stats(self, place):
         self.playoff_stats[place - 1] += 1
 
-    def get_id(self):
-        return self.team_id
-
-    def get_name(self):
-        return self.name
-
-    def get_manager(self):
-        return self.manager
-
-    def get_wins(self):
-        return self.record.get_wins()
-
-    def get_losses(self):
-        return self.record.get_losses()
-
-    def get_ties(self):
-        return self.record.get_ties()
-
-    def get_points(self):
-        return self.points_for
-
     def get_wins_with_points(self):
-        return self.wins_with_points
+        return self.wins + (self.points_for / 1000000)
 
     def get_playoff_tally(self):
         return round((self.playoff_tally / self.simulations) * 100.0, 2)
@@ -182,29 +183,6 @@ class Team(object):
     def get_playoff_stats(self):
         return [round((stat / self.simulations) * 100.0, 2) for stat in self.playoff_stats]
 
-
-class Record(object):
-
-    def __init__(self, wins, losses, ties, percentage):
-        self.wins = wins
-        self.losses = losses
-        self.ties = ties
-        self.percentage = percentage
-
-    def __str__(self):
-        return str(self.__dict__)
-
-    def __repr__(self):
-        return str(self.__dict__)
-
-    def get_wins(self):
-        return self.wins
-
-    def get_losses(self):
-        return self.losses
-
-    def get_ties(self):
-        return self.ties
-
-    def get_percentage(self):
-        return self.percentage
+    def reset_to_base_record(self):
+        self.wins = self.base_wins
+        self.losses = self.base_losses

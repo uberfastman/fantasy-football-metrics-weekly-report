@@ -5,18 +5,19 @@ import itertools
 from collections import defaultdict
 from statistics import mean
 
-from calculate.playoff_probabilities import Team, Record
+import numpy as np
 
 
 class CalculateMetrics(object):
-    def __init__(self, config, league_id, playoff_slots):
+    def __init__(self, config, league_id, playoff_slots, playoff_simulations):
         self.config = config
         self.league_id = league_id
         self.playoff_slots = playoff_slots
+        self.playoff_simulations = playoff_simulations
         self.coaching_efficiency_dq_count = 0
-        self.teams_info = {}
 
-    def get_standings(self, league_standings_data):
+    @staticmethod
+    def get_standings_data(league_standings_data):
         current_standings_data = []
 
         for team in league_standings_data.teams:
@@ -52,22 +53,6 @@ class CalculateMetrics(object):
                 int(team.number_of_moves) if team.number_of_moves else 0,
                 int(team.number_of_trades) if team.number_of_trades else 0
             ])
-
-            self.teams_info[team.team_id] = Team(
-                team.team_id,
-                team.name,
-                manager,
-                Record(
-                    int(team_standings.outcome_totals.wins),
-                    int(team_standings.outcome_totals.losses),
-                    int(team_standings.outcome_totals.ties),
-                    team_standings.outcome_totals.percentage
-                ),
-                float(team_standings.points_for),
-                self.playoff_slots,
-                self.config.getint("Fantasy_Football_Report_Settings", "num_playoff_simulations")
-            )
-
         return current_standings_data
 
     @staticmethod
@@ -108,9 +93,10 @@ class CalculateMetrics(object):
                 ] +
                 summed_stats
                 # FOR LEAGUES WITH CUSTOM PLAYOFFS NOT SUPPORTED BY YAHOO
+                # TODO: FIX/REFACTOR
                 # [
                 #     team_playoffs_data[int(team["team_id"])][2][x] for x in range(self.config.getint(
-                #         "Fantasy_Football_Report_Settings", "num_playoff_slots"))
+                #         "Report", "num_playoff_slots"))
                 # ]
             )
 
@@ -132,11 +118,11 @@ class CalculateMetrics(object):
     def get_score_data(score_results):
         score_results_data = []
         place = 1
-        for key, value in score_results:
-            ranked_team_name = key
-            ranked_team_manager = value.get("manager")
-            ranked_weekly_score = "%.2f" % float(value.get("score"))
-            ranked_weekly_bench_score = "%.2f" % float(value.get("bench_score"))
+        for team in score_results:
+            ranked_team_name = team.name
+            ranked_team_manager = team.manager_str
+            ranked_weekly_score = "%.2f" % float(team.score)
+            ranked_weekly_bench_score = "%.2f" % float(team.bench_score)
 
             score_results_data.append(
                 [place, ranked_team_name, ranked_team_manager, ranked_weekly_score, ranked_weekly_bench_score])
@@ -148,10 +134,10 @@ class CalculateMetrics(object):
     def get_coaching_efficiency_data(self, coaching_efficiency_results):
         coaching_efficiency_results_data = []
         place = 1
-        for key, value in coaching_efficiency_results:
-            ranked_team_name = key
-            ranked_team_manager = value.get("manager")
-            ranked_coaching_efficiency = value.get("coaching_efficiency")
+        for team in coaching_efficiency_results:
+            ranked_team_name = team.name
+            ranked_team_manager = team.manager_str
+            ranked_coaching_efficiency = team.coaching_efficiency
 
             if ranked_coaching_efficiency == 0.0:
                 ranked_coaching_efficiency = "DQ"
@@ -170,10 +156,10 @@ class CalculateMetrics(object):
     def get_luck_data(luck_results):
         luck_results_data = []
         place = 1
-        for key, value in luck_results:
-            ranked_team_name = key
-            ranked_team_manager = value.get("manager")
-            ranked_luck = "%.2f%%" % value.get("luck")
+        for team in luck_results:
+            ranked_team_name = team.name
+            ranked_team_manager = team.manager_str
+            ranked_luck = "%.2f%%" % team.luck
 
             luck_results_data.append([place, ranked_team_name, ranked_team_manager, ranked_luck])
 
@@ -184,12 +170,12 @@ class CalculateMetrics(object):
     def get_bad_boy_data(bad_boy_results):
         bad_boy_results_data = []
         place = 1
-        for key, value in bad_boy_results:
-            ranked_team_name = key
-            ranked_team_manager = value.get("manager")
-            ranked_bb_points = "%d" % value.get("bad_boy_points")
-            ranked_offense = value.get("worst_offense")
-            ranked_count = "%d" % value.get("num_offenders")
+        for team in bad_boy_results:
+            ranked_team_name = team.name
+            ranked_team_manager = team.manager_str
+            ranked_bb_points = "%d" % team.bad_boy_points
+            ranked_offense = team.worst_offense
+            ranked_count = "%d" % team.num_offenders
 
             bad_boy_results_data.append([place, ranked_team_name, ranked_team_manager, ranked_bb_points,
                                          ranked_offense, ranked_count])
@@ -201,18 +187,18 @@ class CalculateMetrics(object):
     def get_beef_rank_data(beef_results):
         beef_results_data = []
         place = 1
-        for key, value in beef_results:
-            ranked_team_name = key
-            ranked_team_manager = value.get("manager")
-            ranked_beef_points = "%.3f" % value.get("tabbu")
+        for team in beef_results:
+            ranked_team_name = team.name
+            ranked_team_manager = team.manager_str
+            ranked_beef_points = "%.3f" % team.tabbu
 
             beef_results_data.append([place, ranked_team_name, ranked_team_manager, ranked_beef_points])
             place += 1
         return beef_results_data
 
-    def get_num_ties(self, results_data, tie_type, break_ties_bool):
+    def get_ties_count(self, results_data, tie_type, break_ties):
 
-        if tie_type == "power_rank":
+        if tie_type == "power_ranking":
             groups = [list(group) for key, group in itertools.groupby(results_data, lambda x: x[0])]
             num_ties = self.count_ties(groups)
         else:
@@ -231,13 +217,13 @@ class CalculateMetrics(object):
                         ties_count += sum(range(len(group)))
 
                         for team in group:
-                            if tie_type == "power_rank":
+                            if tie_type == "power_ranking":
                                 results_data[team_index] = [
                                     str(place) + ".0*",
                                     team[1],
                                     team[2],
                                 ]
-                            elif tie_type == "score" and break_ties_bool:
+                            elif tie_type == "score" and break_ties:
                                 results_data[team_index] = [
                                     str(place),
                                     team[1],
@@ -268,13 +254,13 @@ class CalculateMetrics(object):
                         place += 1
 
                     else:
-                        if tie_type == "power_rank":
+                        if tie_type == "power_ranking":
                             results_data[team_index] = [
                                 str(place) + ".0",
                                 group[0][1],
                                 group[0][2],
                             ]
-                        elif tie_type == "score" and break_ties_bool:
+                        elif tie_type == "score" and break_ties:
                             results_data[team_index] = [
                                 str(place),
                                 group[0][1],
@@ -313,9 +299,9 @@ class CalculateMetrics(object):
         return num_ties
 
     @staticmethod
-    def resolve_score_ties(score_results_data, break_ties_bool):
+    def resolve_score_ties(data_for_scores, break_ties):
 
-        groups = [list(group) for key, group in itertools.groupby(score_results_data, lambda x: x[3])]
+        groups = [list(group) for key, group in itertools.groupby(data_for_scores, lambda x: x[3])]
 
         resolved_score_results_data = []
         place = 1
@@ -324,7 +310,7 @@ class CalculateMetrics(object):
                 if groups.index(group) != 0:
                     team[0] = place
                 else:
-                    if break_ties_bool:
+                    if break_ties:
                         team[0] = place
                 resolved_score_results_data.append(team)
                 place += 1
@@ -332,18 +318,24 @@ class CalculateMetrics(object):
         return resolved_score_results_data
 
     @staticmethod
-    def resolve_coaching_efficiency_ties(coaching_efficiency_results_data, num_tied_coaching_efficiencies,
-                                         league_data, team_results_dict, week, bench_positions, break_ties_bool):
+    def resolve_coaching_efficiency_ties(data_for_coaching_efficiency, ties_for_coaching_efficiency,
+                                         league_data, teams_results, week, week_for_report, break_ties):
 
         coaching_efficiency_results_data_with_tiebreakers = []
+        bench_positions = league_data.roster_positions_by_type.get("positions_bench")
 
         season_average_points_by_player_dict = defaultdict(list)
-        if num_tied_coaching_efficiencies > 0:
-            for ce_result in coaching_efficiency_results_data:
+        if ties_for_coaching_efficiency > 0 and week == week_for_report:
+            for ce_result in data_for_coaching_efficiency:
                 if ce_result[0] == "1*":
+                    players = []
+                    for team_result in teams_results.values():
+                        if team_result.name == ce_result[1]:
+                            players = teams_results.get(team_result.team_key).players
+
                     num_players_exceeded_season_avg_points = 0
                     total_percentage_points_players_exceeded_season_avg_points = 0
-                    for player in team_results_dict.get(ce_result[1]).get("players"):
+                    for player in players:
                         if player.selected_position not in bench_positions:
                             week_counter = 1
                             while week_counter <= int(week):
@@ -353,22 +345,36 @@ class CalculateMetrics(object):
                                 week_counter += 1
 
                             player_last_week_points = season_average_points_by_player_dict[player.player_key][-1]
-                            player_season_avg_points = mean(season_average_points_by_player_dict[player.player_key][:-2])
+
+                            # handle the beginning of the season when a player has only played one or no games
+                            player_season_weekly_points = season_average_points_by_player_dict[player.player_key]
+                            if len(player_season_weekly_points) == 0:
+                                player_season_avg_points = 0
+                            elif len(player_season_weekly_points) == 1:
+                                player_season_avg_points = player_season_weekly_points[0]
+                            else:
+                                player_season_avg_points = mean(player_season_weekly_points[:-1])
+
                             if player_last_week_points > player_season_avg_points:
                                 num_players_exceeded_season_avg_points += 1
 
                                 if player_season_avg_points > 0:
-                                    total_percentage_points_players_exceeded_season_avg_points += (((player_last_week_points - player_season_avg_points) / player_season_avg_points) * 100.0)
+                                    total_percentage_points_players_exceeded_season_avg_points += (((
+                                                                                                            player_last_week_points - player_season_avg_points) / player_season_avg_points) * 100.0)
                                 else:
                                     total_percentage_points_players_exceeded_season_avg_points += 100.0
 
-                    ce_result.extend([num_players_exceeded_season_avg_points, round(total_percentage_points_players_exceeded_season_avg_points, 2)])
+                    ce_result.extend([num_players_exceeded_season_avg_points,
+                                      round(total_percentage_points_players_exceeded_season_avg_points, 2)])
                     coaching_efficiency_results_data_with_tiebreakers.append(ce_result)
                 else:
                     ce_result.extend(["N/A", "N/A"])
                     coaching_efficiency_results_data_with_tiebreakers.append(ce_result)
 
-        groups = [list(group) for key, group in itertools.groupby(coaching_efficiency_results_data_with_tiebreakers, lambda x: x[3])]
+            groups = [list(group) for key, group in
+                      itertools.groupby(coaching_efficiency_results_data_with_tiebreakers, lambda x: x[3])]
+        else:
+            groups = [list(group) for key, group in itertools.groupby(data_for_coaching_efficiency, lambda x: x[3])]
 
         resolved_coaching_efficiency_results_data = []
         place = 1
@@ -378,24 +384,23 @@ class CalculateMetrics(object):
                 if groups.index(group) != 0:
                     team[0] = place
                 else:
-                    if break_ties_bool:
+                    if break_ties:
                         team[0] = place
                 resolved_coaching_efficiency_results_data.append(team)
                 place += 1
-
         return resolved_coaching_efficiency_results_data
 
     @staticmethod
-    def resolve_season_average_ties(season_average_results_data, with_percent_bool):
+    def resolve_season_average_ties(data_for_season_averages, with_percent):
 
-        groups = [list(group) for key, group in itertools.groupby(season_average_results_data, lambda x: x[2])]
+        groups = [list(group) for key, group in itertools.groupby(data_for_season_averages, lambda x: x[2])]
 
         resolved_season_average_results_data = []
         place = 1
         for group in groups:
             for team in sorted(group, key=lambda x: x[-1], reverse=True):
                 team[0] = place
-                if with_percent_bool:
+                if with_percent:
                     team[2] = "{0}% ({1})".format(str(team[2]), str(place))
                 else:
                     team[2] = "{0} ({1})".format(str(team[2]), str(place))
@@ -407,9 +412,10 @@ class CalculateMetrics(object):
 
     # noinspection PyUnusedLocal
     @staticmethod
-    def test_ties(team_results_dict):
-        for team in list(team_results_dict.keys()):
-            team_id = team_results_dict.get(team).get("team_id")
+    def test_ties(teams_results):
+        for team_key, team in teams_results.items():
+
+            team_id = team.team_id
 
             # for testing score ties
             test_score = 70
@@ -460,20 +466,123 @@ class CalculateMetrics(object):
                 test_luck = 5.00
                 test_power_rank = 2.0
             # uncomment to test ending teams with unique place
-            elif int(team_id) == len(list(team_results_dict.keys())):
+            elif int(team_id) == len(list(teams_results.keys())):
                 test_score = 85
                 test_efficiency = 85.00
                 test_luck = -5.00
                 test_power_rank = 6.0
 
             # # uncomment to test scoring ties
-            # team_results_dict.get(team)["score"] = test_score
+            # team.score = test_score
             #
             # # uncomment to test coaching efficiency ties
-            # team_results_dict.get(team)["coaching_efficiency"] = test_efficiency
+            # team.coaching_efficiency = test_efficiency
             #
             # # # uncomment to test luck ties
-            # team_results_dict.get(team)["luck"] = test_luck
+            # team.luck = test_luck
             #
             # # # uncomment to test power ranking ties
-            # team_results_dict.get(team)["power_rank"] = test_power_rank
+            # team.power_rank = test_power_rank
+
+    @staticmethod
+    def calculate_luck_and_record(teams, matchups_list):
+
+        results = defaultdict(dict)
+        matchups = {
+            name.decode("utf-8"): value["result"] for pair in matchups_list for name, value in list(pair.items())
+        }
+
+        for team_1 in teams:
+            record = {
+                "W": 0,
+                "L": 0,
+                "T": 0
+            }
+
+            for team_2 in teams:
+                if team_1.team_id == team_2.team_id:
+                    continue
+                score_1 = team_1.points
+                score_2 = team_2.points
+
+                if float(score_1) > float(score_2):
+                    record["W"] += 1
+                elif float(score_1) < float(score_2):
+                    record["L"] += 1
+                else:
+                    record["T"] += 1
+
+            results[team_1.team_key]["record"] = record
+
+            # calc luck %
+            # TODO: assuming no ties...  how are tiebreakers handled?
+            luck = 0.0
+            # number of teams excluding current team
+            num_teams = float(len(teams)) - 1
+
+            if record["W"] != 0 and record["L"] != 0:
+                matchup_result = matchups[team_1.name.decode("utf-8")]
+                if matchup_result == "W" or matchup_result == "T":
+                    luck = (record["L"] + record["T"]) / num_teams
+                else:
+                    luck = 0 - (record["W"] + record["T"]) / num_teams
+
+            # noinspection PyTypeChecker
+            results[team_1.team_key]["luck"] = luck * 100
+
+        return results
+
+    @staticmethod
+    def get_ranks_for_metric(data_for_metric, power_ranked_teams, metric_ranking_key):
+        rank = 1
+        for team in data_for_metric:
+            for team_rankings in power_ranked_teams.values():
+                if team[1] == team_rankings["name"]:
+                    team_rankings[metric_ranking_key] = rank
+            rank += 1
+
+    def calculate_power_rankings(self, teams_results, data_for_scores, data_for_coaching_efficiency, data_for_luck):
+        """ avg of (weekly score rank + weekly coaching efficiency rank + weekly luck rank)
+        """
+        power_ranked_teams = {
+            team_result.team_key: {
+                "name": team_result.name,
+                "manager_str": team_result.manager_str
+            } for team_result in teams_results.values()
+        }
+
+        self.get_ranks_for_metric(data_for_scores, power_ranked_teams, "score_ranking")
+        self.get_ranks_for_metric(data_for_coaching_efficiency, power_ranked_teams, "coaching_efficiency_ranking")
+        self.get_ranks_for_metric(data_for_luck, power_ranked_teams, "luck_ranking")
+
+        for team_rankings in power_ranked_teams.values():
+            team_rankings["power_ranking"] = (team_rankings["score_ranking"] +
+                                              team_rankings["coaching_efficiency_ranking"] +
+                                              team_rankings["luck_ranking"]) // 3.0
+        return power_ranked_teams
+
+    @staticmethod
+    def calculate_z_scores(weekly_teams_results):
+
+        results = {}
+
+        # can only determine z_score
+        can_calculate = len(weekly_teams_results) > 2
+
+        # iterates through team_keys of first week since team_keys remain unchanged
+        for team_key in weekly_teams_results[0].keys():
+            z_score = None
+
+            if can_calculate:
+                scores = [week[team_key].score for week in weekly_teams_results]
+
+                scores_excluding_current = scores[:-1]
+                current_score = scores[-1]
+
+                std = np.std(scores_excluding_current)
+                mean = np.mean(scores_excluding_current)
+                z_score = (current_score - mean) / std
+
+            results[team_key] = z_score
+
+        return results

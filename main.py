@@ -1,7 +1,6 @@
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
-import distutils.util as distutils
 import getopt
 import logging
 import os
@@ -13,9 +12,9 @@ from configparser import ConfigParser
 import pkg_resources
 from pkg_resources import DistributionNotFound, VersionConflict
 
-from report.fantasy_football_report_builder import FantasyFootballReport
-from utils.slack_messenger import SlackMessenger
-from utils.upload_to_google_drive import GoogleDriveUploader
+from integrations.drive import GoogleDriveUploader
+from integrations.slack import SlackMessenger
+from report.builder import FantasyFootballReport
 
 # local config vars
 config = ConfigParser()
@@ -58,26 +57,27 @@ def main(argv):
 
     usage_str = \
         "\n" \
-        "Yahoo Fantasy Football report application usage:\n\n" \
+        "Fantasy Football Report application usage:\n\n" \
         "    python main.py [optional_parameters]\n\n" \
         "  Options:\n" \
         "      -h, --help                         Print command line usage message.\n" \
         "    Generate report:\n" \
-        "      -l, --league-id <yahoo_league_id>  Yahoo Fantasy Football league ID.\n" \
+        "      -l, --league-id <league_id>        Fantasy Football league ID.\n" \
         "      -w, --week <chosen_week>           Chosen week for which to generate report.\n" \
-        "      -g, --game-id <chosen_game_id>     Chosen Yahoo NFL fantasy game id for which to generate report. Defaults to \"nfl\", which Yahoo interprets as the current season.\n" \
-        "      -y, --year <chosen_year>           Chosen year (season) of the league for which a report is being generated." \
+        "      -g, --game-id <chosen_game_id>     Chosen fantasy game id for which to generate report. Defaults to \"nfl\", which is interpreted as the current season if using Yahoo.\n" \
+        "      -y, --year <chosen_year>           Chosen year (season) of the league for which a report is being generated.\n" \
         "    Configuration:\n" \
         "      -s, --save-data                    Save all retrieved data locally for faster future report generation.\n" \
-        "      -p, --playoff-prob-sims            Number of Monte Carlo playoff probability simulations to run." \
+        "      -r, --refresh-web-data             Refresh all web data from external APIs (such as bad boy and beef data).\n" \
+        "      -p, --playoff-prob-sims            Number of Monte Carlo playoff probability simulations to run.\n" \
         "      -b, --break-ties                   Break ties in metric rankings.\n" \
         "      -q, --disqualify-ce                Automatically disqualify teams ineligible for coaching efficiency metric.\n" \
         "    For Developers:\n" \
-        "      -t, --test                         Generate TEST report.\n" \
-        "      -d, --dev-offline                  Run OFFLINE for development. Must have previously run report with -s option.\n"
+        "      -d, --dev-offline                  Run OFFLINE for development. Must have previously run report with -s option.\n" \
+        "      -t, --test                         Generate TEST report.\n"
 
     try:
-        opts, args = getopt.getopt(argv, "hl:w:g:y:sp:bqtd")
+        opts, args = getopt.getopt(argv, "hl:w:g:y:srp:bqtd")
     except getopt.GetoptError:
         print(usage_str)
         sys.exit(2)
@@ -106,24 +106,26 @@ def main(argv):
         # report configuration
         elif opt in ("-s", "--save-data"):
             options_dict["save_data"] = True
+        elif opt in ("-r", "--refresh-web-data"):
+            options_dict["refresh_web_data"] = True
         elif opt in ("-p", "--playoff-prob-sims"):
             options_dict["playoff_prob_sims"] = arg
         elif opt in ("-b", "--break-ties"):
-            options_dict["break_ties_bool"] = True
+            options_dict["break_ties"] = True
         elif opt in ("-q", "--disqualify-ce"):
-            options_dict["dq_ce_bool"] = True
+            options_dict["dq_ce"] = True
 
         # for developers
         elif opt in ("-t", "--test"):
-            options_dict["test_bool"] = True
+            options_dict["test"] = True
         elif opt in ("-d", "--dev-offline"):
             options_dict["dev_offline"] = True
 
     return options_dict
 
 
-def select_league(league_id, week, game_id, save_data, playoff_prob_sims, break_ties_bool, dq_ce_bool, test_bool,
-                  dev_offline):
+def select_league(league_id, week, game_id, save_data, refresh_web_data, playoff_prob_sims, break_ties, dq_ce,
+                  dev_offline, test):
     if not league_id:
         default = input("Generate report for default league? (y/n) -> ")
     else:
@@ -132,62 +134,64 @@ def select_league(league_id, week, game_id, save_data, playoff_prob_sims, break_
     if default == "y":
 
         if not week:
-            chosen_week = select_week()
+            week_for_report = select_week()
         else:
-            chosen_week = week
+            week_for_report = week
 
-        return FantasyFootballReport(week=chosen_week,
+        return FantasyFootballReport(week_for_report=week_for_report,
                                      game_id=game_id,
                                      save_data=save_data,
+                                     refresh_web_data=refresh_web_data,
                                      playoff_prob_sims=playoff_prob_sims,
-                                     break_ties_bool=break_ties_bool,
-                                     dq_ce_bool=dq_ce_bool,
-                                     test_bool=test_bool,
-                                     dev_offline=dev_offline)
+                                     break_ties=break_ties,
+                                     dq_ce=dq_ce,
+                                     dev_offline=dev_offline,
+                                     test=test)
     elif default == "n":
         league_id = input(
-            "What is the league ID of the Yahoo league for which you want to generate a report? -> ")
+            "What is the league ID of the league for which you want to generate a report? -> ")
 
         if not week:
-            chosen_week = select_week()
+            week_for_report = select_week()
         else:
-            chosen_week = week
+            week_for_report = week
 
         try:
             return FantasyFootballReport(league_id=league_id,
-                                         week=chosen_week,
+                                         week_for_report=week_for_report,
                                          game_id=game_id,
                                          save_data=save_data,
+                                         refresh_web_data=refresh_web_data,
                                          playoff_prob_sims=playoff_prob_sims,
-                                         break_ties_bool=break_ties_bool,
-                                         dq_ce_bool=dq_ce_bool,
-                                         test_bool=test_bool,
-                                         dev_offline=dev_offline)
-
+                                         break_ties=break_ties,
+                                         dq_ce=dq_ce,
+                                         dev_offline=dev_offline,
+                                         test=test)
         except IndexError:
             print("The league ID you have selected is not valid.")
-            select_league(None, week, game_id, save_data, playoff_prob_sims, break_ties_bool, dq_ce_bool, test_bool,
-                          dev_offline)
+            select_league(None, week, game_id, save_data, refresh_web_data, playoff_prob_sims, break_ties, dq_ce,
+                          dev_offline, test)
     elif default == "selected":
 
         if not week:
-            chosen_week = select_week()
+            week_for_report = select_week()
         else:
-            chosen_week = week
+            week_for_report = week
 
         return FantasyFootballReport(league_id=league_id,
-                                     week=chosen_week,
+                                     week_for_report=week_for_report,
                                      game_id=game_id,
                                      save_data=save_data,
+                                     refresh_web_data=refresh_web_data,
                                      playoff_prob_sims=playoff_prob_sims,
-                                     break_ties_bool=break_ties_bool,
-                                     dq_ce_bool=dq_ce_bool,
-                                     test_bool=test_bool,
-                                     dev_offline=dev_offline)
+                                     break_ties=break_ties,
+                                     dq_ce=dq_ce,
+                                     dev_offline=dev_offline,
+                                     test=test)
     else:
         print("You must select either 'y' or 'n'.")
-        select_league(None, week, game_id, save_data, playoff_prob_sims, break_ties_bool, dq_ce_bool, test_bool,
-                      dev_offline)
+        select_league(None, week, game_id, save_data, refresh_web_data, playoff_prob_sims, break_ties, dq_ce,
+                      dev_offline, test)
 
 
 def select_week():
@@ -215,34 +219,47 @@ if __name__ == '__main__':
                            options.get("week", None),
                            options.get("game_id", None),
                            options.get("save_data", False),
+                           options.get("refresh_web_data", False),
                            options.get("playoff_prob_sims", None),
-                           options.get("break_ties_bool", False),
-                           options.get("dq_ce_bool", False),
-                           options.get("test_bool", False),
-                           options.get("dev_offline", False))
+                           options.get("break_ties", False),
+                           options.get("dq_ce", False),
+                           options.get("dev_offline", False),
+                           options.get("test", False))
     report_pdf = report.create_pdf_report()
 
-    upload_file_to_google_drive_bool = bool(
-        distutils.strtobool(config.get("Google_Drive_Settings", "google_drive_upload")))
+    upload_file_to_google_drive = config.getboolean("Drive", "google_drive_upload")
     upload_message = ""
-    if upload_file_to_google_drive_bool:
-        if not options.get("test_bool", False):
+    if upload_file_to_google_drive:
+        if not options.get("test", False):
             # upload pdf to google drive
-            google_drive_uploader = GoogleDriveUploader(report_pdf)
+            google_drive_uploader = GoogleDriveUploader(report_pdf, config)
             upload_message = google_drive_uploader.upload_file()
             logger.info(upload_message)
         else:
             logger.info("Test report NOT uploaded to Google Drive.")
 
-    post_to_slack_bool = bool(distutils.strtobool(config.get("Slack_Settings", "post_to_slack")))
-    if post_to_slack_bool:
-        if not options.get("test_bool", False):
+    post_to_slack = config.getboolean("Slack", "post_to_slack")
+    if post_to_slack:
+        if not options.get("test", False):
+            # post pdf or link to pdf to slack
             slack_messenger = SlackMessenger(config)
-            # post shareable link to uploaded google drive pdf on slack
-            # logger.info(slack_messenger.post_to_selected_slack_channel(upload_message))
+            post_or_file = config.get("Slack", "post_or_file")
 
-            # upload pdf report directly to slack
-            logger.info(slack_messenger.upload_file_to_selected_slack_channel(report_pdf))
-            logger.info("DONE!")
+            if post_or_file == "post":
+                # post shareable link to uploaded google drive pdf on slack
+                slack_response = slack_messenger.post_to_selected_slack_channel(upload_message)
+            elif post_or_file == "file":
+                # upload pdf report directly to slack
+                slack_response = slack_messenger.upload_file_to_selected_slack_channel(report_pdf)
+            else:
+                logger.warning(
+                    "You have configured \"config.ini\" with unsupported Slack setting: post_or_file = {}. "
+                    "Please choose \"post\" or \"file\" and try again.".format(post_or_file))
+                sys.exit()
+            if slack_response.get("ok"):
+                logger.info("Report {} successfully posted to Slack!".format(report_pdf))
+            else:
+                logger.error("Report {} was NOT posted to Slack with error: {}".format(
+                    report_pdf, slack_response.get("error")))
         else:
             logger.info("Test report NOT posted to Slack.")

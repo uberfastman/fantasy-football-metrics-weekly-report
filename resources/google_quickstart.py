@@ -16,7 +16,7 @@ def main():
     Prints the names and ids of the first 10 files the user has access to.
     """
 
-    google_auth_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "authentication", "google")
+    google_auth_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "auth", "google")
     if not os.path.exists(google_auth_dir):
         os.makedirs(google_auth_dir)
     token_file_path = os.path.join(google_auth_dir, "token.json")

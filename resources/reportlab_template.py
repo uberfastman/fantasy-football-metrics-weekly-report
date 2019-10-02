@@ -1,13 +1,7 @@
-__author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
-
-from reportlab.lib.styles import ParagraphStyle as PS
-from reportlab.platypus import PageBreak
-from reportlab.platypus.paragraph import Paragraph
-from reportlab.platypus.doctemplate import PageTemplate, SimpleDocTemplate
-from reportlab.platypus.tableofcontents import TableOfContents
-from reportlab.platypus.frames import Frame
 from reportlab.lib.units import cm
+from reportlab.platypus.doctemplate import PageTemplate, SimpleDocTemplate
+from reportlab.platypus.frames import Frame
+from reportlab.platypus.paragraph import Paragraph
 
 
 class MyDocTemplate(SimpleDocTemplate):
@@ -15,7 +9,7 @@ class MyDocTemplate(SimpleDocTemplate):
     def __init__(self, filename, **kw):
         self.allowSplitting = 0
         SimpleDocTemplate.__init__(self, filename, **kw)
-        template = PageTemplate('normal', [Frame(2.5*cm, 2.5*cm, 15*cm, 25*cm, id='F1')])
+        template = PageTemplate('normal', [Frame(2.5 * cm, 2.5 * cm, 15 * cm, 25 * cm, id='F1')])
         self.addPageTemplates(template)
 
     # Entries to the table of contents can be done either manually by
@@ -28,17 +22,17 @@ class MyDocTemplate(SimpleDocTemplate):
     # afterFlowable(), making notification calls using the notify() method
     # with appropriate data.
 
-    # def afterFlowable(self, flowable):
-    #     """Registers TOC entries."""
-    #     if flowable.__class__.__name__ == 'Paragraph':
-    #         text = flowable.getPlainText()
-    #         style = flowable.style.name
-    #         if style == 'Heading1':
-    #             self.notify('TOCEntry', (0, text, self.page))
-    #         if style == 'Heading2':
-    #             self.notify('TOCEntry', (1, text, self.page))
+    def afterFlowable1(self, flowable):
+        """Registers TOC entries."""
+        if flowable.__class__.__name__ == 'Paragraph':
+            text = flowable.getPlainText()
+            style = flowable.style.name
+            if style == 'Heading1':
+                self.notify('TOCEntry', (0, text, self.page))
+            if style == 'Heading2':
+                self.notify('TOCEntry', (1, text, self.page))
 
-    def afterFlowable(self, flowable):
+    def afterFlowable2(self, flowable):
         if isinstance(flowable, Paragraph):
             txt = flowable.getPlainText()
             style = flowable.style.name
