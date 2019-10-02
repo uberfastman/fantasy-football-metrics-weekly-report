@@ -15,9 +15,14 @@ logger.setLevel(level=logging.INFO)
 
 class SlackMessenger(object):
     def __init__(self, config):
+
+        self.project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
         self.config = config
 
-        with open(self.config.get("Slack", "slack_auth_token"), "r") as token_file:
+        auth_token = os.path.join(self.project_dir, self.config.get("Slack", "slack_auth_token"))
+
+        with open(auth_token, "r") as token_file:
             # more information at https://api.slack.com/web#authentication
             slack_api_access_token = json.load(token_file).get("access_token")
             self.sc = SlackClient(slack_api_access_token)
@@ -78,6 +83,8 @@ class SlackMessenger(object):
         message = "\nFantasy Football Report for %s\nGenerated %s\n" % (league_name,
                                                                         "{:%Y-%b-%d %H:%M:%S}".format(
                                                                             datetime.datetime.now()))
+
+        upload_file = os.path.join(self.project_dir, upload_file)
         with open(upload_file, "rb") as uf:
             # post message with no additional content to trigger @here
             self.post_to_selected_slack_channel("")

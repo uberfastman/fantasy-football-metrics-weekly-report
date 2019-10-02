@@ -139,6 +139,7 @@ class BeefStats(object):
                 "weight": 0,
                 "tabbu": 0,
             }
+            return self.beef_data[player_full_name][key_str]
 
     def get_player_weight(self, player_first_name, player_last_name, team_abbr):
         return self.get_player_beef_stat(player_first_name, player_last_name, team_abbr, "weight")

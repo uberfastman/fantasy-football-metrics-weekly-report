@@ -4,6 +4,7 @@ __email__ = "wrenjr@yahoo.com"
 
 import datetime
 import logging
+import os
 from configparser import ConfigParser
 
 from pydrive.auth import GoogleAuth
@@ -22,11 +23,13 @@ logging.getLogger("googleapiclient.discovery_cache.file_cache").setLevel(level=l
 class GoogleDriveUploader(object):
     def __init__(self, filename, config):
 
-        self.filename = filename
+        project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+        self.filename = os.path.join(project_dir, filename)
         self.config = config
         self.gauth = GoogleAuth()
 
-        auth_token = self.config.get("Drive", "google_auth_token")
+        auth_token = os.path.join(project_dir, self.config.get("Drive", "google_auth_token"))
 
         # Try to load saved client credentials
         self.gauth.LoadCredentialsFile(auth_token)
@@ -136,6 +139,7 @@ class GoogleDriveUploader(object):
 if __name__ == '__main__':
     local_config = ConfigParser()
     local_config.read("config.ini")
+    local_config.read(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.ini"))
     reupload_file = local_config.get("Drive", "reupload_file")
 
     google_drive_uploader = GoogleDriveUploader(reupload_file, local_config)
