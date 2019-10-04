@@ -4,7 +4,7 @@
 ### About
 The Fantasy Football Metrics Weekly Report application automatically generates a report in the form of a PDF file that contains a host of metrics and rankings for teams in a given fantasy football league.
 
-#### ***You can see an example of what a report looks like [here](resources/files/EXAMPLE-report.pdf})!***
+#### ***You can see an example of what a report looks like [here](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/blob/develop/resources/files/EXAMPLE-report.pdf})!***
 
 <a name="dependencies"></a>
 ### Dependencies
