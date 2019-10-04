@@ -4,6 +4,8 @@
 ### About
 The Fantasy Football Metrics Weekly Report application automatically generates a report in the form of a PDF file that contains a host of metrics and rankings for teams in a given fantasy football league.
 
+#### ***You can see an example of what a report looks like [here](https://docs.google.com/viewer?url=https://github.com/uberfastman/fantasy-football-metrics-weekly-report/blob/develop/resources/files/EXAMPLE-report.pdf})!***
+
 <a name="dependencies"></a>
 ### Dependencies
 The application has only been tested in macOS, but should be cross-platform compatible. The app requires Python 3 (Python 2 is no longer supported).
