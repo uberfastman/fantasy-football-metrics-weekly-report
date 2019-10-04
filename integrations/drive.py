@@ -65,13 +65,20 @@ class GoogleDriveUploader(object):
 
         if not test:
             # Check for parent folder for league and create it if it does not exist
-            league_folder_name = self.filename.split("/")[2].replace("-", "_")
+            # noinspection PyTypeChecker
+            season_folder_name = self.filename.split(os.sep)[-3].replace("-", "_")
+            season_folder_id = self.make_parent_folder(drive,
+                                                       self.check_file_existence(season_folder_name, all_folders),
+                                                       season_folder_name, google_drive_root_folder_id)
+
+            # noinspection PyTypeChecker
+            league_folder_name = self.filename.split(os.sep)[-2].replace("-", "_")
             league_folder_id = self.make_parent_folder(drive,
                                                        self.check_file_existence(league_folder_name, all_folders),
-                                                       league_folder_name, google_drive_root_folder_id)
+                                                       league_folder_name, season_folder_id)
 
             # Check for league report and create if if it does not exist
-            report_file_name = self.filename.split("/")[-1]
+            report_file_name = self.filename.split(os.sep)[-1]
             report_file = self.check_file_existence(report_file_name, all_pdfs)
         else:
             report_file_name = self.filename
