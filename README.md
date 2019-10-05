@@ -1,58 +1,106 @@
 # Fantasy Football Metrics Weekly Report
 
+### Table of Contents
+* [About](#about)
+    * [Example Report](#example)
+* [Dependencies](#dependencies)
+* [Setup](#setup)
+    * [Yahoo Setup](#yahoo)
+* [Running the Report Application](#running)
+* [Configuration](#configuration)
+* [Usage](#usage)
+* [Additional Features](#features)
+    * [Google Drive](#google)
+    * [Slack](#slack)
+* [Troubleshooting](#troubleshooting)
+
+---
+
 <a name="about"></a>
 ### About
 The Fantasy Football Metrics Weekly Report application automatically generates a report in the form of a PDF file that contains a host of metrics and rankings for teams in a given fantasy football league.
 
+<a name="example"></a>
 #### ***You can see an example of what a report looks like [here](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/blob/develop/resources/files/EXAMPLE-report.pdf)!***
+
+---
 
 <a name="dependencies"></a>
 ### Dependencies
-The application has only been tested in macOS, but should be cross-platform compatible. The app requires Python 3 (Python 2 is no longer supported).
+The application has only been tested in macOS, but should be cross-platform compatible. The app requires Python 3 (Python 2 is no longer supported). To check if you have Python 3 installed, open up a window in Terminal (macOS), Command Prompt (Windows), or a command line shell of your choice, and run `python --version`. If the return is `Python 3.x.x`, you are good to go. If the return is `Python 2.x.x`, you will need to install Python 3. Check out the instructions [here](https://realpython.com/installing-python/) for how to install Python 3 on your system.
 
-Project dependencies can be viewed in the `requirements.txt` file.
+Project dependencies can be viewed in the [`requirements.txt`](requirements.txt) file.
+
+---
 
 <a name="setup"></a>
-### Setup (Yahoo)*
+### Setup*
 
-* Log in to a Yahoo account with access to whatever fantasy football leagues from which you wish to retrieve data.
-* Go to [https://developer.yahoo.com/apps/create/](https://developer.yahoo.com/apps/create/) and create an app (you must be logged into your Yahoo account as stated above). For the app, select the following options:
-    * `Application Name` (**Required**): `yffpy` (you can name your app whatever you want, but this is just an example).
-    * `Application Type` (**Required**): select the `Installed Application` radio button.
-    * `Description` (*Optional*): you *may* write a description of what the app does.
-    * `Home Page URL` (*Optional*): if you have a web address related to your app you *may* add it here.
-    * `Redirect URI(s)` (**Required**): this field must contain a valid redirect address, so you can use `localhost:8080`
-    * `API Permissions` (**Required**): check the `Fantasy Sports` checkbox. You can leave the `Read` option selected (appears in an accordion expansion underneath the `Fantasy Sports` checkbox once you select it).
-    * Click the `Create App` button.
-    * Once the app is created, it should redirect you to a page for your app, which will show both a `Client ID` and a `Client Secret`.
-    * Rename `EXAMPLE-private.json` (located in the `auth/yahoo` directory) to just `private.json`, and copy the `Client ID` and `Client Secret` values to their respective fields (make sure the strings are wrapped regular quotes (`""`), NOT formatted quotes (`“”`)). The path to this file will be needed to point YFFPY to your credentials.
-    * Now you should be ready to initialize the OAuth connection between the report generator and your Yahoo account.
+The Fantasy Football Metrics Weekly Report requires several different sets of setup steps, depending on how you wish to run it. To get the application running locally, you will first need to do the following:
+
+* Make sure your operating system (OS) has Python 3 installed. See the above section on [dependencies](#dependencies) for instructions.
+
+* After you've finished installing Python 3, check that it has been successfully installed by running `python3 --version` (or `py -0p` (or `py -3` to see if you can launch Python 3 if `py -0p` fails) if using the [Python launcher for Windows](https://docs.python.org/3/using/windows.html#python-launcher-for-windows) in Windows to list installed Python version with their paths) in the command line again, and confirming that it outputs `Python 3.x.x`. If it *does **not***, double check that you followed all Python 3 installation steps correctly.
+
+* Open a command line prompt
+    * ***macOS***: type `Cmd + Space` (`⌘ + Space`) to bring up Spotlight, and search for "Terminal" and hit enter).
+    * ***Windows***: type `Windows + R` to open the "Run" box, then type `cmd` and then click "OK" to open a regular Command Prompt (or type `cmd` and then press `Ctrl + Shift + Enter` to open an administrator Command Prompt)
+    * ***Linux***: type `Ctrl+Alt+T` (in Ubuntu).
     
-* Open a Terminal window (command line prompt)
+* Install `git` (if you do not already have it installed). You can see instructions for installation on your OS [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git). If you are comfortable using the command line, feel free to just install `git` for the command line. *However*, if using the command line is not something you have much experience with and would prefer to do less in a command line shell, you should install [Git for Desktop](https://desktop.github.com).
 
-* Run `pip install virtualenv virtualenvwrapper` (if not already installed)
+* Clone this project to whichever directory you wish:
 
-* Add the below virtualenvwrapper configs to `~/.bashrc`:
+    * If you already have an account on [GitHub](https://github.com), then I recommend using [SSH to connect with GitHub](https://help.github.com/en/articles/connecting-to-github-with-ssh).
+    
+    * If using SSH (as described in the link above), run:
+    ```bash
+    git clone git@github.com:uberfastman/fantasy-football-metrics-weekly-report.git
     ```
-    export WORKON_HOME=$HOME/.virtualenvs
-    source /usr/local/bin/virtualenvwrapper.sh
+  
+    * If ***not*** using SSH, then use HTTPS by running:
+    ```bash
+    git clone https://github.com/uberfastman/fantasy-football-metrics-weekly-report.git
     ```
+  
+* Run `cd fantasy-football-metrics-weekly-report` to enter the project directory.
+
+* Run `pip3 install virtualenv virtualenvwrapper` (if not already installed).
+
+* Run `touch ~/.bashrc`.
+
+* Run 
+    ```bash
+    echo 'export WORKON_HOME=$HOME/.virtualenvs' >> ~/.bashrc
+    echo 'source /usr/local/bin/virtualenvwrapper.sh' >> ~/.bashrc
+    ```
+  
 * Run `source ~/.bashrc`
 
-* Navigate to the project root directory:
-    ```
-    cd /INSERT/PATH/TO/LOCAL/PROJECT/HERE/yahoo-fantasy-football-metrics
-    ```
+* Run `which python3`. This should output something like `/usr/local/bin/python3`. Copy that path for the next step.
 
-* Run `mkvirtualenv fantasy-football-metrics`
+* Run `mkvirtualenv -p /usr/local/bin/python3 ff-metrics-weekly-report`.
+
+* When the previous command is finished running, your command line prompt should now look something like this:
+    ```
+    (ff-metrics-weekly-report) [username@Computer 02:52:01 PM] ~/fantasy-football-metrics-weekly-report $
+    ```
+  Congratulations, you have successfully created a Python 3 virtual environment for the project to run in!
+
+* Run `pip install -r requirements.txt`
+
+_\* General setup excludes Google Drive and Slack integrations. See below sections for details on including those additional features._
+
+---
+
+<a name="running"></a>
+### Running the Report Application
 
 * Update the default Yahoo Fantasy football league id in the `config.ini` to your own league id. You can find your league id by going to [https://football.fantasysports.yahoo.com](https://football.fantasysports.yahoo.com), clicking on your league, and looking here:
 
     ![yahoo-fantasy-football-league-id-location.png](resources/images/yahoo-fantasy-football-league-id-location.png)
 
 * In the `config.ini`, change the value for `league_id` to your above located league id.
-
-* Run `pip install -r requirements.txt`
 
 * Run `python main.py`. You should see the following prompts: 
     * `Generate report for default league? (y/n) -> `. 
@@ -68,8 +116,39 @@ Project dependencies can be viewed in the `requirements.txt` file.
       ```
       Paste the verifier code there and hit enter.
     * Assuming the above went as expected, the application should now generate a report for your fantasy league for the selected NFL week.
+    
+***NOTE***: You can also specify a large number of configuration options directly in the command line. Please see the [usage section](#usage) for more information.
 
-_\* General setup excludes Google Drive and Slack integrations. See below sections for details on including those additional features._
+---
+
+<a name="yahoo"></a>
+#### Yahoo Setup
+
+* Log in to a Yahoo account with access to whatever fantasy football leagues from which you wish to retrieve data.
+
+* Go to [https://developer.yahoo.com/apps/create/](https://developer.yahoo.com/apps/create/) and create an app (you must be logged into your Yahoo account as stated above). For the app, select the following options:
+
+    * `Application Name` (**Required**): `yffpy` (you can name your app whatever you want, but this is just an example).
+    
+    * `Application Type` (**Required**): select the `Installed Application` radio button.
+    
+    * `Description` (*Optional*): you *may* write a description of what the app does.
+    
+    * `Home Page URL` (*Optional*): if you have a web address related to your app you *may* add it here.
+    
+    * `Redirect URI(s)` (**Required**): this field must contain a valid redirect address, so you can use `localhost:8080`
+    
+    * `API Permissions` (**Required**): check the `Fantasy Sports` checkbox. You can leave the `Read` option selected (appears in an accordion expansion underneath the `Fantasy Sports` checkbox once you select it).
+    
+    * Click the `Create App` button.
+    
+    * Once the app is created, it should redirect you to a page for your app, which will show both a `Client ID` and a `Client Secret`.
+    
+    * Rename `EXAMPLE-private.json` (located in the `auth/yahoo` directory) to just `private.json`, and copy the `Client ID` and `Client Secret` values to their respective fields (make sure the strings are wrapped regular quotes (`""`), NOT formatted quotes (`“”`)). The path to this file will be needed to point YFFPY to your credentials.
+    
+    * Now you should be ready to initialize the OAuth connection between the report generator and your Yahoo account.
+
+---
 
 <a name="configuration"></a>
 ### Configuration
@@ -104,6 +183,7 @@ The available settings are as follows:
 | `slack_channel`                          | Selected Slack channel where reports are uploaded. |
 | `repost_file`                            | File path of selected report that you wish to repost to Slack. | 
 
+---
 
 <a name="usage"></a>
 ### Usage
@@ -125,7 +205,6 @@ After completing the above setup and configuration steps, you should now be able
 | `-d, --dev-offline`          | Run ***OFFLINE*** (for development). Must have previously run report with -s option. |
 | `-t, --test`                 | Generate TEST report (for development) |
 
-
 When you are done working within the `virtualenv`, you can run `deactivate` within the environment to exit:
 ```
 (fantasy-football-metrics)host-machine:yahoo-fantasy-football-metrics user$ deactivate
@@ -138,6 +217,8 @@ When you wish to work within the `virtualenv` once more, do the following:
  * View `virtualenvs` that you have available: `lsvirtualenv`
  
  * Run `workon fantasy-football-metrics`
+
+---
 
 <a name="features"></a>
 ### Additional Features
@@ -152,34 +233,64 @@ The Fantasy Football Metrics Weekly Report application includes Google Drive int
 The following setup steps are ***required*** in order to allow the Google Drive integration to function properly:
 
 * Log in to your Google account (or make one if you don't have one).
+
 * Create a [new project](https://console.developers.google.com/projectcreate?folder=&organizationId=0) in the Google Developers Console.
+
 * Accept the terms & conditions.
+
 * Name your project, something like `ff-report-drive-uploader`, but it can be anything you like.
+
 * Click "CREATE".
+
 * It will take a few moments for the project to be created, but once it is there will be a notification.
+
 * Go to the [Google Developers Console](https://console.developers.google.com/apis/dashboard).
+
 * Your new project should automatically load in the dashboard, but in the event it does not or you have other projects (a different project might load by default), click the project name on the top left of the page (to the right of where it says "Google APIs"), and select your new project.
+
 * Either click the `+ ENABLE APIS AND SERVICES` button on the top of the page, or select "Library" from the menu on the left, search for "Google Drive API", and click "Google Drive API" when it comes up.
+
 * Click `ENABLE`.
+
 * After a moment it will be enabled. Click "Credentials" from the left menu and then click "Create Credentials".
+
 * From the menu that drops down, select "OAuth client ID".
+
 * Click on "Configure Consent Screen".
+
 * Put `yff-report-drive-uploader` in `Application name`.
+
 * Click `Add Scope`, check the box next to the `../auth/drive` scope, and click `ADD`.
+
 * Click `SAVE` at the bottom of the screen.
+
 * Now go click "Credentials" again from the left menu and then click "Create Credentials", then select "OAuth client ID".
+
 * Select "Other" from the radio buttons, and put `yff-report-drive-uploader-client-id`.
+
 * Click "Create".
+
 * A popup with your `client ID` and `client secret` will appear. Click "OK".
+
 * On the far right of your new credential, click the little arrow that displays "Download JSON" when you hover over it.
+
 * Your credentials JSON file will download. Rename it `credentials.json`, and put it in the `auth/google/` directory where `EXAMPLE-credentials.json` is located.
+
 * Open a terminal window and run `python utils/quickstart.py`.
+
 * A browser window will open asking you to either select a Google account to log into (if you have multiple) or log in. Select your account/login.
+
 * A warning screen will appear saying "This app isn't verified". Click "Advanced" and then "Go to yff-report-drive-uploader (unsafe)" (this screen may vary depending on your web browser, but the point is you need to proceed past the warning).
+
 * On the next screen, a popup saying "Grant yff-report-drive-uploader permission" will appear. Click "Allow", then "Allow" again on the following "Confirm your choices" screen.
+
 * You will see a screen that says only "The authentication flow has completed.", which you can close.
+
 * Go back to your terminal window where you ran `python resources/google_quickstart.py`. It should have printed "Authentication successful.", as well as a list of 10 files in your Google Drive to confirm it can access your drive. It will also have automatically generated a `token.json` file in `auth/google/`, which you should just leave where it is and do ***NOT*** edit or modify in any way!
+
 * *You can now upload your reports to Google Drive, either by changing the value of `google_drive_upload` to `True` in `config.ini`, or by setting the value of `reupload_file` in `config.ini` to the filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/drive.py`*.
+
+---
 
 <a name="slack"></a>
 #### Slack Integration Setup
@@ -189,24 +300,42 @@ The Fantasy Football Metrics Weekly Report application includes integration with
 The following setup steps are ***required*** in order to allow the Slack integration to function properly:
 
 * Sign in to your slack workspace [here](https://slack.com/signin).
+
 * Once logged in, you need to [create a new app](https://api.slack.com/apps?new_app=1) for your workspace.
+
 * After the popup appears, fill in the fields as follows:
+
     * `App Name`: `ff-report` (this name can be anything you want)
+    
     * `Development Slack Workspace`: Select your chosen Slack workspace from the dropdown menu.
+    
 * Click `Create App`. You should now be taken to the page for your new app, where you can configure things like the app title card color, the icon, the description, as well as a whole host of other features (see [here](https://api.slack.com/slack-apps) for more information).
+
 * Select `OAuth & Permissions` from the menu on the left.
+
 * Scroll down to the `Scopes` section, from the dropdown menu select the following:
+
     * `Send messages as ff-report` (`chat:write:bot`) from the `Conversations` category/section 
+    
     * `Upload and modify files as user` (`files:write:user`) from the `Files` category/section (Only select this option if you want to be able to upload the actual report PDFs to Slack, otherwise if you are only going to upload a Google Drive link, you can disregard this scope. Slack does not currently provide a way to upload files as the app, only as the logged in user.)
+    
 * Click `Save Changes`.
+
 * Scroll back to the top of the page and click `Install App to Workspace`. You should be redirected to a confirmation page telling you what your app will be able to do. Click `Allow`.
+
 * You should be redirected back to the app management page for your app. At the top of the `OAuth & Permissions` section you should now see a field containing and `OAuth Access Token`.
+
 * Rename `auth/slack/EXAMPLE-token.json` to `token.json`, and copy the above `OAuth Access Token` into the field value of `token.json` where it says `"SLACK_APP_OAUTH_ACCESS_TOKEN_STRING"`, replacing that string. Make sure you are using douple quotes (`"`) on either side of your token string. 
+
 * *You can now upload your reports to Slack, either by updating the following values in `config.ini`:*
+
     * `post_to_slack = True`
+    
     * `slack_channel = channel-name` (this can be set to whichever channel you wish to post (as long as the user who created the app has access to that channel)
     
   *Or by setting the value of `repost_file` in `config.ini` to the filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/slack.py`*.  
+
+---
 
 <a name="troubleshooting"></a>
 ### Troubleshooting (Yahoo)
