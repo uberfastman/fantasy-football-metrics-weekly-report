@@ -65,29 +65,35 @@ The Fantasy Football Metrics Weekly Report requires several different sets of se
   
 * Run `cd fantasy-football-metrics-weekly-report` to enter the project directory.
 
-* Run `pip3 install virtualenv virtualenvwrapper` (if not already installed).
+* Set up a virtual environment:
+    * macOS/Linux:
 
-* Run `touch ~/.bashrc`.
+        * Run `pip3 install virtualenv virtualenvwrapper` (if not already installed).
 
-* Run 
-    ```bash
-    echo 'export WORKON_HOME=$HOME/.virtualenvs' >> ~/.bashrc
-    echo 'source /usr/local/bin/virtualenvwrapper.sh' >> ~/.bashrc
-    ```
+        * Run `touch ~/.bashrc`.
+
+        * Run 
+            ```bash
+            echo 'export WORKON_HOME=$HOME/.virtualenvs' >> ~/.bashrc
+            echo 'source /usr/local/bin/virtualenvwrapper.sh' >> ~/.bashrc
+            ```
   
-* Run `source ~/.bashrc`
+        * Run `source ~/.bashrc`
 
-* Run `which python3`. This should output something like `/usr/local/bin/python3`. Copy that path for the next step.
+        * Run `which python3`. This should output something like `/usr/local/bin/python3`. Copy that path for the next step.
 
-* Run `mkvirtualenv -p /usr/local/bin/python3 ff-metrics-weekly-report`.
+        * Run `mkvirtualenv -p /usr/local/bin/python3 ff-metrics-weekly-report`.
 
-* When the previous command is finished running, your command line prompt should now look something like this:
-    ```
-    (ff-metrics-weekly-report) [username@Computer 02:52:01 PM] ~/fantasy-football-metrics-weekly-report $
-    ```
-  Congratulations, you have successfully created a Python 3 virtual environment for the project to run in!
+        * When the previous command is finished running, your command line prompt should now look something like this:
+            ```
+            (ff-metrics-weekly-report) [username@Computer 02:52:01 PM] ~/fantasy-football-metrics-weekly-report $
+            ```
+        Congratulations, you have successfully created a Python 3 virtual environment for the project to run in!
 
-* Run `pip install -r requirements.txt`
+    * Windows:
+        * ***If you are using Windows, please follow the instructions for using `virtualenvwrapper-win` [here](https://pypi.org/project/virtualenvwrapper-win/), and adjust the above steps for setting up a virtualenv in macOS/Linux accordingly!***
+
+* Finally, run `pip install -r requirements.txt`
 
 _\* General setup excludes Google Drive and Slack integrations. See below sections for details on including those additional features._
 
