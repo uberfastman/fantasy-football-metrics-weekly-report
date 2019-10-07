@@ -211,7 +211,27 @@ The Fantasy Football Metrics Weekly Report application allows certain aspects of
 
 The app ***REQUIRES*** that `config.ini` be present, so you will need to rename `EXAMPLE-config.ini` to just `config.ini`. Then update the values to reflect the league for which you wish to generate a report, as well as any other settings you wish to change from the default values.
 
-The available settings are as follows:
+For those of you who wish to configure the report to include a custom subset of the available features (for instance, if you want league stats but not team pages, or if you want score rankings but not coaching efficiency), the `Report` section in the config file allows all features to be turned on or off. You must use a boolean value (`True` or `False`) to turn on/off any of the available report features, which are the following:
+
+    league_standings = True
+    league_playoff_probs = True
+    league_power_rankings = True
+    league_z_score_rankings = True
+    league_score_rankings = True
+    league_coaching_efficiency_rankings = True
+    league_luck_rankings = True
+    league_weekly_top_scorers = True
+    league_weekly_highest_ce = True
+    league_bad_boy_rankings = True
+    league_beef_rankings = True
+    report_time_series_charts = True
+    report_team_stats = True
+    team_points_by_position_charts = True
+    team_bad_boy_stats = True
+    team_beef_stats = True
+    team_boom_or_bust = True
+
+In addition to turning on/off the features of the report PDF itself, there are additional configuration options, which are as follows:
 
 |                  Option                  | Description |
 | ---------------------------------------: | :---------- |
