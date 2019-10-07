@@ -10,9 +10,11 @@
     * [Yahoo Setup](#yahoo)
 * [Running the Report Application](#running)
 * [Configuration](#configuration)
+   * [Report Features](#features)
+   * [Report Settings](#settings)
 * [Usage](#usage)
     * [Virtual Environment](#virtualenv)
-* [Additional Features](#features)
+* [Additional Integrations](#integrations)
     * [Google Drive](#google)
     * [Slack](#slack)
 * [Troubleshooting](#troubleshooting)
@@ -211,6 +213,9 @@ The Fantasy Football Metrics Weekly Report application allows certain aspects of
 
 The app ***REQUIRES*** that `config.ini` be present, so you will need to rename `EXAMPLE-config.ini` to just `config.ini`. Then update the values to reflect the league for which you wish to generate a report, as well as any other settings you wish to change from the default values.
 
+<a name="features"></a>
+#### Report Features
+
 For those of you who wish to configure the report to include a custom subset of the available features (for instance, if you want league stats but not team pages, or if you want score rankings but not coaching efficiency), the `Report` section in the config file allows all features to be turned on or off. You must use a boolean value (`True` or `False`) to turn on/off any of the available report features, which are the following:
 
     league_standings = True
@@ -230,6 +235,9 @@ For those of you who wish to configure the report to include a custom subset of 
     team_bad_boy_stats = True
     team_beef_stats = True
     team_boom_or_bust = True
+
+<a name="settings"></a>
+#### Report Settings
 
 In addition to turning on/off the features of the report PDF itself, there are additional configuration options, which are as follows:
 
@@ -299,10 +307,10 @@ When you wish to work within the `virtualenv` once more, do the following:
 
 ---
 
-<a name="features"></a>
-### Additional Features
+<a name="integrations"></a>
+### Additional Integrations
 
-The Fantasy Football Metrics Weekly Report application also supports several additional features if you choose to utilize them. Currently it is capable of uploading your generated reports to Google Drive, and also directly posting your generated reports to the Slack Messenger app.
+The Fantasy Football Metrics Weekly Report application also supports several additional integrations if you choose to utilize them. Currently it is capable of uploading your generated reports to Google Drive, and also directly posting your generated reports to the Slack Messenger app.
 
 <a name="google"></a>
 #### Google Drive Integration Setup
