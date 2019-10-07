@@ -72,7 +72,7 @@ There is a pre-made setup bash script in the top level of this repository called
   
 * Run `./setup.sh`
 
-    * If you get an error when running `./setup.sh`, the script might not be executable. You can run `chmod -x setup.sh` to make it executable. You may need to execute the `chmod` command as an administrator, depending on your system permissions, in which case you can run `sudo chmod -x setup.sh` and then enter your password.
+    * If you get an error when running `./setup.sh`, the script might not be executable. You can run `chmod +x setup.sh` to make it executable. You may need to execute the `chmod` command as an administrator, depending on your system permissions, in which case you can run `sudo chmod +x setup.sh` and then enter your password.
 
 * You can now skip ahead to [Running the Report Application](#running).
   
