@@ -5,6 +5,7 @@ import copy
 import logging
 import os
 import urllib.request
+from configparser import ConfigParser
 from urllib.error import URLError
 
 from reportlab.graphics.shapes import Line, Drawing
@@ -61,7 +62,7 @@ def get_image(url, data_dir, week, width=1 * inch):
 
 class PdfGenerator(object):
     def __init__(self,
-                 config,
+                 config,  # type: ConfigParser
                  league_data,
                  playoff_prob_sims,
                  report_title_text,
@@ -95,7 +96,7 @@ class PdfGenerator(object):
         self.data_for_season_weekly_highest_ce = report_data.data_for_season_weekly_highest_ce
 
         # table of contents
-        self.toc = TableOfContents(self.break_ties)
+        self.toc = TableOfContents(self.config, self.break_ties)
 
         # team data for use on team specific stats pages
         self.teams_results = report_data.teams_results
@@ -581,108 +582,124 @@ class PdfGenerator(object):
                     alphabetical_teams.append(team_data)
 
         for team in alphabetical_teams:
-
             team_key = team[0]
             team_weekly_points_by_position = team[1]
-
             team_result = self.teams_results[team_key]  # type: ReportTeam
-
-            title = self.create_title("<i>" + team_result.name + "</i>", element_type="section",
-                                      anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>")
-            self.toc.add_team_section(team_result.name)
-
-            doc_elements.append(title)
-
-            labels = []
-            weekly_data = []
-            season_data = [x[1] for x in season_average_team_data_by_position.get(team_key)]
-            for week in team_weekly_points_by_position:
-                labels.append(week[0])
-                weekly_data.append(week[1])
-
-            team_table = Table(
-                [[self.create_title("Weekly Points by Position", title_width=2.00),
-                  self.create_title("Season Average Points by Position", title_width=2.00)],
-                 [BreakdownPieDrawing(labels, weekly_data),
-                  BreakdownPieDrawing(labels, season_data)]],
-                colWidths=[4.25 * inch, 4.25 * inch],
-                style=TableStyle([
-                    ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.white),
-                    ("BOX", (0, 0), (-1, -1), 0.25, colors.white),
-                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                    ("VALIGN", (0, 0), (-1, 0), "MIDDLE")
-                ]))
-            doc_elements.append(team_table)
-            doc_elements.append(self.spacer_quarter_inch)
-
-            offending_players = []
-            starting_players = []
             player_info = self.teams_results[team_key].players
-            for player in player_info:
-                if player.bad_boy_points > 0:
-                    offending_players.append(player)
-                if player.selected_position.position not in ["BN", "IR"]:
-                    starting_players.append(player)
 
-            offending_players = sorted(offending_players, key=lambda x: x.bad_boy_points, reverse=True)
-            offending_players_data = []
-            for player in offending_players:
-                offending_players_data.append([player.name.full, player.bad_boy_points, player.bad_boy_crime])
-            # if there are no offending players, skip table
-            if offending_players_data:
-                doc_elements.append(self.create_title("Whodunnit?", 8.5, "section"))
+            if self.config.getboolean(
+                    "Report", "team_points_by_position_charts") or self.config.getboolean(
+                    "Report", "team_bad_boy_stats") or self.config.getboolean(
+                    "Report", "team_beef_stats") or self.config.getboolean(
+                    "Report", "team_boom_or_bust"):
+
+                title = self.create_title("<i>" + team_result.name + "</i>", element_type="section",
+                                          anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>")
+                self.toc.add_team_section(team_result.name)
+
+                doc_elements.append(title)
+
+            if self.config.getboolean("Report", "team_points_by_position_charts"):
+                labels = []
+                weekly_data = []
+                season_data = [x[1] for x in season_average_team_data_by_position.get(team_key)]
+                for week in team_weekly_points_by_position:
+                    labels.append(week[0])
+                    weekly_data.append(week[1])
+
+                team_table = Table(
+                    [[self.create_title("Weekly Points by Position", title_width=2.00),
+                      self.create_title("Season Average Points by Position", title_width=2.00)],
+                     [BreakdownPieDrawing(labels, weekly_data),
+                      BreakdownPieDrawing(labels, season_data)]],
+                    colWidths=[4.25 * inch, 4.25 * inch],
+                    style=TableStyle([
+                        ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.white),
+                        ("BOX", (0, 0), (-1, -1), 0.25, colors.white),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("VALIGN", (0, 0), (-1, 0), "MIDDLE")
+                    ]))
+                doc_elements.append(team_table)
+                doc_elements.append(self.spacer_quarter_inch)
+
+            if self.config.getboolean("Report", "team_bad_boy_stats"):
+                offending_players = []
+                for player in player_info:
+                    if player.bad_boy_points > 0:
+                        offending_players.append(player)
+
+                offending_players = sorted(offending_players, key=lambda x: x.bad_boy_points, reverse=True)
+                offending_players_data = []
+                for player in offending_players:
+                    offending_players_data.append([player.name.full, player.bad_boy_points, player.bad_boy_crime])
+                # if there are no offending players, skip table
+                if offending_players_data:
+                    doc_elements.append(self.create_title("Whodunnit?", 8.5, "section"))
+                    doc_elements.append(self.spacer_tenth_inch)
+                    bad_boys_table = self.create_data_table(
+                        [["Starting Player", "Bad Boy Points", "Worst Offense"]],
+                        offending_players_data,
+                        self.style_red_highlight,
+                        self.style_tied_bad_boy,
+                        [2.50 * inch, 2.50 * inch, 2.75 * inch])
+                    doc_elements.append(bad_boys_table)
+                    doc_elements.append(self.spacer_tenth_inch)
+
+            if self.config.getboolean("Report", "team_beef_stats"):
+                doc_elements.append(self.create_title("Beefiest Bois", 8.5, "section"))
                 doc_elements.append(self.spacer_tenth_inch)
-                bad_boys_table = self.create_data_table(
-                    [["Starting Player", "Bad Boy Points", "Worst Offense"]],
-                    offending_players_data,
-                    self.style_red_highlight,
-                    self.style_tied_bad_boy,
-                    [2.50 * inch, 2.50 * inch, 2.75 * inch])
-                doc_elements.append(bad_boys_table)
+                beefy_players = sorted(player_info, key=lambda x: x.tabbu, reverse=True)
+                beefy_players_data = []
+                num_beefy_bois = 3
+                ndx = 0
+                count = 0
+                while count < num_beefy_bois:
+                    player = beefy_players[ndx]
+                    if player.name.last:
+                        beefy_players_data.append([player.name.full, player.tabbu, player.weight])
+                        count += 1
+                    ndx += 1
+                beefy_boi_table = self.create_data_table([["Starting Player", "TABBU(s)", "Weight (lbs.)"]],
+                                                         beefy_players_data,
+                                                         self.style_red_highlight,
+                                                         self.style_tied_bad_boy,
+                                                         [2.50 * inch, 2.50 * inch, 2.75 * inch])
+                doc_elements.append(beefy_boi_table)
                 doc_elements.append(self.spacer_tenth_inch)
 
-            doc_elements.append(self.create_title("Beefiest Bois", 8.5, "section"))
-            doc_elements.append(self.spacer_tenth_inch)
-            beefy_players = sorted(player_info, key=lambda x: x.tabbu, reverse=True)
-            beefy_players_data = []
-            num_beefy_bois = 3
-            ndx = 0
-            count = 0
-            while count < num_beefy_bois:
-                player = beefy_players[ndx]
-                if player.name.last:
-                    beefy_players_data.append([player.name.full, player.tabbu, player.weight])
-                    count += 1
-                ndx += 1
-            beefy_boi_table = self.create_data_table([["Starting Player", "TABBU(s)", "Weight (lbs.)"]],
-                                                     beefy_players_data,
-                                                     self.style_red_highlight,
-                                                     self.style_tied_bad_boy,
-                                                     [2.50 * inch, 2.50 * inch, 2.75 * inch])
-            doc_elements.append(beefy_boi_table)
-            doc_elements.append(self.spacer_tenth_inch)
+            if self.config.getboolean("Report", "team_boom_or_bust"):
+                starting_players = []
+                for player in player_info:
+                    if player.selected_position.position not in ["BN", "IR"]:
+                        starting_players.append(player)
 
-            starting_players = sorted(starting_players, key=lambda x: x.player_points.total, reverse=True)
-            best_weekly_player = starting_players[0]
-            worst_weekly_player = starting_players[-1]
+                starting_players = sorted(starting_players, key=lambda x: x.player_points.total, reverse=True)
+                best_weekly_player = starting_players[0]
+                worst_weekly_player = starting_players[-1]
 
-            best_player_headshot = get_image(best_weekly_player.headshot.url, self.data_dir, self.week_for_report,
-                                             1 * inch)
-            worst_player_headshot = get_image(worst_weekly_player.headshot.url, self.data_dir, self.week_for_report,
-                                              1 * inch)
+                best_player_headshot = get_image(best_weekly_player.headshot.url, self.data_dir, self.week_for_report,
+                                                 1 * inch)
+                worst_player_headshot = get_image(worst_weekly_player.headshot.url, self.data_dir, self.week_for_report,
+                                                  1 * inch)
 
-            data = [["BOOOOOOOOM", "...b... U... s... T"],
-                    [best_weekly_player.name.full + " -- " + best_weekly_player.editorial_team_full_name,
-                     worst_weekly_player.name.full + " -- " + worst_weekly_player.editorial_team_full_name],
-                    [best_player_headshot, worst_player_headshot],
-                    [best_weekly_player.player_points.total, worst_weekly_player.player_points.total]]
-            table = Table(data, colWidths=4.0 * inch)
-            table.setStyle(self.boom_bust_table_style)
-            doc_elements.append(self.spacer_half_inch)
-            doc_elements.append(self.create_title("Boom... or Bust", 8.5, "section"))
-            doc_elements.append(self.spacer_tenth_inch)
-            doc_elements.append(table)
-            doc_elements.append(self.add_page_break())
+                data = [["BOOOOOOOOM", "...b... U... s... T"],
+                        [best_weekly_player.name.full + " -- " + best_weekly_player.editorial_team_full_name,
+                         worst_weekly_player.name.full + " -- " + worst_weekly_player.editorial_team_full_name],
+                        [best_player_headshot, worst_player_headshot],
+                        [best_weekly_player.player_points.total, worst_weekly_player.player_points.total]]
+                table = Table(data, colWidths=4.0 * inch)
+                table.setStyle(self.boom_bust_table_style)
+                doc_elements.append(self.spacer_half_inch)
+                doc_elements.append(self.create_title("Boom... or Bust", 8.5, "section"))
+                doc_elements.append(self.spacer_tenth_inch)
+                doc_elements.append(table)
+
+            if self.config.getboolean(
+                    "Report", "team_points_by_position_charts") or self.config.getboolean(
+                    "Report", "team_bad_boy_stats") or self.config.getboolean(
+                    "Report", "team_beef_stats") or self.config.getboolean(
+                    "Report", "team_boom_or_bust"):
+                doc_elements.append(self.add_page_break())
 
     def generate_pdf(self, filename_with_path, line_chart_data_list):
 
@@ -699,241 +716,273 @@ class PdfGenerator(object):
 
         elements.append(self.add_page_break())
 
-        # update standings style to vertically justify all rows
-        standings_style = copy.deepcopy(self.style)
-        standings_style.add("VALIGN", (0, 0), (-1, -1), "MIDDLE")
-
         # standings
-        self.create_section(
-            elements,
-            "League Standings",
-            self.standings_headers,
-            self.report_data.data_for_current_standings,
-            standings_style,
-            standings_style,
-            self.widths_10_cols_1
-        )
-        elements.append(self.spacer_tenth_inch)
+        if self.config.getboolean("Report", "league_standings"):
+            # update standings style to vertically justify all rows
+            standings_style = copy.deepcopy(self.style)
+            standings_style.add("VALIGN", (0, 0), (-1, -1), "MIDDLE")
 
-        # update playoff probabilities style to make playoff teams green
-        playoff_probs_style = copy.deepcopy(self.style)
-        playoff_probs_style.add("TEXTCOLOR", (0, 1), (-1, self.playoff_slots), colors.green)
-        playoff_probs_style.add("FONT", (0, 1), (-1, -1), "Helvetica")
+            self.create_section(
+                elements,
+                "League Standings",
+                self.standings_headers,
+                self.report_data.data_for_current_standings,
+                standings_style,
+                standings_style,
+                self.widths_10_cols_1
+            )
+            elements.append(self.spacer_tenth_inch)
 
-        data_for_playoff_probs = self.report_data.data_for_playoff_probs
-        team_num = 1
-        if data_for_playoff_probs:
-            for team in data_for_playoff_probs:
-                if float(team[3].split("%")[0]) == 100.00 and int(team[4].split(" ")[0]) == 0:
-                    playoff_probs_style.add("TEXTCOLOR", (0, team_num), (-1, team_num), colors.darkgreen)
-                    playoff_probs_style.add("FONT", (0, team_num), (-1, team_num), "Helvetica-BoldOblique")
+        if self.config.getboolean("Report", "league_playoff_probs"):
+            # update playoff probabilities style to make playoff teams green
+            playoff_probs_style = copy.deepcopy(self.style)
+            playoff_probs_style.add("TEXTCOLOR", (0, 1), (-1, self.playoff_slots), colors.green)
+            playoff_probs_style.add("FONT", (0, 1), (-1, -1), "Helvetica")
 
-                if (int(team[4].split(" ")[0]) + int(self.week_for_report)) > self.num_regular_season_weeks:
-                    playoff_probs_style.add("TEXTCOLOR", (4, team_num), (4, team_num), colors.red)
-
-                    if float(team[3].split("%")[0]) == 0.00:
-                        playoff_probs_style.add("TEXTCOLOR", (0, team_num), (-1, team_num), colors.darkred)
+            data_for_playoff_probs = self.report_data.data_for_playoff_probs
+            team_num = 1
+            if data_for_playoff_probs:
+                for team in data_for_playoff_probs:
+                    if float(team[3].split("%")[0]) == 100.00 and int(team[4].split(" ")[0]) == 0:
+                        playoff_probs_style.add("TEXTCOLOR", (0, team_num), (-1, team_num), colors.darkgreen)
                         playoff_probs_style.add("FONT", (0, team_num), (-1, team_num), "Helvetica-BoldOblique")
 
-                team_num += 1
+                    if (int(team[4].split(" ")[0]) + int(self.week_for_report)) > self.num_regular_season_weeks:
+                        playoff_probs_style.add("TEXTCOLOR", (4, team_num), (4, team_num), colors.red)
 
-        # playoff probabilities
-        if data_for_playoff_probs:
+                        if float(team[3].split("%")[0]) == 0.00:
+                            playoff_probs_style.add("TEXTCOLOR", (0, team_num), (-1, team_num), colors.darkred)
+                            playoff_probs_style.add("FONT", (0, team_num), (-1, team_num), "Helvetica-BoldOblique")
+
+                    team_num += 1
+
+            # playoff probabilities
+            if data_for_playoff_probs:
+                self.create_section(
+                    elements,
+                    "Playoff Probabilities",
+                    self.playoff_probs_headers,
+                    data_for_playoff_probs,
+                    playoff_probs_style,
+                    playoff_probs_style,
+                    self.widths_n_cols_1,
+                    subtitle_text="Playoff probabilities were calculated using %s Monte Carlo simulations to predict "
+                                  "team performances through the end of the regular fantasy season." %
+                                  "{0:,}".format(
+                                      self.playoff_prob_sims if self.playoff_prob_sims is not None else
+                                      self.config.getint("Report", "num_playoff_simulations"))
+                )
+
+        if self.config.getboolean("Report", "league_standings") or self.config.getboolean("Report",
+                                                                                          "league_playoff_probs"):
+            elements.append(self.add_page_break())
+
+        if self.config.getboolean("Report", "league_power_rankings"):
+            # power ranking
             self.create_section(
                 elements,
-                "Playoff Probabilities",
-                self.playoff_probs_headers,
-                data_for_playoff_probs,
-                playoff_probs_style,
-                playoff_probs_style,
-                self.widths_n_cols_1,
-                subtitle_text="Playoff probabilities were calculated using %s Monte Carlo simulations to predict "
-                              "team performances through the end of the regular fantasy season." %
-                              "{0:,}".format(
-                                  self.playoff_prob_sims if self.playoff_prob_sims is not None else self.config.getint(
-                                      "Report", "num_playoff_simulations"))
-            )
-        elements.append(self.add_page_break())
-
-        # power ranking
-        self.create_section(
-            elements,
-            "Team Power Rankings",
-            self.power_ranking_headers,
-            self.data_for_power_rankings,
-            self.style,
-            self.style_tied_power_rankings,
-            self.widths_4_cols_2,
-            tied_metric=self.report_data.ties_for_power_rankings > 0,
-            metric_type="power_ranking",
-            subtitle_text="Average of weekly score, coaching efficiency and luck ranks."
-        )
-        elements.append(self.spacer_twentieth_inch)
-
-        # z-scores (if week 3 or later, once meaningful z-scores can be calculated)
-        if self.data_for_z_scores:
-            self.create_section(
-                elements,
-                "Team Z-Score Rankings",
-                self.zscores_headers,
-                self.data_for_z_scores,
+                "Team Power Rankings",
+                self.power_ranking_headers,
+                self.data_for_power_rankings,
                 self.style,
-                None,
+                self.style_tied_power_rankings,
                 self.widths_4_cols_2,
-                tied_metric=False,
-                metric_type="z_score",
+                tied_metric=self.report_data.ties_for_power_rankings > 0,
+                metric_type="power_ranking",
+                subtitle_text="Average of weekly score, coaching efficiency and luck ranks."
+            )
+            elements.append(self.spacer_twentieth_inch)
+
+        if self.config.getboolean("Report", "league_z_score_rankings"):
+            # z-scores (if week 3 or later, once meaningful z-scores can be calculated)
+            if self.data_for_z_scores:
+                self.create_section(
+                    elements,
+                    "Team Z-Score Rankings",
+                    self.zscores_headers,
+                    self.data_for_z_scores,
+                    self.style,
+                    None,
+                    self.widths_4_cols_2,
+                    tied_metric=False,
+                    metric_type="z_score",
+                    subtitle_text=[
+                        "Measure of standard deviations away from mean for a score. Shows teams performing ",
+                        "above or below their normal scores for the current week.  See <a href = "
+                        "'https://en.wikipedia.org/wiki/Standard_score' color='blue'>Standard Score</a>."
+                    ]
+                )
+
+        if self.config.getboolean("Report", "league_power_rankings") or self.config.getboolean(
+                "Report", "league_z_score_rankings"):
+            elements.append(self.add_page_break())
+
+        if self.config.getboolean("Report", "league_score_rankings"):
+            # scores
+            self.create_section(
+                elements,
+                "Team Score Rankings",
+                self.scores_headers,
+                self.data_for_scores,
+                self.style,
+                self.style_tied_scores,
+                self.widths_5_cols_1,
+                tied_metric=self.report_data.ties_for_scores > 0,
+                metric_type="scores"
+            )
+            elements.append(self.spacer_twentieth_inch)
+
+        if self.config.getboolean("Report", "league_coaching_efficiency_rankings"):
+            # coaching efficiency
+            self.create_section(
+                elements,
+                "Team Coaching Efficiency Rankings",
+                self.efficiency_headers,
+                self.data_for_coaching_efficiency,
+                self.style,
+                self.style_tied_efficiencies,
+                self.widths_5_cols_1,
+                tied_metric=self.report_data.ties_for_coaching_efficiency > 0,
+                metric_type="coaching_efficiency"
+            )
+            elements.append(self.spacer_twentieth_inch)
+
+        if self.config.getboolean("Report", "league_luck_rankings"):
+            # luck
+            self.create_section(
+                elements,
+                "Team Luck Rankings",
+                self.luck_headers,
+                self.data_for_luck,
+                self.style,
+                self.style_tied_luck,
+                self.widths_5_cols_1,
+                tied_metric=self.report_data.ties_for_luck > 0,
+                metric_type="luck"
+            )
+
+        if self.config.getboolean("Report", "league_score_rankings") or self.config.getboolean(
+                "Report", "league_coaching_efficiency_rankings") or self.config.getboolean("Report",
+                                                                                           "league_luck_rankings"):
+            elements.append(self.add_page_break())
+
+        if self.config.getboolean("Report", "league_weekly_top_scorers"):
+            # weekly top scorers
+            self.create_section(
+                elements,
+                "Weekly Top Scorers",
+                self.weekly_top_scorer_headers,
+                self.data_for_season_weekly_top_scorers,
+                self.style_no_highlight,
+                self.style_no_highlight,
+                self.widths_4_cols_2,
+                tied_metric=self.report_data.ties_for_scores > 0,
+                metric_type="top_scorers"
+            )
+            elements.append(self.spacer_twentieth_inch)
+
+        if self.config.getboolean("Report", "league_weekly_highest_ce"):
+            # weekly highest coaching efficiency
+            self.create_section(
+                elements,
+                "Weekly Highest Coaching Efficiency",
+                self.weekly_highest_ce_headers,
+                self.data_for_season_weekly_highest_ce,
+                self.style_no_highlight,
+                self.style_no_highlight,
+                self.widths_4_cols_2,
+                tied_metric=self.report_data.ties_for_coaching_efficiency > 0,
+                metric_type="highest_ce"
+            )
+
+        if self.config.getboolean("Report", "league_weekly_top_scorers") or self.config.getboolean(
+                "Report", "league_weekly_highest_ce"):
+            elements.append(self.add_page_break())
+
+        if self.config.getboolean("Report", "league_bad_boy_rankings"):
+            # bad boy rankings
+            self.create_section(
+                elements,
+                "Bad Boy Rankings",
+                self.bad_boy_headers,
+                self.data_for_bad_boy_rankings,
+                self.style,
+                self.style_tied_bad_boy,
+                self.widths_6_cols_2,
+                tied_metric=self.report_data.ties_for_bad_boy_rankings > 0,
+                metric_type="bad_boy"
+            )
+            elements.append(self.spacer_twentieth_inch)
+
+        if self.config.getboolean("Report", "league_beef_rankings"):
+            # beef rankings
+            self.create_section(
+                elements,
+                "Beef Rankings",
+                self.beef_headers,
+                self.data_for_beef_rankings,
+                self.style_left_alighn_right_col,
+                self.style_tied_beef,
+                self.widths_4_cols_3,
+                tied_metric=self.report_data.ties_for_beef_rankings > 0,
+                metric_type="beef",
                 subtitle_text=[
-                    "Measure of standard deviations away from mean for a score. Shows teams performing ",
-                    "above or below their normal scores for the current week.  See <a href = "
-                    "'https://en.wikipedia.org/wiki/Standard_score' color='blue'>Standard Score</a>."
+                    "Team Beef Ranking is measured in TABBUs (Trimmed And Boneless Beef Units). "
+                    "One TABBU is currently established as 500 lbs.",
+                    "TABBU derivation stems from academic research done for the beef industry found <a href = "
+                    "'https://extension.tennessee.edu/publications/Documents/PB1822.pdf' color='blue'>here</a>."
                 ]
             )
-        elements.append(self.add_page_break())
 
-        # scores
-        self.create_section(
-            elements,
-            "Team Score Rankings",
-            self.scores_headers,
-            self.data_for_scores,
-            self.style,
-            self.style_tied_scores,
-            self.widths_5_cols_1,
-            tied_metric=self.report_data.ties_for_scores > 0,
-            metric_type="scores"
-        )
-        elements.append(self.spacer_twentieth_inch)
+        if self.config.getboolean("Report", "league_bad_boy_rankings") or self.config.getboolean(
+                "Report", "league_beef_rankings"):
+            elements.append(self.add_page_break())
 
-        # coaching efficiency
-        self.create_section(
-            elements,
-            "Team Coaching Efficiency Rankings",
-            self.efficiency_headers,
-            self.data_for_coaching_efficiency,
-            self.style,
-            self.style_tied_efficiencies,
-            self.widths_5_cols_1,
-            tied_metric=self.report_data.ties_for_coaching_efficiency > 0,
-            metric_type="coaching_efficiency"
-        )
-        elements.append(self.spacer_twentieth_inch)
+        if self.config.getboolean("Report", "report_time_series_charts"):
+            series_names = line_chart_data_list[0]
+            points_data = line_chart_data_list[2]
+            efficiency_data = line_chart_data_list[3]
+            luck_data = line_chart_data_list[4]
 
-        # luck
-        self.create_section(
-            elements,
-            "Team Luck Rankings",
-            self.luck_headers,
-            self.data_for_luck,
-            self.style,
-            self.style_tied_luck,
-            self.widths_5_cols_1,
-            tied_metric=self.report_data.ties_for_luck > 0,
-            metric_type="luck"
-        )
-        elements.append(self.add_page_break())
+            # Remove any zeros from coaching efficiency to make table prettier
+            for team in efficiency_data:
+                week_index = 0
+                for week in team:
+                    if len(team) > 1:
+                        if week[1] == 0.0:
+                            del team[week_index]
+                    week_index += 1
 
-        # weekly top scorers
-        self.create_section(
-            elements,
-            "Weekly Top Scorers",
-            self.weekly_top_scorer_headers,
-            self.data_for_season_weekly_top_scorers,
-            self.style_no_highlight,
-            self.style_no_highlight,
-            self.widths_4_cols_2,
-            tied_metric=self.report_data.ties_for_scores > 0,
-            metric_type="top_scorers"
-        )
-        elements.append(self.spacer_twentieth_inch)
+            # create line charts for points, coaching efficiency, and luck
+            charts_page_title_str = "Time Series Charts"
+            charts_page_title = self.create_title(
+                "<i>" + charts_page_title_str + "</i>", element_type="chart",
+                anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>")
+            self.toc.add_chart_section(charts_page_title_str)
+            elements.append(charts_page_title)
+            elements.append(
+                self.create_line_chart(points_data, len(points_data[0]), series_names, "Weekly Points", "Weeks",
+                                       "Fantasy Points", 10.00))
+            elements.append(self.spacer_twentieth_inch)
+            elements.append(
+                self.create_line_chart(efficiency_data, len(points_data[0]), series_names, "Weekly Coaching Efficiency",
+                                       "Weeks", "Coaching Efficiency (%)", 5.00))
+            elements.append(self.spacer_twentieth_inch)
+            elements.append(
+                self.create_line_chart(luck_data, len(points_data[0]), series_names, "Weekly Luck", "Weeks", "Luck (%)",
+                                       20.00))
+            elements.append(self.spacer_tenth_inch)
+            elements.append(self.add_page_break())
 
-        # weekly highest coaching efficiency
-        self.create_section(
-            elements,
-            "Weekly Highest Coaching Efficiency",
-            self.weekly_highest_ce_headers,
-            self.data_for_season_weekly_highest_ce,
-            self.style_no_highlight,
-            self.style_no_highlight,
-            self.widths_4_cols_2,
-            tied_metric=self.report_data.ties_for_coaching_efficiency > 0,
-            metric_type="highest_ce"
-        )
-
-        elements.append(self.add_page_break())
-
-        # bad boy rankings
-        self.create_section(
-            elements,
-            "Bad Boy Rankings",
-            self.bad_boy_headers,
-            self.data_for_bad_boy_rankings,
-            self.style,
-            self.style_tied_bad_boy,
-            self.widths_6_cols_2,
-            tied_metric=self.report_data.ties_for_bad_boy_rankings > 0,
-            metric_type="bad_boy"
-        )
-        elements.append(self.spacer_twentieth_inch)
-
-        # beef rankings
-        self.create_section(
-            elements,
-            "Beef Rankings",
-            self.beef_headers,
-            self.data_for_beef_rankings,
-            self.style_left_alighn_right_col,
-            self.style_tied_beef,
-            self.widths_4_cols_3,
-            tied_metric=self.report_data.ties_for_beef_rankings > 0,
-            metric_type="beef",
-            subtitle_text=[
-                "Team Beef Ranking is measured in TABBUs (Trimmed And Boneless Beef Units). "
-                "One TABBU is currently established as 500 lbs.",
-                "TABBU derivation stems from academic research done for the beef industry found <a href = "
-                "'https://extension.tennessee.edu/publications/Documents/PB1822.pdf' color='blue'>here</a>."
-            ]
-        )
-
-        elements.append(self.add_page_break())
-
-        series_names = line_chart_data_list[0]
-        points_data = line_chart_data_list[2]
-        efficiency_data = line_chart_data_list[3]
-        luck_data = line_chart_data_list[4]
-
-        # Remove any zeros from coaching efficiency to make table prettier
-        for team in efficiency_data:
-            week_index = 0
-            for week in team:
-                if len(team) > 1:
-                    if week[1] == 0.0:
-                        del team[week_index]
-                week_index += 1
-
-        # create line charts for points, coaching efficiency, and luck
-        charts_page_title_str = "Time Series Charts"
-        charts_page_title = self.create_title(
-            "<i>" + charts_page_title_str + "</i>", element_type="chart",
-            anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>")
-        self.toc.add_chart_section(charts_page_title_str)
-        elements.append(charts_page_title)
-        elements.append(
-            self.create_line_chart(points_data, len(points_data[0]), series_names, "Weekly Points", "Weeks",
-                                   "Fantasy Points", 10.00))
-        elements.append(self.spacer_twentieth_inch)
-        elements.append(
-            self.create_line_chart(efficiency_data, len(points_data[0]), series_names, "Weekly Coaching Efficiency",
-                                   "Weeks", "Coaching Efficiency (%)", 5.00))
-        elements.append(self.spacer_twentieth_inch)
-        elements.append(
-            self.create_line_chart(luck_data, len(points_data[0]), series_names, "Weekly Luck", "Weeks", "Luck (%)",
-                                   20.00))
-        elements.append(self.spacer_tenth_inch)
-        elements.append(self.add_page_break())
-
-        # dynamically build additional pages for individual team stats
-        self.create_team_stats_pages(elements, self.data_for_weekly_points_by_position,
-                                     self.data_for_season_average_team_points_by_position)
+        if self.config.getboolean(
+                "Report", "report_team_stats") and (self.config.getboolean(
+                "Report", "team_points_by_position_charts") or self.config.getboolean(
+                "Report", "team_bad_boy_stats") or self.config.getboolean(
+                "Report", "team_beef_stats") or self.config.getboolean(
+                "Report", "team_boom_or_bust")):
+            # dynamically build additional pages for individual team stats
+            self.create_team_stats_pages(elements, self.data_for_weekly_points_by_position,
+                                         self.data_for_season_average_team_points_by_position)
 
         # insert table of contents after report title and spacer
         elements.insert(2, self.toc.get_toc())
@@ -949,8 +998,9 @@ class PdfGenerator(object):
 
 class TableOfContents(object):
 
-    def __init__(self, break_ties):
+    def __init__(self, config, break_ties):
 
+        self.config = config  # type: ConfigParser
         self.break_ties = break_ties
 
         self.toc_style_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=12)
@@ -964,21 +1014,45 @@ class TableOfContents(object):
         # start on page 1 since table of contents is on first page
         self.toc_page = 1
 
-        self.toc_metric_section_data = [
-            [Paragraph("<b><i>Metrics</i></b>", self.toc_style_title_right),
-             "",
-             Paragraph("<b><i>Page</i></b>", self.toc_style_title_left)]
-        ]
-        self.toc_chart_section_data = [
-            [Paragraph("<b><i>Charts</i></b>", self.toc_style_title_right),
-             "",
-             Paragraph("<b><i>Page</i></b>", self.toc_style_title_left)]
-        ]
-        self.toc_team_section_data = [
-            [Paragraph("<b><i>Teams</i></b>", self.toc_style_title_right),
-             "",
-             Paragraph("<b><i>Page</i></b>", self.toc_style_title_left)]
-        ]
+        self.toc_metric_section_data = None
+        self.toc_chart_section_data = None
+        self.toc_team_section_data = None
+        if self.config.getboolean(
+                "Report", "league_standings") or self.config.getboolean(
+                "Report", "league_playoff_probs") or self.config.getboolean(
+                "Report", "league_power_rankings") or self.config.getboolean(
+                "Report", "league_z_score_rankings") or self.config.getboolean(
+                "Report", "league_score_rankings") or self.config.getboolean(
+                "Report", "league_coaching_efficiency_rankings") or self.config.getboolean(
+                "Report", "league_luck_rankings") or self.config.getboolean(
+                "Report", "league_weekly_top_scorers") or self.config.getboolean(
+                "Report", "league_weekly_highest_ce") or self.config.getboolean(
+                "Report", "league_bad_boy_rankings") or self.config.getboolean(
+                "Report", "league_beef_rankings"):
+            self.toc_metric_section_data = [
+                [Paragraph("<b><i>Metrics</i></b>", self.toc_style_title_right),
+                 "",
+                 Paragraph("<b><i>Page</i></b>", self.toc_style_title_left)]
+            ]
+
+        if self.config.getboolean("Report", "report_time_series_charts"):
+            self.toc_chart_section_data = [
+                [Paragraph("<b><i>Charts</i></b>", self.toc_style_title_right),
+                 "",
+                 Paragraph("<b><i>Page</i></b>", self.toc_style_title_left)]
+            ]
+
+        if self.config.getboolean(
+                "Report", "report_team_stats") and (self.config.getboolean(
+                "Report", "team_points_by_position_charts") or self.config.getboolean(
+                "Report", "team_bad_boy_stats") or self.config.getboolean(
+                "Report", "team_beef_stats") or self.config.getboolean(
+                "Report", "team_boom_or_bust")):
+            self.toc_team_section_data = [
+                [Paragraph("<b><i>Teams</i></b>", self.toc_style_title_right),
+                 "",
+                 Paragraph("<b><i>Page</i></b>", self.toc_style_title_left)]
+            ]
 
     def add_toc_page(self, pages_to_add=1):
         self.toc_page += pages_to_add
@@ -1019,9 +1093,9 @@ class TableOfContents(object):
 
     def get_toc(self):
         return Table(
-            self.toc_metric_section_data + [["", "", ""]] +
-            self.toc_chart_section_data + [["", "", ""]] +
-            self.toc_team_section_data,
+            (self.toc_metric_section_data + [["", "", ""]] if self.toc_metric_section_data else []) +
+            (self.toc_chart_section_data + [["", "", ""]] if self.toc_chart_section_data else []) +
+            (self.toc_team_section_data if self.toc_team_section_data else []),
             colWidths=[3.25 * inch, 2 * inch, 2.50 * inch],
             rowHeights=0.30 * inch
         )
