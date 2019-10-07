@@ -47,7 +47,7 @@ The Fantasy Football Metrics Weekly Report requires several different sets of se
 ##### ***FOR USERS RUNNING macOS ONLY (and potentially Linux, although this is untested in Linux)***
 There is a pre-made setup bash script in the top level of this repository called `setup.sh`. In lieu of doing the manual setup steps, you can simply do the following:
  
-* download the script by navigating to [https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/develop/setup.sh](https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/develop/setup.sh) in your browser. A file download should start.
+* download the script by righ-clicking [https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/develop/setup.sh](https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/develop/setup.sh) and selecting "Download Linked File". A file download should start to your local downloads folder (default is `~/Downloads/` on macOS).
 
 * Open a command line prompt
     * ***macOS***: type `Cmd + Space` (`⌘ + Space`) to bring up Spotlight, and search for "Terminal" and hit enter).
@@ -65,7 +65,7 @@ There is a pre-made setup bash script in the top level of this repository called
     Example (move the file from your downloads folder):
     
     ```
-    mv ~/downloads/setup.sh .
+    mv ~/Downloads/setup.sh .
     ```
   
 * Run `./setup.sh`
@@ -74,6 +74,8 @@ There is a pre-made setup bash script in the top level of this repository called
 
 * You can now skip ahead to [Running the Report Application](#running).
   
+--- 
+ 
 <a name="manual"></a>
 #### Manual Setup
 
@@ -138,6 +140,35 @@ _\* General setup excludes Google Drive and Slack integrations. See below sectio
 
 ---
 
+<a name="yahoo"></a>
+#### Yahoo Setup
+
+* Log in to a Yahoo account with access to whatever fantasy football leagues from which you wish to retrieve data.
+
+* Go to [https://developer.yahoo.com/apps/create/](https://developer.yahoo.com/apps/create/) and create an app (you must be logged into your Yahoo account as stated above). For the app, select the following options:
+
+    * `Application Name` (**Required**): `yffpy` (you can name your app whatever you want, but this is just an example).
+    
+    * `Application Type` (**Required**): select the `Installed Application` radio button.
+    
+    * `Description` (*Optional*): you *may* write a description of what the app does.
+    
+    * `Home Page URL` (*Optional*): if you have a web address related to your app you *may* add it here.
+    
+    * `Redirect URI(s)` (**Required**): this field must contain a valid redirect address, so you can use `localhost:8080`
+    
+    * `API Permissions` (**Required**): check the `Fantasy Sports` checkbox. You can leave the `Read` option selected (appears in an accordion expansion underneath the `Fantasy Sports` checkbox once you select it).
+    
+    * Click the `Create App` button.
+    
+    * Once the app is created, it should redirect you to a page for your app, which will show both a `Client ID` and a `Client Secret`.
+    
+    * Rename `EXAMPLE-private.json` (located in the `auth/yahoo` directory) to just `private.json`, and copy the `Client ID` and `Client Secret` values to their respective fields (make sure the strings are wrapped regular quotes (`""`), NOT formatted quotes (`“”`)). The path to this file will be needed to point YFFPY to your credentials.
+    
+    * Now you should be ready to initialize the OAuth connection between the report generator and your Yahoo account.
+
+---
+
 <a name="running"></a>
 ### Running the Report Application
 
@@ -170,35 +201,6 @@ _\* General setup excludes Google Drive and Slack integrations. See below sectio
     * Assuming the above went as expected, the application should now generate a report for your fantasy league for the selected NFL week.
     
 ***NOTE***: You can also specify a large number of configuration options directly in the command line. Please see the [usage section](#usage) for more information.
-
----
-
-<a name="yahoo"></a>
-#### Yahoo Setup
-
-* Log in to a Yahoo account with access to whatever fantasy football leagues from which you wish to retrieve data.
-
-* Go to [https://developer.yahoo.com/apps/create/](https://developer.yahoo.com/apps/create/) and create an app (you must be logged into your Yahoo account as stated above). For the app, select the following options:
-
-    * `Application Name` (**Required**): `yffpy` (you can name your app whatever you want, but this is just an example).
-    
-    * `Application Type` (**Required**): select the `Installed Application` radio button.
-    
-    * `Description` (*Optional*): you *may* write a description of what the app does.
-    
-    * `Home Page URL` (*Optional*): if you have a web address related to your app you *may* add it here.
-    
-    * `Redirect URI(s)` (**Required**): this field must contain a valid redirect address, so you can use `localhost:8080`
-    
-    * `API Permissions` (**Required**): check the `Fantasy Sports` checkbox. You can leave the `Read` option selected (appears in an accordion expansion underneath the `Fantasy Sports` checkbox once you select it).
-    
-    * Click the `Create App` button.
-    
-    * Once the app is created, it should redirect you to a page for your app, which will show both a `Client ID` and a `Client Secret`.
-    
-    * Rename `EXAMPLE-private.json` (located in the `auth/yahoo` directory) to just `private.json`, and copy the `Client ID` and `Client Secret` values to their respective fields (make sure the strings are wrapped regular quotes (`""`), NOT formatted quotes (`“”`)). The path to this file will be needed to point YFFPY to your credentials.
-    
-    * Now you should be ready to initialize the OAuth connection between the report generator and your Yahoo account.
 
 ---
 
