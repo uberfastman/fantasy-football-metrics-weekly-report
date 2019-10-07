@@ -70,9 +70,11 @@ echo -e "===================================================================="
 REPO="$(basename `git rev-parse --show-toplevel`)"
 if [[ $REPO == "fantasy-football-metrics-weekly-report" ]]; then
   echo "Project $REPO already installed and you are in repo directory. Continuing setup..."
+  git pull
 elif [[ -d "fantasy-football-metrics-weekly-report" ]]; then
   echo "Project $REPO already installed. Entering directory and continuing setup..."
   cd fantasy-football-metrics-weekly-report
+  git pull
 else
   echo "Cloning Fantasy Football Metrics Weekly Report project from GitHub..."
   git clone https://github.com/uberfastman/fantasy-football-metrics-weekly-report.git
