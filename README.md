@@ -41,6 +41,8 @@ Project dependencies can be viewed in the [`requirements.txt`](requirements.txt)
 
 The Fantasy Football Metrics Weekly Report requires several different sets of setup steps, depending on how you wish to run it. To get the application running locally, you will first need to go through the following steps.
 
+_\* General setup excludes Google Drive and Slack integrations. See [Additional Features](#features) for details on including those add-ons._
+
 <a name="auto"></a>
 #### Automated Setup
 
@@ -135,8 +137,6 @@ There is a pre-made setup bash script in the top level of this repository called
         * ***If you are using Windows, please follow the instructions for using `virtualenvwrapper-win` [here](https://pypi.org/project/virtualenvwrapper-win/), and adjust the above steps for setting up a virtualenv in macOS/Linux accordingly!***
 
 * Finally, run `pip install -r requirements.txt`
-
-_\* General setup excludes Google Drive and Slack integrations. See below sections for details on including those additional features._
 
 ---
 
