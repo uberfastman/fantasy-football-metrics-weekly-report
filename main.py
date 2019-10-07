@@ -138,7 +138,8 @@ def select_league(league_id, week, game_id, save_data, refresh_web_data, playoff
         else:
             week_for_report = week
 
-        return FantasyFootballReport(week_for_report=week_for_report,
+        return FantasyFootballReport(config=config,
+                                     week_for_report=week_for_report,
                                      game_id=game_id,
                                      save_data=save_data,
                                      refresh_web_data=refresh_web_data,
@@ -157,7 +158,8 @@ def select_league(league_id, week, game_id, save_data, refresh_web_data, playoff
             week_for_report = week
 
         try:
-            return FantasyFootballReport(league_id=league_id,
+            return FantasyFootballReport(config=config,
+                                         league_id=league_id,
                                          week_for_report=week_for_report,
                                          game_id=game_id,
                                          save_data=save_data,
@@ -178,7 +180,8 @@ def select_league(league_id, week, game_id, save_data, refresh_web_data, playoff
         else:
             week_for_report = week
 
-        return FantasyFootballReport(league_id=league_id,
+        return FantasyFootballReport(config=config,
+                                     league_id=league_id,
                                      week_for_report=week_for_report,
                                      game_id=game_id,
                                      save_data=save_data,
