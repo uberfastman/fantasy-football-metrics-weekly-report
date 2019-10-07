@@ -5,10 +5,13 @@
     * [Example Report](#example)
 * [Dependencies](#dependencies)
 * [Setup](#setup)
+    * [Automated Setup](#auto)
+    * [Manual Setup](#manual)
     * [Yahoo Setup](#yahoo)
 * [Running the Report Application](#running)
 * [Configuration](#configuration)
 * [Usage](#usage)
+    * [Virtual Environment](#virtualenv)
 * [Additional Features](#features)
     * [Google Drive](#google)
     * [Slack](#slack)
@@ -36,7 +39,43 @@ Project dependencies can be viewed in the [`requirements.txt`](requirements.txt)
 <a name="setup"></a>
 ### Setup*
 
-The Fantasy Football Metrics Weekly Report requires several different sets of setup steps, depending on how you wish to run it. To get the application running locally, you will first need to do the following:
+The Fantasy Football Metrics Weekly Report requires several different sets of setup steps, depending on how you wish to run it. To get the application running locally, you will first need to go through the following steps.
+
+<a name="auto"></a>
+#### Automated Setup
+
+##### ***FOR USERS RUNNING macOS ONLY (and potentially Linux, although this is untested in Linux)***
+There is a pre-made setup bash script in the top level of this repository called `setup.sh`. In lieu of doing the manual setup steps, you can simply do the following:
+ 
+* download the script by navigating to [https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/develop/setup.sh](https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/develop/setup.sh) in your browser. A file download should start.
+
+* Open a command line prompt
+    * ***macOS***: type `Cmd + Space` (`⌘ + Space`) to bring up Spotlight, and search for "Terminal" and hit enter).
+    
+* Navigate to wherever you wish to have the Fantasy Football Metrics Weekly Report application set up:
+    
+    Example (use whatever directory in which you wish to store the app):
+    
+    ```
+    cd ~/projects
+    ```
+
+* Move the the `setup.sh` script to the above location:
+    
+    Example (move the file from your downloads folder):
+    
+    ```
+    mv ~/downloads/setup.sh .
+    ```
+  
+* Run `./setup.sh`
+
+    * If you get an error when running `./setup.sh`, the script might not be executable. You can run `chmod -x setup.sh` to make it executable. You may need to execute the `chmod` command as an administrator, depending on your system permissions, in which case you can run `sudo chmod -x setup.sh` and then enter your password.
+
+* You can now skip ahead to [Running the Report Application](#running).
+  
+<a name="manual"></a>
+#### Manual Setup
 
 * Make sure your operating system (OS) has Python 3 installed. See the above section on [dependencies](#dependencies) for instructions.
 
@@ -82,11 +121,11 @@ The Fantasy Football Metrics Weekly Report requires several different sets of se
 
         * Run `which python3`. This should output something like `/usr/local/bin/python3`. Copy that path for the next step.
 
-        * Run `mkvirtualenv -p /usr/local/bin/python3 ff-metrics-weekly-report`.
+        * Run `mkvirtualenv -p /usr/local/bin/python3 fantasy-football-metrics-weekly-report`.
 
         * When the previous command is finished running, your command line prompt should now look something like this:
             ```
-            (ff-metrics-weekly-report) [username@Computer 02:52:01 PM] ~/fantasy-football-metrics-weekly-report $
+            (fantasy-football-metrics-weekly-report) [username@Computer 02:52:01 PM] ~/fantasy-football-metrics-weekly-report $
             ```
         Congratulations, you have successfully created a Python 3 virtual environment for the project to run in!
 
@@ -101,6 +140,13 @@ _\* General setup excludes Google Drive and Slack integrations. See below sectio
 
 <a name="running"></a>
 ### Running the Report Application
+
+* *If you followed the setup instructions and set up the application to run in a virtual environment, once you have navigated to the project directory, you **MUST** run*
+
+    ```
+    workon fantasy-football-metrics-weekly-report
+    ```
+  *before running the report **EVERY TIME** you open a new command line prompt to run the application!*
 
 * Update the default Yahoo Fantasy football league id in the `config.ini` to your own league id. You can find your league id by going to [https://football.fantasysports.yahoo.com](https://football.fantasysports.yahoo.com), clicking on your league, and looking here:
 
@@ -211,6 +257,11 @@ After completing the above setup and configuration steps, you should now be able
 | `-d, --dev-offline`          | Run ***OFFLINE*** (for development). Must have previously run report with -s option. |
 | `-t, --test`                 | Generate TEST report (for development) |
 
+---
+
+<a name="virtualenv"></a>
+#### Virtual Environment
+
 When you are done working within the `virtualenv`, you can run `deactivate` within the environment to exit:
 ```
 (fantasy-football-metrics)host-machine:yahoo-fantasy-football-metrics user$ deactivate
@@ -222,7 +273,7 @@ When you wish to work within the `virtualenv` once more, do the following:
  
  * View `virtualenvs` that you have available: `lsvirtualenv`
  
- * Run `workon fantasy-football-metrics`
+ * Run `workon fantasy-football-metrics-weekly-report` (or whatever you named your virtual environment for the application).
 
 ---
 

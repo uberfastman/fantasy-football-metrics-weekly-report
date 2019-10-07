@@ -5,7 +5,6 @@ import datetime
 import logging
 import os
 from collections import defaultdict
-from configparser import ConfigParser
 
 from calculate.coaching_efficiency import CoachingEfficiency
 from calculate.metrics import CalculateMetrics
@@ -21,6 +20,7 @@ logger.setLevel(level=logging.INFO)
 
 class FantasyFootballReport(object):
     def __init__(self,
+                 config,
                  league_id=None,
                  week_for_report=None,
                  game_id=None,
@@ -33,8 +33,7 @@ class FantasyFootballReport(object):
                  test=False):
 
         # config vars
-        self.config = ConfigParser()
-        self.config.read("config.ini")
+        self.config = config
         self.platform_str = str.capitalize(self.config.get("Configuration", "platform"))
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.data_dir = os.path.join(base_dir, self.config.get("Configuration", "data_dir"))

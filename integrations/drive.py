@@ -145,7 +145,6 @@ class GoogleDriveUploader(object):
 
 if __name__ == '__main__':
     local_config = ConfigParser()
-    local_config.read("config.ini")
     local_config.read(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.ini"))
     reupload_file = local_config.get("Drive", "reupload_file")
 
