@@ -100,7 +100,7 @@ else
   echo -e "VIRTUALENVWRAPPER_PYTHON environment variable is already properly defined. Continuing setup...\n\n"
 fi
 
-RCVENVWRAP="$(cat ~/.bashrc | grep 'source $(which virtualenvwrapper.sh)')"
+RCVENVWRAP="$(cat ~/.bashrc | grep "source $(which virtualenvwrapper.sh)")"
 if [[ $? != 0 ]] ; then
   echo -e "Sourcing virtualenvwrapper.sh in '~/.bashrc'...\n\n"
   echo 'source /usr/local/bin/virtualenvwrapper.sh' >> ~/.bashrc
