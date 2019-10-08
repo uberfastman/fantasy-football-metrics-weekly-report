@@ -18,11 +18,11 @@ logger.setLevel(level=logging.INFO)
 
 class PlayoffProbabilities(object):
 
-    def __init__(self, simulations, num_weeks, playoff_slots, data_dir, save_data=False, recalculate=False,
+    def __init__(self, simulations, num_weeks, num_playoff_slots, data_dir, save_data=False, recalculate=False,
                  dev_offline=False):
         self.simulations = int(simulations)
         self.num_weeks = int(num_weeks)
-        self.playoff_slots = int(playoff_slots)
+        self.num_playoff_slots = int(num_playoff_slots)
         self.data_dir = data_dir
         self.save_data = save_data
         self.recalculate = recalculate
@@ -44,7 +44,7 @@ class PlayoffProbabilities(object):
                 int(team.losses),
                 int(team.ties),
                 float(team.points_for),
-                self.playoff_slots,
+                self.num_playoff_slots,
                 self.simulations
             )
 
@@ -55,7 +55,7 @@ class PlayoffProbabilities(object):
                         self.simulations), ("s" if self.simulations > 1 else "")))
 
                     begin = datetime.datetime.now()
-                    avg_wins = [0.0] * self.playoff_slots
+                    avg_wins = [0.0] * self.num_playoff_slots
                     sim_count = 1
                     while sim_count <= self.simulations:
 
@@ -76,7 +76,7 @@ class PlayoffProbabilities(object):
 
                         # pick the teams making the playoffs
                         playoff_count = 1
-                        while playoff_count <= self.playoff_slots:
+                        while playoff_count <= self.num_playoff_slots:
                             teams_for_playoff_probs[sorted_teams[playoff_count - 1].team_id].add_playoff_tally()
                             avg_wins[playoff_count - 1] += \
                                 round(sorted_teams[playoff_count - 1].get_wins_with_points(), 0)
@@ -91,7 +91,7 @@ class PlayoffProbabilities(object):
 
                     for team in teams_for_playoff_probs.values():
 
-                        playoff_min_wins = round((avg_wins[self.playoff_slots - 1]) / self.simulations, 2)
+                        playoff_min_wins = round((avg_wins[self.num_playoff_slots - 1]) / self.simulations, 2)
                         if playoff_min_wins > team.wins:
                             needed_wins = np.rint(playoff_min_wins - team.wins)
                         else:

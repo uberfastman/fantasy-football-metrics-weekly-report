@@ -65,22 +65,22 @@ class LeagueData(object):
             logger.info(self.league_key)
             sys.exit()
 
-        league_metadata = self.yahoo_data.retrieve(str(self.league_id) + "-league-metadata",
+        self.league_metadata = self.yahoo_data.retrieve(str(self.league_id) + "-league-metadata",
                                                    self.yahoo_query.get_league_metadata,
                                                    data_type_class=League,
                                                    new_data_dir=os.path.join(self.data_dir,
                                                                              str(self.season),
-                                                                             self.league_key))
-        self.name = league_metadata.name
-        self.season = league_metadata.season
+                                                                             self.league_key))  # type: League
+        self.season = self.league_metadata.season
+        self.current_week = self.league_metadata.current_week
 
         # FOR DEVELOPMENT ONLY!
         if output_data_and_exit_run[2]:
-            logger.info(self.name)
-            logger.info(league_metadata)
+            logger.info(self.league_metadata.name)
+            logger.info(self.league_metadata)
             sys.exit()
 
-        league_settings = self.yahoo_data.retrieve(str(self.league_id) + "-league-settings",
+        self.league_settings = self.yahoo_data.retrieve(str(self.league_id) + "-league-settings",
                                                    self.yahoo_query.get_league_settings,
                                                    data_type_class=Settings,
                                                    new_data_dir=os.path.join(self.data_dir,
@@ -88,12 +88,12 @@ class LeagueData(object):
                                                                              self.league_key))
         # FOR DEVELOPMENT ONLY!
         if output_data_and_exit_run[3]:
-            logger.info(league_settings)
+            logger.info(self.league_settings)
             sys.exit()
 
-        self.playoff_slots = league_settings.num_playoff_teams
-        self.num_regular_season_weeks = int(league_settings.playoff_start_week) - 1
-        self.roster_positions = league_settings.roster_positions
+        self.playoff_slots = self.league_settings.num_playoff_teams
+        self.num_regular_season_weeks = int(self.league_settings.playoff_start_week) - 1
+        self.roster_positions = self.league_settings.roster_positions
         self.roster_positions_by_type = self.get_roster_slots(self.roster_positions)
 
         # FOR DEVELOPMENT ONLY!
@@ -128,8 +128,7 @@ class LeagueData(object):
             sys.exit()
 
         # validate user selection of week for which to generate report
-        self.chosen_week_for_report = user_week_input_validation(self.config, week_for_report,
-                                                                 league_metadata.current_week)
+        self.chosen_week_for_report = user_week_input_validation(self.config, week_for_report, self.current_week)
 
         # run yahoo queries requiring chosen week
         self.matchups_by_week = {}
