@@ -769,7 +769,7 @@ class PdfGenerator(object):
                     subtitle_text="Playoff probabilities were calculated using %s Monte Carlo simulations to predict "
                                   "team performances through the end of the regular fantasy season." %
                                   "{0:,}".format(
-                                      self.playoff_prob_sims if self.playoff_prob_sims is not None else
+                                      int(self.playoff_prob_sims) if self.playoff_prob_sims is not None else
                                       self.config.getint("Configuration", "num_playoff_simulations"))
                 )
 
