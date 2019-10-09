@@ -3,10 +3,11 @@ __email__ = "wrenjr@yahoo.com"
 
 import itertools
 import logging
+from dao.base import League, Matchup, Team
 
 from calculate.metrics import CalculateMetrics
 from calculate.points_by_position import PointsByPosition
-from report.models import ReportTeam
+from dao.utils import add_report_team_stats
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ class ReportData(object):
 
     def __init__(self,
                  config,
-                 league_data,
+                 league,  # type: League
                  season_weekly_teams_results,
                  week_counter,
                  week_for_report,
@@ -29,14 +30,23 @@ class ReportData(object):
         self.dq_ce = dq_ce
 
         # calculate stats and metrics for all teams
+        # self.teams_results = {
+        #     team.team_key: ReportTeam(
+        #         team,
+        #         league,
+        #         week_counter,
+        #         metrics,
+        #         dq_ce,
+        #     ) for team in league.teams.get(str(week_counter))
+        # }
         self.teams_results = {
-            team.team_key: ReportTeam(
+            team.team_key: add_report_team_stats(
                 team,
-                league_data,
+                league,
                 week_counter,
                 metrics,
                 dq_ce,
-            ) for team in league_data.get_teams_with_points(week_counter)
+            ) for team in league.teams_by_week.get(str(week_counter)).values()
         }
 
         # option to disqualify manually configured team(s) (in config.ini) for current week of coaching efficiency
@@ -55,14 +65,24 @@ class ReportData(object):
             metrics_calculator.test_ties(self.teams_results)
 
         # get remaining matchups for Monte Carlo playoff simulations
-        remaining_matchups = {
-            int(week): [
-                (
-                    matchup.get("matchup").teams[0].get("team").team_id,
-                    matchup.get("matchup").teams[1].get("team").team_id
-                ) for matchup in matchups
-            ] for week, matchups in league_data.matchups_by_week.items() if int(week) > int(week_for_report)
-        }
+        remaining_matchups = {}
+        for week, matchups in league.matchups_by_week.items():
+            if int(week) > int(week_for_report):
+                remaining_matchups[int(week)] = []
+                for matchup in matchups:  # type: Matchup
+                    matchup_teams = []
+                    for team in matchup.teams:
+                        matchup_teams.append(team.team_id)
+                    remaining_matchups[int(week)].append(tuple(matchup_teams))
+
+        # remaining_matchups = {
+        #     int(week): [
+        #         (
+        #             matchup.get("matchup").teams[0].get("team").team_id,
+        #             matchup.get("matchup").teams[1].get("team").team_id
+        #         ) for matchup in matchups
+        #     ] for week, matchups in league.matchups.items() if int(week) > int(week_for_report)
+        # }
 
         # calculate z-scores (dependent on all previous weeks scores)
         z_score_results = metrics_calculator.calculate_z_scores(season_weekly_teams_results + [self.teams_results])
@@ -77,15 +97,14 @@ class ReportData(object):
         self.data_for_season_weekly_highest_ce = None
 
         # current standings data
-        self.data_for_current_standings = metrics_calculator.get_standings_data(league_data.standings)
+        self.data_for_current_standings = metrics_calculator.get_standings_data(league.current_standings)
 
         # playoff probabilities data
         self.data_for_playoff_probs = metrics.get("playoff_probs").calculate(week_counter, week_for_report,
-                                                                             league_data.standings.teams,
-                                                                             remaining_matchups)
+                                                                             league.current_standings, remaining_matchups)
         if self.data_for_playoff_probs:
             self.data_for_playoff_probs = metrics_calculator.get_playoff_probs_data(
-                league_data.standings,
+                league.current_standings,
                 self.data_for_playoff_probs
             )
         else:
@@ -124,17 +143,17 @@ class ReportData(object):
                 z_score_rank += 1
 
         # points by position data
-        point_by_position = PointsByPosition(league_data.roster_positions_by_type, week_for_report)
+        point_by_position = PointsByPosition(league.get_roster_slots_by_type(), week_for_report)
         self.data_for_weekly_points_by_position = point_by_position.get_weekly_points_by_position(self.teams_results)
 
         # teams data and season average points by position data
         self.data_for_teams = []
-        for team_result in self.teams_results.values():
+        for team_result in self.teams_results.values():  # type: Team
             self.data_for_teams.append([
                 team_result.team_key,
                 team_result.name,
                 team_result.manager_str,
-                team_result.score,
+                team_result.points,
                 team_result.coaching_efficiency,
                 team_result.luck,
                 z_score_results[team_result.team_key]
@@ -144,7 +163,7 @@ class ReportData(object):
 
         # scores data
         self.data_for_scores = metrics_calculator.get_score_data(
-            sorted(self.teams_results.values(), key=lambda x: float(x.score), reverse=True))
+            sorted(self.teams_results.values(), key=lambda x: float(x.points), reverse=True))
 
         # coaching efficiency data
         self.data_for_coaching_efficiency = metrics_calculator.get_coaching_efficiency_data(
@@ -182,7 +201,7 @@ class ReportData(object):
                                                                               "coaching_efficiency", self.break_ties)
         if self.ties_for_coaching_efficiency > 0:
             self.data_for_coaching_efficiency = metrics_calculator.resolve_coaching_efficiency_ties(
-                self.data_for_coaching_efficiency, self.ties_for_coaching_efficiency, league_data, self.teams_results,
+                self.data_for_coaching_efficiency, self.ties_for_coaching_efficiency, league, self.teams_results,
                 week_counter, week_for_report, self.break_ties)
         self.num_first_place_for_coaching_efficiency = len(
             [list(group) for key, group in itertools.groupby(self.data_for_coaching_efficiency, lambda x: x[0])][0])
@@ -263,7 +282,7 @@ class ReportData(object):
                     ce_dq_str = "{} (ineligible bench players: {}/{}), ".format(
                         team_name,
                         ineligible_players_count,
-                        league_data.roster_positions_by_type.get("position_counts").get("BN"))
+                        league.get_roster_slots_by_type().get("position_counts").get("BN"))
             weekly_metrics_output_string += "   COACHING EFFICIENCY DQs: {}\n".format(ce_dq_str[:-2])
 
         # output weekly metrics info

@@ -4,6 +4,7 @@ __email__ = "wrenjr@yahoo.com"
 import itertools
 from collections import defaultdict
 from statistics import mean
+from dao.base import League, Team
 
 import numpy as np
 
@@ -17,51 +18,29 @@ class CalculateMetrics(object):
         self.coaching_efficiency_dq_count = 0
 
     @staticmethod
-    def get_standings_data(league_standings_data):
+    def get_standings_data(league_standings):
         current_standings_data = []
 
-        for team in league_standings_data.teams:
-
-            team = team.get("team")
-            team_standings = team.team_standings
-
-            streak_type = team_standings.streak.type
-            if streak_type == "loss":
-                streak_type = "L"
-            elif streak_type == "win":
-                streak_type = "W"
-            else:
-                streak_type = "T"
-
-            if isinstance(team.managers, list):
-                manager = ", ".join([manager.get("manager").nickname for manager in team.managers])
-            else:
-                manager = team.managers.get("manager").nickname
-
+        for team in league_standings:  # type: Team
             current_standings_data.append([
-                team_standings.rank,
+                team.rank,
                 team.name,
-                manager,
-                str(team_standings.outcome_totals.wins) + "-" +
-                str(team_standings.outcome_totals.losses) + "-" +
-                str(team_standings.outcome_totals.ties) + " (" +
-                str(team_standings.outcome_totals.percentage) + ")",
-                round(float(team_standings.points_for), 2),
-                round(float(team_standings.points_against), 2),
-                streak_type + "-" + team_standings.streak.value,
+                team.manager_str,
+                str(team.wins) + "-" + str(team.losses) + "-" + str(team.ties) + " (" + str(team.percentage) + ")",
+                round(float(team.points_for), 2),
+                round(float(team.points_against), 2),
+                team.streak_str,
                 team.waiver_priority,
-                int(team.number_of_moves) if team.number_of_moves else 0,
-                int(team.number_of_trades) if team.number_of_trades else 0
+                int(team.num_moves) if team.num_moves else 0,
+                int(team.num_trades) if team.num_trades else 0
             ])
         return current_standings_data
 
     @staticmethod
-    def get_playoff_probs_data(league_standings_data, team_playoffs_data):
+    def get_playoff_probs_data(league_standings, team_playoffs_data):
 
         playoff_probs_data = []
-        for team in league_standings_data.teams:
-
-            team = team.get("team")
+        for team in league_standings:  # type: Team
 
             # sum rolling place percentages together to get a cumulative percentage chance of achieving that place
             summed_stats = []
@@ -73,21 +52,11 @@ class CalculateMetrics(object):
             if summed_stats[-1] > 100.00:
                 summed_stats[-1] = 100.00
 
-            if isinstance(team.managers, list):
-                manager = ", ".join([manager.get("manager").nickname for manager in team.managers])
-            else:
-                manager = team.managers.get("manager").nickname
-
-            wins = int(team.team_standings.outcome_totals.wins)
-
             playoff_probs_data.append(
                 [
                     team.name,
-                    manager,
-                    str(wins) + "-" +
-                    str(team.team_standings.outcome_totals.losses) + "-" +
-                    str(team.team_standings.outcome_totals.ties) + " (" +
-                    str(team.team_standings.outcome_totals.percentage) + ")",
+                    team.manager_str,
+                    str(team.wins) + "-" + str(team.losses) + "-" + str(team.ties) + " (" + str(team.percentage) + ")",
                     team_playoffs_data[int(team.team_id)][1],
                     team_playoffs_data[int(team.team_id)][3]
                 ] +
@@ -118,11 +87,11 @@ class CalculateMetrics(object):
     def get_score_data(score_results):
         score_results_data = []
         place = 1
-        for team in score_results:
+        for team in score_results:  # type: Team
             ranked_team_name = team.name
             ranked_team_manager = team.manager_str
-            ranked_weekly_score = "%.2f" % float(team.score)
-            ranked_weekly_bench_score = "%.2f" % float(team.bench_score)
+            ranked_weekly_score = "%.2f" % float(team.points)
+            ranked_weekly_bench_score = "%.2f" % float(team.bench_points)
 
             score_results_data.append(
                 [place, ranked_team_name, ranked_team_manager, ranked_weekly_score, ranked_weekly_bench_score])
@@ -134,7 +103,7 @@ class CalculateMetrics(object):
     def get_coaching_efficiency_data(self, coaching_efficiency_results):
         coaching_efficiency_results_data = []
         place = 1
-        for team in coaching_efficiency_results:
+        for team in coaching_efficiency_results:  # type: Team
             ranked_team_name = team.name
             ranked_team_manager = team.manager_str
             ranked_coaching_efficiency = team.coaching_efficiency
@@ -156,7 +125,7 @@ class CalculateMetrics(object):
     def get_luck_data(luck_results):
         luck_results_data = []
         place = 1
-        for team in luck_results:
+        for team in luck_results:  # type: Team
             ranked_team_name = team.name
             ranked_team_manager = team.manager_str
             ranked_luck = "%.2f%%" % team.luck
@@ -170,7 +139,7 @@ class CalculateMetrics(object):
     def get_bad_boy_data(bad_boy_results):
         bad_boy_results_data = []
         place = 1
-        for team in bad_boy_results:
+        for team in bad_boy_results:  # type: Team
             ranked_team_name = team.name
             ranked_team_manager = team.manager_str
             ranked_bb_points = "%d" % team.bad_boy_points
@@ -187,7 +156,7 @@ class CalculateMetrics(object):
     def get_beef_rank_data(beef_results):
         beef_results_data = []
         place = 1
-        for team in beef_results:
+        for team in beef_results:  # type: Team
             ranked_team_name = team.name
             ranked_team_manager = team.manager_str
             ranked_beef_points = "%.3f" % team.tabbu
@@ -318,11 +287,16 @@ class CalculateMetrics(object):
         return resolved_score_results_data
 
     @staticmethod
-    def resolve_coaching_efficiency_ties(data_for_coaching_efficiency, ties_for_coaching_efficiency,
-                                         league_data, teams_results, week, week_for_report, break_ties):
+    def resolve_coaching_efficiency_ties(data_for_coaching_efficiency,
+                                         ties_for_coaching_efficiency,
+                                         league,  # type: League
+                                         teams_results,
+                                         week,
+                                         week_for_report,
+                                         break_ties):
 
         coaching_efficiency_results_data_with_tiebreakers = []
-        bench_positions = league_data.roster_positions_by_type.get("positions_bench")
+        bench_positions = league.get_roster_slots_by_type().get("positions_bench")
 
         season_average_points_by_player_dict = defaultdict(list)
         if ties_for_coaching_efficiency > 0 and week == week_for_report:
@@ -339,8 +313,7 @@ class CalculateMetrics(object):
                         if player.selected_position not in bench_positions:
                             week_counter = 1
                             while week_counter <= int(week):
-                                weekly_player_points = league_data.get_player_data(
-                                    player.player_key, week_counter).player_points_value
+                                weekly_player_points = league.players_by_week[str(week)][player.player_id].points
                                 season_average_points_by_player_dict[player.player_key].append(weekly_player_points)
                                 week_counter += 1
 
@@ -492,14 +465,14 @@ class CalculateMetrics(object):
             name.decode("utf-8"): value["result"] for pair in matchups_list for name, value in list(pair.items())
         }
 
-        for team_1 in teams:
+        for team_1 in teams.values():  # type: Team
             record = {
                 "W": 0,
                 "L": 0,
                 "T": 0
             }
 
-            for team_2 in teams:
+            for team_2 in teams.values():
                 if team_1.team_id == team_2.team_id:
                     continue
                 score_1 = team_1.points
@@ -574,14 +547,14 @@ class CalculateMetrics(object):
             z_score = None
 
             if can_calculate:
-                scores = [week[team_key].score for week in weekly_teams_results]
+                scores = [week[team_key].points for week in weekly_teams_results]
 
                 scores_excluding_current = scores[:-1]
                 current_score = scores[-1]
 
-                std = np.std(scores_excluding_current)
-                mean = np.mean(scores_excluding_current)
-                z_score = (current_score - mean) / std
+                standard_deviation = np.std(scores_excluding_current)
+                mean_score = np.mean(scores_excluding_current)
+                z_score = (current_score - mean_score) / standard_deviation
 
             results[team_key] = z_score
 

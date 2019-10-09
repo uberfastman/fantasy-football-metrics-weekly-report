@@ -52,7 +52,7 @@ class BeefStats(object):
         else:
             if not self.beef_data:
                 raise FileNotFoundError(
-                    "FILE {} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY PERSISTED DATA!".format(
+                    "FILE {} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                         self.beef_data_file_path))
 
         if len(self.beef_data) == 0:

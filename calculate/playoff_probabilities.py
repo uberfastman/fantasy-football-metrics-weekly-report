@@ -29,17 +29,15 @@ class PlayoffProbabilities(object):
         self.dev_offline = dev_offline
         self.playoff_probs_data = {}
 
-    def calculate(self, week, chosen_week, teams, remaining_matchups):
+    def calculate(self, week, week_for_report, standings, remaining_matchups):
 
         teams_for_playoff_probs = {}
-        for team in teams:
-            team = team.get("team")
+        for team in standings:
             # noinspection PyTypeChecker
             teams_for_playoff_probs[team.team_id] = TeamWithPlayoffProbs(
                 team.team_id,
                 team.name,
-                ", ".join([manager.get("manager").nickname for manager in team.managers]) if
-                isinstance(team.managers, list) else team.managers["manager"].nickname,
+                team.manager_str,
                 int(team.wins),
                 int(team.losses),
                 int(team.ties),
@@ -49,7 +47,7 @@ class PlayoffProbabilities(object):
             )
 
         try:
-            if int(week) == int(chosen_week):
+            if int(week) == int(week_for_report):
                 if self.recalculate:
                     logger.info("Running %s Monte Carlo playoff simulation%s..." % ("{0:,}".format(
                         self.simulations), ("s" if self.simulations > 1 else "")))
@@ -59,7 +57,8 @@ class PlayoffProbabilities(object):
                     sim_count = 1
                     while sim_count <= self.simulations:
 
-                        # create random binary results representing the rest of the matchups_by_week and add them to the existing wins
+                        # create random binary results representing the rest of the season matchups and add them to the
+                        # existing wins
                         for week, matchups in remaining_matchups.items():
                             for matchup in matchups:
                                 result = int(random.getrandbits(1))
@@ -110,20 +109,22 @@ class PlayoffProbabilities(object):
 
                     if self.save_data:
                         with open(os.path.join(
-                                self.data_dir, "week_" + str(chosen_week), "playoff_probs_data.pkl"), "wb") as pp_out:
+                                self.data_dir,
+                                "week_" + str(week_for_report),
+                                "playoff_probs_data.pkl"), "wb") as pp_out:
                             pickle.dump(self.playoff_probs_data, pp_out, pickle.HIGHEST_PROTOCOL)
 
                 else:
                     logger.info("Using saved Monte Carlo playoff simulations for playoff probabilities.")
 
                     playoff_probs_data_file_path = os.path.join(
-                        self.data_dir, "week_" + str(chosen_week), "playoff_probs_data.pkl")
+                        self.data_dir, "week_" + str(week_for_report), "playoff_probs_data.pkl")
                     if os.path.exists(playoff_probs_data_file_path):
                         with open(playoff_probs_data_file_path, "rb") as pp_in:
                             self.playoff_probs_data = pickle.load(pp_in)
                     else:
                         raise FileNotFoundError(
-                            "FILE {} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY PERSISTED DATA!".format(
+                            "FILE {} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                                 playoff_probs_data_file_path))
 
                 return self.playoff_probs_data

@@ -10,6 +10,7 @@ from calculate.coaching_efficiency import CoachingEfficiency
 from calculate.metrics import CalculateMetrics
 from calculate.points_by_position import PointsByPosition
 from calculate.season_averages import SeasonAverageCalculator
+from dao.base import League
 from dao.utils import league_data_class_factory
 from report.data import ReportData
 from report.pdf.generator import PdfGenerator
@@ -89,7 +90,7 @@ class FantasyFootballReport(object):
         logger.info("Retrieving fantasy football data from {}...".format(
             self.platform_str + (" API" if not self.dev_offline else " saved data")))
         # retrieve all league data from respective platform API
-        self.league_data = league_data_class_factory(
+        self.league = league_data_class_factory(
             config=self.config,
             game_id=self.game_id,
             league_id=self.league_id,
@@ -98,18 +99,18 @@ class FantasyFootballReport(object):
             week_for_report=week_for_report,
             save_data=self.save_data,
             dev_offline=self.dev_offline
-        )
+        )  # type: League
         delta = datetime.datetime.now() - begin
         logger.info("...retrieved all fantasy football data from {} in {}\n".format(
             self.platform_str + (" API" if not self.dev_offline else " saved data"), str(delta)))
 
-        self.playoff_probs = self.league_data.get_playoff_probs(self.save_data, self.playoff_prob_sims,
-                                                                self.dev_offline, recalculate=True)
+        self.playoff_probs = self.league.get_playoff_probs(self.save_data, self.playoff_prob_sims,
+                                                           self.dev_offline, recalculate=True)
 
         begin = datetime.datetime.now()
         logger.info("Retrieving bad boy data from http://nflarrest.com {}...".format(
             "website" if not self.dev_offline or self.refresh_web_data else "saved data"))
-        self.bad_boy_stats = self.league_data.get_bad_boy_stats(self.save_data, self.dev_offline, self.refresh_web_data)
+        self.bad_boy_stats = self.league.get_bad_boy_stats(self.save_data, self.dev_offline, self.refresh_web_data)
         delta = datetime.datetime.now() - begin
         logger.info("...retrieved all bad boy data from http://nflarrest.com {} in {}\n".format(
             "website" if not self.dev_offline else "saved data", str(delta)))
@@ -117,15 +118,15 @@ class FantasyFootballReport(object):
         begin = datetime.datetime.now()
         logger.info("Retrieving beef data from Fox Sports {}...".format(
             "API" if not self.dev_offline or self.refresh_web_data else "saved data"))
-        self.beef_stats = self.league_data.get_beef_stats(self.save_data, self.dev_offline, self.refresh_web_data)
+        self.beef_stats = self.league.get_beef_stats(self.save_data, self.dev_offline, self.refresh_web_data)
         delta = datetime.datetime.now() - begin
         logger.info("...retrieved all beef data from Fox Sports {} in {}\n".format(
             "API" if not self.dev_offline else "saved data", str(delta)))
 
         # output league info for verification
-        logger.info("...setup complete for \"{}\" ({}) week {} report.\n".format(self.league_data.name.upper(),
+        logger.info("...setup complete for \"{}\" ({}) week {} report.\n".format(self.league.name.upper(),
                                                                                  self.league_id,
-                                                                                 self.league_data.chosen_week_for_report))
+                                                                                 self.league.week_for_report))
 
     def create_pdf_report(self):
 
@@ -146,24 +147,26 @@ class FantasyFootballReport(object):
         season_weekly_teams_results = []
 
         week_counter = 1
-        while week_counter <= int(self.league_data.chosen_week_for_report):
+        while week_counter <= self.league.week_for_report:
 
-            week_for_report = self.league_data.chosen_week_for_report
-            metrics_calculator = CalculateMetrics(self.config, self.league_id, self.league_data.playoff_slots,
+            week_for_report = self.league.week_for_report
+            metrics_calculator = CalculateMetrics(self.config, self.league_id, self.league.num_playoff_slots,
                                                   self.playoff_prob_sims)
 
             report_data = ReportData(
                 config=self.config,
-                league_data=self.league_data,
+                league=self.league,
                 season_weekly_teams_results=season_weekly_teams_results,
                 week_counter=str(week_counter),
                 week_for_report=week_for_report,
                 metrics_calculator=metrics_calculator,
                 metrics={
-                    "coaching_efficiency": CoachingEfficiency(self.league_data.roster_positions_by_type),
+                    "coaching_efficiency": CoachingEfficiency(self.league.get_roster_slots_by_type()),
                     "matchups_results": metrics_calculator.calculate_luck_and_record(
-                        self.league_data.get_teams_with_points(week_counter),
-                        self.league_data.get_custom_scoreboard(week_counter)
+                        self.league.teams_by_week.get(str(week_counter)),
+                        self.league.get_custom_weekly_matchups(str(week_counter))
+                        # self.league_data.get_teams_with_points(week_counter),
+                        # self.league_data.get_custom_scoreboard(week_counter)
                     ),
                     "playoff_probs": self.playoff_probs,
                     "bad_boy_stats": self.bad_boy_stats,
@@ -273,18 +276,18 @@ class FantasyFootballReport(object):
         report_data.data_for_season_avg_points_by_position = PointsByPosition.calculate_points_by_position_season_averages(
             report_data.data_for_season_avg_points_by_position)
 
-        filename = self.league_data.name.replace(" ", "-") + "(" + str(self.league_id) + ")_week-" + str(
-            self.league_data.chosen_week_for_report) + "_report.pdf"
+        filename = self.league.name.replace(" ", "-") + "(" + str(self.league_id) + ")_week-" + str(
+            self.league.week_for_report) + "_report.pdf"
         report_save_dir = os.path.join(
             self.config.get("Configuration", "output_dir"),
-            self.league_data.season,
-            self.league_data.name.replace(" ", "-") + "(" + self.league_id + ")")
+            self.league.season,
+            self.league.name.replace(" ", "-") + "(" + self.league_id + ")")
         report_title_text = \
-            self.league_data.name + " (" + str(self.league_id) + ") Week " + \
-            str(self.league_data.chosen_week_for_report) + " Report"
+            self.league.name + " (" + str(self.league_id) + ") Week " + \
+            str(self.league.week_for_report) + " Report"
         report_footer_text = \
             "<para alignment='center'>Report generated %s for %s Fantasy Football league '%s' (%s).</para>" % \
-            ("{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), self.platform_str, self.league_data.name,
+            ("{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), self.platform_str, self.league.name,
              self.league_id)
 
         if not os.path.isdir(report_save_dir):
@@ -298,7 +301,7 @@ class FantasyFootballReport(object):
         # instantiate pdf generator
         pdf_generator = PdfGenerator(
             config=self.config,
-            league_data=self.league_data,
+            league=self.league,
             playoff_prob_sims=self.playoff_prob_sims,
             report_title_text=report_title_text,
             report_footer_text=report_footer_text,

@@ -74,7 +74,7 @@ class BadBoyStats(object):
         else:
             if not self.bad_boy_data:
                 raise FileNotFoundError(
-                    "FILE {} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY PERSISTED DATA!".format(
+                    "FILE {} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                         self.bad_boy_data_file_path))
 
         if len(self.bad_boy_data) == 0:
