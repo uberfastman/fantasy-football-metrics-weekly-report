@@ -78,7 +78,7 @@ class PdfGenerator(object):
         self.week_for_report = league_data.chosen_week_for_report
         self.data_dir = os.path.join(league_data.data_dir, str(league_data.season), league_data.league_key)
         self.break_ties = report_data.break_ties
-        self.playoff_prob_sims = int(playoff_prob_sims)
+        self.playoff_prob_sims = playoff_prob_sims
         self.num_coaching_efficiency_dqs = report_data.num_coaching_efficiency_dqs
 
         # data for report
