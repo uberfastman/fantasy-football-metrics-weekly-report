@@ -770,7 +770,7 @@ class PdfGenerator(object):
                                   "team performances through the end of the regular fantasy season." %
                                   "{0:,}".format(
                                       self.playoff_prob_sims if self.playoff_prob_sims is not None else
-                                      self.config.getint("Report", "num_playoff_simulations"))
+                                      self.config.getint("Configuration", "num_playoff_simulations"))
                 )
 
         if self.config.getboolean("Report", "league_standings") or self.config.getboolean("Report",
