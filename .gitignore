@@ -5,4 +5,5 @@ token*.json
 credentials*.json
 config*.ini
 crime-categories-output.json
+logs
 output/

@@ -2,33 +2,179 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
 import logging
-import os
 import sys
 
-from dao.yahoo import LeagueData
+from calculate.bad_boy_stats import BadBoyStats
+from calculate.beef_stats import BeefStats
+from dao.base import BaseLeague, BaseTeam, BasePlayer
 
 logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.INFO)
 
 
-def league_data_class_factory(config, game_id, league_id, base_dir, data_dir, week_for_report, save_data, dev_offline):
+def user_week_input_validation(config, week, retrieved_current_week):
+    # user input validation
+    if week:
+        week_for_report = week
+    else:
+        week_for_report = config.get("Configuration", "week_for_report")
+    try:
+        current_week = retrieved_current_week
+        if week_for_report == "default":
+            if (int(current_week) - 1) > 0:
+                week_for_report = str(int(current_week) - 1)
+            else:
+                first_week_incomplete = input(
+                    "The first week of the season is not yet complete. "
+                    "Are you sure you want to generate a report for an incomplete week? (y/n) -> ")
+                if first_week_incomplete == "y":
+                    week_for_report = current_week
+                elif first_week_incomplete == "n":
+                    raise ValueError("It is recommended that you NOT generate a report for an incomplete week.")
+                else:
+                    raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
+
+        elif 0 < int(week_for_report) < 18:
+            if 0 < int(week_for_report) <= int(current_week) - 1:
+                week_for_report = week_for_report
+            else:
+                incomplete_week = input(
+                    "Are you sure you want to generate a report for an incomplete week? (y/n) -> ")
+                if incomplete_week == "y":
+                    week_for_report = week_for_report
+                elif incomplete_week == "n":
+                    raise ValueError("It is recommended that you NOT generate a report for an incomplete week.")
+                else:
+                    raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
+        else:
+            raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
+    except ValueError:
+        raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
+
+    return int(week_for_report)
+
+
+def league_data_factory(config, game_id, league_id, base_dir, data_dir, week_for_report, save_data, dev_offline):
+    """
+
+    :param config:
+    :param game_id:
+    :param league_id:
+    :param base_dir:
+    :param data_dir:
+    :param week_for_report:
+    :param save_data:
+    :param dev_offline:
+    :rtype: BaseLeague
+    :return:
+    """
+
+    supported_platforms = [str(platform) for platform in config.get("Configuration", "supported_platforms").split(",")]
     platform = config.get("Configuration", "platform")
 
-    if platform == "yahoo":
-        yahoo_auth_dir = os.path.join(base_dir, config.get("Yahoo", "yahoo_auth_dir"))
-        return LeagueData(
+    if platform in supported_platforms:
+
+        platform_dao = getattr(__import__("dao"), platform)
+
+        platform_league = platform_dao.LeagueData(
             config=config,
             yahoo_game_id=game_id,
             yahoo_league_id=league_id,
-            yahoo_auth_dir=yahoo_auth_dir,
+            base_dir=base_dir,
             data_dir=data_dir,
             week_for_report=week_for_report,
+            week_validation_function=user_week_input_validation,
             save_data=save_data,
             dev_offline=dev_offline
         )
 
+        return platform_league.map_data_to_base(BaseLeague)
+
     else:
         logger.error(
-            "Generating fantasy football reports for the \"{}\" fantasy football platform is not currently supported."
+            "Generating fantasy football reports for the \"{}\" fantasy football platform is not currently supported. "
             "Please change your settings in config.ini and try again.".format(platform))
         sys.exit()
+
+
+def add_report_player_stats(player,  # type: BasePlayer
+                            bench_positions,
+                            metrics):
+    player.bad_boy_crime = str()
+    player.bad_boy_points = int()
+    player.bad_boy_num_offenders = int()
+    player.weight = float()
+    player.tabbu = float()
+
+    if player.selected_position not in bench_positions:
+        bad_boy_stats = metrics.get("bad_boy_stats")  # type: BadBoyStats
+        player.bad_boy_crime = bad_boy_stats.get_player_bad_boy_crime(
+            player.full_name, player.nfl_team_abbr, player.primary_position)
+        player.bad_boy_points = bad_boy_stats.get_player_bad_boy_points(
+            player.full_name, player.nfl_team_abbr, player.primary_position)
+        player.bad_boy_num_offenders = bad_boy_stats.get_player_bad_boy_num_offenders(
+            player.full_name, player.nfl_team_abbr, player.primary_position)
+
+        beef_stats = metrics.get("beef_stats")  # type: BeefStats
+        player.weight = beef_stats.get_player_weight(player.first_name, player.last_name, player.nfl_team_abbr)
+        player.tabbu = beef_stats.get_player_tabbu(player.first_name, player.last_name, player.nfl_team_abbr)
+
+    return player
+
+
+def add_report_team_stats(team,  # type: BaseTeam
+                          league,  # type: BaseLeague
+                          week_counter,
+                          metrics,
+                          dq_ce):
+    team.name = team.name.decode("utf-8")
+    bench_positions = league.get_roster_slots_by_type().get("positions_bench")
+
+    for player in team.roster:
+        add_report_player_stats(player, bench_positions, metrics)
+
+    starting_lineup_points = round(
+        sum([p.points for p in team.roster if p.selected_position not in bench_positions]), 2)
+    # confirm total starting lineup points is the same as team points
+    if team.points != starting_lineup_points:
+        logger.warning(
+            "Team {} points ({}) are not equal to sum of team starting lineup points ({}). Check data!".format(
+                team.name, team.points, starting_lineup_points))
+
+    team.bench_points = round(sum([p.points for p in team.roster if p.selected_position in bench_positions]), 2)
+
+    team.bad_boy_points = 0
+    team.worst_offense = None
+    team.num_offenders = 0
+    team.worst_offense_score = 0
+    for p in team.roster:
+        if p.selected_position not in bench_positions:
+            if p.bad_boy_points > 0:
+                team.bad_boy_points += p.bad_boy_points
+                if p.selected_position == "DEF":
+                    team.num_offenders += p.bad_boy_num_offenders
+                else:
+                    team.num_offenders += 1
+                if p.bad_boy_points > team.worst_offense_score:
+                    team.worst_offense = p.bad_boy_crime
+                    team.worst_offense_score = p.bad_boy_points
+
+    team.total_weight = sum([p.weight for p in team.roster if p.selected_position not in bench_positions])
+    team.tabbu = sum([p.tabbu for p in team.roster if p.selected_position not in bench_positions])
+    team.positions_filled_active = [p.selected_position for p in team.roster if
+                                    p.selected_position not in bench_positions]
+
+    # calculate coaching efficiency
+    team.coaching_efficiency = metrics.get("coaching_efficiency").execute_coaching_efficiency(
+        team.name,
+        team.roster,
+        team.points,
+        team.positions_filled_active,
+        int(week_counter),
+        dq_eligible=dq_ce
+    )
+
+    # # retrieve luck and record
+    team.luck = metrics.get("matchups_results").get(team.team_key).get("luck")
+    team.record = metrics.get("matchups_results").get(team.team_key).get("record")
+
+    return team

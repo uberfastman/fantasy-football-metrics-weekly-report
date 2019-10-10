@@ -9,7 +9,6 @@ from collections import OrderedDict
 import requests
 
 logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.INFO)
 
 
 class BeefStats(object):
@@ -52,7 +51,7 @@ class BeefStats(object):
         else:
             if not self.beef_data:
                 raise FileNotFoundError(
-                    "FILE {} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY PERSISTED DATA!".format(
+                    "FILE {} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                         self.beef_data_file_path))
 
         if len(self.beef_data) == 0:
@@ -127,6 +126,7 @@ class BeefStats(object):
             player_full_name = player_first_name + " " + player_last_name
         else:
             player_full_name = team_abbr
+
         if player_full_name in self.beef_data.keys():
             return self.beef_data[player_full_name][key_str]
         else:

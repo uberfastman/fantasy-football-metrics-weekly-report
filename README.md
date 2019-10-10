@@ -2,22 +2,25 @@
 
 ### Table of Contents
 * [About](#about)
-    * [Example Report](#example)
+    * [Example Report](#example-report)
 * [Dependencies](#dependencies)
 * [Setup](#setup)
-    * [Automated Setup](#auto)
-    * [Manual Setup](#manual)
-    * [Yahoo Setup](#yahoo)
-* [Running the Report Application](#running)
+    * [Automated Setup](#automated-setup)
+    * [Manual Setup](#manual-setup)
+    * [Yahoo Setup](#yahoo-setup)
+* [Running the Report Application](#running-the-report-application)
+    * [macOS Launch Script](#macos-launch-script)
 * [Configuration](#configuration)
-   * [Report Features](#features)
-   * [Report Settings](#settings)
+   * [Report Features](#report-features)
+   * [Report Settings](#report-settings)
 * [Usage](#usage)
-    * [Virtual Environment](#virtualenv)
-* [Additional Integrations](#integrations)
-    * [Google Drive](#google)
-    * [Slack](#slack)
+    * [Virtual Environment](#virtual-environment)
+* [Additional Integrations](#additional-integrations)
+    * [Google Drive](#google-drive-setup)
+    * [Slack](#slack-setup)
 * [Troubleshooting](#troubleshooting)
+    * [Logs](#logs)
+    * [Yahoo](#yahoo)
 
 ---
 
@@ -25,8 +28,9 @@
 ### About
 The Fantasy Football Metrics Weekly Report application automatically generates a report in the form of a PDF file that contains a host of metrics and rankings for teams in a given fantasy football league.
 
-<a name="example"></a>
-#### ***You can see an example of what a report looks like [here](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/blob/develop/resources/files/EXAMPLE-report.pdf)!***
+<a name="example-report"></a>
+#### Example Report
+***You can see an example of what a report looks like [here](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/blob/develop/resources/files/EXAMPLE-report.pdf)!***
 
 ---
 
@@ -43,9 +47,9 @@ Project dependencies can be viewed in the [`requirements.txt`](requirements.txt)
 
 The Fantasy Football Metrics Weekly Report requires several different sets of setup steps, depending on how you wish to run it. To get the application running locally, you will first need to go through the following steps.
 
-_\* General setup excludes Google Drive and Slack integrations. See [Additional Features](#features) for details on including those add-ons._
+_\* General setup excludes Google Drive and Slack integrations. See [Additional Integrations](#additional-integrations) for details on including those add-ons._
 
-<a name="auto"></a>
+<a name="automated-setup"></a>
 #### Automated Setup
 
 ##### ***FOR USERS RUNNING macOS ONLY (and potentially Linux, although this is untested in Linux)***
@@ -76,11 +80,11 @@ There is a pre-made setup bash script in the top level of this repository called
 
     * If you get an error when running `./setup.sh`, the script might not be executable. You can run `chmod +x setup.sh` to make it executable. You may need to execute the `chmod` command as an administrator, depending on your system permissions, in which case you can run `sudo chmod +x setup.sh` and then enter your password.
 
-* You can now skip ahead to [Running the Report Application](#running).
+* You can now skip ahead to [Running the Report Application](#running-the-report-application).
   
 --- 
  
-<a name="manual"></a>
+<a name="manual-setup"></a>
 #### Manual Setup
 
 * Make sure your operating system (OS) has Python 3 installed. See the above section on [dependencies](#dependencies) for instructions.
@@ -142,7 +146,7 @@ There is a pre-made setup bash script in the top level of this repository called
 
 ---
 
-<a name="yahoo"></a>
+<a name="yahoo-setup"></a>
 #### Yahoo Setup
 
 * Log in to a Yahoo account with access to whatever fantasy football leagues from which you wish to retrieve data.
@@ -171,8 +175,10 @@ There is a pre-made setup bash script in the top level of this repository called
 
 ---
 
-<a name="running"></a>
+<a name="running-the-report-application"></a>
 ### Running the Report Application
+
+* If you are running on macOS, see [below](#macos-launch-script)!
 
 * *If you followed the setup instructions and set up the application to run in a virtual environment, once you have navigated to the project directory, you **MUST** run*
 
@@ -204,6 +210,34 @@ There is a pre-made setup bash script in the top level of this repository called
     
 ***NOTE***: You can also specify a large number of configuration options directly in the command line. Please see the [usage section](#usage) for more information.
 
+<a name="macos-launch-script"></a>
+##### macOS Launch Script
+If you are running on macOS, there is an additional bash script available in the project, [run_in_virtualenv.command](run_in_virtualenv.command). This script allows you to double-click it and run the app in a new Terminal window. It ***REQUIRES*** you to have completed all steps in [Setup](#setup), and also the above steps in [Running the Report Application](#running-the-report-application), with the exception of running the `workon` command or the `python main.py` command. Instead, do the following:
+
+* Right click on [run_in_virtualenv.command](run_in_virtualenv.command) and select `Open With`, then select `TextEdit`.
+
+* Modify the path you find in the script after `cd` to point to wherever you cloned the application. You can either use the absolute path (something like `/Users/username/Projects/fantasy-football-metrics-weekly-report`), or a shortcut to your home directory (`~`), like `~/Documents/fantasy-football-metrics-weekly-report`).
+
+* Move [run_in_virtualenv.command](run_in_virtualenv.command) wherever you wish it to be for easy access.
+
+* **You can now double-click [run_in_virtualenv.command](run_in_virtualenv.command) and it will open a new Terminal window and run the application!** *If that fails, you may need to change the permissions on [run_in_virtualenv.command](run_in_virtualenv.command)*. You can do that as follows:
+    
+    * Open a Terminal window.
+    
+    * Run `cd path/to/wherever/you/put/run_in_virtualenv.command`
+    
+    * Run `chmod +x run_in_virtualenv.command`
+    
+    * If you get a permissions error after running the `chmod` command, you may need to run it as an administrator:
+    
+        ```
+        sudo chmod +x run_in_virtualenv.command
+        ```
+     
+        And then put in your password to allow the operating system to modify the permissions on [run_in_virtualenv.command](run_in_virtualenv.command).
+        
+    * ***NOW*** you should be able to double-click [run_in_virtualenv.command](run_in_virtualenv.command) to launch the application!
+
 ---
 
 <a name="configuration"></a>
@@ -213,7 +247,7 @@ The Fantasy Football Metrics Weekly Report application allows certain aspects of
 
 The app ***REQUIRES*** that `config.ini` be present, so you will need to rename `EXAMPLE-config.ini` to just `config.ini`. Then update the values to reflect the league for which you wish to generate a report, as well as any other settings you wish to change from the default values.
 
-<a name="features"></a>
+<a name="report-features"></a>
 #### Report Features
 
 For those of you who wish to configure the report to include a custom subset of the available features (for instance, if you want league stats but not team pages, or if you want score rankings but not coaching efficiency), the `Report` section in the config file allows all features to be turned on or off. You must use a boolean value (`True` or `False`) to turn on/off any of the available report features, which are the following:
@@ -236,7 +270,7 @@ For those of you who wish to configure the report to include a custom subset of 
     team_beef_stats = True
     team_boom_or_bust = True
 
-<a name="settings"></a>
+<a name="report-settings"></a>
 #### Report Settings
 
 In addition to turning on/off the features of the report PDF itself, there are additional configuration options, which are as follows:
@@ -244,12 +278,15 @@ In addition to turning on/off the features of the report PDF itself, there are a
 |                  Option                  | Description |
 | ---------------------------------------: | :---------- |
 | `platform`                               | Fantasy football platform for which you are generating a report (currently supports: yahoo) |
+| `supported_platforms`                    | Comma-delimited list of currently supported fantasy football platforms. |
 | `league_id`                              | The league id of the fantasy football for which you are running the report. |
 | `game_id`                                | Game id by season (see: [Game Resource](https://developer.yahoo.com/fantasysports/guide/game-resource.html#game-resource-desc) for Yahoo) |
 | `data_dir`                               | Directory where saved data is stored. |
 | `output_dir`                             | Directory where generated reports are created. |
 | `chosen_week`                            | Selected NFL season week for which to generate a report.|
 | `num_playoff_simulations`                | Number of Monte Carlo simulations to run for playoff predictions. The more sims, the longer the report will take to generate. |
+| `bench_positions`                        | Comma-delimited list of available bench positions in your league. |
+| `prohibited_statuses`                    | Comma-delimited list of possible statuses in your league that indicate a player was not able to play (only needed if you plan to utilize the automated coaching efficiency disqualification functionality). |
 | `num_teams`                              | Number of teams in selected league. |
 | `num_regular_season_weeks`               | Number of regular season weeks in selected league. |
 | `num_playoff_slots`                      | Number of playoff slots in selected league. |
@@ -289,7 +326,7 @@ After completing the above setup and configuration steps, you should now be able
 
 ---
 
-<a name="virtualenv"></a>
+<a name="virtual-environment"></a>
 #### Virtual Environment
 
 When you are done working within the `virtualenv`, you can run `deactivate` within the environment to exit:
@@ -307,13 +344,13 @@ When you wish to work within the `virtualenv` once more, do the following:
 
 ---
 
-<a name="integrations"></a>
+<a name="additional-integrations"></a>
 ### Additional Integrations
 
 The Fantasy Football Metrics Weekly Report application also supports several additional integrations if you choose to utilize them. Currently it is capable of uploading your generated reports to Google Drive, and also directly posting your generated reports to the Slack Messenger app.
 
-<a name="google"></a>
-#### Google Drive Integration Setup
+<a name="google-drive-setup"></a>
+#### Google Drive Setup
 
 The Fantasy Football Metrics Weekly Report application includes Google Drive integration, allowing your generated reports to be uploaded and stored in Google Drive, making it easy to share the report with all league members.
 
@@ -379,8 +416,8 @@ The following setup steps are ***required*** in order to allow the Google Drive 
 
 ---
 
-<a name="slack"></a>
-#### Slack Integration Setup
+<a name="slack-setup"></a>
+#### Slack Setup
 
 The Fantasy Football Metrics Weekly Report application includes integration with the poplular personal and business chat app Slack, allowing your generated reports (or links to where they are stored on Google Drive) to be uploaded directly to Slack,  making it easy to share the report with all league members.
 
@@ -425,7 +462,15 @@ The following setup steps are ***required*** in order to allow the Slack integra
 ---
 
 <a name="troubleshooting"></a>
-### Troubleshooting (Yahoo)
+### Troubleshooting
+
+<a name="logs"></a>
+#### Logs
+
+In addition to printing output from the application to the commadn line, the Fantasy Football Metrics Weekly Report also logs all of the same output to [out.log](logs/out.log), which you can view at any time to see output from past runs of the application.
+
+<a name="yahoo"></a>
+#### Yahoo
 
 Occasionally when you use the Yahoo fantasy football API, there are hangups on the other end that can cause data not to transmit, and you might encounter an error similar to this:
 ```

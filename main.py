@@ -2,7 +2,6 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
 import getopt
-import logging
 import os
 import re
 import sys
@@ -15,13 +14,13 @@ from pkg_resources import DistributionNotFound, VersionConflict
 from integrations.drive import GoogleDriveUploader
 from integrations.slack import SlackMessenger
 from report.builder import FantasyFootballReport
+from report.logger import get_logger
+
+logger = get_logger()
 
 # local config vars
 config = ConfigParser()
 config.read("config.ini")
-
-logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.INFO)
 
 
 def main(argv):

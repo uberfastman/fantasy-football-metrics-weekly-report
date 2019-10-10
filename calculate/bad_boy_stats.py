@@ -9,7 +9,6 @@ from collections import OrderedDict
 import requests
 
 logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.INFO)
 
 
 class BadBoyStats(object):
@@ -74,7 +73,7 @@ class BadBoyStats(object):
         else:
             if not self.bad_boy_data:
                 raise FileNotFoundError(
-                    "FILE {} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY PERSISTED DATA!".format(
+                    "FILE {} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                         self.bad_boy_data_file_path))
 
         if len(self.bad_boy_data) == 0:
@@ -83,6 +82,7 @@ class BadBoyStats(object):
                 "'https://nflarrest.com/' and 'https://www.usatoday.com/sports/nfl/arrests/' and try generating a new "
                 "report.")
         else:
+            # print("{} bad boy records loaded".format(len(self.bad_boy_data)))
             logger.info("{} bad boy records loaded".format(len(self.bad_boy_data)))
 
     def open_bad_boy_data(self):

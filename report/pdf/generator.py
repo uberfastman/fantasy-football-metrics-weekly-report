@@ -23,13 +23,13 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.platypus import Spacer
 from reportlab.rl_settings import canvas_basefontname as bfn
 
+from dao.base import BaseLeague, BaseTeam, BasePlayer
 from report.data import ReportData
-from report.models import ReportTeam
+from report.logger import get_logger
 from report.pdf.charts.line import LineChartGenerator
 from report.pdf.charts.pie import BreakdownPieDrawing
 
-logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.INFO)
+logger = get_logger(__name__, propagate=False)
 
 # suppress verbose PIL debug logging
 logging.getLogger("PIL.PngImagePlugin").setLevel(level=logging.INFO)
@@ -63,7 +63,7 @@ def get_image(url, data_dir, week, width=1 * inch):
 class PdfGenerator(object):
     def __init__(self,
                  config,  # type: ConfigParser
-                 league_data,
+                 league,  # type: BaseLeague
                  playoff_prob_sims,
                  report_title_text,
                  report_footer_text,
@@ -72,11 +72,11 @@ class PdfGenerator(object):
 
         # report configuration
         self.config = config
-        self.league_id = league_data.league_id
-        self.playoff_slots = int(league_data.playoff_slots)
-        self.num_regular_season_weeks = int(league_data.num_regular_season_weeks)
-        self.week_for_report = league_data.chosen_week_for_report
-        self.data_dir = os.path.join(league_data.data_dir, str(league_data.season), league_data.league_key)
+        self.league_id = league.league_id
+        self.playoff_slots = int(league.num_playoff_slots)
+        self.num_regular_season_weeks = int(league.num_regular_season_weeks)
+        self.week_for_report = league.week_for_report
+        self.data_dir = os.path.join(league.data_dir, str(league.season), league.league_id)
         self.break_ties = report_data.break_ties
         self.playoff_prob_sims = playoff_prob_sims
         self.num_coaching_efficiency_dqs = report_data.num_coaching_efficiency_dqs
@@ -584,15 +584,14 @@ class PdfGenerator(object):
         for team in alphabetical_teams:
             team_key = team[0]
             team_weekly_points_by_position = team[1]
-            team_result = self.teams_results[team_key]  # type: ReportTeam
-            player_info = self.teams_results[team_key].players
+            team_result = self.teams_results[team_key]  # type: BaseTeam
+            player_info = team_result.roster
 
             if self.config.getboolean(
                     "Report", "team_points_by_position_charts") or self.config.getboolean(
                     "Report", "team_bad_boy_stats") or self.config.getboolean(
                     "Report", "team_beef_stats") or self.config.getboolean(
                     "Report", "team_boom_or_bust"):
-
                 title = self.create_title("<i>" + team_result.name + "</i>", element_type="section",
                                           anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>")
                 self.toc.add_team_section(team_result.name)
@@ -631,7 +630,7 @@ class PdfGenerator(object):
                 offending_players = sorted(offending_players, key=lambda x: x.bad_boy_points, reverse=True)
                 offending_players_data = []
                 for player in offending_players:
-                    offending_players_data.append([player.name.full, player.bad_boy_points, player.bad_boy_crime])
+                    offending_players_data.append([player.full_name, player.bad_boy_points, player.bad_boy_crime])
                 # if there are no offending players, skip table
                 if offending_players_data:
                     doc_elements.append(self.create_title("Whodunnit?", 8.5, "section"))
@@ -654,9 +653,9 @@ class PdfGenerator(object):
                 ndx = 0
                 count = 0
                 while count < num_beefy_bois:
-                    player = beefy_players[ndx]
-                    if player.name.last:
-                        beefy_players_data.append([player.name.full, player.tabbu, player.weight])
+                    player = beefy_players[ndx]  # type: BasePlayer
+                    if player.last_name:
+                        beefy_players_data.append([player.full_name, player.tabbu, player.weight])
                         count += 1
                     ndx += 1
                 beefy_boi_table = self.create_data_table([["Starting Player", "TABBU(s)", "Weight (lbs.)"]],
@@ -669,24 +668,24 @@ class PdfGenerator(object):
 
             if self.config.getboolean("Report", "team_boom_or_bust"):
                 starting_players = []
-                for player in player_info:
-                    if player.selected_position.position not in ["BN", "IR"]:
+                for player in player_info:  # type: BasePlayer
+                    if player.selected_position not in ["BN", "IR"]:
                         starting_players.append(player)
 
-                starting_players = sorted(starting_players, key=lambda x: x.player_points.total, reverse=True)
+                starting_players = sorted(starting_players, key=lambda x: x.points, reverse=True)
                 best_weekly_player = starting_players[0]
                 worst_weekly_player = starting_players[-1]
 
-                best_player_headshot = get_image(best_weekly_player.headshot.url, self.data_dir, self.week_for_report,
+                best_player_headshot = get_image(best_weekly_player.headshot_url, self.data_dir, self.week_for_report,
                                                  1 * inch)
-                worst_player_headshot = get_image(worst_weekly_player.headshot.url, self.data_dir, self.week_for_report,
+                worst_player_headshot = get_image(worst_weekly_player.headshot_url, self.data_dir, self.week_for_report,
                                                   1 * inch)
 
                 data = [["BOOOOOOOOM", "...b... U... s... T"],
-                        [best_weekly_player.name.full + " -- " + best_weekly_player.editorial_team_full_name,
-                         worst_weekly_player.name.full + " -- " + worst_weekly_player.editorial_team_full_name],
+                        [best_weekly_player.full_name + " -- " + best_weekly_player.nfl_team_name,
+                         worst_weekly_player.full_name + " -- " + worst_weekly_player.nfl_team_name],
                         [best_player_headshot, worst_player_headshot],
-                        [best_weekly_player.player_points.total, worst_weekly_player.player_points.total]]
+                        [best_weekly_player.points, worst_weekly_player.points]]
                 table = Table(data, colWidths=4.0 * inch)
                 table.setStyle(self.boom_bust_table_style)
                 doc_elements.append(self.spacer_half_inch)

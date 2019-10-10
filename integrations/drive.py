@@ -11,7 +11,6 @@ from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
 logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.INFO)
 
 # Suppress verbose googleapiclient info/warning logging
 logging.getLogger("googleapiclient").setLevel(level=logging.ERROR)
@@ -64,13 +63,14 @@ class GoogleDriveUploader(object):
             google_drive_root_folder_name)
 
         if not test:
-            # Check for parent folder for league and create it if it does not exist
+            # Check for season folder and create it if it does not exist
             # noinspection PyTypeChecker
-            season_folder_name = self.filename.split(os.sep)[-3].replace("-", "_")
+            season_folder_name = self.filename.split(os.sep)[-3]
             season_folder_id = self.make_parent_folder(drive,
                                                        self.check_file_existence(season_folder_name, all_folders),
                                                        season_folder_name, google_drive_root_folder_id)
 
+            # Check for league folder and create it if it does not exist
             # noinspection PyTypeChecker
             league_folder_name = self.filename.split(os.sep)[-2].replace("-", "_")
             league_folder_id = self.make_parent_folder(drive,
