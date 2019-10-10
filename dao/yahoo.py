@@ -50,6 +50,7 @@ class LeagueData(object):
         self.league_key = yahoo_fantasy_game.game_key + ".l." + self.league_id
         self.season = yahoo_fantasy_game.season
 
+        # YAHOO API QUERY: run query to retrieve all league information, including current standings
         self.league_info = self.yahoo_data.retrieve(str(self.league_id) + "-league-info",
                                                     self.yahoo_query.get_league_info,
                                                     data_type_class=League,
@@ -66,7 +67,7 @@ class LeagueData(object):
         # validate user selection of week for which to generate report
         self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week)
 
-        # # run yahoo queries for season team roster stats
+        # # YAHOO API QUERY: run yahoo queries for season team roster stats
         # self.rosters = {
         #     str(team.get("team").team_id): {
         #         str(player.get("player").player_id): player.get("player") for player in self.yahoo_data.retrieve(
@@ -79,7 +80,7 @@ class LeagueData(object):
         #     } for team in self.league_info.standings.teams
         # }
 
-        # run yahoo queries requiring chosen week
+        # YAHOO API QUERY: run yahoo queries to retrieve matchups by week for the entire season
         self.matchups_by_week = {}
         for wk in range(1, self.num_regular_season_weeks + 1):
             self.matchups_by_week[wk] = self.yahoo_data.retrieve(
@@ -89,6 +90,7 @@ class LeagueData(object):
                 new_data_dir=os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk))
             )
 
+        # YAHOO API QUERY: run yahoo queries to retrieve team rosters by week for the season up to the current week
         self.rosters_by_week = {}
         for wk in range(1, int(self.week_for_report) + 1):
             self.rosters_by_week[str(wk)] = {
@@ -104,6 +106,7 @@ class LeagueData(object):
             }
 
     def get_player_data(self, player_key, week):
+        # YAHOO API QUERY: run query to retrieve stats for specific player for a chosen week
         return self.yahoo_data.retrieve(
             player_key,
             self.yahoo_query.get_player_stats_by_week,
