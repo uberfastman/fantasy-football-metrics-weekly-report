@@ -78,7 +78,7 @@ class PdfGenerator(object):
         self.week_for_report = league.week_for_report
         self.data_dir = os.path.join(league.data_dir, str(league.season), league.league_id)
         self.break_ties = report_data.break_ties
-        self.playoff_prob_sims = int(playoff_prob_sims)
+        self.playoff_prob_sims = playoff_prob_sims
         self.num_coaching_efficiency_dqs = report_data.num_coaching_efficiency_dqs
 
         # data for report
@@ -768,7 +768,7 @@ class PdfGenerator(object):
                     subtitle_text="Playoff probabilities were calculated using %s Monte Carlo simulations to predict "
                                   "team performances through the end of the regular fantasy season." %
                                   "{0:,}".format(
-                                      self.playoff_prob_sims if self.playoff_prob_sims is not None else
+                                      int(self.playoff_prob_sims) if self.playoff_prob_sims is not None else
                                       self.config.getint("Configuration", "num_playoff_simulations"))
                 )
 

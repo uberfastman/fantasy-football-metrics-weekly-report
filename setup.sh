@@ -92,7 +92,15 @@ else
   echo -e "WORKON_HOME environment variable is already properly defined. Continuing setup...\n\n"
 fi
 
-RCVENVWRAP="$(cat ~/.bashrc | grep 'source /usr/local/bin/virtualenvwrapper.sh')"
+RCVENVPYTHON="$(cat ~/.bashrc | grep 'export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python3')"
+if [[ $? != 0 ]] ; then
+  echo -e "Adding VIRTUALENVWRAPPER_PYTHON environment variable to '~/.bashrc'...\n\n"
+  echo 'export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python3' >> ~/.bashrc
+else
+  echo -e "VIRTUALENVWRAPPER_PYTHON environment variable is already properly defined. Continuing setup...\n\n"
+fi
+
+RCVENVWRAP="$(cat ~/.bashrc | grep "source $(which virtualenvwrapper.sh)")"
 if [[ $? != 0 ]] ; then
   echo -e "Sourcing virtualenvwrapper.sh in '~/.bashrc'...\n\n"
   echo 'source /usr/local/bin/virtualenvwrapper.sh' >> ~/.bashrc
@@ -101,6 +109,8 @@ else
 fi
 # echo 'export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python3' >> ~/.bashrc
 source ~/.bashrc
+echo '[ -r ~/.bashrc ] && . ~/.bashrc' >> ~/.bash_profile
+source ~/.bash_profile
 echo -e "====================================================================\n"
 
 echo -e "===================================================================="
