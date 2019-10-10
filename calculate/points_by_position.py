@@ -2,12 +2,11 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
 import copy
-import logging
 
-from dao.base import Team, Player
+from dao.base import BaseTeam, BasePlayer
+from report.logger import get_logger
 
-logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.INFO)
+logger = get_logger(__name__)
 
 
 class PointsByPosition(object):
@@ -23,7 +22,7 @@ class PointsByPosition(object):
 
     def get_points_for_position(self, players, position):
         total_points_by_position = 0
-        for player in players:  # type: Player
+        for player in players:  # type: BasePlayer
             if position in player.eligible_positions and player.selected_position not in self.bench_positions:
                 total_points_by_position += float(player.points)
 
@@ -65,7 +64,7 @@ class PointsByPosition(object):
     def get_weekly_points_by_position(self, teams_results):
 
         weekly_points_by_position_data = []
-        for team_result in teams_results.values():  # type: Team
+        for team_result in teams_results.values():  # type: BaseTeam
             team_roster_slot_counts = copy.deepcopy(self.roster_slot_counts)
             for slot in list(team_roster_slot_counts.keys()):
                 if self.roster_slot_counts.get(slot) == 0:

@@ -10,7 +10,6 @@ from configparser import ConfigParser
 from slackclient import SlackClient
 
 logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.INFO)
 
 
 class SlackMessenger(object):
@@ -111,9 +110,4 @@ if __name__ == '__main__':
     repost_file = local_config.get("Slack", "repost_file")
 
     post_to_slack = SlackMessenger(local_config)
-
-    # print(post_to_slack.api_test())
-    # print(post_to_slack.list_channels())
-    # print(post_to_slack.test_post_to_slack("test"))
-    # print(post_to_slack.test_file_upload_to_slack(repost_file))
     print(post_to_slack.upload_file_to_selected_slack_channel(repost_file))

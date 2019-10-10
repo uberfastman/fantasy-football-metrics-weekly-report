@@ -11,7 +11,7 @@ class SeasonAverageCalculator(object):
         self.team_names = team_names
         self.report_data = report_data
 
-    def get_average(self, data, key, with_percent, bench_column=True, ce_first_ties=False, reverse=True):
+    def get_average(self, data, key, with_percent=False, first_ties=False, reverse=True):
 
         season_average_list = []
         team_index = 0
@@ -40,20 +40,18 @@ class SeasonAverageCalculator(object):
                     if with_percent:
                         ordered_team[3] = "{0:.2f}%".format(float(str(ordered_team[3]).replace("%", ""))) if \
                             ordered_team[3] != "DQ" else "DQ"
-
-                        if key == "data_for_coaching_efficiency" and ce_first_ties:
-                            ordered_team.insert(-2, str(team[2]))
-                        else:
-                            ordered_team.append(str(team[2]))
-
-                    elif bench_column:
+                        value = str(team[2])
+                    elif key == "data_for_scores":
                         ordered_team[3] = "{0:.2f}".format(float(str(ordered_team[3])))
-                        ordered_team.insert(-1, str(team[2]))
-
+                        value = str(team[2])
                     else:
                         value = "{0}".format(str(team[2]))
-                        if key == "data_for_z_scores":
-                            value = value.split(" ")[0]
+
+                    if key == "data_for_scores":
+                        ordered_team.insert(-1, value)
+                    elif key == "data_for_coaching_efficiency" and first_ties:
+                        ordered_team.insert(-2, value)
+                    else:
                         ordered_team.append(value)
 
                     ordered_season_average_list.append(ordered_team)

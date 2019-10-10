@@ -2,220 +2,13 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
 import logging
-import os
 import sys
-
-from yffpy.models import Manager as YffManager
-from yffpy.models import Matchup as YffMatchup
-from yffpy.models import Player as YffPlayer
-from yffpy.models import RosterPosition as YffRosterPosition
-from yffpy.models import Stat as YffStat
-from yffpy.models import Team as YffTeam
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
-from dao import yahoo
-from dao.base import League, Matchup, Team, Manager, Player, Stat
+from dao.base import BaseLeague, BaseTeam, BasePlayer
 
 logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.INFO)
-
-
-def league_data_class_factory(config, game_id, league_id, base_dir, data_dir, week_for_report, save_data, dev_offline):
-    platform = config.get("Configuration", "platform")
-
-    if platform == "yahoo":
-        yahoo_auth_dir = os.path.join(base_dir, config.get("Yahoo", "yahoo_auth_dir"))
-        yahoo_league = yahoo.LeagueData(
-            config=config,
-            yahoo_game_id=game_id,
-            yahoo_league_id=league_id,
-            yahoo_auth_dir=yahoo_auth_dir,
-            data_dir=data_dir,
-            week_for_report=week_for_report,
-            week_validation_function=user_week_input_validation,
-            save_data=save_data,
-            dev_offline=dev_offline
-        )
-
-        league = League(config, league_id, data_dir, yahoo_league.week_for_report, yahoo_auth_dir, save_data,
-                        dev_offline)
-
-        league.name = yahoo_league.league_info.name
-        league.current_week = int(yahoo_league.current_week)
-        league.season = yahoo_league.season
-        league.num_teams = int(yahoo_league.league_info.num_teams)
-        league.num_playoff_slots = int(yahoo_league.playoff_slots)
-        league.num_regular_season_weeks = int(yahoo_league.num_regular_season_weeks)
-        league.url = yahoo_league.league_info.url
-
-        league.bench_positions = ["BN", "IR"]
-        for position in yahoo_league.roster_positions:
-            pos = position.get("roster_position")  # type: YffRosterPosition
-
-            pos_name = pos.position
-
-            if pos_name not in league.bench_positions:
-                league.active_positions.append(pos_name)
-
-            if pos_name == "W/R":
-                league.flex_positions = ["WR", "RB"]
-            if pos_name == "W/R/T":
-                league.flex_positions = ["WR", "RB", "TE"]
-            if pos_name == "Q/W/R/T":
-                league.flex_positions = ["QB", "WR", "RB", "TE"]
-
-            if "/" in pos_name:
-                pos_name = "FLEX"
-
-            league.roster_positions.append(pos_name)
-            league.roster_position_counts[pos_name] = pos.count
-
-        for week, matchups in yahoo_league.matchups_by_week.items():
-            league.teams_by_week[str(week)] = {}
-            league.matchups_by_week[str(week)] = []
-            for matchup in matchups:
-                y_matchup = matchup.get("matchup")  # type: YffMatchup
-                base_matchup = Matchup()
-
-                base_matchup.week_for_report = int(y_matchup.week)
-                base_matchup.complete = True if y_matchup.status == "postevent" else False
-                base_matchup.tied = True if (y_matchup.is_tied and int(y_matchup.is_tied) == 1) else False
-
-                for team in y_matchup.teams:  # type: dict
-                    y_team = team.get("team")  # type: YffTeam
-                    base_team = Team()
-
-                    base_team.week_for_report = int(y_matchup.week)
-                    base_team.name = y_team.name
-                    base_team.num_moves = int(y_team.number_of_moves)
-                    base_team.num_trades = int(y_team.number_of_trades)
-
-                    if isinstance(y_team.managers, list):
-                        y_team_manager = y_team.managers
-                    else:
-                        y_team_manager = [y_team.managers]
-
-                    for manager in y_team_manager:
-                        y_manager = manager.get("manager")  # type: YffManager
-                        base_manager = Manager()
-
-                        base_manager.manager_id = str(y_manager.manager_id)
-                        base_manager.email = y_manager.email
-                        base_manager.name = y_manager.nickname
-
-                        base_team.managers.append(base_manager)
-
-                    base_team.manager_str = ", ".join([manager.name for manager in base_team.managers])
-
-                    # TODO: change y_team.team_id to y_team.team_key
-                    base_team.team_id = str(y_team.team_id)
-                    base_team.team_key = str(y_team.team_key)
-                    base_team.points = float(y_team.points)
-                    base_team.projected_points = float(y_team.projected_points)
-                    base_team.waiver_priority = int(y_team.waiver_priority)
-                    base_team.url = str(y_team.url)
-
-                    # add team to matchup teams
-                    base_matchup.teams.append(base_team)
-
-                    # add team to league teams by week
-                    league.teams_by_week[str(week)][str(base_team.team_id)] = base_team
-
-                    if base_team.team_key == y_matchup.winner_team_key:
-                        base_matchup.winner = base_team
-                    else:
-                        base_matchup.loser = base_team
-
-                # add matchup to league matchups by week
-                league.matchups_by_week[str(week)].append(base_matchup)
-
-        for week, rosters in yahoo_league.rosters_by_week.items():
-            league.players_by_week[str(week)] = {}
-            for team_id, roster in rosters.items():
-                league_team = league.teams_by_week.get(str(week)).get(str(team_id))  # type: Team
-                for player in roster:
-                    y_player = player.get("player")  # type: YffPlayer
-                    base_player = Player()
-
-                    base_player.week_for_report = int(week)
-                    base_player.player_id = str(y_player.player_key)
-                    base_player.bye_week = int(y_player.bye)
-                    base_player.display_position = str(y_player.display_position)
-                    base_player.nfl_team_id = str(y_player.editorial_team_key)
-                    base_player.nfl_team_abbr = str(y_player.editorial_team_abbr)
-                    base_player.nfl_team_name = str(y_player.editorial_team_full_name)
-                    base_player.first_name = str(y_player.first_name)
-                    base_player.last_name = str(y_player.last_name)
-                    base_player.full_name = str(y_player.full_name)
-                    base_player.headshot_url = str(y_player.headshot_url)
-                    base_player.owner_team_id = str(y_player.ownership.owner_team_key)
-                    base_player.owner_team_id = str(y_player.ownership.owner_team_name)
-                    base_player.percent_owned = float(
-                        y_player.percent_owned_value) if y_player.percent_owned_value else 0
-                    base_player.points = float(y_player.player_points_value)
-                    base_player.position_type = str(y_player.position_type)
-                    base_player.primary_position = str(y_player.primary_position)
-                    base_player.selected_position = str(y_player.selected_position_value)
-                    base_player.selected_position_is_flex = True if int(
-                        y_player.selected_position.is_flex) == 1 else False
-                    base_player.status = str(y_player.status)
-
-                    eligible_positions = y_player.eligible_positions
-                    if isinstance(eligible_positions, dict):
-                        eligible_positions = [eligible_positions]
-
-                    for position in eligible_positions:
-                        pos = position.get("position")
-                        base_player.eligible_positions.append(pos)
-
-                    for stat in y_player.stats:
-                        y_stat = stat.get("stat")  # type: YffStat
-                        base_stat = Stat()
-
-                        base_stat.stat_id = y_stat.stat_id
-                        base_stat.name = y_stat.name
-                        base_stat.value = y_stat.value
-
-                        base_player.stats.append(base_stat)
-
-                    # add player to team roster
-                    league_team.roster.append(base_player)
-
-                    # add player to league players by week
-                    league.players_by_week[str(week)][base_player.player_id] = base_player
-
-        for ranked_team in yahoo_league.league_info.standings.teams:
-            y_team = ranked_team.get("team")  # type: YffTeam
-
-            team = league.teams_by_week.get(str(yahoo_league.week_for_report)).get(str(y_team.team_id))  # type: Team
-
-            team.wins = int(y_team.wins)
-            team.losses = int(y_team.losses)
-            team.ties = int(y_team.ties)
-            team.percentage = float(y_team.percentage)
-            if y_team.streak_type == "win":
-                team.streak_type = "W"
-            elif y_team.streak_type == "loss":
-                team.streak_type = "L"
-            else:
-                team.streak_type = "T"
-            team.streak_len = int(y_team.streak_length)
-            team.streak_str = str(team.streak_type) + "-" + str(y_team.streak_length)
-            team.points_against = float(y_team.points_against)
-            team.points_for = float(y_team.points_for)
-            team.rank = int(y_team.rank)
-
-        league.current_standings = sorted(
-            league.teams_by_week.get(str(yahoo_league.week_for_report)).values(), key=lambda x: x.rank)
-
-        return league
-
-    else:
-        logger.error(
-            "Generating fantasy football reports for the \"{}\" fantasy football platform is not currently supported."
-            "Please change your settings in config.ini and try again.".format(platform))
-        sys.exit()
 
 
 def user_week_input_validation(config, week, retrieved_current_week):
@@ -223,7 +16,7 @@ def user_week_input_validation(config, week, retrieved_current_week):
     if week:
         week_for_report = week
     else:
-        week_for_report = config.getint("Configuration", "week_for_report")
+        week_for_report = config.get("Configuration", "week_for_report")
     try:
         current_week = retrieved_current_week
         if week_for_report == "default":
@@ -260,7 +53,50 @@ def user_week_input_validation(config, week, retrieved_current_week):
     return int(week_for_report)
 
 
-def add_report_player_stats(player,  # type: Player
+def league_data_factory(config, game_id, league_id, base_dir, data_dir, week_for_report, save_data, dev_offline):
+    """
+
+    :param config:
+    :param game_id:
+    :param league_id:
+    :param base_dir:
+    :param data_dir:
+    :param week_for_report:
+    :param save_data:
+    :param dev_offline:
+    :rtype: BaseLeague
+    :return:
+    """
+
+    supported_platforms = [str(platform) for platform in config.get("Configuration", "supported_platforms").split(",")]
+    platform = config.get("Configuration", "platform")
+
+    if platform in supported_platforms:
+
+        platform_dao = getattr(__import__("dao"), platform)
+
+        platform_league = platform_dao.LeagueData(
+            config=config,
+            yahoo_game_id=game_id,
+            yahoo_league_id=league_id,
+            base_dir=base_dir,
+            data_dir=data_dir,
+            week_for_report=week_for_report,
+            week_validation_function=user_week_input_validation,
+            save_data=save_data,
+            dev_offline=dev_offline
+        )
+
+        return platform_league.map_data_to_base(BaseLeague)
+
+    else:
+        logger.error(
+            "Generating fantasy football reports for the \"{}\" fantasy football platform is not currently supported. "
+            "Please change your settings in config.ini and try again.".format(platform))
+        sys.exit()
+
+
+def add_report_player_stats(player,  # type: BasePlayer
                             bench_positions,
                             metrics):
     player.bad_boy_crime = str()
@@ -285,19 +121,13 @@ def add_report_player_stats(player,  # type: Player
     return player
 
 
-def add_report_team_stats(team,  # type: Team
-                          league,  # type: League
+def add_report_team_stats(team,  # type: BaseTeam
+                          league,  # type: BaseLeague
                           week_counter,
                           metrics,
                           dq_ce):
-
     team.name = team.name.decode("utf-8")
     bench_positions = league.get_roster_slots_by_type().get("positions_bench")
-
-    # if len(team.managers) > 1:
-    #     team.manager_str = ", ".join([manager.name for manager in team.managers])
-    # else:
-    #     team.manager_str = team.managers[0].name
 
     for player in team.roster:
         add_report_player_stats(player, bench_positions, metrics)
@@ -330,8 +160,8 @@ def add_report_team_stats(team,  # type: Team
 
     team.total_weight = sum([p.weight for p in team.roster if p.selected_position not in bench_positions])
     team.tabbu = sum([p.tabbu for p in team.roster if p.selected_position not in bench_positions])
-    team.positions_filled_active = list(set([p.selected_position for p in team.roster if
-                                             p.selected_position not in bench_positions]))
+    team.positions_filled_active = [p.selected_position for p in team.roster if
+                                    p.selected_position not in bench_positions]
 
     # calculate coaching efficiency
     team.coaching_efficiency = metrics.get("coaching_efficiency").execute_coaching_efficiency(

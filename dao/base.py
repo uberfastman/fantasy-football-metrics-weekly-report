@@ -2,16 +2,12 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
 import json
-import logging
 import os
 from collections import defaultdict
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
 from calculate.playoff_probabilities import PlayoffProbabilities
-
-logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.INFO)
 
 
 def complex_json_handler(obj):
@@ -81,9 +77,9 @@ class FantasyFootballReportObject(object):
         return json.dumps(self.serialized(), indent=2, default=complex_json_handler, ensure_ascii=False)
 
 
-class League(FantasyFootballReportObject):
+class BaseLeague(FantasyFootballReportObject):
 
-    def __init__(self, config, league_id, data_dir, week_for_report, auth_dir=None, save_data=True, dev_offline=False):
+    def __init__(self, config, league_id, data_dir, week_for_report, save_data=True, dev_offline=False):
         super().__init__()
 
         # attributes set during instantiation
@@ -91,7 +87,6 @@ class League(FantasyFootballReportObject):
         self.league_id = league_id
         self.data_dir = data_dir
         self.week_for_report = week_for_report
-        self.auth_dir = auth_dir
         self.save_data = save_data
         self.dev_offline = dev_offline
 
@@ -115,6 +110,12 @@ class League(FantasyFootballReportObject):
         self.teams_by_week = {}
         self.players_by_week = {}
         self.current_standings = []
+
+        self.player_data_by_week_function = None
+        self.player_data_by_week_key = None
+
+    def get_player_data_by_week(self, player_id, week):
+        return getattr(self.player_data_by_week_function(player_id, week), self.player_data_by_week_key)
 
     def get_custom_weekly_matchups(self, week_for_report):
         """
@@ -145,7 +146,7 @@ class League(FantasyFootballReportObject):
         """
 
         matchup_list = []
-        for matchup in self.matchups_by_week.get(str(week_for_report)):  # type: Matchup
+        for matchup in self.matchups_by_week.get(str(week_for_report)):  # type: BaseMatchup
             if matchup.complete:
                 winning_team = matchup.winner.team_id
                 is_tied = matchup.tied
@@ -193,7 +194,6 @@ class League(FantasyFootballReportObject):
         )
 
     def get_beef_stats(self, save_data=False, dev_offline=False, refresh=False):
-
         return BeefStats(
             os.path.join(self.data_dir, str(self.season), self.league_id),
             save_data=save_data,
@@ -202,7 +202,7 @@ class League(FantasyFootballReportObject):
         )
 
 
-class Matchup(FantasyFootballReportObject):
+class BaseMatchup(FantasyFootballReportObject):
 
     def __init__(self):
         super().__init__()
@@ -211,8 +211,8 @@ class Matchup(FantasyFootballReportObject):
         self.complete = False
         self.tied = False
         self.teams = []
-        self.winner = Team()  # type: Team
-        self.loser = Team()  # type: Team
+        self.winner = BaseTeam()  # type: BaseTeam
+        self.loser = BaseTeam()  # type: BaseTeam
 
     def __setattr__(self, name, value):
         if name == "complete" and not isinstance(value, bool):
@@ -220,7 +220,7 @@ class Matchup(FantasyFootballReportObject):
         super().__setattr__(name, value)
 
 
-class Team(FantasyFootballReportObject):
+class BaseTeam(FantasyFootballReportObject):
 
     def __init__(self):
         super().__init__()
@@ -263,7 +263,7 @@ class Team(FantasyFootballReportObject):
         self.record = None
 
 
-class Manager(FantasyFootballReportObject):
+class BaseManager(FantasyFootballReportObject):
 
     def __init__(self):
         super().__init__()
@@ -273,7 +273,7 @@ class Manager(FantasyFootballReportObject):
         self.name = None
 
 
-class Player(FantasyFootballReportObject):
+class BasePlayer(FantasyFootballReportObject):
 
     def __init__(self):
         super().__init__()
@@ -293,6 +293,7 @@ class Player(FantasyFootballReportObject):
         self.owner_team_name = None
         self.percent_owned = 0
         self.points = 0
+        self.season_points = 0
         self.position_type = None
         self.primary_position = None
         self.selected_position = None
@@ -309,7 +310,7 @@ class Player(FantasyFootballReportObject):
         self.tabbu = 0
 
 
-class Stat(FantasyFootballReportObject):
+class BaseStat(FantasyFootballReportObject):
 
     def __init__(self):
         super().__init__()

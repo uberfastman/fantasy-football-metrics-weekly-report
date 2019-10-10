@@ -23,13 +23,13 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.platypus import Spacer
 from reportlab.rl_settings import canvas_basefontname as bfn
 
-from dao.base import League, Team, Player
+from dao.base import BaseLeague, BaseTeam, BasePlayer
 from report.data import ReportData
+from report.logger import get_logger
 from report.pdf.charts.line import LineChartGenerator
 from report.pdf.charts.pie import BreakdownPieDrawing
 
-logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.INFO)
+logger = get_logger(__name__, propagate=False)
 
 # suppress verbose PIL debug logging
 logging.getLogger("PIL.PngImagePlugin").setLevel(level=logging.INFO)
@@ -63,7 +63,7 @@ def get_image(url, data_dir, week, width=1 * inch):
 class PdfGenerator(object):
     def __init__(self,
                  config,  # type: ConfigParser
-                 league,  # type: League
+                 league,  # type: BaseLeague
                  playoff_prob_sims,
                  report_title_text,
                  report_footer_text,
@@ -584,7 +584,7 @@ class PdfGenerator(object):
         for team in alphabetical_teams:
             team_key = team[0]
             team_weekly_points_by_position = team[1]
-            team_result = self.teams_results[team_key]  # type: Team
+            team_result = self.teams_results[team_key]  # type: BaseTeam
             player_info = team_result.roster
 
             if self.config.getboolean(
@@ -592,7 +592,6 @@ class PdfGenerator(object):
                     "Report", "team_bad_boy_stats") or self.config.getboolean(
                     "Report", "team_beef_stats") or self.config.getboolean(
                     "Report", "team_boom_or_bust"):
-
                 title = self.create_title("<i>" + team_result.name + "</i>", element_type="section",
                                           anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>")
                 self.toc.add_team_section(team_result.name)
@@ -654,7 +653,7 @@ class PdfGenerator(object):
                 ndx = 0
                 count = 0
                 while count < num_beefy_bois:
-                    player = beefy_players[ndx]  # type: Player
+                    player = beefy_players[ndx]  # type: BasePlayer
                     if player.last_name:
                         beefy_players_data.append([player.full_name, player.tabbu, player.weight])
                         count += 1
@@ -669,7 +668,7 @@ class PdfGenerator(object):
 
             if self.config.getboolean("Report", "team_boom_or_bust"):
                 starting_players = []
-                for player in player_info:  # type: Player
+                for player in player_info:  # type: BasePlayer
                     if player.selected_position not in ["BN", "IR"]:
                         starting_players.append(player)
 

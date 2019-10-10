@@ -2,21 +2,21 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
 import itertools
-import logging
-from dao.base import League, Matchup, Team
 
 from calculate.metrics import CalculateMetrics
 from calculate.points_by_position import PointsByPosition
+from dao.base import BaseLeague, BaseMatchup, BaseTeam
 from dao.utils import add_report_team_stats
+from report.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, propagate=False)
 
 
 class ReportData(object):
 
     def __init__(self,
                  config,
-                 league,  # type: League
+                 league,  # type: BaseLeague
                  season_weekly_teams_results,
                  week_counter,
                  week_for_report,
@@ -29,16 +29,6 @@ class ReportData(object):
         self.break_ties = break_ties
         self.dq_ce = dq_ce
 
-        # calculate stats and metrics for all teams
-        # self.teams_results = {
-        #     team.team_key: ReportTeam(
-        #         team,
-        #         league,
-        #         week_counter,
-        #         metrics,
-        #         dq_ce,
-        #     ) for team in league.teams.get(str(week_counter))
-        # }
         self.teams_results = {
             team.team_key: add_report_team_stats(
                 team,
@@ -51,7 +41,7 @@ class ReportData(object):
 
         # option to disqualify manually configured team(s) (in config.ini) for current week of coaching efficiency
         self.coaching_efficiency_dqs = {}
-        if week_counter == week_for_report:
+        if int(week_counter) == int(week_for_report):
             disqualified_teams = config.get("Configuration", "coaching_efficiency_disqualified_teams")
             if disqualified_teams:
                 for team in disqualified_teams.split(","):
@@ -69,20 +59,11 @@ class ReportData(object):
         for week, matchups in league.matchups_by_week.items():
             if int(week) > int(week_for_report):
                 remaining_matchups[int(week)] = []
-                for matchup in matchups:  # type: Matchup
+                for matchup in matchups:  # type: BaseMatchup
                     matchup_teams = []
                     for team in matchup.teams:
                         matchup_teams.append(team.team_id)
                     remaining_matchups[int(week)].append(tuple(matchup_teams))
-
-        # remaining_matchups = {
-        #     int(week): [
-        #         (
-        #             matchup.get("matchup").teams[0].get("team").team_id,
-        #             matchup.get("matchup").teams[1].get("team").team_id
-        #         ) for matchup in matchups
-        #     ] for week, matchups in league.matchups.items() if int(week) > int(week_for_report)
-        # }
 
         # calculate z-scores (dependent on all previous weeks scores)
         z_score_results = metrics_calculator.calculate_z_scores(season_weekly_teams_results + [self.teams_results])
@@ -101,7 +82,8 @@ class ReportData(object):
 
         # playoff probabilities data
         self.data_for_playoff_probs = metrics.get("playoff_probs").calculate(week_counter, week_for_report,
-                                                                             league.current_standings, remaining_matchups)
+                                                                             league.current_standings,
+                                                                             remaining_matchups)
         if self.data_for_playoff_probs:
             self.data_for_playoff_probs = metrics_calculator.get_playoff_probs_data(
                 league.current_standings,
@@ -148,7 +130,7 @@ class ReportData(object):
 
         # teams data and season average points by position data
         self.data_for_teams = []
-        for team_result in self.teams_results.values():  # type: Team
+        for team_result in self.teams_results.values():  # type: BaseTeam
             self.data_for_teams.append([
                 team_result.team_key,
                 team_result.name,
@@ -189,6 +171,9 @@ class ReportData(object):
 
         # get number of scores ties and ties for first
         self.ties_for_scores = metrics_calculator.get_ties_count(self.data_for_scores, "score", self.break_ties)
+        self.num_first_place_for_score_before_resolution = len(
+            [list(group) for key, group in itertools.groupby(self.data_for_scores, lambda x: x[3])][0])
+
         # reorder score data based on bench points if there are ties and break_ties = True
         if self.ties_for_scores > 0:
             self.data_for_scores = metrics_calculator.resolve_score_ties(self.data_for_scores, self.break_ties)
@@ -199,6 +184,9 @@ class ReportData(object):
         # get number of coaching efficiency ties and ties for first
         self.ties_for_coaching_efficiency = metrics_calculator.get_ties_count(self.data_for_coaching_efficiency,
                                                                               "coaching_efficiency", self.break_ties)
+        self.num_first_place_for_coaching_efficiency_before_resolution = len(
+            [list(group) for key, group in itertools.groupby(self.data_for_coaching_efficiency, lambda x: x[0])][0])
+
         if self.ties_for_coaching_efficiency > 0:
             self.data_for_coaching_efficiency = metrics_calculator.resolve_coaching_efficiency_ties(
                 self.data_for_coaching_efficiency, self.ties_for_coaching_efficiency, league, self.teams_results,
@@ -275,11 +263,11 @@ class ReportData(object):
             ce_dq_str = ""
             for team_name, ineligible_players_count in self.coaching_efficiency_dqs.items():
                 if ineligible_players_count == -1:
-                    ce_dq_str = "{} (incomplete active squad), ".format(team_name)
+                    ce_dq_str += "{} (incomplete active squad), ".format(team_name)
                 elif ineligible_players_count == -2:
-                    ce_dq_str = "{} (manually disqualified), ".format(team_name)
+                    ce_dq_str += "{} (manually disqualified), ".format(team_name)
                 else:
-                    ce_dq_str = "{} (ineligible bench players: {}/{}), ".format(
+                    ce_dq_str += "{} (ineligible bench players: {}/{}), ".format(
                         team_name,
                         ineligible_players_count,
                         league.get_roster_slots_by_type().get("position_counts").get("BN"))

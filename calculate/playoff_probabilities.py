@@ -13,7 +13,6 @@ import traceback
 import numpy as np
 
 logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.INFO)
 
 
 class PlayoffProbabilities(object):

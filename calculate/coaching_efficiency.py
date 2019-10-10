@@ -6,15 +6,15 @@ from collections import defaultdict, Counter
 
 
 class CoachingEfficiency(object):
-    # prohibited statuses to check team coaching efficiency eligibility
-    prohibited_status_list = ["PUP-P", "SUSP", "O", "IR", "INACTIVE", "IR-R"]
-    bench_positions = ["BN", "IR"]
 
-    def __init__(self, roster_settings):
+    def __init__(self, config, roster_settings):
+        self.config = config
+
+        self.prohibited_status_list = [
+            str(status) for status in self.config.get("Configuration", "prohibited_statuses").split(",")]
+
         self.roster_slot_counts = roster_settings["position_counts"]
-
         self.roster_active_slots = roster_settings["positions_active"]
-
         self.flex_positions = {
             "FLEX": roster_settings["positions_flex"]
         }
@@ -38,6 +38,7 @@ class CoachingEfficiency(object):
             eligible_positions = player.eligible_positions
 
             if position in eligible_positions:
+                # TODO: figure out how to handle this in the Yahoo data section
                 # Yahoo special case: all defensive players get D as an eligible position whereas for offense, there is
                 # no special eligible position for FLEX
                 if not self.has_flex_def or position != "D":
@@ -52,7 +53,7 @@ class CoachingEfficiency(object):
 
     def get_optimal_players(self, eligible_players, position):
         player_list = eligible_players[position]
-        num_slots = self.roster_slot_counts[position]
+        num_slots = int(self.roster_slot_counts[position])
         return sorted(player_list, key=lambda x: x.points, reverse=True)[:num_slots]
 
     def get_optimal_flex(self, eligible_positions, optimal):
@@ -97,11 +98,6 @@ class CoachingEfficiency(object):
     def execute_coaching_efficiency(self, team_name, team_roster, team_points, positions_filled_active, week,
                                     dq_eligible=False):
 
-        print(team_name)
-        print(team_points)
-        print(positions_filled_active)
-        print(week)
-
         eligible_players = defaultdict(list)
         for player in team_roster:
             for position in self.get_eligible_positions(player):
@@ -126,10 +122,6 @@ class CoachingEfficiency(object):
         # calculate optimal score
         optimal_score = sum([x.points for x in optimal_lineup])
 
-        print("OPTIMAL:", optimal_score)
-        print("-" * 100)
-        print()
-
         # calculate coaching efficiency
         try:
             coaching_efficiency = (team_points / optimal_score) * 100
@@ -140,10 +132,6 @@ class CoachingEfficiency(object):
         if dq_eligible:
             bench_players = [p for p in team_roster if p.selected_position == "BN"]  # exclude IR players
             ineligible_efficiency_player_count = len([p for p in bench_players if self.is_player_eligible(p, week)])
-
-            print("ROSTER ACTIVE SLOTS:")
-            print(self.roster_active_slots)
-            print()
 
             if Counter(self.roster_active_slots) == Counter(positions_filled_active):
                 # divide bench slots by 2 and DQ team if number of ineligible players >= the ceiling of that value
@@ -159,10 +147,5 @@ class CoachingEfficiency(object):
 
             if efficiency_disqualification:
                 coaching_efficiency = 0.0
-
-        print("CE OUT:")
-        print(coaching_efficiency)
-        print("INELIGIBLE COUNT:", ineligible_efficiency_player_count)
-        print()
 
         return coaching_efficiency

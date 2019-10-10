@@ -9,7 +9,6 @@ from collections import OrderedDict
 import requests
 
 logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.INFO)
 
 
 class BadBoyStats(object):
@@ -83,6 +82,7 @@ class BadBoyStats(object):
                 "'https://nflarrest.com/' and 'https://www.usatoday.com/sports/nfl/arrests/' and try generating a new "
                 "report.")
         else:
+            # print("{} bad boy records loaded".format(len(self.bad_boy_data)))
             logger.info("{} bad boy records loaded".format(len(self.bad_boy_data)))
 
     def open_bad_boy_data(self):

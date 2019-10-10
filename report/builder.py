@@ -2,7 +2,6 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
 import datetime
-import logging
 import os
 from collections import defaultdict
 
@@ -10,13 +9,13 @@ from calculate.coaching_efficiency import CoachingEfficiency
 from calculate.metrics import CalculateMetrics
 from calculate.points_by_position import PointsByPosition
 from calculate.season_averages import SeasonAverageCalculator
-from dao.base import League
-from dao.utils import league_data_class_factory
+from dao.base import BaseLeague
+from dao.utils import league_data_factory
 from report.data import ReportData
+from report.logger import get_logger
 from report.pdf.generator import PdfGenerator
 
-logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.INFO)
+logger = get_logger(__name__, propagate=False)
 
 
 class FantasyFootballReport(object):
@@ -90,7 +89,7 @@ class FantasyFootballReport(object):
         logger.info("Retrieving fantasy football data from {}...".format(
             self.platform_str + (" API" if not self.dev_offline else " saved data")))
         # retrieve all league data from respective platform API
-        self.league = league_data_class_factory(
+        self.league = league_data_factory(
             config=self.config,
             game_id=self.game_id,
             league_id=self.league_id,
@@ -99,7 +98,7 @@ class FantasyFootballReport(object):
             week_for_report=week_for_report,
             save_data=self.save_data,
             dev_offline=self.dev_offline
-        )  # type: League
+        )  # type: BaseLeague
         delta = datetime.datetime.now() - begin
         logger.info("...retrieved all fantasy football data from {} in {}\n".format(
             self.platform_str + (" API" if not self.dev_offline else " saved data"), str(delta)))
@@ -161,12 +160,10 @@ class FantasyFootballReport(object):
                 week_for_report=week_for_report,
                 metrics_calculator=metrics_calculator,
                 metrics={
-                    "coaching_efficiency": CoachingEfficiency(self.league.get_roster_slots_by_type()),
+                    "coaching_efficiency": CoachingEfficiency(self.config, self.league.get_roster_slots_by_type()),
                     "matchups_results": metrics_calculator.calculate_luck_and_record(
                         self.league.teams_by_week.get(str(week_counter)),
                         self.league.get_custom_weekly_matchups(str(week_counter))
-                        # self.league_data.get_teams_with_points(week_counter),
-                        # self.league_data.get_custom_scoreboard(week_counter)
                     ),
                     "playoff_probs": self.playoff_probs,
                     "bad_boy_stats": self.bad_boy_stats,
@@ -252,17 +249,31 @@ class FantasyFootballReport(object):
 
         # calculate season average metrics and then add columns for them to their respective metric table data
         season_average_calculator = SeasonAverageCalculator(week_for_report_ordered_team_names, report_data)
+
         report_data.data_for_scores = season_average_calculator.get_average(
-            time_series_points_data, "data_for_scores", with_percent=False)
+            time_series_points_data,
+            "data_for_scores",
+            first_ties=report_data.num_first_place_for_score_before_resolution > 1
+        )
 
         report_data.data_for_coaching_efficiency = season_average_calculator.get_average(
-            time_series_efficiency_data, "data_for_coaching_efficiency",
-            ce_first_ties=report_data.num_first_place_for_coaching_efficiency > 1, with_percent=True)
-        report_data.data_for_luck = season_average_calculator.get_average(time_series_luck_data, "data_for_luck",
-                                                                          with_percent=True)
+            time_series_efficiency_data,
+            "data_for_coaching_efficiency",
+            with_percent=True,
+            first_ties=report_data.num_first_place_for_coaching_efficiency_before_resolution > 1
+        )
+
+        report_data.data_for_luck = season_average_calculator.get_average(
+            time_series_luck_data,
+            "data_for_luck",
+            with_percent=True
+        )
+
         report_data.data_for_power_rankings = season_average_calculator.get_average(
-            time_series_power_rank_data, "data_for_power_rankings", with_percent=False, bench_column=False,
-            reverse=False)
+            time_series_power_rank_data,
+            "data_for_power_rankings",
+            reverse=False
+        )
 
         line_chart_data_list = [week_for_report_ordered_team_names,
                                 week_for_report_ordered_managers,
