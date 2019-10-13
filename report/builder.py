@@ -10,7 +10,7 @@ from calculate.metrics import CalculateMetrics
 from calculate.points_by_position import PointsByPosition
 from calculate.season_averages import SeasonAverageCalculator
 from dao.base import BaseLeague
-from dao.utils import league_data_factory
+from dao.utils import league_data_factory, patch_http_connection_pool
 from report.data import ReportData
 from report.logger import get_logger
 from report.pdf.generator import PdfGenerator
@@ -31,6 +31,8 @@ class FantasyFootballReport(object):
                  dq_ce=False,
                  dev_offline=False,
                  test=False):
+
+        patch_http_connection_pool(maxsize=100)
 
         # config vars
         self.config = config
