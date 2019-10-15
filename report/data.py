@@ -79,7 +79,7 @@ class ReportData(object):
         self.data_for_season_weekly_highest_ce = None
 
         # current standings data
-        self.data_for_current_standings = metrics_calculator.get_standings_data(league.current_standings)
+        self.data_for_current_standings = metrics_calculator.get_standings_data(league)
 
         # playoff probabilities data
         self.data_for_playoff_probs = metrics.get("playoff_probs").calculate(week_counter, week_for_report,

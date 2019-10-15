@@ -28,8 +28,8 @@ class BadBoyStats(object):
             "OAK", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS"
         ]
 
-        # small reference dict to convert yahoo team abbreviations to those used by the nflarrest api
-        self.yahoo_to_nflarrests_team_abbrev_conversion = {
+        # small reference dict to convert commonly used alternate team abbreviations to those used by the nflarrest api
+        self.nflarrests_team_abbrev_conversion_dict = {
             "JAX": "JAC",
             "LAR": "LA"
         }
@@ -182,7 +182,8 @@ class BadBoyStats(object):
         """
         player_team = str.upper(player_team)
         if player_team not in self.nfl_team_abbreviations:
-            player_team = self.yahoo_to_nflarrests_team_abbrev_conversion[player_team]
+            if player_team in self.nflarrests_team_abbrev_conversion_dict.keys():
+                player_team = self.nflarrests_team_abbrev_conversion_dict[player_team]
 
         # TODO: figure out how to include only ACTIVE players in team DEF rollups
         if player_pos == "DEF":

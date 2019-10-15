@@ -4,6 +4,7 @@ __email__ = "wrenjr@yahoo.com"
 import json
 import logging
 import os
+import re
 import sys
 from copy import deepcopy
 
@@ -50,8 +51,28 @@ class LeagueData(object):
         scraped_league_info = self.scrape(self.league_url, os.path.join(
             self.data_dir, str(self.season), str(self.league_id)), str(self.league_id) + "-league-info.html")
 
-        self.current_week = scraped_league_info.find(
+        self.current_season = scraped_league_info.find(
             "ul", attrs={"class": "dropdown-menu pull-right"}).find("li", attrs={"class": "active"}).text.strip()
+
+        scraped_league_scores = self.scrape(self.league_url + "/scores", os.path.join(
+            self.data_dir, str(self.season), str(self.league_id)), str(self.league_id) + "-league-scores.html")
+
+        self.current_week = int(scraped_league_scores.findAll(
+            text=re.compile(".*This Week.*"))[-1].parent.findNext("li").text.strip().split(" ")[-1]) - 1
+
+        scraped_league_rules = self.scrape(self.league_url + "/rules", os.path.join(
+            self.data_dir, str(self.season), str(self.league_id)), str(self.league_id) + "-league-rules.html")
+
+        elements = scraped_league_rules.findAll(["dt", "dd"])
+        for elem in elements:
+            if elem.string == "Playoffs":
+                self.num_playoff_slots = elements[elements.index(elem) + 1].span.string
+                self.num_regular_season_weeks = int(
+                    elements[elements.index(elem) + 1].contents[1].split()[-1].split("-")[0]) - 1
+
+            else:
+                self.num_playoff_slots = config.get("Configuration", "num_playoff_slots")
+                self.num_regular_season_weeks = config.get("Configuration", "num_regular_season_weeks")
 
         # validate user selection of week for which to generate report
         self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week)
@@ -80,26 +101,26 @@ class LeagueData(object):
 
         self.ranked_league_teams = sorted(self.ranked_league_teams, key=lambda x: x.get("recordOverall").get("rank"))
 
-        self.scoreboard_by_week = {}
-        for wk in range(1, 16 + 1):
-            self.scoreboard_by_week[str(wk)] = self.query(
+        self.matchups_by_week = {}
+        for wk in range(1, int(self.num_regular_season_weeks) + 1):
+            self.matchups_by_week[str(wk)] = self.query(
                 "https://www.fleaflicker.com/api/FetchLeagueScoreboard?leagueId=" + str(self.league_id) +
-                ("&season=" + str(self.season)) if self.season else "" +
-                ("&scoringPeriod=" + str(wk)),
+                "&scoringPeriod=" + str(wk) +
+                ("&season=" + str(self.season) if self.season else ""),
                 os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk)),
-                "week_" + str(wk) + "-scoreboard_by_week.json"
+                "week_" + str(wk) + "-scoreboard.json"
             )
 
-        self.matchups_by_week = {}
-        for wk in range(1, int(self.week_for_report) + 1):
-            self.matchups_by_week[str(wk)] = [
-                self.query(
-                    "https://www.fleaflicker.com/api/FetchLeagueBoxscore?leagueId=" + str(self.league_id) +
-                    "&fantasyGameId=" + str(game.get("id")),
-                    os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk), "matchups"),
-                    str(game.get("id")) + "-matchup.json"
-                ) for game in self.scoreboard_by_week[str(wk)].get("games")
-            ]
+        # self.matchups_by_week = {}
+        # for wk in range(1, int(self.week_for_report) + 1):
+        #     self.matchups_by_week[str(wk)] = [
+        #         self.query(
+        #             "https://www.fleaflicker.com/api/FetchLeagueBoxscore?leagueId=" + str(self.league_id) +
+        #             "&fantasyGameId=" + str(game.get("id")),
+        #             os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk), "matchups"),
+        #             str(game.get("id")) + "-matchup.json"
+        #         ) for game in self.scoreboard_by_week[str(wk)].get("games")
+        #     ]
 
         self.rosters_by_week = {}
         for wk in range(1, int(self.week_for_report) + 1):
@@ -112,20 +133,6 @@ class LeagueData(object):
                     str(team.get("id")) + "-" + str(team.get("name")).replace(" ", "_") + "-roster.json"
                 ) for team in self.ranked_league_teams
             }
-
-        scraped_league_rules = self.scrape("https://www.fleaflicker.com/nfl/leagues/156395/rules", os.path.join(
-            self.data_dir, str(self.season), str(self.league_id)), str(self.league_id) + "-league-rules.html")
-
-        elements = scraped_league_rules.findAll(["dt", "dd"])
-        for elem in elements:
-            if elem.string == "Playoffs":
-                self.num_playoff_slots = elements[elements.index(elem) + 1].span.string
-                self.num_regular_season_weeks = int(
-                    elements[elements.index(elem) + 1].contents[1].split()[-1].split("-")[0]) - 1
-
-            else:
-                self.num_playoff_slots = config.get("Configuration", "num_playoff_slots")
-                self.num_regular_season_weeks = config.get("Configuration", "num_regular_season_weeks")
 
         self.roster_positions = self.league_rules.get("rosterPositions")
 
@@ -200,11 +207,14 @@ class LeagueData(object):
                                    self.dev_offline)  # type: BaseLeague
 
         league.name = self.league_info.get("name")
-        league.current_week = int(self.current_week)
+        league.week = int(self.current_week)
         league.season = self.season
         league.num_teams = int(self.league_info.get("size"))
         league.num_playoff_slots = int(self.num_playoff_slots)
         league.num_regular_season_weeks = int(self.num_regular_season_weeks)
+        league.faab_budget = int(self.league_info.get("defaultWaiverBudget", 0))
+        if league.faab_budget > 0:
+            league.is_faab = True
         league.url = self.league_url
 
         # league.player_data_by_week_function = None
@@ -240,24 +250,25 @@ class LeagueData(object):
             league.roster_position_counts[pos_name] = pos_count
 
         for week, matchups in self.matchups_by_week.items():
+
+            matchups_week = matchups.get("schedulePeriod").get("value")
+            matchups = matchups.get("games")
+
             league.teams_by_week[str(week)] = {}
             league.matchups_by_week[str(week)] = []
 
             for matchup in matchups:
-                flea_matchup_game = matchup.get("game")
-                # flea_matchup_lineups = matchup.get("lineups")
-
                 base_matchup = BaseMatchup()
 
-                base_matchup.week_for_report = int(matchup.get("scoringPeriod").get("ordinal"))
-                base_matchup.complete = True if bool(flea_matchup_game.get("isFinalScore")) else False
-                base_matchup.tied = True if flea_matchup_game.get("homeResult") == "TIE" else False
+                base_matchup.week = int(matchups_week)
+                base_matchup.complete = True if bool(matchup.get("isFinalScore")) else False
+                base_matchup.tied = True if matchup.get("homeResult") == "TIE" else False
 
                 for key in ["home", "away"]:
-                    team = flea_matchup_game.get(key)  # type: dict
+                    team = matchup.get(key)  # type: dict
                     base_team = BaseTeam()
 
-                    base_team.week_for_report = int(matchup.get("scoringPeriod").get("ordinal"))
+                    base_team.week = int(matchups_week)
                     base_team.name = team.get("name")
 
                     # TODO: calculate number of moves and trades from transactions
@@ -280,23 +291,21 @@ class LeagueData(object):
                     # TODO: change y_team.team_id to y_team.team_key
                     base_team.team_id = str(team.get("id"))
                     base_team.team_key = str(team.get("id"))
-
-                    print(team.get("name"))
-                    print(flea_matchup_game.get(key + "Score"))
-                    base_team.points = round(float(flea_matchup_game.get(key + "Score").get("score").get("value")), 2)
+                    base_team.points = float(matchup.get(key + "Score", {}).get("score", {}).get("value", 0))
 
                     # TODO: sum projected points from players in team rosters by week
                     # base_team.projected_points = float(y_team.projected_points)
 
                     # TODO: make report adjustments to support FAAB instaed of traditional waivers
-                    base_team.waiver_priority = team.get("waiverAcquisitionBudget").get("value")
+                    base_team.waiver_priority = team.get("waiverAcquisitionBudget", {}).get("value")
+                    base_team.faab = team.get("waiverAcquisitionBudget", {}).get("value")
                     base_team.url = "https://www.fleaflicker.com/nfl/leagues/" + self.league_id + "/teams/" + \
                                     str(team.get("id"))
 
                     base_team.wins = int(team.get("recordOverall", {}).get("wins", 0))
                     base_team.losses = int(team.get("recordOverall", {}).get("losses", 0))
                     base_team.ties = int(team.get("recordOverall", {}).get("ties", 0))
-                    base_team.percentage = float(team.get("recordOverall", {}).get("winPercentage", {}).get("value", 0))
+                    base_team.percentage = round(float(team.get("recordOverall", {}).get("winPercentage", {}).get("value", 0)), 3)
                     if team.get("streak").get("value") > 0:
                         base_team.streak_type = "W"
                     elif team.get("streak").get("value") < 0:
@@ -334,53 +343,55 @@ class LeagueData(object):
                 for player in [slot for group in roster.get("groups") for slot in group.get("slots")]:
                     flea_player_position = player.get("position")
                     flea_league_player = player.get("leaguePlayer")
-                    flea_pro_player = flea_league_player.get("proPlayer")
 
-                    base_player = BasePlayer()
+                    if flea_league_player:
+                        flea_pro_player = flea_league_player.get("proPlayer")
 
-                    base_player.week_for_report = int(week)
-                    base_player.player_id = flea_pro_player.get("id")
-                    base_player.bye_week = int(flea_pro_player.get("nflByeWeek", 0))
-                    base_player.display_position = flea_pro_player.get("position")
-                    base_player.nfl_team_id = None
-                    base_player.nfl_team_abbr = flea_pro_player.get("proTeam", {}).get("abbreviation").upper()
-                    base_player.nfl_team_name = flea_pro_player.get("proTeam", {}).get("location") + " " + \
-                        flea_pro_player.get("proTeam", {}).get("name")
-                    base_player.first_name = flea_pro_player.get("nameFirst")
-                    base_player.last_name = flea_pro_player.get("nameLast")
-                    base_player.full_name = flea_pro_player.get("nameFirst") + " " + flea_pro_player.get("nameLast")
-                    base_player.headshot_url = flea_pro_player.get("headshotUrl")
-                    base_player.owner_team_id = flea_league_player.get("owner", {}).get("id")
-                    base_player.owner_team_id = flea_league_player.get("owner", {}).get("name")
-                    base_player.percent_owned = 0
-                    base_player.points = float(flea_league_player.get("viewingActualPoints", {}).get("value", 0))
+                        base_player = BasePlayer()
 
-                    base_player.position_type = "O" if flea_pro_player.get(
-                        "position") in self.offensive_positions else "D"
-                    base_player.primary_position = flea_pro_player.get("position")
+                        base_player.week_for_report = int(week)
+                        base_player.player_id = flea_pro_player.get("id")
+                        base_player.bye_week = int(flea_pro_player.get("nflByeWeek", 0))
+                        base_player.display_position = flea_pro_player.get("position")
+                        base_player.nfl_team_id = None
+                        base_player.nfl_team_abbr = flea_pro_player.get("proTeam", {}).get("abbreviation").upper()
+                        base_player.nfl_team_name = flea_pro_player.get("proTeam", {}).get("location") + " " + \
+                            flea_pro_player.get("proTeam", {}).get("name")
+                        base_player.first_name = flea_pro_player.get("nameFirst")
+                        base_player.last_name = flea_pro_player.get("nameLast")
+                        base_player.full_name = flea_pro_player.get("nameFirst") + " " + flea_pro_player.get("nameLast")
+                        base_player.headshot_url = flea_pro_player.get("headshotUrl")
+                        base_player.owner_team_id = flea_league_player.get("owner", {}).get("id")
+                        base_player.owner_team_id = flea_league_player.get("owner", {}).get("name")
+                        base_player.percent_owned = 0
+                        base_player.points = float(flea_league_player.get("viewingActualPoints", {}).get("value", 0))
 
-                    base_player.selected_position = flea_player_position.get("label")
-                    base_player.selected_position_is_flex = True if "/" in flea_pro_player.get("position") else False
-                    base_player.status = flea_pro_player.get("injury", {}).get("typeAbbreviaition")
+                        base_player.position_type = "O" if flea_pro_player.get(
+                            "position") in self.offensive_positions else "D"
+                        base_player.primary_position = flea_pro_player.get("position")
 
-                    base_player.eligible_positions = [pos for positions in flea_league_player.get(
-                        "rankFantasy", {}).get("positions", {}) for pos in positions.get("position", {}).get(
-                        "eligibility")]
+                        base_player.selected_position = flea_player_position.get("label")
+                        base_player.selected_position_is_flex = True if "/" in flea_pro_player.get("position") else False
+                        base_player.status = flea_pro_player.get("injury", {}).get("typeAbbreviaition")
 
-                    for stat in flea_league_player.get("viewingActualStats"):
-                        base_stat = BaseStat()
+                        base_player.eligible_positions = [pos for positions in flea_league_player.get(
+                            "rankFantasy", {}).get("positions", {}) for pos in positions.get("position", {}).get(
+                            "eligibility")]
 
-                        base_stat.stat_id = stat.get("category", {}).get("id")
-                        base_stat.name = stat.get("category", {}).get("abbreviation")
-                        base_stat.value = stat.get("value", {}).get("value", 0)
+                        for stat in flea_league_player.get("viewingActualStats"):
+                            base_stat = BaseStat()
 
-                        base_player.stats.append(base_stat)
+                            base_stat.stat_id = stat.get("category", {}).get("id")
+                            base_stat.name = stat.get("category", {}).get("abbreviation")
+                            base_stat.value = stat.get("value", {}).get("value", 0)
 
-                    # add player to team roster
-                    league_team.roster.append(base_player)
+                            base_player.stats.append(base_stat)
 
-                    # add player to league players by week
-                    league.players_by_week[str(week)][base_player.player_id] = base_player
+                        # add player to team roster
+                        league_team.roster.append(base_player)
+
+                        # add player to league players by week
+                        league.players_by_week[str(week)][base_player.player_id] = base_player
 
         league.current_standings = sorted(
             league.teams_by_week.get(str(self.week_for_report)).values(), key=lambda x: x.rank)

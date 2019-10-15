@@ -128,6 +128,8 @@ class PlayoffProbabilities(object):
 
                 return self.playoff_probs_data
             else:
+                logger.warning("No predicted playoff standings calculated. The Fantasy Football Metrics Weekly Report "
+                               "application currently only supports playoff predictions when run for the current week.")
                 return None
         except Exception as e:
             logger.error("COULDN'T CALCULATE PLAYOFF PROBS WITH EXCEPTION: {}\n{}".format(e, traceback.format_exc()))

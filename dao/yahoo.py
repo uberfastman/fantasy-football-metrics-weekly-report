@@ -123,11 +123,14 @@ class LeagueData(object):
                                    self.dev_offline)  # type: BaseLeague
 
         league.name = self.league_info.name
-        league.current_week = int(self.current_week)
+        league.week = int(self.current_week)
         league.season = self.season
         league.num_teams = int(self.league_info.num_teams)
         league.num_playoff_slots = int(self.playoff_slots)
         league.num_regular_season_weeks = int(self.num_regular_season_weeks)
+        league.is_faab = True if int(self.league_info.settings.uses_faab) == 1 else False
+        if league.is_faab:
+            league.faab_budget = self.config.getint("Configuration", "initial_faab_budget")
         league.url = self.league_info.url
 
         league.player_data_by_week_function = self.get_player_data
@@ -168,7 +171,7 @@ class LeagueData(object):
                 y_matchup = matchup.get("matchup")  # type: Matchup
                 base_matchup = BaseMatchup()
 
-                base_matchup.week_for_report = int(y_matchup.week)
+                base_matchup.week = int(y_matchup.week)
                 base_matchup.complete = True if y_matchup.status == "postevent" else False
                 base_matchup.tied = True if (y_matchup.is_tied and int(y_matchup.is_tied) == 1) else False
 
@@ -176,7 +179,7 @@ class LeagueData(object):
                     y_team = team.get("team")  # type: Team
                     base_team = BaseTeam()
 
-                    base_team.week_for_report = int(y_matchup.week)
+                    base_team.week = int(y_matchup.week)
                     base_team.name = y_team.name
                     base_team.num_moves = y_team.number_of_moves
                     base_team.num_trades = y_team.number_of_trades

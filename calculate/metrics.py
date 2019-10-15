@@ -29,10 +29,11 @@ class CalculateMetrics(object):
             return string
 
     @staticmethod
-    def get_standings_data(league_standings):
+    def get_standings_data(
+            league  # type: BaseLeague
+    ):
         current_standings_data = []
-
-        for team in league_standings:  # type: BaseTeam
+        for team in league.current_standings:  # type: BaseTeam
             current_standings_data.append([
                 team.rank,
                 team.name,
@@ -41,7 +42,7 @@ class CalculateMetrics(object):
                 round(float(team.points_for), 2),
                 round(float(team.points_against), 2),
                 team.streak_str,
-                team.waiver_priority,
+                team.waiver_priority if not league.is_faab else "$%.2d" % team.faab,
                 int(team.num_moves) if team.num_moves else 0,
                 int(team.num_trades) if team.num_trades else 0
             ])

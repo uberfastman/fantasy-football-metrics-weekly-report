@@ -116,8 +116,8 @@ class PdfGenerator(object):
                                 1.00 * inch]
         self.widths_10_cols_1 = [0.50 * inch, 1.75 * inch, 1.00 * inch, 1.00 * inch, 0.80 * inch, 1.10 * inch,
                                  0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]
-        self.widths_n_cols_1 = [1.75 * inch, 0.90 * inch, 0.90 * inch, 0.65 * inch, 0.65 * inch] + \
-                               [round(3.3 / self.playoff_slots, 2) * inch] * self.playoff_slots
+        self.widths_n_cols_1 = [1.55 * inch, 1.00 * inch, 0.90 * inch, 0.65 * inch, 0.65 * inch] + \
+                               [round(3.4 / self.playoff_slots, 2) * inch] * self.playoff_slots
 
         self.line_separator = Drawing(100, 1)
         self.line_separator.add(Line(0, -65, 550, -65, strokeColor=colors.black, strokeWidth=1))
@@ -352,6 +352,10 @@ class PdfGenerator(object):
 
         elements.append(title)
         elements.append(self.spacer_tenth_inch)
+
+        if metric_type == "standings":
+            if len(data) > 10:
+                headers[0][7] = "FAAB"
 
         if metric_type == "scores":
             if self.report_data.ties_for_scores > 0:
@@ -732,7 +736,8 @@ class PdfGenerator(object):
                 self.report_data.data_for_current_standings,
                 standings_style,
                 standings_style,
-                self.widths_10_cols_1
+                self.widths_10_cols_1,
+                metric_type="standings"
             )
             elements.append(self.spacer_tenth_inch)
 
