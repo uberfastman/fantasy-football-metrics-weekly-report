@@ -20,7 +20,7 @@ class BadBoyStats(object):
         self.dev_offline = dev_offline
         self.refresh = refresh
 
-        # nfl team abbreviations for use by nflarrest api
+        # nfl team abbreviations
         self.nfl_team_abbreviations = [
             "ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE",
             "DAL", "DEN", "DET", "GB", "HOU", "IND", "JAC", "KC",  # http://nflarrest.com uses JAC for JAX
@@ -28,8 +28,8 @@ class BadBoyStats(object):
             "OAK", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS"
         ]
 
-        # small reference dict to convert commonly used alternate team abbreviations to those used by the nflarrest api
-        self.nflarrests_team_abbrev_conversion_dict = {
+        # small reference dict to convert between commonly used alternate team abbreviations
+        self.team_abbrev_conversion_dict = {
             "JAX": "JAC",
             "LAR": "LA"
         }
@@ -182,8 +182,8 @@ class BadBoyStats(object):
         """
         player_team = str.upper(player_team)
         if player_team not in self.nfl_team_abbreviations:
-            if player_team in self.nflarrests_team_abbrev_conversion_dict.keys():
-                player_team = self.nflarrests_team_abbrev_conversion_dict[player_team]
+            if player_team in self.team_abbrev_conversion_dict.keys():
+                player_team = self.team_abbrev_conversion_dict[player_team]
 
         # TODO: figure out how to include only ACTIVE players in team DEF rollups
         if player_pos == "DEF":

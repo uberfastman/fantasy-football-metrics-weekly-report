@@ -296,6 +296,7 @@ class BasePlayer(FantasyFootballReportObject):
         self.owner_team_name = None
         self.percent_owned = 0
         self.points = 0
+        self.projected_points = 0
         self.season_points = 0
         self.position_type = None
         self.primary_position = None

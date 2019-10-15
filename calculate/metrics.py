@@ -43,8 +43,8 @@ class CalculateMetrics(object):
                 round(float(team.points_against), 2),
                 team.streak_str,
                 team.waiver_priority if not league.is_faab else "$%.2d" % team.faab,
-                int(team.num_moves) if team.num_moves else 0,
-                int(team.num_trades) if team.num_trades else 0
+                team.num_moves,
+                team.num_trades
             ])
         return current_standings_data
 

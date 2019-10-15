@@ -354,7 +354,7 @@ class PdfGenerator(object):
         elements.append(self.spacer_tenth_inch)
 
         if metric_type == "standings":
-            if len(data) > 10:
+            if self.report_data.is_faab:
                 headers[0][7] = "FAAB"
 
         if metric_type == "scores":

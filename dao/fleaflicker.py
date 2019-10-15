@@ -1,11 +1,13 @@
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
+import datetime
 import json
 import logging
 import os
 import re
 import sys
+from collections import defaultdict
 from copy import deepcopy
 
 import requests
@@ -136,6 +138,49 @@ class LeagueData(object):
 
         self.roster_positions = self.league_rules.get("rosterPositions")
 
+        self.league_activity = self.query(
+            "https://www.fleaflicker.com/api/FetchLeagueActivity?leagueId=" + str(self.league_id),
+            os.path.join(self.data_dir, str(self.season), str(self.league_id)),
+            str(self.league_id) + "-league-transactions.json"
+        )
+
+        self.league_transactions_by_team = defaultdict(dict)
+        for activity in self.league_activity.get("items"):
+
+            epoch_milli = float(activity.get("timeEpochMilli"))
+            timestamp = datetime.datetime.fromtimestamp(epoch_milli / 1000)
+
+            season_start = datetime.datetime(int(self.season), 9, 1)
+            season_end = datetime.datetime(int(self.season) + 1, 3, 1)
+
+            if season_start < timestamp < season_end:
+                if activity.get("transaction"):
+                    if activity.get("transaction").get("type"):
+                        transaction_type = activity.get("transaction").get("type")
+                    else:
+                        transaction_type = "TRANSACTION_ADD"
+
+                    is_move = False
+                    is_trade = False
+                    if "TRADE" in transaction_type:
+                        is_trade = True
+                    elif any(transaction_str in transaction_type for transaction_str in ["CLAIM", "ADD", "DROP"]):
+                        is_move = True
+
+                    if not self.league_transactions_by_team[str(activity.get("transaction").get("team").get("id"))]:
+                        self.league_transactions_by_team[str(activity.get("transaction").get("team").get("id"))] = {
+                            "transactions": [transaction_type],
+                            "moves": 1 if is_move else 0,
+                            "trades": 1 if is_trade else 0
+                        }
+                    else:
+                        self.league_transactions_by_team[str(activity.get("transaction").get("team").get("id"))][
+                            "transactions"].append(transaction_type)
+                        self.league_transactions_by_team[str(activity.get("transaction").get("team").get("id"))][
+                            "moves"] += 1 if is_move else 0
+                        self.league_transactions_by_team[str(activity.get("transaction").get("team").get("id"))][
+                            "trades"] += 1 if is_trade else 0
+
     def query(self, url, file_dir, filename):
 
         file_path = os.path.join(file_dir, filename)
@@ -243,7 +288,7 @@ class LeagueData(object):
             if pos_name == "RB/WR/TE/QB":
                 league.flex_positions = ["QB", "WR", "RB", "TE"]
 
-            if "/" in pos_name:
+            if pos_name != "D/ST" and "/" in pos_name :
                 pos_name = "FLEX"
 
             league.roster_positions.append(pos_name)
@@ -271,12 +316,6 @@ class LeagueData(object):
                     base_team.week = int(matchups_week)
                     base_team.name = team.get("name")
 
-                    # TODO: calculate number of moves and trades from transactions
-                    # base_team.num_moves = y_team.number_of_moves
-                    # base_team.num_trades = y_team.number_of_trades
-                    base_team.num_moves = 0
-                    base_team.num_trades = 0
-
                     for manager in self.league_teams[team.get("id")].get("owners"):
                         base_manager = BaseManager()
 
@@ -288,15 +327,18 @@ class LeagueData(object):
 
                     base_team.manager_str = ", ".join([manager.name for manager in base_team.managers])
 
-                    # TODO: change y_team.team_id to y_team.team_key
+                    # TODO: change team_key to team_id universally
                     base_team.team_id = str(team.get("id"))
                     base_team.team_key = str(team.get("id"))
                     base_team.points = float(matchup.get(key + "Score", {}).get("score", {}).get("value", 0))
+                    base_team.projected_points = None
 
-                    # TODO: sum projected points from players in team rosters by week
-                    # base_team.projected_points = float(y_team.projected_points)
+                    # TODO: currently the fleaflicker API call only returns 1st PAGE of transactions... figure this out!
+                    base_team.num_moves = str(
+                        self.league_transactions_by_team[str(base_team.team_id)].get("moves", 0)) + "*"
+                    base_team.num_trades = str(
+                        self.league_transactions_by_team[str(base_team.team_id)].get("trades", 0)) + "*"
 
-                    # TODO: make report adjustments to support FAAB instaed of traditional waivers
                     base_team.waiver_priority = team.get("waiverAcquisitionBudget", {}).get("value")
                     base_team.faab = team.get("waiverAcquisitionBudget", {}).get("value")
                     base_team.url = "https://www.fleaflicker.com/nfl/leagues/" + self.league_id + "/teams/" + \
@@ -305,7 +347,8 @@ class LeagueData(object):
                     base_team.wins = int(team.get("recordOverall", {}).get("wins", 0))
                     base_team.losses = int(team.get("recordOverall", {}).get("losses", 0))
                     base_team.ties = int(team.get("recordOverall", {}).get("ties", 0))
-                    base_team.percentage = round(float(team.get("recordOverall", {}).get("winPercentage", {}).get("value", 0)), 3)
+                    base_team.percentage = round(float(team.get("recordOverall", {}).get("winPercentage", {}).get(
+                        "value", 0)), 3)
                     if team.get("streak").get("value") > 0:
                         base_team.streak_type = "W"
                     elif team.get("streak").get("value") < 0:
@@ -357,14 +400,18 @@ class LeagueData(object):
                         base_player.nfl_team_abbr = flea_pro_player.get("proTeam", {}).get("abbreviation").upper()
                         base_player.nfl_team_name = flea_pro_player.get("proTeam", {}).get("location") + " " + \
                             flea_pro_player.get("proTeam", {}).get("name")
-                        base_player.first_name = flea_pro_player.get("nameFirst")
-                        base_player.last_name = flea_pro_player.get("nameLast")
-                        base_player.full_name = flea_pro_player.get("nameFirst") + " " + flea_pro_player.get("nameLast")
+                        if flea_player_position.get("label") == "D/ST":
+                            base_player.first_name = flea_pro_player.get("nameFull")
+                        else:
+                            base_player.first_name = flea_pro_player.get("nameFirst")
+                            base_player.last_name = flea_pro_player.get("nameLast")
+                        base_player.full_name = flea_pro_player.get("nameFull")
                         base_player.headshot_url = flea_pro_player.get("headshotUrl")
                         base_player.owner_team_id = flea_league_player.get("owner", {}).get("id")
                         base_player.owner_team_id = flea_league_player.get("owner", {}).get("name")
                         base_player.percent_owned = 0
                         base_player.points = float(flea_league_player.get("viewingActualPoints", {}).get("value", 0))
+                        base_player.projected_points = None
 
                         base_player.position_type = "O" if flea_pro_player.get(
                             "position") in self.offensive_positions else "D"

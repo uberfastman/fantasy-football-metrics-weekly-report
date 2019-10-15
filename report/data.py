@@ -28,6 +28,7 @@ class ReportData(object):
 
         self.break_ties = break_ties
         self.dq_ce = dq_ce
+        self.is_faab = league.is_faab
 
         self.teams_results = {
             team.team_key: add_report_team_stats(

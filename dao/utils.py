@@ -56,25 +56,10 @@ def user_week_input_validation(config, week, retrieved_current_week):
     return int(week_for_report)
 
 
-def league_data_factory(week_for_report, league_id, game_id, season, config, base_dir, data_dir, save_data,
+def league_data_factory(week_for_report, platform, league_id, game_id, season, config, base_dir, data_dir, save_data,
                         dev_offline):
-    """
-
-    :param config:
-    :param base_dir:
-    :param data_dir:
-    :param week_for_report:
-    :param save_data:
-    :param dev_offline:
-    :param season:
-    :param game_id:
-    :param league_id:
-    :rtype: BaseLeague
-    :return:
-    """
 
     supported_platforms = [str(platform) for platform in config.get("Configuration", "supported_platforms").split(",")]
-    platform = config.get("Configuration", "platform")
 
     if platform in supported_platforms:
         if platform == "yahoo":

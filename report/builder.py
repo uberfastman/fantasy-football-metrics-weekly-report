@@ -21,6 +21,7 @@ logger = get_logger(__name__, propagate=False)
 class FantasyFootballReport(object):
     def __init__(self,
                  week_for_report=None,
+                 platform=None,
                  league_id=None,
                  game_id=None,
                  season=None,
@@ -35,9 +36,14 @@ class FantasyFootballReport(object):
 
         # config vars
         self.config = config
-        self.platform_str = str.capitalize(self.config.get("Configuration", "platform"))
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.data_dir = os.path.join(base_dir, self.config.get("Configuration", "data_dir"))
+        if platform:
+            self.platform = platform
+            self.platform_str = str.capitalize(platform)
+        else:
+            self.platform = self.config.get("Configuration", "platform")
+            self.platform_str = str.capitalize(self.config.get("Configuration", "platform"))
         if league_id:
             self.league_id = league_id
         else:
@@ -97,6 +103,7 @@ class FantasyFootballReport(object):
         # retrieve all league data from respective platform API
         self.league = league_data_factory(
             week_for_report=week_for_report,
+            platform=self.platform,
             league_id=self.league_id,
             game_id=self.game_id,
             season=self.season,
