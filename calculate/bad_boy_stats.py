@@ -39,6 +39,10 @@ class BadBoyStats(object):
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Safari/605.1.15"
         }
 
+        # create parent directory if it does not exist
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir)
+
         # Load the scoring based on crime categories
         with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "resources", "files",
                                "crime-categories.json"), mode="r", encoding="utf-8") as crimes:

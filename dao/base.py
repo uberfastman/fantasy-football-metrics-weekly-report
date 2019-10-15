@@ -79,7 +79,7 @@ class FantasyFootballReportObject(object):
 
 class BaseLeague(FantasyFootballReportObject):
 
-    def __init__(self, config, league_id, data_dir, week_for_report, save_data=True, dev_offline=False):
+    def __init__(self, week_for_report, league_id, config, data_dir, save_data=True, dev_offline=False):
         super().__init__()
 
         # attributes set during instantiation

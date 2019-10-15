@@ -3,6 +3,7 @@ __email__ = "wrenjr@yahoo.com"
 
 import logging
 import os
+from copy import deepcopy
 
 from yffpy.data import Data
 from yffpy.models import Game, League, Matchup, Team, Manager, Player, RosterPosition, Stat
@@ -17,30 +18,32 @@ logging.getLogger("yffpy.query").setLevel(level=logging.INFO)
 class LeagueData(object):
 
     def __init__(self,
+                 week_for_report,
+                 league_id,
+                 game_id,
                  config,
-                 yahoo_game_id,
-                 yahoo_league_id,
                  base_dir,
                  data_dir,
-                 week_for_report,
                  week_validation_function,
                  save_data=True,
                  dev_offline=False):
 
+        self.league_id = league_id
+        self.game_id = game_id
         self.config = config
         self.data_dir = data_dir
-        self.league_id = yahoo_league_id
         self.save_data = save_data
         self.dev_offline = dev_offline
+
         self.yahoo_data = Data(self.data_dir, save_data=save_data, dev_offline=dev_offline)
         yahoo_auth_dir = os.path.join(base_dir, config.get("Yahoo", "yahoo_auth_dir"))
-        self.yahoo_query = YahooFantasyFootballQuery(yahoo_auth_dir, self.league_id, yahoo_game_id,
+        self.yahoo_query = YahooFantasyFootballQuery(yahoo_auth_dir, self.league_id, self.game_id,
                                                      offline=dev_offline)
 
-        if yahoo_game_id and yahoo_game_id != "nfl":
-            yahoo_fantasy_game = self.yahoo_data.retrieve(str(yahoo_game_id) + "-game-metadata",
+        if self.game_id and self.game_id != "nfl":
+            yahoo_fantasy_game = self.yahoo_data.retrieve(str(self.game_id) + "-game-metadata",
                                                           self.yahoo_query.get_game_metadata_by_game_id,
-                                                          params={"game_id": yahoo_game_id},
+                                                          params={"game_id": self.game_id},
                                                           data_type_class=Game)
         else:
             yahoo_fantasy_game = self.yahoo_data.retrieve("current-game-metadata",
@@ -116,7 +119,7 @@ class LeagueData(object):
         )
 
     def map_data_to_base(self, base_league_class):
-        league = base_league_class(self.config, self.league_id, self.data_dir, self.week_for_report, self.save_data,
+        league = base_league_class(self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data,
                                    self.dev_offline)  # type: BaseLeague
 
         league.name = self.league_info.name
@@ -138,10 +141,12 @@ class LeagueData(object):
 
             pos_name = pos.position
             pos_count = int(pos.count)
-            while pos_count > 0:
+
+            pos_counter = deepcopy(pos_count)
+            while pos_counter > 0:
                 if pos_name not in league.bench_positions:
                     league.active_positions.append(pos_name)
-                pos_count -= 1
+                pos_counter -= 1
 
             if pos_name == "W/R":
                 league.flex_positions = ["WR", "RB"]
@@ -154,7 +159,7 @@ class LeagueData(object):
                 pos_name = "FLEX"
 
             league.roster_positions.append(pos_name)
-            league.roster_position_counts[pos_name] = pos.count
+            league.roster_position_counts[pos_name] = pos_count
 
         for week, matchups in self.matchups_by_week.items():
             league.teams_by_week[str(week)] = {}

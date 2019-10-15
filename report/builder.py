@@ -20,15 +20,16 @@ logger = get_logger(__name__, propagate=False)
 
 class FantasyFootballReport(object):
     def __init__(self,
-                 config,
-                 league_id=None,
                  week_for_report=None,
+                 league_id=None,
                  game_id=None,
-                 save_data=False,
+                 season=None,
+                 config=None,
                  refresh_web_data=False,
                  playoff_prob_sims=None,
                  break_ties=False,
                  dq_ce=False,
+                 save_data=False,
                  dev_offline=False,
                  test=False):
 
@@ -45,6 +46,10 @@ class FantasyFootballReport(object):
             self.game_id = game_id
         else:
             self.game_id = self.config.get("Configuration", "game_id")
+        if season:
+            self.season = season
+        else:
+            self.season = self.config.get("Configuration", "season")
 
         self.save_data = save_data
         # refresh data pulled from external web sources: bad boy data from USA Today, beef data from Fox Sports
@@ -88,17 +93,20 @@ class FantasyFootballReport(object):
         begin = datetime.datetime.now()
         logger.info("Retrieving fantasy football data from {}...".format(
             self.platform_str + (" API" if not self.dev_offline else " saved data")))
+
         # retrieve all league data from respective platform API
         self.league = league_data_factory(
-            config=self.config,
-            game_id=self.game_id,
+            week_for_report=week_for_report,
             league_id=self.league_id,
+            game_id=self.game_id,
+            season=self.season,
+            config=self.config,
             base_dir=base_dir,
             data_dir=self.data_dir,
-            week_for_report=week_for_report,
             save_data=self.save_data,
             dev_offline=self.dev_offline
         )  # type: BaseLeague
+
         delta = datetime.datetime.now() - begin
         logger.info("...retrieved all fantasy football data from {} in {}\n".format(
             self.platform_str + (" API" if not self.dev_offline else " saved data"), str(delta)))

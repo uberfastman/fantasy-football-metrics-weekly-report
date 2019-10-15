@@ -7,8 +7,11 @@ import sys
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
 from dao.base import BaseLeague, BaseTeam, BasePlayer
+from dao.fleaflicker import LeagueData as FleaflickerLeagueData
+from dao.yahoo import LeagueData as YahooLeagueData
 
 logger = logging.getLogger(__name__)
+logger.propagate = False
 
 
 def user_week_input_validation(config, week, retrieved_current_week):
@@ -53,17 +56,19 @@ def user_week_input_validation(config, week, retrieved_current_week):
     return int(week_for_report)
 
 
-def league_data_factory(config, game_id, league_id, base_dir, data_dir, week_for_report, save_data, dev_offline):
+def league_data_factory(week_for_report, league_id, game_id, season, config, base_dir, data_dir, save_data,
+                        dev_offline):
     """
 
     :param config:
-    :param game_id:
-    :param league_id:
     :param base_dir:
     :param data_dir:
     :param week_for_report:
     :param save_data:
     :param dev_offline:
+    :param season:
+    :param game_id:
+    :param league_id:
     :rtype: BaseLeague
     :return:
     """
@@ -72,22 +77,33 @@ def league_data_factory(config, game_id, league_id, base_dir, data_dir, week_for
     platform = config.get("Configuration", "platform")
 
     if platform in supported_platforms:
+        if platform == "yahoo":
+            yahoo_league = YahooLeagueData(
+                week_for_report,
+                league_id,
+                game_id,
+                config,
+                base_dir,
+                data_dir,
+                user_week_input_validation,
+                save_data,
+                dev_offline
+            )
+            return yahoo_league.map_data_to_base(BaseLeague)
 
-        platform_dao = getattr(__import__("dao"), platform)
-
-        platform_league = platform_dao.LeagueData(
-            config=config,
-            yahoo_game_id=game_id,
-            yahoo_league_id=league_id,
-            base_dir=base_dir,
-            data_dir=data_dir,
-            week_for_report=week_for_report,
-            week_validation_function=user_week_input_validation,
-            save_data=save_data,
-            dev_offline=dev_offline
-        )
-
-        return platform_league.map_data_to_base(BaseLeague)
+        elif platform == "fleaflicker":
+            fleaflicker_league = FleaflickerLeagueData(
+                week_for_report,
+                league_id,
+                season,
+                config,
+                base_dir,
+                data_dir,
+                user_week_input_validation,
+                save_data,
+                dev_offline
+            )
+            return fleaflicker_league.map_data_to_base(BaseLeague)
 
     else:
         logger.error(
@@ -124,9 +140,10 @@ def add_report_player_stats(player,  # type: BasePlayer
 def add_report_team_stats(team,  # type: BaseTeam
                           league,  # type: BaseLeague
                           week_counter,
+                          metrics_calculator,
                           metrics,
                           dq_ce):
-    team.name = team.name.decode("utf-8")
+    team.name = metrics_calculator.decode_byte_string(team.name)
     bench_positions = league.get_roster_slots_by_type().get("positions_bench")
 
     for player in team.roster:

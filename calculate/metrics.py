@@ -22,6 +22,13 @@ class CalculateMetrics(object):
         self.coaching_efficiency_dq_count = 0
 
     @staticmethod
+    def decode_byte_string(string):
+        try:
+            return string.decode("utf-8")
+        except (UnicodeDecodeError, AttributeError):
+            return string
+
+    @staticmethod
     def get_standings_data(league_standings):
         current_standings_data = []
 
@@ -177,12 +184,6 @@ class CalculateMetrics(object):
         else:
             groups = [list(group) for key, group in itertools.groupby(results_data, lambda x: x[3])]
             num_ties = self.count_ties(groups)
-
-        if tie_type == "coaching_efficiency":
-            print("CE DATA:")
-            print(results_data)
-            print(groups)
-            print(num_ties)
 
         # if there are ties, record them and break them if possible
         if num_ties > 0:
@@ -479,12 +480,12 @@ class CalculateMetrics(object):
             # # # uncomment to test power ranking ties
             # team.power_rank = test_power_rank
 
-    @staticmethod
-    def calculate_luck_and_record(teams, matchups_list):
+    def calculate_luck_and_record(self, teams, matchups_list):
 
         results = defaultdict(dict)
         matchups = {
-            name.decode("utf-8"): value["result"] for pair in matchups_list for name, value in list(pair.items())
+            self.decode_byte_string(name): value[
+                "result"] for pair in matchups_list for name, value in list(pair.items())
         }
 
         for team_1 in teams.values():  # type: BaseTeam
@@ -516,7 +517,7 @@ class CalculateMetrics(object):
             num_teams = float(len(teams)) - 1
 
             if record["W"] != 0 and record["L"] != 0:
-                matchup_result = matchups[team_1.name.decode("utf-8")]
+                matchup_result = matchups[self.decode_byte_string(team_1.name)]
                 if matchup_result == "W" or matchup_result == "T":
                     luck = (record["L"] + record["T"]) / num_teams
                 else:

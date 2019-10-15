@@ -34,6 +34,7 @@ class ReportData(object):
                 team,
                 league,
                 week_counter,
+                metrics_calculator,
                 metrics,
                 dq_ce,
             ) for team in league.teams_by_week.get(str(week_counter)).values()
