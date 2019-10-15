@@ -18,7 +18,20 @@ from report.logger import get_logger
 
 logger = get_logger()
 
-# local config vars
+# set local config file (check for existence and access, stop app if does not exist or cannot access)
+if os.path.isfile("config.ini"):
+    if os.access("config.ini", mode=os.R_OK):
+        logger.debug(
+            "Configuration file \"config.ini\" available. Running Fantasy Football Metrics Weekly Report app...")
+    else:
+        logger.error(
+            "Unable to access configuration file \"config.ini\". Please check that file permissions are properly set.")
+        sys.exit()
+else:
+    logger.error(
+        "Configuration file \"config.ini\" not found. Please make sure that it exists in project root directory.")
+    sys.exit()
+
 config = ConfigParser()
 config.read("config.ini")
 
