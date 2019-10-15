@@ -28,12 +28,14 @@ class ReportData(object):
 
         self.break_ties = break_ties
         self.dq_ce = dq_ce
+        self.is_faab = league.is_faab
 
         self.teams_results = {
             team.team_key: add_report_team_stats(
                 team,
                 league,
                 week_counter,
+                metrics_calculator,
                 metrics,
                 dq_ce,
             ) for team in league.teams_by_week.get(str(week_counter)).values()
@@ -78,7 +80,7 @@ class ReportData(object):
         self.data_for_season_weekly_highest_ce = None
 
         # current standings data
-        self.data_for_current_standings = metrics_calculator.get_standings_data(league.current_standings)
+        self.data_for_current_standings = metrics_calculator.get_standings_data(league)
 
         # playoff probabilities data
         self.data_for_playoff_probs = metrics.get("playoff_probs").calculate(week_counter, week_for_report,

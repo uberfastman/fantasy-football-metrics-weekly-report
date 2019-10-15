@@ -74,6 +74,7 @@ def main(argv):
         "  Options:\n" \
         "      -h, --help                         Print command line usage message.\n" \
         "    Generate report:\n" \
+        "      -l, --fantasy-platform <platform>  Fantasy football platform on which league for report is hosted. Currently supports: \"yahoo\", \"fleaflicker\" \n" \
         "      -l, --league-id <league_id>        Fantasy Football league ID.\n" \
         "      -w, --week <chosen_week>           Chosen week for which to generate report.\n" \
         "      -g, --game-id <chosen_game_id>     Chosen fantasy game id for which to generate report. Defaults to \"nfl\", which is interpreted as the current season if using Yahoo.\n" \
@@ -89,7 +90,7 @@ def main(argv):
         "      -t, --test                         Generate TEST report.\n"
 
     try:
-        opts, args = getopt.getopt(argv, "hl:w:g:y:srp:bqtd")
+        opts, args = getopt.getopt(argv, "hf:l:w:g:y:srp:bqtd")
     except getopt.GetoptError:
         print(usage_str)
         sys.exit(2)
@@ -102,6 +103,8 @@ def main(argv):
             sys.exit()
 
         # generate report
+        elif opt in ("-f", "--fantasy-platform"):
+            options_dict["platform"] = arg
         elif opt in ("-l", "--league-id"):
             options_dict["league_id"] = arg
         elif opt in ("-w", "--week"):
@@ -136,8 +139,8 @@ def main(argv):
     return options_dict
 
 
-def select_league(league_id, week, game_id, save_data, refresh_web_data, playoff_prob_sims, break_ties, dq_ce,
-                  dev_offline, test):
+def select_league(week, platform, league_id, game_id, season, refresh_web_data, playoff_prob_sims, break_ties, dq_ce,
+                  save_data, dev_offline, test):
     if not league_id:
         default = input("Generate report for default league? (y/n) -> ")
     else:
@@ -150,14 +153,16 @@ def select_league(league_id, week, game_id, save_data, refresh_web_data, playoff
         else:
             week_for_report = week
 
-        return FantasyFootballReport(config=config,
-                                     week_for_report=week_for_report,
+        return FantasyFootballReport(week_for_report=week_for_report,
+                                     platform=platform,
                                      game_id=game_id,
-                                     save_data=save_data,
+                                     season=season,
+                                     config=config,
                                      refresh_web_data=refresh_web_data,
                                      playoff_prob_sims=playoff_prob_sims,
                                      break_ties=break_ties,
                                      dq_ce=dq_ce,
+                                     save_data=save_data,
                                      dev_offline=dev_offline,
                                      test=test)
     elif default == "n":
@@ -170,21 +175,23 @@ def select_league(league_id, week, game_id, save_data, refresh_web_data, playoff
             week_for_report = week
 
         try:
-            return FantasyFootballReport(config=config,
+            return FantasyFootballReport(week_for_report=week_for_report,
+                                         platform=platform,
                                          league_id=league_id,
-                                         week_for_report=week_for_report,
                                          game_id=game_id,
-                                         save_data=save_data,
+                                         season=season,
+                                         config=config,
                                          refresh_web_data=refresh_web_data,
                                          playoff_prob_sims=playoff_prob_sims,
                                          break_ties=break_ties,
                                          dq_ce=dq_ce,
+                                         save_data=save_data,
                                          dev_offline=dev_offline,
                                          test=test)
         except IndexError:
             print("The league ID you have selected is not valid.")
-            select_league(None, week, game_id, save_data, refresh_web_data, playoff_prob_sims, break_ties, dq_ce,
-                          dev_offline, test)
+            select_league(week, platform, None, game_id, season, refresh_web_data, playoff_prob_sims, break_ties, dq_ce,
+                          save_data, dev_offline, test)
     elif default == "selected":
 
         if not week:
@@ -192,21 +199,23 @@ def select_league(league_id, week, game_id, save_data, refresh_web_data, playoff
         else:
             week_for_report = week
 
-        return FantasyFootballReport(config=config,
+        return FantasyFootballReport(week_for_report=week_for_report,
+                                     platform=platform,
                                      league_id=league_id,
-                                     week_for_report=week_for_report,
                                      game_id=game_id,
-                                     save_data=save_data,
+                                     season=season,
+                                     config=config,
                                      refresh_web_data=refresh_web_data,
                                      playoff_prob_sims=playoff_prob_sims,
                                      break_ties=break_ties,
                                      dq_ce=dq_ce,
+                                     save_data=save_data,
                                      dev_offline=dev_offline,
                                      test=test)
     else:
         print("You must select either 'y' or 'n'.")
-        select_league(None, week, game_id, save_data, refresh_web_data, playoff_prob_sims, break_ties, dq_ce,
-                      dev_offline, test)
+        select_league(week, platform, None, game_id, season, refresh_web_data, playoff_prob_sims, break_ties, dq_ce,
+                      save_data, dev_offline, test)
 
 
 def select_week():
@@ -230,16 +239,19 @@ if __name__ == '__main__':
 
     options = main(sys.argv[1:])
 
-    report = select_league(options.get("league_id", None),
-                           options.get("week", None),
-                           options.get("game_id", None),
-                           options.get("save_data", False),
-                           options.get("refresh_web_data", False),
-                           options.get("playoff_prob_sims", None),
-                           options.get("break_ties", False),
-                           options.get("dq_ce", False),
-                           options.get("dev_offline", False),
-                           options.get("test", False))
+    report = select_league(
+        options.get("week", None),
+        options.get("platform", None),
+        options.get("league_id", None),
+        options.get("game_id", None),
+        options.get("year", None),
+        options.get("refresh_web_data", False),
+        options.get("playoff_prob_sims", None),
+        options.get("break_ties", False),
+        options.get("dq_ce", False),
+        options.get("save_data", False),
+        options.get("dev_offline", False),
+        options.get("test", False))
     report_pdf = report.create_pdf_report()
 
     upload_file_to_google_drive = config.getboolean("Drive", "google_drive_upload")

@@ -21,6 +21,20 @@ class BeefStats(object):
         self.dev_offline = dev_offline
         self.refresh = refresh
 
+        # nfl team abbreviations
+        self.nfl_team_abbreviations = [
+            "ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE",
+            "DAL", "DEN", "DET", "GB", "HOU", "IND", "JAX", "KC",
+            "LAC", "LAR", "MIA", "MIN", "NE", "NO", "NYG", "NYJ",
+            "OAK", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS"
+        ]
+
+        # small reference dict to convert between commonly used alternate team abbreviations
+        self.team_abbrev_conversion_dict = {
+            "JAC": "JAX",
+            "LA": "LAR"
+        }
+
         self.fox_sports_public_api_key = {"apikey": "jE7yBJVRNAwdDesMgTzTXUUSx1It41Fq"}
         self.teams_url = "https://api.foxsports.com/sportsdata/v1/football/nfl/teams.json"
         self.tabbu_value = 500.0
@@ -125,6 +139,9 @@ class BeefStats(object):
         if player_last_name:
             player_full_name = player_first_name + " " + player_last_name
         else:
+            if team_abbr not in self.nfl_team_abbreviations:
+                if team_abbr in self.team_abbrev_conversion_dict.keys():
+                    team_abbr = self.team_abbrev_conversion_dict[team_abbr]
             player_full_name = team_abbr
 
         if player_full_name in self.beef_data.keys():

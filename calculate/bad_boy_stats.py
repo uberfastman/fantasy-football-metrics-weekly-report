@@ -20,7 +20,7 @@ class BadBoyStats(object):
         self.dev_offline = dev_offline
         self.refresh = refresh
 
-        # nfl team abbreviations for use by nflarrest api
+        # nfl team abbreviations
         self.nfl_team_abbreviations = [
             "ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE",
             "DAL", "DEN", "DET", "GB", "HOU", "IND", "JAC", "KC",  # http://nflarrest.com uses JAC for JAX
@@ -28,8 +28,8 @@ class BadBoyStats(object):
             "OAK", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS"
         ]
 
-        # small reference dict to convert yahoo team abbreviations to those used by the nflarrest api
-        self.yahoo_to_nflarrests_team_abbrev_conversion = {
+        # small reference dict to convert between commonly used alternate team abbreviations
+        self.team_abbrev_conversion_dict = {
             "JAX": "JAC",
             "LAR": "LA"
         }
@@ -38,6 +38,10 @@ class BadBoyStats(object):
         headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Safari/605.1.15"
         }
+
+        # create parent directory if it does not exist
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir)
 
         # Load the scoring based on crime categories
         with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "resources", "files",
@@ -178,7 +182,8 @@ class BadBoyStats(object):
         """
         player_team = str.upper(player_team)
         if player_team not in self.nfl_team_abbreviations:
-            player_team = self.yahoo_to_nflarrests_team_abbrev_conversion[player_team]
+            if player_team in self.team_abbrev_conversion_dict.keys():
+                player_team = self.team_abbrev_conversion_dict[player_team]
 
         # TODO: figure out how to include only ACTIVE players in team DEF rollups
         if player_pos == "DEF":

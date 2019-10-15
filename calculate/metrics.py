@@ -22,10 +22,18 @@ class CalculateMetrics(object):
         self.coaching_efficiency_dq_count = 0
 
     @staticmethod
-    def get_standings_data(league_standings):
-        current_standings_data = []
+    def decode_byte_string(string):
+        try:
+            return string.decode("utf-8")
+        except (UnicodeDecodeError, AttributeError):
+            return string
 
-        for team in league_standings:  # type: BaseTeam
+    @staticmethod
+    def get_standings_data(
+            league  # type: BaseLeague
+    ):
+        current_standings_data = []
+        for team in league.current_standings:  # type: BaseTeam
             current_standings_data.append([
                 team.rank,
                 team.name,
@@ -34,9 +42,9 @@ class CalculateMetrics(object):
                 round(float(team.points_for), 2),
                 round(float(team.points_against), 2),
                 team.streak_str,
-                team.waiver_priority,
-                int(team.num_moves) if team.num_moves else 0,
-                int(team.num_trades) if team.num_trades else 0
+                team.waiver_priority if not league.is_faab else "$%.2d" % team.faab,
+                team.num_moves,
+                team.num_trades
             ])
         return current_standings_data
 
@@ -473,12 +481,12 @@ class CalculateMetrics(object):
             # # # uncomment to test power ranking ties
             # team.power_rank = test_power_rank
 
-    @staticmethod
-    def calculate_luck_and_record(teams, matchups_list):
+    def calculate_luck_and_record(self, teams, matchups_list):
 
         results = defaultdict(dict)
         matchups = {
-            name.decode("utf-8"): value["result"] for pair in matchups_list for name, value in list(pair.items())
+            self.decode_byte_string(name): value[
+                "result"] for pair in matchups_list for name, value in list(pair.items())
         }
 
         for team_1 in teams.values():  # type: BaseTeam
@@ -510,7 +518,7 @@ class CalculateMetrics(object):
             num_teams = float(len(teams)) - 1
 
             if record["W"] != 0 and record["L"] != 0:
-                matchup_result = matchups[team_1.name.decode("utf-8")]
+                matchup_result = matchups[self.decode_byte_string(team_1.name)]
                 if matchup_result == "W" or matchup_result == "T":
                     luck = (record["L"] + record["T"]) / num_teams
                 else:

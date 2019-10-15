@@ -277,7 +277,7 @@ In addition to turning on/off the features of the report PDF itself, there are a
 
 |                  Option                  | Description |
 | ---------------------------------------: | :---------- |
-| `platform`                               | Fantasy football platform for which you are generating a report (currently supports: yahoo) |
+| `platform`                               | Fantasy football platform for which you are generating a report (currently supports: yahoo, fleaflicker) |
 | `supported_platforms`                    | Comma-delimited list of currently supported fantasy football platforms. |
 | `league_id`                              | The league id of the fantasy football for which you are running the report. |
 | `game_id`                                | Game id by season (see: [Game Resource](https://developer.yahoo.com/fantasysports/guide/game-resource.html#game-resource-desc) for Yahoo) |
@@ -313,6 +313,7 @@ After completing the above setup and configuration steps, you should now be able
 |             Flag             |                                      Description                                     |
 | :--------------------------- | :----------------------------------------------------------------------------------- |
 | `-h, --help`                 | Print command line usage message |
+| `-l, --fantasy-platform <platform>` | Fantasy football platform on which league for report is hosted. Currently supports: `yahoo`, `fleaflicker` |
 | `-l --league-id <league_id>` | Fantasy Football league ID |
 | `-w --week <week>`           | Chosen week for which to generate report |
 | `-g --game-id <game_id>`     | Chosen fantasy game id for which to generate report. Defaults to "nfl", interpreted as the current season if using Yahoo. |
