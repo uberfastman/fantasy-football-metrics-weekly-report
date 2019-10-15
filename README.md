@@ -300,6 +300,7 @@ In addition to turning on/off the features of the report PDF itself, there are a
 | `slack_auth_token`                       | Slack authentication token. |
 | `post_or_file`                           | Choose whether you post a link to the generated report on Slack (set to `post`), or upload the report PDF itself to Slack (set to `file`).
 | `slack_channel`                          | Selected Slack channel where reports are uploaded. |
+| `notify_channel`                         | Turn on (`True`) or off (`False`) using the `@here` slack tag to notify chosen Slack channel of a posted report file. |
 | `repost_file`                            | File path of selected report that you wish to repost to Slack. | 
 
 ---

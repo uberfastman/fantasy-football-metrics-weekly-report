@@ -178,12 +178,6 @@ class CalculateMetrics(object):
             groups = [list(group) for key, group in itertools.groupby(results_data, lambda x: x[3])]
             num_ties = self.count_ties(groups)
 
-        if tie_type == "coaching_efficiency":
-            print("CE DATA:")
-            print(results_data)
-            print(groups)
-            print(num_ties)
-
         # if there are ties, record them and break them if possible
         if num_ties > 0:
             ties_count = 0
