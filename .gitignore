@@ -1,9 +1,12 @@
 .idea/
 *.pyc
-private*.json
-token*.json
-credentials*.json
-config*.ini
+*private*.json
+*token*.json
+*credentials*.json
+*config*.ini
 crime-categories-output.json
 logs
 output/
+test/*.json
+test/*.txt
+test/*.html

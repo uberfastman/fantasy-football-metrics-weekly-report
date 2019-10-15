@@ -9,6 +9,7 @@ from calculate.beef_stats import BeefStats
 from dao.base import BaseLeague, BaseTeam, BasePlayer
 from dao.fleaflicker import LeagueData as FleaflickerLeagueData
 from dao.yahoo import LeagueData as YahooLeagueData
+from dao.sleeper import LeagueData as SleeperLeagueData
 
 logger = logging.getLogger(__name__)
 logger.propagate = False
@@ -78,6 +79,20 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, c
 
         elif platform == "fleaflicker":
             fleaflicker_league = FleaflickerLeagueData(
+                week_for_report,
+                league_id,
+                season,
+                config,
+                base_dir,
+                data_dir,
+                user_week_input_validation,
+                save_data,
+                dev_offline
+            )
+            return fleaflicker_league.map_data_to_base(BaseLeague)
+
+        elif platform == "sleeper":
+            fleaflicker_league = SleeperLeagueData(
                 week_for_report,
                 league_id,
                 season,
