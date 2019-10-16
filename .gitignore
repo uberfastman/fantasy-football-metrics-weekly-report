@@ -7,3 +7,6 @@ config*.ini
 crime-categories-output.json
 logs
 output/
+test/*.json
+test/*.txt
+test/*.html
