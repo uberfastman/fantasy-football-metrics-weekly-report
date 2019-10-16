@@ -200,7 +200,7 @@ class CalculateMetrics(object):
                         for team in group:
                             if tie_type == "power_ranking":
                                 results_data[team_index] = [
-                                    str(place) + ".0*",
+                                    str(team[0]) + "*",
                                     team[1],
                                     team[2],
                                 ]
@@ -237,7 +237,7 @@ class CalculateMetrics(object):
                     else:
                         if tie_type == "power_ranking":
                             results_data[team_index] = [
-                                str(place) + ".0",
+                                group[0][0],
                                 group[0][1],
                                 group[0][2],
                             ]

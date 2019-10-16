@@ -3,6 +3,8 @@ __email__ = "wrenjr@yahoo.com"
 
 import logging
 import os
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 
 from yffpy.data import Data
@@ -83,30 +85,80 @@ class LeagueData(object):
         #     } for team in self.league_info.standings.teams
         # }
 
-        # YAHOO API QUERY: run yahoo queries to retrieve matchups by week for the entire season
-        self.matchups_by_week = {}
-        for wk in range(1, self.num_regular_season_weeks + 1):
-            self.matchups_by_week[wk] = self.yahoo_data.retrieve(
-                "week_" + str(wk) + "-matchups_by_week",
-                self.yahoo_query.get_league_matchups_by_week,
-                params={"chosen_week": wk},
-                new_data_dir=os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk))
-            )
+        if not self.save_data:
+            # YAHOO API QUERY: run yahoo queries to retrieve matchups by week for the entire season
+            with ThreadPoolExecutor() as executor:
+                def _get_week(week):
+                    return {
+                        "week": week,
+                        "result": self.yahoo_data.retrieve(
+                            "week_" + str(week) + "-matchups_by_week",
+                            self.yahoo_query.get_league_matchups_by_week,
+                            params={"chosen_week": week},
+                            new_data_dir=os.path.join(
+                                self.data_dir, str(self.season), str(self.league_id), "week_" + str(week)))
+                    }
 
-        # YAHOO API QUERY: run yahoo queries to retrieve team rosters by week for the season up to the current week
-        self.rosters_by_week = {}
-        for wk in range(1, int(self.week_for_report) + 1):
-            self.rosters_by_week[str(wk)] = {
-                str(team.get("team").team_id):
-                    self.yahoo_data.retrieve(
-                        str(team.get("team").team_id) + "-" +
-                        str(team.get("team").name.decode("utf-8")).replace(" ", "_") + "-roster",
-                        self.yahoo_query.get_team_roster_player_info_by_week,
-                        params={"team_id": str(team.get("team").team_id), "chosen_week": str(wk)},
-                        new_data_dir=os.path.join(
-                            self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk), "rosters")
-                    ) for team in self.league_info.standings.teams
-            }
+                self.matchups_by_week = {}
+                weeks = range(1, self.num_regular_season_weeks + 1)
+
+                for response in executor.map(_get_week, weeks):
+                    self.matchups_by_week[response["week"]] = response["result"]
+
+            # YAHOO API QUERY: run yahoo queries to retrieve team rosters by week for the season up to the current week
+            with ThreadPoolExecutor() as executor:
+                def _get_roster(query):
+                    team = query["team"]
+                    week = query["week"]
+                    team_id = str(team.get("team").team_id)
+                    return {
+                        "week": week,
+                        "team": team,
+                        "result": self.yahoo_data.retrieve(
+                                team_id + "-" +
+                                str(team.get("team").name.decode("utf-8")).replace(" ", "_") + "-roster",
+                                self.yahoo_query.get_team_roster_player_stats_by_week,
+                                params={"team_id": team_id, "chosen_week": week},
+                                new_data_dir=os.path.join(
+                                    self.data_dir, str(self.season), str(self.league_id), "week_" + str(week), "rosters")
+                            )
+                    }
+
+                self.rosters_by_week = defaultdict(dict)
+
+                weeks = [str(w) for w in range(1, int(self.week_for_report) + 1)]
+
+                # build combinations of teams/weeks to query
+                query_list = [{"week": w, "team": t} for w in weeks for t in self.league_info.standings.teams]
+
+                for response in executor.map(_get_roster, query_list):
+                    self.rosters_by_week[response["week"]][response["team"].get("team").team_id] = response["result"]
+        else:
+            # TODO: figure out how to write to json files (json.dump) in a thread-safe manner
+            # YAHOO API QUERY: run yahoo queries to retrieve matchups by week for the entire season
+            self.matchups_by_week = {}
+            for wk in range(1, self.num_regular_season_weeks + 1):
+                self.matchups_by_week[wk] = self.yahoo_data.retrieve(
+                    "week_" + str(wk) + "-matchups_by_week",
+                    self.yahoo_query.get_league_matchups_by_week,
+                    params={"chosen_week": wk},
+                    new_data_dir=os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk))
+                )
+
+            # YAHOO API QUERY: run yahoo queries to retrieve team rosters by week for the season up to the current week
+            self.rosters_by_week = {}
+            for wk in range(1, int(self.week_for_report) + 1):
+                self.rosters_by_week[str(wk)] = {
+                    str(team.get("team").team_id):
+                        self.yahoo_data.retrieve(
+                            str(team.get("team").team_id) + "-" +
+                            str(team.get("team").name.decode("utf-8")).replace(" ", "_") + "-roster",
+                            self.yahoo_query.get_team_roster_player_info_by_week,
+                            params={"team_id": str(team.get("team").team_id), "chosen_week": str(wk)},
+                            new_data_dir=os.path.join(
+                                self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk), "rosters")
+                        ) for team in self.league_info.standings.teams
+                }
 
     def get_player_data(self, player_key, week):
         # YAHOO API QUERY: run query to retrieve stats for specific player for a chosen week
