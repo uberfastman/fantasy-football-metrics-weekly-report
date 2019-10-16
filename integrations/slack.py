@@ -17,7 +17,7 @@ class SlackMessenger(object):
 
         self.project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-        self.config = config
+        self.config = config  # type: ConfigParser
 
         auth_token = os.path.join(self.project_dir, self.config.get("Slack", "slack_auth_token"))
 
@@ -85,8 +85,10 @@ class SlackMessenger(object):
 
         upload_file = os.path.join(self.project_dir, upload_file)
         with open(upload_file, "rb") as uf:
-            # post message with no additional content to trigger @here
-            self.post_to_selected_slack_channel("")
+
+            if self.config.getboolean("Slack", "notify_channel"):
+                # post message with no additional content to trigger @here
+                self.post_to_selected_slack_channel("")
 
             file_to_upload = uf.read()
             response = self.sc.api_call(

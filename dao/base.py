@@ -79,7 +79,7 @@ class FantasyFootballReportObject(object):
 
 class BaseLeague(FantasyFootballReportObject):
 
-    def __init__(self, config, league_id, data_dir, week_for_report, save_data=True, dev_offline=False):
+    def __init__(self, week_for_report, league_id, config, data_dir, save_data=True, dev_offline=False):
         super().__init__()
 
         # attributes set during instantiation
@@ -92,11 +92,13 @@ class BaseLeague(FantasyFootballReportObject):
 
         # attributes mapped directly from platform API data
         self.name = None
-        self.current_week = None
+        self.week = None
         self.season = None
         self.num_teams = 0
         self.num_playoff_slots = 0
         self.num_regular_season_weeks = 0
+        self.is_faab = False
+        self.faab_budget = 0
         self.url = None
 
         # attributes calculated externally from platform API data
@@ -207,7 +209,7 @@ class BaseMatchup(FantasyFootballReportObject):
     def __init__(self):
         super().__init__()
 
-        self.week_for_report = 0
+        self.week = 0
         self.complete = False
         self.tied = False
         self.teams = []
@@ -225,7 +227,7 @@ class BaseTeam(FantasyFootballReportObject):
     def __init__(self):
         super().__init__()
 
-        self.week_for_report = None
+        self.week = None
         self.name = None
         self.num_moves = 0
         self.num_trades = 0
@@ -235,6 +237,7 @@ class BaseTeam(FantasyFootballReportObject):
         self.points = 0
         self.projected_points = 0
         self.waiver_priority = 0
+        self.faab = 0
         self.url = None
         self.wins = 0
         self.losses = 0
@@ -293,6 +296,7 @@ class BasePlayer(FantasyFootballReportObject):
         self.owner_team_name = None
         self.percent_owned = 0
         self.points = 0
+        self.projected_points = 0
         self.season_points = 0
         self.position_type = None
         self.primary_position = None
