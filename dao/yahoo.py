@@ -295,7 +295,7 @@ class LeagueData(object):
                     base_player.full_name = y_player_for_week.full_name
                     base_player.headshot_url = y_player_for_week.headshot_url
                     base_player.owner_team_id = y_player_for_week.ownership.owner_team_key
-                    base_player.owner_team_id = y_player_for_week.ownership.owner_team_name
+                    base_player.owner_team_name = y_player_for_week.ownership.owner_team_name
                     base_player.percent_owned = float(
                         y_player_for_week.percent_owned_value) if y_player_for_week.percent_owned_value else 0
                     base_player.points = float(y_player_for_week.player_points_value)

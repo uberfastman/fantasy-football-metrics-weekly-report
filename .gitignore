@@ -10,3 +10,4 @@ output/
 test/*.json
 test/*.txt
 test/*.html
+test/*.png

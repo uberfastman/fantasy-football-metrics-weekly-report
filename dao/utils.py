@@ -4,31 +4,18 @@ __email__ = "wrenjr@yahoo.com"
 import logging
 import sys
 
+from urllib3 import connectionpool, poolmanager
+
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
 from dao.base import BaseLeague, BaseTeam, BasePlayer
 from dao.fleaflicker import LeagueData as FleaflickerLeagueData
-from dao.yahoo import LeagueData as YahooLeagueData
 from dao.sleeper import LeagueData as SleeperLeagueData
+from dao.yahoo import LeagueData as YahooLeagueData
 
 logger = logging.getLogger(__name__)
 logger.propagate = False
 
-def patch_http_connection_pool(**constructor_kwargs):
-    """
-    This allows to override the default parameters of the 
-    HTTPConnectionPool constructor.
-    For example, to increase the poolsize to fix problems 
-    with "HttpConnectionPool is full, discarding connection"
-    call this function with maxsize=16 (or whatever size 
-    you want to give to the connection pool)
-    """
-    from urllib3 import connectionpool, poolmanager
-    class MyHTTPSConnectionPool(connectionpool.HTTPSConnectionPool):
-        def __init__(self, *args,**kwargs):
-            kwargs.update(constructor_kwargs)
-            super(MyHTTPSConnectionPool, self).__init__(*args,**kwargs)
-    poolmanager.pool_classes_by_scheme['https'] = MyHTTPSConnectionPool
 
 def user_week_input_validation(config, week, retrieved_current_week):
     # user input validation
@@ -74,7 +61,6 @@ def user_week_input_validation(config, week, retrieved_current_week):
 
 def league_data_factory(week_for_report, platform, league_id, game_id, season, config, base_dir, data_dir, save_data,
                         dev_offline):
-
     supported_platforms = [str(platform) for platform in config.get("Configuration", "supported_platforms").split(",")]
 
     if platform in supported_platforms:
@@ -210,3 +196,16 @@ def add_report_team_stats(team,  # type: BaseTeam
     team.record = metrics.get("matchups_results").get(team.team_key).get("record")
 
     return team
+
+
+def patch_http_connection_pool(**constructor_kwargs):
+    """This allows you to override the default parameters of the HTTPConnectionPool constructor. For example, to
+    increase the pool size to fix problems with "HttpConnectionPool is full, discarding connection" call this function
+    with maxsize=16 (or whatever size you want to give to the connection pool).
+    """
+    class MyHTTPSConnectionPool(connectionpool.HTTPSConnectionPool):
+        def __init__(self, *args, **kwargs):
+            kwargs.update(constructor_kwargs)
+            super(MyHTTPSConnectionPool, self).__init__(*args, **kwargs)
+
+    poolmanager.pool_classes_by_scheme['https'] = MyHTTPSConnectionPool
