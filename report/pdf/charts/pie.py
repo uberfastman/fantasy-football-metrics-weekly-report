@@ -25,7 +25,15 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
             HexColor("#d2f53c"),  # lime
             HexColor("#fabebe"),  # pink
             HexColor("#008080"),  # teal
-            HexColor("#e6beff")  # lavender
+            HexColor("#e6beff")  # ,  # lavender
+            # HexColor("#800000"),  # maroon
+            # HexColor("#9A6324"),  # brown
+            # HexColor("#808000"),  # olive
+            # HexColor("#000075"),  # navy
+            # HexColor("#aaffc3"),  # mint
+            # HexColor("#fabebe"),  # pink
+            # HexColor("#ffd8b1"),  # apricot
+            # HexColor("#fffac8")  # beige
         ]
 
         Drawing.__init__(self, width, height, *args, **kw)
@@ -54,7 +62,7 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
         self.pie.slices.strokeWidth = 1
         # adding legend
         self._add(self, Legend(), name='legend', validate=None, desc=None)
-        self.legend.x = 250
+        self.legend.x = 235
         self.legend.y = height / 2
         self.legend.dx = 8
         self.legend.dy = 8

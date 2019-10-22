@@ -65,7 +65,7 @@ class LeagueData(object):
 
         self.current_season = self.league_info.get("season")
         # TODO: current week
-        self.current_week = 6
+        self.current_week = self.config.getint("Configuration", "current_week")
 
         # validate user selection of week for which to generate report
         self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week)
@@ -364,12 +364,14 @@ class LeagueData(object):
 
                             base_team.managers.append(base_manager)
 
-                        base_team.manager_str = ", ".join([manager.name for manager in base_team.managers])
+                        # base_team.manager_str = ", ".join([manager.name for manager in base_team.managers])
+                        base_team.manager_str = team_info.get("owner").get("display_name")
 
                         # TODO: change team_key to team_id universally
                         base_team.team_id = team.get("roster_id")
                         base_team.team_key = team.get("roster_id")
-                        base_team.points = round(float(team.get("points")), 2)
+                        # base_team.points = round(float(team.get("points")), 2)
+                        base_team.points = float(team.get("points"))
                         # TODO: sum projected points from players
                         base_team.projected_points = None
 
@@ -399,8 +401,10 @@ class LeagueData(object):
                         #     base_team.streak_type = "T"
                         # base_team.streak_len = None
                         # base_team.streak_str = None
-                        base_team.points_for = float(str(team_settings.get("fpts")) + "." + str(team_settings.get("fpts_decimal")))
-                        base_team.points_against = float(str(team_settings.get("fpts_against")) + "." + str(team_settings.get("fpts_against_decimal")))
+                        base_team.points_for = float(str(team_settings.get("fpts")) + "." + str(
+                            team_settings.get("fpts_decimal")))
+                        base_team.points_against = float(str(team_settings.get("fpts_against")) + "." + str(
+                            team_settings.get("fpts_against_decimal")))
 
                         for roster in self.current_rosters:
                             if int(roster.get("roster_id")) == int(base_team.team_id):
@@ -413,8 +417,13 @@ class LeagueData(object):
                         league.teams_by_week[str(week)][str(base_team.team_id)] = base_team
 
                         if not base_matchup.tied:
-                            if float(matchup_teams[0].get("points")) > float(matchup_teams[1].get("points")):
-                                if int(matchup_teams[0].get("roster_id")) == int(base_team.team_id):
+                            if base_team.team_id == matchup_teams[0].get("roster_id"):
+                                if float(matchup_teams[0].get("points")) > float(matchup_teams[1].get("points")):
+                                    base_matchup.winner = base_team
+                                else:
+                                    base_matchup.loser = base_team
+                            elif base_team.team_id == matchup_teams[1].get("roster_id"):
+                                if float(matchup_teams[1].get("points")) > float(matchup_teams[0].get("points")):
                                     base_matchup.winner = base_team
                                 else:
                                     base_matchup.loser = base_team
@@ -433,10 +442,15 @@ class LeagueData(object):
                 starters = roster.get("starters")
 
                 team_filled_positions = deepcopy(self.league_info.get("roster_positions"))  # type: list
-                if self.league_settings.get("reserve_slots"):
-                    team_filled_positions.extend(["BN"] * self.league_settings.get("reserve_slots"))
-                if self.league_settings.get("taxi_slots"):
-                    team_filled_positions.extend(["BN"] * self.league_settings.get("taxi_slots"))
+                # if self.league_settings.get("reserve_slots"):
+                #     team_filled_positions.extend(["BN"] * self.league_settings.get("reserve_slots"))
+                # if self.league_settings.get("taxi_slots"):
+                #     team_filled_positions.extend(["BN"] * self.league_settings.get("taxi_slots"))
+
+                print("NUM FILLED POSITIONS:", len(team_filled_positions))
+                print("NUM ROSTER PLAYERS:", len(roster.get("players")))
+                print(team_id)
+                print(league_team.name)
                 for player in roster.get("players"):
                     if player:
                         base_player = BasePlayer()
@@ -458,7 +472,8 @@ class LeagueData(object):
                             base_player.first_name = player.get("first_name")
                             base_player.last_name = player.get("last_name")
                             base_player.full_name = player.get("full_name")
-                        base_player.headshot_url = None
+                        base_player.headshot_url = "https://sleepercdn.com/content/nfl/players/thumb/" + \
+                                                   str(base_player.player_id) + ".jpg"
                         base_player.owner_team_id = None
                         base_player.owner_team_id = None
                         base_player.percent_owned = None
@@ -467,22 +482,37 @@ class LeagueData(object):
                         player_stats = player.get("stats")
                         player_projected_stats = player.get("projected")
                         if player_stats:
-                            if reception_scoring_value == 1.0:
-                                base_player.points = player_stats.get("pts_ppr", 0)
-                                base_player.projected_points = player_projected_stats.get("pts_ppr", 0)
-                            elif reception_scoring_value == 0.5:
-                                base_player.points = player_stats.get("pts_half_ppr", 0)
-                                base_player.projected_points = player_projected_stats.get("pts_half_ppr", 0)
+                            points_standard = player_stats.get("pts_std", 0)
+                            points_proj_standard = player_projected_stats.get("pts_std", 0)
+                            points_half_ppr = player_stats.get("pts_half_ppr")
+                            points_proj_half_ppr = player_projected_stats.get("pts_half_ppr")
+                            points_ppr = player_stats.get("pts_ppr")
+                            points_proj_ppr = player_projected_stats.get("pts_ppr")
+                            if reception_scoring_value == 0.5:
+                                base_player.points = points_half_ppr if points_half_ppr else points_standard
+                                base_player.projected_points = points_proj_half_ppr if points_proj_half_ppr else \
+                                    points_proj_standard
+                            elif reception_scoring_value == 1.0:
+                                base_player.points = points_ppr if points_ppr else points_standard
+                                base_player.projected_points = points_proj_ppr if points_proj_ppr else \
+                                    points_proj_standard
                             else:
-                                base_player.points = player_stats.get("pts_std", 0)
-                                base_player.projected_points = player_projected_stats.get("pts_std", 0)
+                                base_player.points = points_standard
+                                base_player.projected_points = points_proj_standard
                         else:
                             base_player.points = 0
                             base_player.projected_points = 0
 
-                        base_player.position_type = "O" if base_player.display_position in self.offensive_positions else "D"
+                        base_player.position_type = "O" if base_player.display_position in self.offensive_positions \
+                            else "D"
                         base_player.primary_position = player.get("position")
 
+                        print("FILLED:")
+                        print(team_filled_positions)
+                        print()
+                        print("PLAYER:")
+                        print(player.get("first_name"), player.get("last_name"))
+                        print()
                         if player in starters:
                             if base_player.primary_position in team_filled_positions:
                                 base_player.selected_position = base_player.primary_position
@@ -499,11 +529,13 @@ class LeagueData(object):
                         else:
                             base_player.selected_position = "BN"
                             base_player.selected_position_is_flex = False
-                            team_filled_positions.pop(team_filled_positions.index(base_player.selected_position))
+                            # team_filled_positions.pop(team_filled_positions.index(base_player.selected_position))
 
                         base_player.status = player.get("status")
 
                         base_player.eligible_positions = player.get("fantasy_positions")
+                        if base_player.selected_position not in player.get("fantasy_positions"):
+                            base_player.eligible_positions.append(base_player.selected_position)
 
                         if player_stats:
                             for stat, value in player_stats.items():

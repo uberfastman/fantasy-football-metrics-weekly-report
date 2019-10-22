@@ -134,7 +134,7 @@ class BeefStats(object):
         return player_beef_dict
 
     def get_player_beef_stat(self, player_first_name, player_last_name, team_abbr, key_str):
-        team_abbr = team_abbr.upper()
+        team_abbr = team_abbr.upper() if team_abbr else "?"
 
         if player_last_name:
             player_full_name = player_first_name + " " + player_last_name

@@ -55,7 +55,8 @@ class PointsByPosition(object):
         player_points_by_position = []
         starting_players = [p for p in roster if p.selected_position not in self.bench_positions]
         for slot in list(self.roster_slot_counts.keys()):
-            if slot not in self.bench_positions and slot != "FLEX":
+            # if slot not in self.bench_positions and slot not in ["FLEX", "SUPER_FLEX"]:
+            if slot not in self.bench_positions:
                 player_points_by_position.append([slot, self.get_points_for_position(starting_players, slot)])
 
         player_points_by_position = sorted(player_points_by_position, key=lambda x: x[0])
