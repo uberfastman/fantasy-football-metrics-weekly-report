@@ -7,9 +7,10 @@ from calculate.metrics import CalculateMetrics
 
 
 class SeasonAverageCalculator(object):
-    def __init__(self, team_names, report_data):
+    def __init__(self, team_names, report_data, break_ties):
         self.team_names = team_names
         self.report_data = report_data
+        self.break_ties = break_ties
 
     def get_average(self, data, key, with_percent=False, first_ties=False, reverse=True):
 
@@ -49,7 +50,7 @@ class SeasonAverageCalculator(object):
 
                     if key == "data_for_scores":
                         ordered_team.insert(-1, value)
-                    elif key == "data_for_coaching_efficiency" and first_ties:
+                    elif key == "data_for_coaching_efficiency" and self.break_ties and first_ties:
                         ordered_team.insert(-2, value)
                     else:
                         ordered_team.append(value)

@@ -265,7 +265,8 @@ class FantasyFootballReport(object):
         report_data.data_for_season_weekly_highest_ce = season_weekly_highest_ce
 
         # calculate season average metrics and then add columns for them to their respective metric table data
-        season_average_calculator = SeasonAverageCalculator(week_for_report_ordered_team_names, report_data)
+        season_average_calculator = SeasonAverageCalculator(week_for_report_ordered_team_names, report_data,
+                                                            self.break_ties)
 
         report_data.data_for_scores = season_average_calculator.get_average(
             time_series_points_data,
@@ -301,8 +302,9 @@ class FantasyFootballReport(object):
                                 time_series_power_rank_data]
 
         # calculate season average points by position and add them to the report_data
-        report_data.data_for_season_avg_points_by_position = PointsByPosition.calculate_points_by_position_season_averages(
-            report_data.data_for_season_avg_points_by_position)
+        report_data.data_for_season_avg_points_by_position = \
+            PointsByPosition.calculate_points_by_position_season_averages(
+                report_data.data_for_season_avg_points_by_position)
 
         filename = self.league.name.replace(" ", "-") + "(" + str(self.league_id) + ")_week-" + str(
             self.league.week_for_report) + "_report.pdf"
