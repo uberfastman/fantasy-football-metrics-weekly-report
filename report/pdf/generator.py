@@ -110,6 +110,7 @@ class PdfGenerator(object):
         self.widths_4_cols_2 = [1.00 * inch, 2.25 * inch, 2.25 * inch, 2.25 * inch]
         self.widths_4_cols_2 = [1.00 * inch, 2.50 * inch, 2.50 * inch, 1.75 * inch]
         self.widths_4_cols_3 = [1.00 * inch, 2.50 * inch, 2.00 * inch, 2.25 * inch]
+        self.widths_4_cols_4 = [0.50 * inch, 2.25 * inch, 1.75 * inch, 3.25 * inch]
         self.widths_5_cols_1 = [0.45 * inch, 1.95 * inch, 1.85 * inch, 1.75 * inch, 1.75 * inch]
         self.widths_6_cols_1 = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.00 * inch, 1.50 * inch, 1.00 * inch]
         self.widths_6_cols_2 = [0.75 * inch, 1.75 * inch, 1.25 * inch, 1.00 * inch, 2.00 * inch, 1.00 * inch]
@@ -353,16 +354,19 @@ class PdfGenerator(object):
                                   subtitle_text=subtitle_text)
         self.toc.add_metric_section(title_text)
 
-        # elements.append(title)
-        # elements.append(self.spacer_tenth_inch)
-
         if metric_type == "standings":
-            table_style.add("FONTSIZE", (0, 0), (-1, -1), 9)
+            font_reduction = 0
+            for x in range(1, (len(data) % 12) + 1, 4):
+                font_reduction += 1
+            table_style.add("FONTSIZE", (0, 0), (-1, -1), 10 - font_reduction)
             if self.report_data.is_faab:
                 headers[0][7] = "FAAB"
 
         if metric_type == "playoffs":
-            table_style.add("FONTSIZE", (0, 0), (-1, -1), 7)
+            font_reduction = 0
+            for x in range(1, (len(data[0][5:]) % 6) + 2):
+                font_reduction += 1
+            table_style.add("FONTSIZE", (0, 0), (-1, -1), 10 - font_reduction)
 
         if metric_type == "scores":
             if self.report_data.ties_for_scores > 0:
@@ -413,22 +417,33 @@ class PdfGenerator(object):
                 data = temp_data
 
         if metric_type == "beef":
+            cow_icon = self.get_image(os.path.join("resources", "images", "cow.png"), width=0.20 * inch)
             beef_icon = self.get_image(os.path.join("resources", "images", "beef.png"), width=0.20 * inch)
             half_beef_icon = self.get_image(os.path.join("resources", "images", "beef-half.png"), width=0.10 * inch)
-            lowest_tabbu = float(data[-1][3])
-            mod_5_remainder = lowest_tabbu % 5
-            beef_count_floor = lowest_tabbu - mod_5_remainder
+            # lowest_tabbu = float(data[-1][3])
+            # mod_5_remainder = lowest_tabbu % 5
+            # beef_count_floor = lowest_tabbu - mod_5_remainder
 
             for team in data:
-                num_beefs = int((float(team[3]) - beef_count_floor) / 0.5)
-                if num_beefs % 2 == 0:
-                    beefs = [beef_icon] * int((num_beefs / 2))
+                num_cows = int(float(team[3]) // 5) - 1  # subtract one to make sure there are always beef icons
+                num_beefs = int(float(team[3]) / 0.5) - (num_cows * 10)
+                # num_beefs = int((float(team[3]) - beef_count_floor) / 0.5) - (num_cows * 10)
+
+                if num_cows > 0:
+                    beefs = [cow_icon] * num_cows
                 else:
-                    beefs = [beef_icon] * int((num_beefs / 2))
+                    num_beefs = num_beefs - 10
+                    beefs = []
+
+                if num_beefs % 2 == 0:
+                    beefs += [beef_icon] * int((num_beefs / 2))
+                else:
+                    beefs += [beef_icon] * int((num_beefs / 2))
                     beefs.append(half_beef_icon)
+
                 beefs.insert(0, team[-1] + " ")
                 beefs = [beefs]
-                beefs_col_widths = [0.20 * inch] * num_beefs
+                beefs_col_widths = [0.20 * inch] * (num_beefs if num_beefs > 0 else num_cows)
                 beefs_col_widths.insert(0, 0.50 * inch)
                 beefs_table = Table(beefs, colWidths=beefs_col_widths, rowHeights=0.25 * inch)
                 if data.index(team) == 0:
@@ -451,7 +466,6 @@ class PdfGenerator(object):
             style=TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER")])
         ))
 
-        # elements.append(KeepTogether(data_table))
         elements.append(table_with_title)
         self.add_tied_metric_footer(elements, metric_type)
 
@@ -964,7 +978,7 @@ class PdfGenerator(object):
                 self.data_for_beef_rankings,
                 self.style_left_alighn_right_col,
                 self.style_tied_beef,
-                self.widths_4_cols_3,
+                self.widths_4_cols_4,
                 tied_metric=self.report_data.ties_for_beef_rankings > 0,
                 metric_type="beef",
                 subtitle_text=[

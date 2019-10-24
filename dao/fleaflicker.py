@@ -29,7 +29,6 @@ class LeagueData(object):
                  league_id,
                  season,
                  config,
-                 base_dir,
                  data_dir,
                  week_validation_function,
                  save_data=True,

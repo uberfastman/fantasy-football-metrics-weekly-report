@@ -5,18 +5,14 @@ import datetime
 import json
 import logging
 import os
-import re
-from datetime import datetime, timedelta
 import sys
-from pprint import pprint
 from collections import defaultdict, Counter
 from copy import deepcopy
+from datetime import datetime, timedelta
+from itertools import groupby
 
 import requests
-from bs4 import BeautifulSoup
 from requests.exceptions import HTTPError
-
-from sleeper_wrapper import League
 
 from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseManager, BasePlayer, BaseStat
 
@@ -33,7 +29,6 @@ class LeagueData(object):
                  league_id,
                  season,
                  config,
-                 base_dir,
                  data_dir,
                  week_validation_function,
                  save_data=True,
@@ -62,8 +57,9 @@ class LeagueData(object):
         )
 
         self.league_settings = self.league_info.get("settings")
-
+        self.league_scoring = self.league_info.get("scoring_settings")
         self.current_season = self.league_info.get("season")
+
         # TODO: current week
         self.current_week = self.config.getint("Configuration", "current_week")
 
@@ -84,23 +80,29 @@ class LeagueData(object):
 
         self.player_stats_data_by_week = {}
         self.player_projected_stats_data_by_week = {}
-        for wk in range(1, int(self.num_regular_season_weeks) + 1):
-            if int(wk) <= int(self.week_for_report):
-                self.player_stats_data_by_week[str(wk)] = self.query(
-                    self.base_url + "stats/nfl/regular/" + str(season) + "/" + str(wk),
-                    os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk)),
-                    "week_" + str(wk) + "-player_stats_by_week.json",
+        for week_for_player_stats in range(1, int(self.num_regular_season_weeks) + 1):
+            if int(week_for_player_stats) <= int(self.week_for_report):
+                self.player_stats_data_by_week[str(week_for_player_stats)] = self.query(
+                    self.base_url + "stats/nfl/regular/" + str(season) + "/" + str(week_for_player_stats),
+                    os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(
+                        week_for_player_stats)),
+                    "week_" + str(week_for_player_stats) + "-player_stats_by_week.json",
                     check_for_saved_data=True,
                     refresh_days_delay=1
                 )
 
-            self.player_projected_stats_data_by_week[str(wk)] = self.query(
-                self.base_url + "projections/nfl/regular/" + str(season) + "/" + str(wk),
-                os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk)),
-                "week_" + str(wk) + "-player_projected_stats_by_week.json",
+            self.player_projected_stats_data_by_week[str(week_for_player_stats)] = self.query(
+                self.base_url + "projections/nfl/regular/" + str(season) + "/" + str(week_for_player_stats),
+                os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(
+                    week_for_player_stats)),
+                "week_" + str(week_for_player_stats) + "-player_projected_stats_by_week.json",
                 check_for_saved_data=True,
                 refresh_days_delay=1
             )
+
+        # with open(os.path.join(
+        #         self.data_dir, str(self.season), str(self.league_id), "player_stats_by_week.json"), "w") as out:
+        #     json.dump(self.player_stats_data_by_week, out, ensure_ascii=False, indent=2)
 
         self.league_managers = {
             manager.get("user_id"): manager for manager in self.query(
@@ -110,11 +112,11 @@ class LeagueData(object):
             )
         }
 
-        self.current_rosters = sorted(
+        self.standings = sorted(
             self.query(
                 self.base_url + "league/" + league_id + "/rosters",
                 os.path.join(self.data_dir, str(self.season), str(self.league_id)),
-                str(self.league_id) + "-league_rosters.json"
+                str(self.league_id) + "-league_standings.json"
             ),
             key=lambda x: (
                 x.get("settings").get("wins"),
@@ -125,84 +127,45 @@ class LeagueData(object):
             reverse=True
         )
 
-        for team in self.current_rosters:
-            team["taxi"] = [
-                self.fetch_player_data(player_id, self.current_week) for player_id in team.get("taxi")
-            ] if team.get("taxi") else []
-
-            team["starters"] = [
-                self.fetch_player_data(player_id, self.current_week) for player_id in team.get("starters")
-            ] if team.get("starters") else []
-
-            team["reserve"] = [
-                self.fetch_player_data(player_id, self.current_week) for player_id in team.get("reserve")
-            ] if team.get("reserve") else []
-
-            team["players"] = [
-                self.fetch_player_data(player_id, self.current_week) for player_id in team.get("players")
-            ] if team.get("players") else []
-
+        for team in self.standings:
             team["owner"] = self.league_managers.get(team.get("owner_id"))
             team["co_owners"] = [self.league_managers.get(co_owner) for co_owner in team.get("co_owners")] if team.get(
                 "co_owners") else []
 
-        # # TODO: remove
-        # with open(os.path.join(self.data_dir, str(self.season), str(self.league_id), "current_rosters.json"), "w") as out:
-        #     json.dump(self.current_rosters, out, ensure_ascii=False, indent=2)
-
         self.matchups_by_week = {}
-        for wk in range(1, int(self.num_regular_season_weeks) + 1):
-            self.matchups_by_week[str(wk)] = self.query(
-                self.base_url + "league/" + league_id + "/matchups/" + str(wk),
-                os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk)),
-                "week_" + str(wk) + "-matchups_by_week.json"
-            )
+        for week_for_matchups in range(1, int(self.num_regular_season_weeks) + 1):
+            self.matchups_by_week[str(week_for_matchups)] = [
+                self.map_player_data_to_matchup(list(group), week_for_matchups) for key, group in groupby(
+                    sorted(
+                        self.query(
+                            self.base_url + "league/" + league_id + "/matchups/" + str(week_for_matchups),
+                            os.path.join(
+                                self.data_dir, str(self.season), str(self.league_id), "week_" + str(week_for_matchups)),
+                            "week_" + str(week_for_matchups) + "-matchups_by_week.json"
+                        ),
+                        key=lambda x: x["matchup_id"]
+                    ),
+                    key=lambda x: x["matchup_id"]
+                )
+            ]
 
         self.rosters_by_week = {}
-        for wk, matchups in self.matchups_by_week.items():
-            self.rosters_by_week[str(wk)] = {}
-            matchup_pairs = defaultdict(lambda: defaultdict(list))
-            for matchup_team in matchups:
-                matchup_team["starters"] = [
-                    self.fetch_player_data(player_id, wk) for player_id in matchup_team.get("starters")
-                ] if matchup_team.get("starters") else []
+        for week_for_rosters in range(1, int(self.week_for_report) + 1):
+            team_rosters = {}
+            for matchup in self.matchups_by_week[str(week_for_rosters)]:
+                for team in matchup:
+                    team_rosters[team["roster_id"]] = team["roster"]
 
-                matchup_team["players"] = [
-                    self.fetch_player_data(player_id, wk) for player_id in matchup_team.get("players")
-                ] if matchup_team.get("players") else []
-
-                if int(wk) <= int(self.week_for_report):
-                    self.rosters_by_week[str(wk)][str(matchup_team.get("roster_id"))] = {
-                        "starters": matchup_team.get("starters"),
-                        "players": matchup_team.get("players")
-                    }
-
-                    for team in self.current_rosters:
-                        if team.get("roster_id") == matchup_team.get("roster_id"):
-                            self.rosters_by_week[str(wk)][str(matchup_team.get("roster_id"))]["info"] = team
-
-                matchup_pairs[matchup_team.get("matchup_id")]["teams"].append(matchup_team)
-
-            for matchup_pair in matchup_pairs.values():
-                matchup_pair_roster_ids = [matchup_pair["teams"][0].get("roster_id"),
-                                           matchup_pair["teams"][1].get("roster_id")]
-                matchup_pair["roster_ids"] = matchup_pair_roster_ids
-
-            self.matchups_by_week[wk] = matchup_pairs
-
-        # # TODO: remove
-        # with open(os.path.join(self.data_dir, str(self.season), str(self.league_id), "matchups_by_week.json"), "w") as out:
-        #     json.dump(self.matchups_by_week, out, ensure_ascii=False, indent=2)
-        with open(os.path.join(self.data_dir, str(self.season), str(self.league_id), "rosters_by_week.json"), "w") as out:
-            json.dump(self.rosters_by_week[str(week_for_report)], out, ensure_ascii=False, indent=2)
+            self.rosters_by_week[str(week_for_rosters)] = team_rosters
 
         self.league_transactions_by_week = {}
-        for wk in range(1, int(self.week_for_report) + 1):
-            self.league_transactions_by_week[str(wk)] = defaultdict(lambda: defaultdict(list))
+        for week_for_transactions in range(1, int(self.week_for_report) + 1):
+            self.league_transactions_by_week[str(week_for_transactions)] = defaultdict(lambda: defaultdict(list))
             weekly_transactions = self.query(
-                self.base_url + "league/" + league_id + "/transactions/" + str(wk),
-                os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk)),
-                "week_" + str(wk) + "-transactions_by_week.json"
+                self.base_url + "league/" + league_id + "/transactions/" + str(week_for_transactions),
+                os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(
+                    week_for_transactions)),
+                "week_" + str(week_for_transactions) + "-transactions_by_week.json"
             )
 
             for transaction in weekly_transactions:
@@ -211,15 +174,14 @@ class LeagueData(object):
                     if transaction_type in ["waiver", "free_agent", "trade"]:
                         for team_roster_id in transaction.get("consenter_ids"):
                             if transaction_type == "waiver":
-                                self.league_transactions_by_week[str(wk)][str(team_roster_id)]["moves"].append(transaction)
+                                self.league_transactions_by_week[str(week_for_transactions)][str(team_roster_id)][
+                                    "moves"].append(transaction)
                             elif transaction_type == "free_agent":
-                                self.league_transactions_by_week[str(wk)][str(team_roster_id)]["moves"].append(transaction)
+                                self.league_transactions_by_week[str(week_for_transactions)][str(team_roster_id)][
+                                    "moves"].append(transaction)
                             elif transaction_type == "trade":
-                                self.league_transactions_by_week[str(wk)][str(team_roster_id)]["trades"].append(transaction)
-
-        # # TODO: remove
-        # with open(os.path.join(self.data_dir, str(self.season), str(self.league_id), "transactions_by_week.json"), "w") as out:
-        #     json.dump(self.league_transactions_by_week, out, ensure_ascii=False, indent=2)
+                                self.league_transactions_by_week[str(week_for_transactions)][str(team_roster_id)][
+                                    "trades"].append(transaction)
 
     def query(self, url, file_dir, filename, check_for_saved_data=False, refresh_days_delay=1):
 
@@ -273,12 +235,27 @@ class LeagueData(object):
 
         return response_json
 
-    def fetch_player_data(self, player_id, week):
-        player = self.player_data.get(str(player_id))
+    def fetch_player_data(self, player_id, week, starter=False):
+        player = deepcopy(self.player_data.get(str(player_id)))
         if int(week) <= int(self.week_for_report):
-            player["stats"] = self.player_stats_data_by_week.get(str(week)).get(str(player_id))
-            player["projected"] = self.player_projected_stats_data_by_week[str(week)].get(str(player_id))
+            player["stats"] = deepcopy(self.player_stats_data_by_week.get(str(week)).get(str(player_id)))
+            player["projected"] = deepcopy(self.player_projected_stats_data_by_week[str(week)].get(str(player_id)))
+            player["starter"] = starter
         return player
+
+    def map_player_data_to_matchup(self, matchup, week):
+        for team in matchup:
+            for ranked_team in self.standings:
+                if ranked_team.get("roster_id") == team.get("roster_id"):
+                    team["info"] = {
+                        k: v for k, v in ranked_team.items() if k not in ["taxi", "starters", "reserve", "players"]
+                    }
+
+            team["roster"] = [
+                self.fetch_player_data(player_id, week, True) if player_id in team["starters"] else
+                self.fetch_player_data(player_id, week) for player_id in team["players"]
+            ]
+        return matchup
 
     def map_data_to_base(self, base_league_class):
         league = base_league_class(self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data,
@@ -330,128 +307,117 @@ class LeagueData(object):
             league.roster_positions.append(pos_name)
             league.roster_position_counts[pos_name] = pos_count
 
-        for week, weekly_matchups in self.matchups_by_week.items():
-            if int(week) <= int(self.week_for_report):
-                matchups_week = str(week)
-                league.teams_by_week[str(week)] = {}
-                league.matchups_by_week[str(week)] = []
+        for week, matchups in self.matchups_by_week.items():
+            matchups_week = str(week)
+            league.teams_by_week[str(week)] = {}
+            league.matchups_by_week[str(week)] = []
 
-                for matchup_id, matchup in weekly_matchups.items():
-                    base_matchup = BaseMatchup()
+            for matchup in matchups:
+                base_matchup = BaseMatchup()
 
-                    matchup_teams = matchup.get("teams")
+                base_matchup.week = int(matchups_week)
+                base_matchup.complete = True if int(week) <= int(self.current_week) else False
+                base_matchup.tied = True if matchup[0].get("points") and matchup[1].get("points") and float(
+                    matchup[0].get("points")) == float(matchup[1].get("points")) else False
 
-                    base_matchup.week = int(matchups_week)
-                    base_matchup.complete = True if int(week) <= int(self.current_week) else False
-                    base_matchup.tied = True if float(matchup_teams[0].get("points")) == float(
-                        matchup_teams[1].get("points")) else False
+                for team in matchup:
+                    base_team = BaseTeam()
 
-                    for team in matchup_teams:
-                        base_team = BaseTeam()
+                    team_info = team.get("info")
 
-                        team_info = self.rosters_by_week[str(week)][str(team.get("roster_id"))].get("info")
+                    base_team.week = int(matchups_week)
+                    base_team.name = team_info.get("owner").get("metadata").get("team_name") if team_info.get(
+                        "owner").get("metadata").get("team_name") else team_info.get("owner").get("display_name")
 
-                        base_team.week = int(matchups_week)
-                        base_team.name = team_info.get("owner").get("metadata").get("team_name") if team_info.get(
-                            "owner").get("metadata").get("team_name") else team_info.get("owner").get("display_name")
+                    for manager in [team_info.get("owner")] + team_info.get("co_owners"):
+                        base_manager = BaseManager()
 
-                        for manager in [team_info.get("owner")] + team_info.get("co_owners"):
-                            base_manager = BaseManager()
+                        base_manager.manager_id = manager.get("user_id")
+                        base_manager.email = None
+                        base_manager.name = manager.get("display_name")
 
-                            base_manager.manager_id = manager.get("user_id")
-                            base_manager.email = None
-                            base_manager.name = manager.get("display_name")
+                        base_team.managers.append(base_manager)
 
-                            base_team.managers.append(base_manager)
+                    # base_team.manager_str = ", ".join([manager.name for manager in base_team.managers])
+                    base_team.manager_str = team_info.get("owner").get("display_name")
 
-                        # base_team.manager_str = ", ".join([manager.name for manager in base_team.managers])
-                        base_team.manager_str = team_info.get("owner").get("display_name")
+                    # TODO: change team_key to team_id universally
+                    base_team.team_id = team.get("roster_id")
+                    base_team.team_key = team.get("roster_id")
+                    # base_team.points = round(float(team.get("points")), 2)
+                    base_team.points = round(float(team.get("points")), 2) if team.get("points") else 0
+                    # TODO: sum projected points from players
 
-                        # TODO: change team_key to team_id universally
-                        base_team.team_id = team.get("roster_id")
-                        base_team.team_key = team.get("roster_id")
-                        # base_team.points = round(float(team.get("points")), 2)
-                        base_team.points = float(team.get("points"))
-                        # TODO: sum projected points from players
-                        base_team.projected_points = None
+                    base_team.num_moves = sum(len(self.league_transactions_by_week.get(str(week), {}).get(
+                        str(base_team.team_id), {}).get("moves", [])) for week in range(1, int(week) + 1))
+                    base_team.num_trades = sum(len(self.league_transactions_by_week.get(str(week), {}).get(
+                        str(base_team.team_id), {}).get("trades", [])) for week in range(1, int(week) + 1))
 
-                        base_team.num_moves = len(self.league_transactions_by_week.get(str(week), {}).get(
-                            str(base_team.team_id), {}).get("moves", []))
-                        base_team.num_trades = len(self.league_transactions_by_week.get(str(week), {}).get(
-                            str(base_team.team_id), {}).get("trades", []))
+                    team_settings = team_info.get("settings")
 
-                        team_settings = team_info.get("settings")
+                    base_team.waiver_priority = team_settings.get("waiver_position")
+                    base_team.faab = league.faab_budget - int(team_settings.get("waiver_budget_used"))
+                    base_team.url = None
 
-                        base_team.waiver_priority = team_settings.get("waiver_position")
-                        base_team.faab = league.faab_budget - int(team_settings.get("waiver_budget_used"))
-                        base_team.url = None
+                    base_team.wins = int(team_settings.get("wins"))
+                    base_team.losses = int(team_settings.get("losses"))
+                    base_team.ties = int(team_settings.get("ties"))
+                    base_team.percentage = round(
+                        float(base_team.wins / (base_team.wins + base_team.losses + base_team.ties)), 3)
 
-                        base_team.wins = int(team_settings.get("wins"))
-                        base_team.losses = int(team_settings.get("losses"))
-                        base_team.ties = int(team_settings.get("ties"))
-                        base_team.percentage = round(float(base_team.wins / (base_team.wins + base_team.losses + base_team.ties)), 3)
+                    # TODO: must build streaks from custom standings week by week
+                    base_team.streak_str = "N/A"
+                    # if team > 0:
+                    #     base_team.streak_type = "W"
+                    # elif team < 0:
+                    #     base_team.streak_type = "L"
+                    # else:
+                    #     base_team.streak_type = "T"
+                    # base_team.streak_len = None
+                    # base_team.streak_str = None
+                    base_team.points_for = float(str(team_settings.get("fpts")) + "." + str(
+                        team_settings.get("fpts_decimal")))
+                    base_team.points_against = float(str(team_settings.get("fpts_against")) + "." + str(
+                        team_settings.get("fpts_against_decimal")))
 
-                        # TODO: must build streaks from custom standings week by week
-                        base_team.streak_str = "N/A"
-                        # if team > 0:
-                        #     base_team.streak_type = "W"
-                        # elif team < 0:
-                        #     base_team.streak_type = "L"
-                        # else:
-                        #     base_team.streak_type = "T"
-                        # base_team.streak_len = None
-                        # base_team.streak_str = None
-                        base_team.points_for = float(str(team_settings.get("fpts")) + "." + str(
-                            team_settings.get("fpts_decimal")))
-                        base_team.points_against = float(str(team_settings.get("fpts_against")) + "." + str(
-                            team_settings.get("fpts_against_decimal")))
+                    for roster in self.standings:
+                        if int(roster.get("roster_id")) == int(base_team.team_id):
+                            base_team.rank = int(self.standings.index(roster) + 1)
 
-                        for roster in self.current_rosters:
-                            if int(roster.get("roster_id")) == int(base_team.team_id):
-                                base_team.rank = int(self.current_rosters.index(roster) + 1)
+                    # add team to matchup teams
+                    base_matchup.teams.append(base_team)
 
-                        # add team to matchup teams
-                        base_matchup.teams.append(base_team)
+                    # add team to league teams by week
+                    league.teams_by_week[str(week)][str(base_team.team_id)] = base_team
 
-                        # add team to league teams by week
-                        league.teams_by_week[str(week)][str(base_team.team_id)] = base_team
+                    if not base_matchup.tied:
+                        if base_team.team_id == matchup[0].get("roster_id"):
+                            if matchup[0].get("points") and matchup[1].get("points") and float(
+                                    matchup[0].get("points")) > float(matchup[1].get("points")):
+                                base_matchup.winner = base_team
+                            else:
+                                base_matchup.loser = base_team
+                        elif base_team.team_id == matchup[1].get("roster_id"):
+                            if matchup[1].get("points") and matchup[0].get("points") and float(
+                                    matchup[1].get("points")) > float(matchup[0].get("points")):
+                                base_matchup.winner = base_team
+                            else:
+                                base_matchup.loser = base_team
+                    else:
+                        # TODO: how to set winner/loser with ties?
+                        pass
 
-                        if not base_matchup.tied:
-                            if base_team.team_id == matchup_teams[0].get("roster_id"):
-                                if float(matchup_teams[0].get("points")) > float(matchup_teams[1].get("points")):
-                                    base_matchup.winner = base_team
-                                else:
-                                    base_matchup.loser = base_team
-                            elif base_team.team_id == matchup_teams[1].get("roster_id"):
-                                if float(matchup_teams[1].get("points")) > float(matchup_teams[0].get("points")):
-                                    base_matchup.winner = base_team
-                                else:
-                                    base_matchup.loser = base_team
-                        else:
-                            # TODO: how to set winner/loser with ties?
-                            pass
-
-                    # add matchup to league matchups by week
-                    league.matchups_by_week[str(week)].append(base_matchup)
+                # add matchup to league matchups by week
+                league.matchups_by_week[str(week)].append(base_matchup)
 
         for week, rosters in self.rosters_by_week.items():
             league.players_by_week[str(week)] = {}
             for team_id, roster in rosters.items():
                 league_team = league.teams_by_week.get(str(week)).get(str(team_id))  # type: BaseTeam
 
-                starters = roster.get("starters")
-
                 team_filled_positions = deepcopy(self.league_info.get("roster_positions"))  # type: list
-                # if self.league_settings.get("reserve_slots"):
-                #     team_filled_positions.extend(["BN"] * self.league_settings.get("reserve_slots"))
-                # if self.league_settings.get("taxi_slots"):
-                #     team_filled_positions.extend(["BN"] * self.league_settings.get("taxi_slots"))
 
-                print("NUM FILLED POSITIONS:", len(team_filled_positions))
-                print("NUM ROSTER PLAYERS:", len(roster.get("players")))
-                print(team_id)
-                print(league_team.name)
-                for player in roster.get("players"):
+                for player in roster:
                     if player:
                         base_player = BasePlayer()
 
@@ -478,27 +444,41 @@ class LeagueData(object):
                         base_player.owner_team_id = None
                         base_player.percent_owned = None
 
-                        reception_scoring_value = self.league_info.get("scoring_settings").get("rec")
+                        # reception_scoring_value = self.league_info.get("scoring_settings").get("rec")
                         player_stats = player.get("stats")
                         player_projected_stats = player.get("projected")
                         if player_stats:
-                            points_standard = player_stats.get("pts_std", 0)
-                            points_proj_standard = player_projected_stats.get("pts_std", 0)
-                            points_half_ppr = player_stats.get("pts_half_ppr")
-                            points_proj_half_ppr = player_projected_stats.get("pts_half_ppr")
-                            points_ppr = player_stats.get("pts_ppr")
-                            points_proj_ppr = player_projected_stats.get("pts_ppr")
-                            if reception_scoring_value == 0.5:
-                                base_player.points = points_half_ppr if points_half_ppr else points_standard
-                                base_player.projected_points = points_proj_half_ppr if points_proj_half_ppr else \
-                                    points_proj_standard
-                            elif reception_scoring_value == 1.0:
-                                base_player.points = points_ppr if points_ppr else points_standard
-                                base_player.projected_points = points_proj_ppr if points_proj_ppr else \
-                                    points_proj_standard
-                            else:
-                                base_player.points = points_standard
-                                base_player.projected_points = points_proj_standard
+                            points = 0
+                            for stat, value in player_stats.items():
+                                if stat in self.league_scoring.keys():
+                                    points += (value * self.league_scoring.get(stat))
+
+                            projected_points = 0
+                            for stat, value in player_projected_stats.items():
+                                if stat in self.league_scoring.keys():
+                                    projected_points += (value * self.league_scoring.get(stat))
+
+                            # points_standard = player_stats.get("pts_std", 0)
+                            # points_proj_standard = player_projected_stats.get("pts_std", 0)
+                            # points_half_ppr = player_stats.get("pts_half_ppr")
+                            # points_proj_half_ppr = player_projected_stats.get("pts_half_ppr")
+                            # points_ppr = player_stats.get("pts_ppr")
+                            # points_proj_ppr = player_projected_stats.get("pts_ppr")
+                            # if reception_scoring_value == 0.5:
+                            #     base_player.points = points_half_ppr if points_half_ppr else points_standard
+                            #     base_player.projected_points = points_proj_half_ppr if points_proj_half_ppr else \
+                            #         points_proj_standard
+                            # elif reception_scoring_value == 1.0:
+                            #     base_player.points = points_ppr if points_ppr else points_standard
+                            #     base_player.projected_points = points_proj_ppr if points_proj_ppr else \
+                            #         points_proj_standard
+                            # else:
+                            #     base_player.points = points_standard
+                            #     base_player.projected_points = points_proj_standard
+                            # base_player.points = points
+                            # base_player.projected_points = projected_points
+                            base_player.points = round(points, 2)
+                            base_player.projected_points = round(projected_points, 2)
                         else:
                             base_player.points = 0
                             base_player.projected_points = 0
@@ -507,13 +487,7 @@ class LeagueData(object):
                             else "D"
                         base_player.primary_position = player.get("position")
 
-                        print("FILLED:")
-                        print(team_filled_positions)
-                        print()
-                        print("PLAYER:")
-                        print(player.get("first_name"), player.get("last_name"))
-                        print()
-                        if player in starters:
+                        if player["starter"]:
                             if base_player.primary_position in team_filled_positions:
                                 base_player.selected_position = base_player.primary_position
                                 base_player.selected_position_is_flex = False
@@ -522,14 +496,16 @@ class LeagueData(object):
                                 base_player.selected_position = "FLEX"
                                 base_player.selected_position_is_flex = True
                                 try:
-                                    team_filled_positions.pop(team_filled_positions.index(base_player.selected_position))
+                                    team_filled_positions.pop(team_filled_positions.index(
+                                        base_player.selected_position))
                                 except ValueError:
                                     base_player.selected_position = "SUPER_FLEX"
-                                    team_filled_positions.pop(team_filled_positions.index(base_player.selected_position))
+                                    team_filled_positions.pop(team_filled_positions.index(
+                                        base_player.selected_position))
+                            league_team.projected_points += base_player.projected_points
                         else:
                             base_player.selected_position = "BN"
                             base_player.selected_position_is_flex = False
-                            # team_filled_positions.pop(team_filled_positions.index(base_player.selected_position))
 
                         base_player.status = player.get("status")
 
