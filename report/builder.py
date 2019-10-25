@@ -265,7 +265,8 @@ class FantasyFootballReport(object):
         report_data.data_for_season_weekly_highest_ce = season_weekly_highest_ce
 
         # calculate season average metrics and then add columns for them to their respective metric table data
-        season_average_calculator = SeasonAverageCalculator(week_for_report_ordered_team_names, report_data)
+        season_average_calculator = SeasonAverageCalculator(week_for_report_ordered_team_names, report_data,
+                                                            self.break_ties)
 
         report_data.data_for_scores = season_average_calculator.get_average(
             time_series_points_data,

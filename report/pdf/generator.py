@@ -369,24 +369,16 @@ class PdfGenerator(object):
             table_style.add("FONTSIZE", (0, 0), (-1, -1), 10 - font_reduction)
 
         if metric_type == "scores":
-            if self.report_data.ties_for_scores > 0:
-                if self.break_ties:
-                    self.scores_headers[0].append("Bench Points")
-                else:
-                    for index, team in enumerate(self.data_for_scores):
-                        self.data_for_scores[index] = team[:-1]
+            if self.break_ties and self.report_data.ties_for_scores > 0:
+                self.scores_headers[0].append("Bench Points")
             else:
                 for index, team in enumerate(self.data_for_scores):
                     self.data_for_scores[index] = team[:-1]
 
         if metric_type == "coaching_efficiency":
-            if self.report_data.ties_for_coaching_efficiency > 0:
-                if self.break_ties:
-                    self.efficiency_headers[0][3] = "CE (%)"
-                    self.efficiency_headers[0].extend(["# > Avg.", "Sum % > Avg."])
-                else:
-                    for index, team in enumerate(self.data_for_coaching_efficiency):
-                        self.data_for_coaching_efficiency[index] = team[:-2]
+            if self.break_ties and self.report_data.ties_for_coaching_efficiency > 0:
+                self.efficiency_headers[0][3] = "CE (%)"
+                self.efficiency_headers[0].extend(["# > Avg.", "Sum % > Avg."])
             else:
                 for index, team in enumerate(self.data_for_coaching_efficiency):
                     self.data_for_coaching_efficiency[index] = team
