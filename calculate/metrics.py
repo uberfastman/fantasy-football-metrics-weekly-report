@@ -318,7 +318,7 @@ class CalculateMetrics(object):
                         players = []
                         for team_result in teams_results.values():
                             if team_result.name == ce_result[1]:
-                                players = teams_results.get(team_result.team_key).roster
+                                players = teams_results.get(team_result.team_id).roster
 
                         num_players_exceeded_season_avg_points = 0
                         total_percentage_points_players_exceeded_season_avg_points = 0
@@ -410,7 +410,7 @@ class CalculateMetrics(object):
     # noinspection PyUnusedLocal
     @staticmethod
     def test_ties(teams_results):
-        for team_key, team in teams_results.items():
+        for team_id, team in teams_results.items():
 
             team_id = team.team_id
 
@@ -509,7 +509,7 @@ class CalculateMetrics(object):
                 else:
                     record["T"] += 1
 
-            results[team_1.team_key]["record"] = record
+            results[team_1.team_id]["record"] = record
 
             # calc luck %
             # TODO: assuming no ties...  how are tiebreakers handled?
@@ -525,7 +525,7 @@ class CalculateMetrics(object):
                     luck = 0 - (record["W"] + record["T"]) / num_teams
 
             # noinspection PyTypeChecker
-            results[team_1.team_key]["luck"] = luck * 100
+            results[team_1.team_id]["luck"] = luck * 100
 
         return results
 
@@ -542,7 +542,7 @@ class CalculateMetrics(object):
         """ avg of (weekly score rank + weekly coaching efficiency rank + weekly luck rank)
         """
         power_ranked_teams = {
-            team_result.team_key: {
+            team_result.team_id: {
                 "name": team_result.name,
                 "manager_str": team_result.manager_str
             } for team_result in teams_results.values()
@@ -566,12 +566,12 @@ class CalculateMetrics(object):
         # can only determine z_score
         can_calculate = len(weekly_teams_results) > 2
 
-        # iterates through team_keys of first week since team_keys remain unchanged
-        for team_key in weekly_teams_results[0].keys():
+        # iterates through team ids of first week since team ids remain unchanged
+        for team_id in weekly_teams_results[0].keys():
             z_score = None
 
             if can_calculate:
-                scores = [week[team_key].points for week in weekly_teams_results]
+                scores = [week[team_id].points for week in weekly_teams_results]
 
                 scores_excluding_current = scores[:-1]
                 current_score = scores[-1]
@@ -580,6 +580,6 @@ class CalculateMetrics(object):
                 mean_score = np.mean(scores_excluding_current)
                 z_score = (current_score - mean_score) / standard_deviation
 
-            results[team_key] = z_score
+            results[team_id] = z_score
 
         return results

@@ -233,7 +233,6 @@ class BaseTeam(FantasyFootballReportObject):
         self.num_trades = 0
         self.managers = []
         self.team_id = None
-        self.team_key = None
         self.points = 0
         self.projected_points = 0
         self.waiver_priority = 0

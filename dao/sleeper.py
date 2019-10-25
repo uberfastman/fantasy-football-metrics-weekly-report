@@ -340,14 +340,8 @@ class LeagueData(object):
 
                     # base_team.manager_str = ", ".join([manager.name for manager in base_team.managers])
                     base_team.manager_str = team_info.get("owner").get("display_name")
-
-                    # TODO: change team_key to team_id universally
                     base_team.team_id = team.get("roster_id")
-                    base_team.team_key = team.get("roster_id")
-                    # base_team.points = round(float(team.get("points")), 2)
                     base_team.points = round(float(team.get("points")), 2) if team.get("points") else 0
-                    # TODO: sum projected points from players
-
                     base_team.num_moves = sum(len(self.league_transactions_by_week.get(str(week), {}).get(
                         str(base_team.team_id), {}).get("moves", [])) for week in range(1, int(week) + 1))
                     base_team.num_trades = sum(len(self.league_transactions_by_week.get(str(week), {}).get(

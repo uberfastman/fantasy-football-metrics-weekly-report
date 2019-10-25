@@ -71,6 +71,6 @@ class PointsByPosition(object):
                     del self.roster_slot_counts[slot]
 
             player_points_by_position = self.execute_points_by_position(team_result.roster)
-            weekly_points_by_position_data.append([team_result.team_key, player_points_by_position])
+            weekly_points_by_position_data.append([team_result.team_id, player_points_by_position])
 
         return weekly_points_by_position_data

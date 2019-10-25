@@ -255,9 +255,7 @@ class LeagueData(object):
 
                     base_team.manager_str = ", ".join([manager.name for manager in base_team.managers])
 
-                    # TODO: change y_team.team_id to y_team.team_key
                     base_team.team_id = str(y_team.team_id)
-                    base_team.team_key = y_team.team_key
                     base_team.points = float(y_team.points)
                     base_team.projected_points = float(y_team.projected_points)
                     base_team.waiver_priority = y_team.waiver_priority
@@ -271,7 +269,7 @@ class LeagueData(object):
                     # add team to league teams by week
                     league.teams_by_week[str(week)][str(base_team.team_id)] = base_team
 
-                    if base_team.team_key == y_matchup.winner_team_key:
+                    if y_team.team_key == y_matchup.winner_team_key:
                         base_matchup.winner = base_team
                     else:
                         base_matchup.loser = base_team

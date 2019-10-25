@@ -624,13 +624,13 @@ class PdfGenerator(object):
         alphabetical_teams = []
         for team in sorted(self.teams_results.values(), key=lambda x: x.name):
             for team_data in weekly_team_data_by_position:
-                if team.team_key == team_data[0]:
+                if team.team_id == team_data[0]:
                     alphabetical_teams.append(team_data)
 
         for team in alphabetical_teams:
-            team_key = team[0]
+            team_id = team[0]
             team_weekly_points_by_position = team[1]
-            team_result = self.teams_results[team_key]  # type: BaseTeam
+            team_result = self.teams_results[team_id]  # type: BaseTeam
             player_info = team_result.roster
 
             if self.config.getboolean(
@@ -647,7 +647,7 @@ class PdfGenerator(object):
             if self.config.getboolean("Report", "team_points_by_position_charts"):
                 labels = []
                 weekly_data = []
-                season_data = [x[1] for x in season_average_team_data_by_position.get(team_key)]
+                season_data = [x[1] for x in season_average_team_data_by_position.get(team_id)]
                 for week in team_weekly_points_by_position:
                     labels.append(week[0])
                     weekly_data.append(week[1])

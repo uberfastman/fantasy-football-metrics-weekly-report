@@ -326,9 +326,7 @@ class LeagueData(object):
 
                     base_team.manager_str = ", ".join([manager.name for manager in base_team.managers])
 
-                    # TODO: change team_key to team_id universally
                     base_team.team_id = str(team.get("id"))
-                    base_team.team_key = str(team.get("id"))
                     base_team.points = float(matchup.get(key + "Score", {}).get("score", {}).get("value", 0))
                     base_team.projected_points = None
 

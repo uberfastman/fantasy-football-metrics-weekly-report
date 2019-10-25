@@ -31,7 +31,7 @@ class ReportData(object):
         self.is_faab = league.is_faab
 
         self.teams_results = {
-            team.team_key: add_report_team_stats(
+            team.team_id: add_report_team_stats(
                 team,
                 league,
                 week_counter,
@@ -102,7 +102,7 @@ class ReportData(object):
         elif any(z_score_val is None for z_score_val in z_score_results.values()):
             create_z_score_data = True
             z_score_results = {
-                team_key: 0 if not z_score_val else z_score_val for team_key, z_score_val in z_score_results.items()
+                team_id: 0 if not z_score_val else z_score_val for team_id, z_score_val in z_score_results.items()
             }
         else:
             create_z_score_data = True
@@ -134,13 +134,13 @@ class ReportData(object):
         self.data_for_teams = []
         for team_result in self.teams_results.values():  # type: BaseTeam
             self.data_for_teams.append([
-                team_result.team_key,
+                team_result.team_id,
                 team_result.name,
                 team_result.manager_str,
                 team_result.points,
                 team_result.coaching_efficiency,
                 team_result.luck,
-                z_score_results[team_result.team_key]
+                z_score_results[team_result.team_id]
             ])
 
         self.data_for_teams.sort(key=lambda x: x[1])
@@ -229,9 +229,9 @@ class ReportData(object):
 
         # update data_for_teams with power rankings
         for team in self.data_for_teams:
-            for team_key in power_ranking_results.keys():
-                if team[0] == team_key:
-                    team.append(power_ranking_results[team_key]["power_ranking"])
+            for team_id in power_ranking_results.keys():
+                if team[0] == team_id:
+                    team.append(power_ranking_results[team_id]["power_ranking"])
 
         # power rankings data
         self.data_for_power_rankings = []
