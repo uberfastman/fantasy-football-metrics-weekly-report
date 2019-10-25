@@ -14,16 +14,18 @@ from reportlab.lib.validators import Auto
 
 # noinspection PyUnresolvedReferences
 class LineChartGenerator(_DrawingEditorMixin, Drawing):
-    """
-        Chart Features
-        ============
-        - **background.fillColor** sets the CMYK fill color
-        - **background.height**, **background.width**, **background.x**, and **background.y** define the size and position of the fill.
-        - Note also that **legend.colorNamePairs** is set automatically based on the colors and names of the lines. This makes a lot of sense compared to other examples in which these are defined separately and may differ from the lines they are associated with.
+    """Chart Features
+       ============
+       - **background.fillColor** sets the CMYK fill color
+       - **background.height**, **background.width**, **background.x**, and **background.y** define the size and
+       position of the fill.
+       - Note also that **legend.colorNamePairs** is set automatically based on the colors and names of the lines. This
+       makes a lot of sense compared to other examples in which these are defined separately and may differ from the
+       lines they are associated with.
     """
 
-    def __init__(self, series_colors_cmyk, box_width, box_height, chart_width, chart_height, width=550, height=215,
-                 *args, **kw):
+    def __init__(self, data, title, x_axis_params, y_axis_params, series_names, series_colors_cmyk, box_width,
+                 box_height, chart_width, chart_height, width=550, height=215, *args, **kw):
         Drawing.__init__(self, width, height, *args, **kw)
         Drawing.hAlign = 'CENTER'
 
@@ -53,19 +55,19 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         self.chart.lines.strokeWidth = 2
 
         self.legend.colorNamePairs = Auto(obj=self.chart)
-        self.legend.x = 5
+        self.legend.x = 10
         self.legend.y = 30
         # set size of swatches
         self.legend.dx = 0
-        self.legend.dy = 0
+        self.legend.dy = -5
         self.legend.fontName = font_name
-        self.legend.fontSize = 8
+        self.legend.fontSize = 8 if len(series_names) % 3 == 0 else 7
         self.legend.alignment = 'right'
-        self.legend.columnMaximum = 2
+        self.legend.columnMaximum = 2 if len(series_names) % 3 == 0 else 3
         self.legend.dxTextSpace = 4
         self.legend.variColumn = 1
         self.legend.boxAnchor = 'nw'
-        self.legend.deltay = 15
+        self.legend.deltay = 10
         self.legend.autoXPadding = 20
 
         self.background = Rect(0, 0, self.width, self.height, strokeWidth=0, fillColor=PCMYKColor(0, 0, 10, 0))
@@ -75,8 +77,13 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         self.background.x = 0
         self.background.fillColor = PCMYKColor(16, 12, 13, 0, alpha=30)
 
-    def make_title(self, title):
+        self.make_title(title)
+        self.make_data(data)
+        self.make_x_axis(*x_axis_params)
+        self.make_y_axis(*y_axis_params)
+        self.make_series_labels(series_names)
 
+    def make_title(self, title):
         self._add(self, Label(), name='Title', validate=None, desc="The title at the top of the chart")
 
         self.Title.fontName = 'Helvetica-Bold'
@@ -89,7 +96,6 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         self.Title.textAnchor = 'middle'
 
     def make_x_axis(self, x_label, x_min, x_max, x_step):
-
         self._add(self, Label(), name='XLabel', validate=None, desc="The label on the horizontal axis")
 
         self.XLabel.fontName = 'Helvetica'
@@ -117,7 +123,6 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         # self.chart.xValueAxis.labels.angle = 45
 
     def make_y_axis(self, y_label, y_min, y_max, y_step):
-
         self._add(self, Label(), name='YLabel', validate=None, desc="The label on the vertical axis")
 
         self.YLabel.fontName = 'Helvetica'
@@ -154,10 +159,8 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         self.chart.yValueAxis.labels.fillColor = black
 
     def make_data(self, data):
-
         self.chart.data = data
 
     def make_series_labels(self, series_labels):
-
         for i in range(len(series_labels)):
             self.chart.lines[i].name = series_labels[i]

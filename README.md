@@ -8,6 +8,8 @@
     * [Automated Setup](#automated-setup)
     * [Manual Setup](#manual-setup)
     * [Yahoo Setup](#yahoo-setup)
+    * [Fleaflicker Setup](#fleaflicker-setup)
+    * [Sleeper Setup](#sleeper-setup)
 * [Running the Report Application](#running-the-report-application)
     * [macOS Launch Script](#macos-launch-script)
 * [Configuration](#configuration)
@@ -27,6 +29,14 @@
 <a name="about"></a>
 ### About
 The Fantasy Football Metrics Weekly Report application automatically generates a report in the form of a PDF file that contains a host of metrics and rankings for teams in a given fantasy football league.
+
+Currently supported fantasy football platforms:
+
+* **Yahoo**
+  
+* **Fleaflicker**
+
+* **Sleeper**
 
 <a name="example-report"></a>
 #### Example Report
@@ -151,6 +161,12 @@ There is a pre-made setup bash script in the top level of this repository called
 
 * Log in to a Yahoo account with access to whatever fantasy football leagues from which you wish to retrieve data.
 
+* Retrieve your Yahoo Fantasy football league id, which you can find by going to [https://football.fantasysports.yahoo.com](https://football.fantasysports.yahoo.com), clicking on your league, and looking here:
+
+    ![yahoo-fantasy-football-league-id-location.png](resources/images/yahoo-fantasy-football-league-id-location.png)
+    
+* Change the `league_id` value in `config.ini` to the above located league id.
+
 * Go to [https://developer.yahoo.com/apps/create/](https://developer.yahoo.com/apps/create/) and create an app (you must be logged into your Yahoo account as stated above). For the app, select the following options:
 
     * `Application Name` (**Required**): `yffpy` (you can name your app whatever you want, but this is just an example).
@@ -171,7 +187,49 @@ There is a pre-made setup bash script in the top level of this repository called
     
     * Rename `EXAMPLE-private.json` (located in the `auth/yahoo` directory) to just `private.json`, and copy the `Client ID` and `Client Secret` values to their respective fields (make sure the strings are wrapped regular quotes (`""`), NOT formatted quotes (`“”`)). The path to this file will be needed to point YFFPY to your credentials.
     
-    * Now you should be ready to initialize the OAuth connection between the report generator and your Yahoo account.
+    * The first time you run the app, it will initialize the OAuth connection between the report generator and your Yahoo account.
+
+* You are now ready to [generate a report!](#running-the-report-application)
+
+---
+
+<a name="fleaflicker-setup"></a>
+#### Fleaflicker Setup
+
+Fleaflicker recently implemented a public API, but at the present time it is undocumented and subject to unexpected and sudden changes. Additionally, not all data needed to properly run the Fantasy Football Metrics Weekly Report application, so for the time being web-scraping is used to supplement the data gathered from the Fleaflicker API.
+
+* Retrieve your Fleaflicker league ID. You can find it by looking at the URL of your league in your browser:
+
+    ![fleaflicker-fantasy-football-league-id-location.png](resources/images/fleaflicker-fantasy-football-league-id-location.png)
+    
+* Change the `league_id` value in `config.ini` to the above located league id.
+
+* Make sure that you have accurately set the `season` configuration value in the `config.ini` file to reflect the desired year/season for which you are running the report application. This will ensure that the location of locally saved data is correct and API requests are properly formed.
+
+* You can also specify the `year` from the command line by running the report with the `-y <chosen_year>` flag.
+
+* Fleaflicker does not require any authentication to access their API at this time, so no additional steps are necessary.
+
+* You are now ready to [generate a report!](#running-the-report-application)
+
+---
+
+<a name="sleeper-setup"></a>
+#### Sleeper Setup
+
+Sleeper has a public API, the documentation for which is available [here](https://docs.sleeper.app). The Fantasy Football Metrics Weekly Report application uses this API to retrieve the necessary data to generate reports. *Please note, some of the data required to provide certain information to the report is not currently available in the Sleeper API, so a few small things are excluded in the report until such a time as the data becomes available*. That being said, the missing data does not fundamentally limit the capability of the app to generate a complete report.
+
+* Retrieve your Sleeper league ID. You can find it by looking at the URL of your league in your browser:
+
+    ![sleeper-fantasy-football-league-id-location.png](resources/images/sleeper-fantasy-football-league-id-location.png)
+    
+* Change the `league_id` value in `config.ini` to the above located league id.
+
+* Make sure that you have accurately set the `current_week` configuration value in the `config.ini` file to reflect the current/ongoing NFL week at the time of running the report. ***This is required for the Fantasy Football Metrics Weekly Report app to run correctly!***
+
+* Sleeper does not require any authentication to access their API at this time, so no additional steps are necessary.
+
+* You are now ready to [generate a report!](#running-the-report-application)
 
 ---
 
@@ -187,11 +245,7 @@ There is a pre-made setup bash script in the top level of this repository called
     ```
   *before running the report **EVERY TIME** you open a new command line prompt to run the application!*
 
-* Update the default Yahoo Fantasy football league id in the `config.ini` to your own league id. You can find your league id by going to [https://football.fantasysports.yahoo.com](https://football.fantasysports.yahoo.com), clicking on your league, and looking here:
-
-    ![yahoo-fantasy-football-league-id-location.png](resources/images/yahoo-fantasy-football-league-id-location.png)
-
-* In the `config.ini`, change the value for `league_id` to your above located league id.
+* Make sure you have updated the default league ID (`league_id` value) in the `config.ini` file to your own league id. Please see the respective setup instructions for your chosen platform for directions on how to find your league ID.
 
 * Run `python main.py`. You should see the following prompts: 
     * `Generate report for default league? (y/n) -> `. 
@@ -277,7 +331,7 @@ In addition to turning on/off the features of the report PDF itself, there are a
 
 |                  Option                  | Description |
 | ---------------------------------------: | :---------- |
-| `platform`                               | Fantasy football platform for which you are generating a report (currently supports: yahoo, fleaflicker) |
+| `platform`                               | Fantasy football platform for which you are generating a report. |
 | `supported_platforms`                    | Comma-delimited list of currently supported fantasy football platforms. |
 | `league_id`                              | The league id of the fantasy football for which you are running the report. |
 | `game_id`                                | Game id by season (see: [Game Resource](https://developer.yahoo.com/fantasysports/guide/game-resource.html#game-resource-desc) for Yahoo) |
@@ -313,7 +367,7 @@ After completing the above setup and configuration steps, you should now be able
 |             Flag             |                                      Description                                     |
 | :--------------------------- | :----------------------------------------------------------------------------------- |
 | `-h, --help`                 | Print command line usage message |
-| `-l, --fantasy-platform <platform>` | Fantasy football platform on which league for report is hosted. Currently supports: `yahoo`, `fleaflicker` |
+| `-l, --fantasy-platform <platform>` | Fantasy football platform on which league for report is hosted. |
 | `-l --league-id <league_id>` | Fantasy Football league ID |
 | `-w --week <week>`           | Chosen week for which to generate report |
 | `-g --game-id <game_id>`     | Chosen fantasy game id for which to generate report. Defaults to "nfl", interpreted as the current season if using Yahoo. |
@@ -333,7 +387,7 @@ After completing the above setup and configuration steps, you should now be able
 
 When you are done working within the `virtualenv`, you can run `deactivate` within the environment to exit:
 ```
-(fantasy-football-metrics)host-machine:yahoo-fantasy-football-metrics user$ deactivate
+(fantasy-football-metrics) host-machine: fantasy-football-metrics-weekly-report $ deactivate
 ```
 
 When you wish to work within the `virtualenv` once more, do the following:

@@ -29,7 +29,6 @@ class LeagueData(object):
                  league_id,
                  season,
                  config,
-                 base_dir,
                  data_dir,
                  week_validation_function,
                  save_data=True,
@@ -408,7 +407,7 @@ class LeagueData(object):
                         base_player.full_name = flea_pro_player.get("nameFull")
                         base_player.headshot_url = flea_pro_player.get("headshotUrl")
                         base_player.owner_team_id = flea_league_player.get("owner", {}).get("id")
-                        base_player.owner_team_id = flea_league_player.get("owner", {}).get("name")
+                        base_player.owner_team_name = flea_league_player.get("owner", {}).get("name")
                         base_player.percent_owned = 0
                         base_player.points = float(flea_league_player.get("viewingActualPoints", {}).get("value", 0))
                         base_player.projected_points = None

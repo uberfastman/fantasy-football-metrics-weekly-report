@@ -180,7 +180,7 @@ class BadBoyStats(object):
         :param key_str: which player information to retrieve (crime: "worst_offense" or bad boy points: "total_points")
         :return: Ether integer number of bad boy points or crime recorded (depending on key_str)
         """
-        player_team = str.upper(player_team)
+        player_team = str.upper(player_team) if player_team else "?"
         if player_team not in self.nfl_team_abbreviations:
             if player_team in self.team_abbrev_conversion_dict.keys():
                 player_team = self.team_abbrev_conversion_dict[player_team]

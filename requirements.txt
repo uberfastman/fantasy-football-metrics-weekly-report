@@ -3,9 +3,12 @@ yahoo_oauth==0.1.9
 reportlab==3.3.0
 pillow==5.4.1
 slackclient==1.3.1
+# sleeper-api-wrapper==1.0.7
+sleeper-api-wrapper
 beautifulsoup4
 httplib2
 numpy
 oauth2client
 PyDrive
 requests
+urllib3

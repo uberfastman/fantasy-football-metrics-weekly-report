@@ -22,6 +22,7 @@ from reportlab.platypus import PageBreak
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.platypus import Spacer
 from reportlab.rl_settings import canvas_basefontname as bfn
+from reportlab.platypus.flowables import KeepTogether
 
 from dao.base import BaseLeague, BaseTeam, BasePlayer
 from report.data import ReportData
@@ -109,12 +110,13 @@ class PdfGenerator(object):
         self.widths_4_cols_2 = [1.00 * inch, 2.25 * inch, 2.25 * inch, 2.25 * inch]
         self.widths_4_cols_2 = [1.00 * inch, 2.50 * inch, 2.50 * inch, 1.75 * inch]
         self.widths_4_cols_3 = [1.00 * inch, 2.50 * inch, 2.00 * inch, 2.25 * inch]
-        self.widths_5_cols_1 = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch, 1.75 * inch]
+        self.widths_4_cols_4 = [0.50 * inch, 2.25 * inch, 1.75 * inch, 3.25 * inch]
+        self.widths_5_cols_1 = [0.45 * inch, 1.95 * inch, 1.85 * inch, 1.75 * inch, 1.75 * inch]
         self.widths_6_cols_1 = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.00 * inch, 1.50 * inch, 1.00 * inch]
         self.widths_6_cols_2 = [0.75 * inch, 1.75 * inch, 1.25 * inch, 1.00 * inch, 2.00 * inch, 1.00 * inch]
         self.widths_7_cols_1 = [0.50 * inch, 1.75 * inch, 1.50 * inch, 0.75 * inch, 1.50 * inch, 0.75 * inch,
                                 1.00 * inch]
-        self.widths_10_cols_1 = [0.50 * inch, 1.75 * inch, 1.00 * inch, 1.00 * inch, 0.80 * inch, 1.10 * inch,
+        self.widths_10_cols_1 = [0.45 * inch, 1.80 * inch, 1.05 * inch, 1.00 * inch, 0.80 * inch, 1.05 * inch,
                                  0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]
         self.widths_n_cols_1 = [1.55 * inch, 1.00 * inch, 0.90 * inch, 0.65 * inch, 0.65 * inch] + \
                                [round(3.4 / self.playoff_slots, 2) * inch] * self.playoff_slots
@@ -216,7 +218,9 @@ class PdfGenerator(object):
         ordinal_dict = {
             1: "1st", 2: "2nd", 3: "3rd", 4: "4th",
             5: "5th", 6: "6th", 7: "7th", 8: "8th",
-            9: "9th", 10: "10th", 11: "11th", 12: "12th"
+            9: "9th", 10: "10th", 11: "11th", 12: "12th",
+            13: "13th", 14: "14th", 15: "15th", 16: "16th",
+            17: "17th", 18: "18th", 19: "19th", 20: "20th"
         }
         ordinal_list = []
         playoff_places = 1
@@ -350,12 +354,19 @@ class PdfGenerator(object):
                                   subtitle_text=subtitle_text)
         self.toc.add_metric_section(title_text)
 
-        elements.append(title)
-        elements.append(self.spacer_tenth_inch)
-
         if metric_type == "standings":
+            font_reduction = 0
+            for x in range(1, (len(data) % 12) + 1, 4):
+                font_reduction += 1
+            table_style.add("FONTSIZE", (0, 0), (-1, -1), 10 - font_reduction)
             if self.report_data.is_faab:
                 headers[0][7] = "FAAB"
+
+        if metric_type == "playoffs":
+            font_reduction = 0
+            for x in range(1, (len(data[0][5:]) % 6) + 2):
+                font_reduction += 1
+            table_style.add("FONTSIZE", (0, 0), (-1, -1), 10 - font_reduction)
 
         if metric_type == "scores":
             if self.break_ties and self.report_data.ties_for_scores > 0:
@@ -398,22 +409,33 @@ class PdfGenerator(object):
                 data = temp_data
 
         if metric_type == "beef":
+            cow_icon = self.get_image(os.path.join("resources", "images", "cow.png"), width=0.20 * inch)
             beef_icon = self.get_image(os.path.join("resources", "images", "beef.png"), width=0.20 * inch)
             half_beef_icon = self.get_image(os.path.join("resources", "images", "beef-half.png"), width=0.10 * inch)
-            lowest_tabbu = float(data[-1][3])
-            mod_5_remainder = lowest_tabbu % 5
-            beef_count_floor = lowest_tabbu - mod_5_remainder
+            # lowest_tabbu = float(data[-1][3])
+            # mod_5_remainder = lowest_tabbu % 5
+            # beef_count_floor = lowest_tabbu - mod_5_remainder
 
             for team in data:
-                num_beefs = int((float(team[3]) - beef_count_floor) / 0.5)
-                if num_beefs % 2 == 0:
-                    beefs = [beef_icon] * int((num_beefs / 2))
+                num_cows = int(float(team[3]) // 5) - 1  # subtract one to make sure there are always beef icons
+                num_beefs = int(float(team[3]) / 0.5) - (num_cows * 10)
+                # num_beefs = int((float(team[3]) - beef_count_floor) / 0.5) - (num_cows * 10)
+
+                if num_cows > 0:
+                    beefs = [cow_icon] * num_cows
                 else:
-                    beefs = [beef_icon] * int((num_beefs / 2))
+                    num_beefs = num_beefs - 10
+                    beefs = []
+
+                if num_beefs % 2 == 0:
+                    beefs += [beef_icon] * int((num_beefs / 2))
+                else:
+                    beefs += [beef_icon] * int((num_beefs / 2))
                     beefs.append(half_beef_icon)
+
                 beefs.insert(0, team[-1] + " ")
                 beefs = [beefs]
-                beefs_col_widths = [0.20 * inch] * num_beefs
+                beefs_col_widths = [0.20 * inch] * (num_beefs if num_beefs > 0 else num_cows)
                 beefs_col_widths.insert(0, 0.50 * inch)
                 beefs_table = Table(beefs, colWidths=beefs_col_widths, rowHeights=0.25 * inch)
                 if data.index(team) == 0:
@@ -431,7 +453,12 @@ class PdfGenerator(object):
         else:
             data_table.setStyle(table_style_ties)
 
-        elements.append(data_table)
+        table_with_title = KeepTogether(Table(
+            [[title], [data_table]],
+            style=TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER")])
+        ))
+
+        elements.append(table_with_title)
         self.add_tied_metric_footer(elements, metric_type)
 
     def add_tied_metric_footer(self, elements, metric_type):
@@ -543,7 +570,15 @@ class PdfGenerator(object):
             [35, 0, 100, 0, 100],  # lime
             [0, 30, 15, 0, 100],  # pink
             [100, 0, 0, 50, 100],  # teal
-            [10, 25, 0, 0, 100]  # lavender
+            [10, 25, 0, 0, 100],  # lavender
+            [0, 100, 100, 50, 100],  # maroon
+            [0, 35, 75, 33, 100],  # brown
+            [0, 0, 100, 50, 100],  # olive
+            [100, 100, 0, 50, 100],  # navy
+            [33, 0, 23, 0, 100],  # mint
+            [0, 30, 15, 0, 100],  # pink
+            [0, 15, 30, 0, 100],  # apricot
+            [5, 10, 30, 0, 100]  # beige
         ]
 
         box_width = 550
@@ -556,12 +591,23 @@ class PdfGenerator(object):
         values_min = min(values)
         values_max = max(values)
 
-        points_line_chart = LineChartGenerator(series_colors, box_width, box_height, chart_width, chart_height)
-        points_line_chart.make_title(chart_title)
-        points_line_chart.make_data(data)
-        points_line_chart.make_x_axis(x_axis_title, 0, data_length + 1, 1)
-        points_line_chart.make_y_axis(y_axis_title, values_min, values_max, y_step)
-        points_line_chart.make_series_labels(series_names)
+        points_line_chart = LineChartGenerator(
+            data,
+            chart_title,
+            [x_axis_title, 0, data_length + 1, 1],
+            [y_axis_title, values_min, values_max, y_step],
+            series_names,
+            series_colors,
+            box_width,
+            box_height,
+            chart_width,
+            chart_height
+        )
+        # points_line_chart.make_title(chart_title)
+        # points_line_chart.make_data(data)
+        # points_line_chart.make_x_axis(x_axis_title, 0, data_length + 1, 1)
+        # points_line_chart.make_y_axis(y_axis_title, values_min, values_max, y_step)
+        # points_line_chart.make_series_labels(series_names)
 
         return points_line_chart
 
@@ -618,7 +664,7 @@ class PdfGenerator(object):
                         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                         ("VALIGN", (0, 0), (-1, 0), "MIDDLE")
                     ]))
-                doc_elements.append(team_table)
+                doc_elements.append(KeepTogether(team_table))
                 doc_elements.append(self.spacer_quarter_inch)
 
             if self.config.getboolean("Report", "team_bad_boy_stats"):
@@ -641,7 +687,7 @@ class PdfGenerator(object):
                         self.style_red_highlight,
                         self.style_tied_bad_boy,
                         [2.50 * inch, 2.50 * inch, 2.75 * inch])
-                    doc_elements.append(bad_boys_table)
+                    doc_elements.append(KeepTogether(bad_boys_table))
                     doc_elements.append(self.spacer_tenth_inch)
 
             if self.config.getboolean("Report", "team_beef_stats"):
@@ -663,7 +709,7 @@ class PdfGenerator(object):
                                                          self.style_red_highlight,
                                                          self.style_tied_bad_boy,
                                                          [2.50 * inch, 2.50 * inch, 2.75 * inch])
-                doc_elements.append(beefy_boi_table)
+                doc_elements.append(KeepTogether(beefy_boi_table))
                 doc_elements.append(self.spacer_tenth_inch)
 
             if self.config.getboolean("Report", "team_boom_or_bust"):
@@ -691,7 +737,7 @@ class PdfGenerator(object):
                 doc_elements.append(self.spacer_half_inch)
                 doc_elements.append(self.create_title("Boom... or Bust", 8.5, "section"))
                 doc_elements.append(self.spacer_tenth_inch)
-                doc_elements.append(table)
+                doc_elements.append(KeepTogether(table))
 
             if self.config.getboolean(
                     "Report", "team_points_by_position_charts") or self.config.getboolean(
@@ -770,7 +816,8 @@ class PdfGenerator(object):
                                   "team performances through the end of the regular fantasy season." %
                                   "{0:,}".format(
                                       int(self.playoff_prob_sims) if self.playoff_prob_sims is not None else
-                                      self.config.getint("Configuration", "num_playoff_simulations"))
+                                      self.config.getint("Configuration", "num_playoff_simulations")),
+                    metric_type="playoffs"
                 )
 
         if self.config.getboolean("Report", "league_standings") or self.config.getboolean("Report",
@@ -923,7 +970,7 @@ class PdfGenerator(object):
                 self.data_for_beef_rankings,
                 self.style_left_alighn_right_col,
                 self.style_tied_beef,
-                self.widths_4_cols_3,
+                self.widths_4_cols_4,
                 tied_metric=self.report_data.ties_for_beef_rankings > 0,
                 metric_type="beef",
                 subtitle_text=[
@@ -960,17 +1007,17 @@ class PdfGenerator(object):
                 anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>")
             self.toc.add_chart_section(charts_page_title_str)
             elements.append(charts_page_title)
-            elements.append(
+            elements.append(KeepTogether(
                 self.create_line_chart(points_data, len(points_data[0]), series_names, "Weekly Points", "Weeks",
-                                       "Fantasy Points", 10.00))
+                                       "Fantasy Points", 10.00)))
             elements.append(self.spacer_twentieth_inch)
-            elements.append(
+            elements.append(KeepTogether(
                 self.create_line_chart(efficiency_data, len(points_data[0]), series_names, "Weekly Coaching Efficiency",
-                                       "Weeks", "Coaching Efficiency (%)", 5.00))
+                                       "Weeks", "Coaching Efficiency (%)", 5.00)))
             elements.append(self.spacer_twentieth_inch)
-            elements.append(
+            elements.append(KeepTogether(
                 self.create_line_chart(luck_data, len(points_data[0]), series_names, "Weekly Luck", "Weeks", "Luck (%)",
-                                       20.00))
+                                       20.00)))
             elements.append(self.spacer_tenth_inch)
             elements.append(self.add_page_break())
 
@@ -1004,9 +1051,9 @@ class TableOfContents(object):
         self.break_ties = break_ties
 
         self.toc_style_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=12)
-        self.toc_style_title_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=14)
         self.toc_style_center = ParagraphStyle(name="tocc", alignment=TA_CENTER, fontSize=12)
         self.toc_style_left = ParagraphStyle(name="tocl", alignment=TA_LEFT, fontSize=12)
+        self.toc_style_title_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=14)
         self.toc_style_title_left = ParagraphStyle(name="tocl", alignment=TA_LEFT, fontSize=14)
 
         self.toc_anchor = 0
@@ -1097,5 +1144,7 @@ class TableOfContents(object):
             (self.toc_chart_section_data + [["", "", ""]] if self.toc_chart_section_data else []) +
             (self.toc_team_section_data if self.toc_team_section_data else []),
             colWidths=[3.25 * inch, 2 * inch, 2.50 * inch],
-            rowHeights=0.30 * inch
+            rowHeights=[0.30 * inch] * len(self.toc_metric_section_data) + [0.10 * inch] +
+                       [0.30 * inch] * len(self.toc_chart_section_data) + [0.10 * inch] +
+                       [0.30 * inch] * len(self.toc_team_section_data)
         )
