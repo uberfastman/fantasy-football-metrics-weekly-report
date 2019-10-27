@@ -65,7 +65,7 @@ class LeagueData(object):
 
         self.season = self.league_info.season
         self.current_week = self.league_info.current_week
-        self.playoff_slots = self.league_info.settings.num_playoff_teams
+        self.num_playoff_slots = self.league_info.settings.num_playoff_teams
         self.num_regular_season_weeks = int(self.league_info.settings.playoff_start_week) - 1
         self.roster_positions = self.league_info.settings.roster_positions
 
@@ -180,7 +180,7 @@ class LeagueData(object):
         league.week = int(self.current_week)
         league.season = self.season
         league.num_teams = int(self.league_info.num_teams)
-        league.num_playoff_slots = int(self.playoff_slots)
+        league.num_playoff_slots = int(self.num_playoff_slots)
         league.num_regular_season_weeks = int(self.num_regular_season_weeks)
         league.is_faab = True if int(self.league_info.settings.uses_faab) == 1 else False
         if league.is_faab:

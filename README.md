@@ -10,6 +10,7 @@
     * [Yahoo Setup](#yahoo-setup)
     * [Fleaflicker Setup](#fleaflicker-setup)
     * [Sleeper Setup](#sleeper-setup)
+    * [ESPN Setup](#espn-setup)
 * [Running the Report Application](#running-the-report-application)
     * [macOS Launch Script](#macos-launch-script)
 * [Configuration](#configuration)
@@ -37,6 +38,8 @@ Currently supported fantasy football platforms:
 * **Fleaflicker**
 
 * **Sleeper**
+
+* **ESPN**
 
 <a name="example-report"></a>
 #### Example Report
@@ -188,6 +191,8 @@ There is a pre-made setup bash script in the top level of this repository called
     * Rename `EXAMPLE-private.json` (located in the `auth/yahoo` directory) to just `private.json`, and copy the `Client ID` and `Client Secret` values to their respective fields (make sure the strings are wrapped regular quotes (`""`), NOT formatted quotes (`“”`)). The path to this file will be needed to point YFFPY to your credentials.
     
     * The first time you run the app, it will initialize the OAuth connection between the report generator and your Yahoo account.
+    
+* **NOTE**: *If your Yahoo league uses FAAB (Free Agent Acquisition Budget) for player waivers, you must set the `initial_faab_budget` value in the `config.ini` file to reflect your league's starting budget, since this information does not seem to be available in the Yahoo API.
 
 * You are now ready to [generate a report!](#running-the-report-application)
 
@@ -196,7 +201,7 @@ There is a pre-made setup bash script in the top level of this repository called
 <a name="fleaflicker-setup"></a>
 #### Fleaflicker Setup
 
-Fleaflicker recently implemented a public API, but at the present time it is undocumented and subject to unexpected and sudden changes. Additionally, not all data needed to properly run the Fantasy Football Metrics Weekly Report application, so for the time being web-scraping is used to supplement the data gathered from the Fleaflicker API.
+Fleaflicker recently implemented a public API, but at the present time it is undocumented and subject to unexpected and sudden changes. *Please note, some of the data required to provide certain information to the report is not currently available in the Sleeper API, so for the time being web-scraping is used to supplement the data gathered from the Fleaflicker API.*
 
 * Retrieve your Fleaflicker league ID. You can find it by looking at the URL of your league in your browser:
 
@@ -228,6 +233,48 @@ Sleeper has a public API, the documentation for which is available [here](https:
 * Make sure that you have accurately set the `current_week` configuration value in the `config.ini` file to reflect the current/ongoing NFL week at the time of running the report. ***This is required for the Fantasy Football Metrics Weekly Report app to run correctly!***
 
 * Sleeper does not require any authentication to access their API at this time, so no additional steps are necessary.
+
+* You are now ready to [generate a report!](#running-the-report-application)
+
+---
+
+<a name="espn-setup"></a>
+#### ESPN Setup
+
+ESPN has a public API, but it was just changed from v2 to v3, which introduced some variance to its functionality. At the present time it is also undocumented and subject to unexpected and sudden changes. *Please note, some of the data required to provide certain information to the report is not currently available in the Sleeper API, so a few small things are excluded in the report until such a time as the data becomes available*. That being said, the missing data does not fundamentally limit the capability of the app to generate a complete report.
+
+* Retrieve your ESPN league ID. You can find it by looking at the URL of your league in your browser:
+
+    ![espn-fantasy-football-league-id-location.png](resources/images/espn-fantasy-football-league-id-location.png)
+    
+* Change the `league_id` value in `config.ini` to the above located league id.
+
+* Make sure that you have accurately set the `season` configuration value in the `config.ini` file to reflect the desired year/season for which you are running the report application. This will ensure that the location of locally saved data is correct and API requests are properly formed.
+
+* You can also specify the `year` from the command line by running the report with the `-y <chosen_year>` flag.
+
+* Public ESPN leagues do not require any authentication to access their API at this time, so no additional steps are necessary for those leagues. However, certain data will not be available if you are not authenticated, so it is advised for you to still follow the below authentication steps anyway. For private leagues, you ***must*** complete the following authentication steps:
+
+    * Steven Morse has done a great deal of fantastic work to help teach people how to use the ESPN fantasy API, and has a useful blog post [here](https://stmorse.github.io/journal/espn-fantasy-3-python.html) detailing how to get your own session cookies. As stated in the aforementioned blog, you can get the cookies by doing the following:
+        
+        * *"A lot of the ESPN Fantasy tools are behind a login-wall. Since accounts are free, this is not a huge deal, but becomes slightly annoying for GET requests because now we somehow need to “login” through the request. One way to do this is to send session cookies along with the request. Again this can take us into a gray area, but to my knowledge there is nothing prohibited about using your own cookies for personal use within your own league.*
+        
+          *Specifically, our GET request from the previous post is modified to look like, for example:*
+
+                r = requests.get('http://games.espn.com/ffl/api/v2/scoreboard', 
+                 params={'leagueId': 123456, 'seasonId': 2017, 'matchupPeriodId': 1},
+                 cookies={'swid': '{SWID-COOKIE-HERE}',
+                 		  'espn_s2': 'LONG_ESPN_S2_COOKIE_HERE'})
+                 		  
+           *This should return the info you want even for a private league. I saw that the SWID and the ESPN_S2 cookies were the magic tickets based on the similar coding endeavors here and here and here.*
+
+           *You can find these cookies in Safari by opening the Storage tab of Developer tools (you can turn on developer tools in preferences), and looking under espn.com in the Cookies folder. In Chrome, you can go to Preferences -> Advanced -> Content Settings -> Cookies -> See all cookies and site data, and looking for ESPN.*
+    
+    * Depending on what web browser (Firefox, Chrome, Edge, Brave, etc.) you are using, the process for viewing your session cookies in the web inspector will be different. I recommend Googling *"how to inspect element in [browser]"* (for your specific browser) to learn how to use that browser's web inspector.
+           
+    * Rename `auth/espn/EXAMPLE-private.json` to `auth/espn/private.json`, and copy the above cookies into their respective fields. Please note, the `swid` will be surrounded by curly braces (`{...}`), which must be included.
+    
+* **NOTE**: *Because ESPN made the change to their API between 2018 and 2019, ESPN support in the Fantasy Football Metrics Weekly Report application is currently limited to the 2019 season and later. Support for historical seasons will be implemented at a later time.
 
 * You are now ready to [generate a report!](#running-the-report-application)
 
@@ -341,6 +388,7 @@ In addition to turning on/off the features of the report PDF itself, there are a
 | `num_playoff_simulations`                | Number of Monte Carlo simulations to run for playoff predictions. The more sims, the longer the report will take to generate. |
 | `bench_positions`                        | Comma-delimited list of available bench positions in your league. |
 | `prohibited_statuses`                    | Comma-delimited list of possible statuses in your league that indicate a player was not able to play (only needed if you plan to utilize the automated coaching efficiency disqualification functionality). |
+| `initial_faab_budget`                    | Set the initial FAAB (Free Agent Acquisition Budget) for Yahoo leagues, since this information does not seem to be exposed in the API. |
 | `num_teams`                              | Number of teams in selected league. |
 | `num_regular_season_weeks`               | Number of regular season weeks in selected league. |
 | `num_playoff_slots`                      | Number of playoff slots in selected league. |

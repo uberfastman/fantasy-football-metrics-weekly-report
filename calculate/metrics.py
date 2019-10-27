@@ -42,7 +42,7 @@ class CalculateMetrics(object):
                 round(float(team.points_for), 2),
                 round(float(team.points_against), 2),
                 team.streak_str,
-                team.waiver_priority if not league.is_faab else "$%.2d" % team.faab,
+                team.waiver_priority if not league.is_faab else "$%d" % team.faab,
                 team.num_moves,
                 team.num_trades
             ])

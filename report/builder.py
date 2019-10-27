@@ -310,7 +310,7 @@ class FantasyFootballReport(object):
             self.league.week_for_report) + "_report.pdf"
         report_save_dir = os.path.join(
             self.config.get("Configuration", "output_dir"),
-            self.league.season,
+            str(self.league.season),
             self.league.name.replace(" ", "-") + "(" + self.league_id + ")")
         report_title_text = \
             self.league.name + " (" + str(self.league_id) + ") Week " + \
