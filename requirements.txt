@@ -12,3 +12,4 @@ oauth2client
 PyDrive
 requests
 urllib3
+black
