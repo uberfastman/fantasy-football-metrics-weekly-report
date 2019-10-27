@@ -2,7 +2,6 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
 import os
-from configparser import ConfigParser
 import sys
 
 module_dir = os.path.dirname(os.path.dirname(__file__))
@@ -11,11 +10,7 @@ sys.path.append(module_dir)
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
 
-# config vars
-config = ConfigParser()
-config.read(os.path.join("..", "config.ini"))
-
-test_data_dir = os.path.join("..", config.get("Configuration", "data_dir"), "test")
+test_data_dir = os.path.join(module_dir, "test")
 if not os.path.exists(test_data_dir):
     os.makedirs(test_data_dir)
 
