@@ -6,7 +6,7 @@ import datetime
 import json
 import logging
 import os
-import pickle
+# import pickle
 import random
 import traceback
 
@@ -107,11 +107,15 @@ class PlayoffProbabilities(object):
                         self.simulations), ("s" if self.simulations > 1 else ""), str(delta)))
 
                     if self.save_data:
-                        with open(os.path.join(
-                                self.data_dir,
-                                "week_" + str(week_for_report),
-                                "playoff_probs_data.pkl"), "wb") as pp_out:
-                            pickle.dump(self.playoff_probs_data, pp_out, pickle.HIGHEST_PROTOCOL)
+                        save_dir = os.path.join(self.data_dir, "week_" + str(week_for_report))
+                        if not os.path.exists(save_dir):
+                            os.makedirs(save_dir)
+
+                        # with open(os.path.join(save_dir, "playoff_probs_data.pkl"), "wb") as pp_out:
+                        #     pickle.dump(self.playoff_probs_data, pp_out, pickle.HIGHEST_PROTOCOL)
+
+                        with open(os.path.join(save_dir, "playoff_probs_data.json"), "w") as pp_out:
+                            json.dump(self.playoff_probs_data, pp_out, ensure_ascii=False, indent=2)
 
                 else:
                     logger.info("Using saved Monte Carlo playoff simulations for playoff probabilities.")
@@ -119,8 +123,11 @@ class PlayoffProbabilities(object):
                     playoff_probs_data_file_path = os.path.join(
                         self.data_dir, "week_" + str(week_for_report), "playoff_probs_data.pkl")
                     if os.path.exists(playoff_probs_data_file_path):
-                        with open(playoff_probs_data_file_path, "rb") as pp_in:
-                            self.playoff_probs_data = pickle.load(pp_in)
+                        # with open(playoff_probs_data_file_path, "rb") as pp_in:
+                        #     self.playoff_probs_data = pickle.load(pp_in)
+
+                        with open(playoff_probs_data_file_path, "r") as pp_in:
+                            self.playoff_probs_data = json.load(pp_in)
                     else:
                         raise FileNotFoundError(
                             "FILE {} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
