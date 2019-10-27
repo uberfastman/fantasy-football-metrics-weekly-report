@@ -11,4 +11,4 @@ test/*.json
 test/*.txt
 test/*.html
 test/*.png
-test/local_test.py
+test/local.py
