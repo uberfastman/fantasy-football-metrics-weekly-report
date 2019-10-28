@@ -16,6 +16,7 @@ if [[ "$PYTHON3" == *"Python 3"* ]]; then
   else
     echo -e "Python 3 is NOT set as default Python. Changing deafult Python to Python 3...\n\n"
     touch ~/.bashrc
+    printf '\n' >> ~/.bashrc
     echo 'export PATH="/usr/local/opt/python/libexec/bin:$PATH"' >> ~/.bashrc
     source ~/.bashrc
   fi
@@ -29,6 +30,7 @@ else
 
     echo -e "Adding Homebrew path to PATH..."
     touch ~/.bashrc
+    printf '\n' >> ~/.bashrc
     echo 'export PATH="/usr/local/opt/python/libexec/bin:$PATH"' >> ~/.bashrc
   else
     brew update
@@ -87,6 +89,7 @@ touch ~/.bashrc
 RCVENVWORKON="$(cat ~/.bashrc | grep 'export WORKON_HOME=$HOME/.virtualenvs')"
 if [[ $? != 0 ]] ; then
   echo -e "Adding WORKON_HOME environment variable to '~/.bashrc'...\n\n"
+  printf '\n' >> ~/.bashrc
   echo 'export WORKON_HOME=$HOME/.virtualenvs' >> ~/.bashrc
 else
   echo -e "WORKON_HOME environment variable is already properly defined. Continuing setup...\n\n"
@@ -95,6 +98,7 @@ fi
 RCVENVPYTHON="$(cat ~/.bashrc | grep 'export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python3')"
 if [[ $? != 0 ]] ; then
   echo -e "Adding VIRTUALENVWRAPPER_PYTHON environment variable to '~/.bashrc'...\n\n"
+  printf '\n' >> ~/.bashrc
   echo 'export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python3' >> ~/.bashrc
 else
   echo -e "VIRTUALENVWRAPPER_PYTHON environment variable is already properly defined. Continuing setup...\n\n"
@@ -103,12 +107,14 @@ fi
 RCVENVWRAP="$(cat ~/.bashrc | grep "source $(which virtualenvwrapper.sh)")"
 if [[ $? != 0 ]] ; then
   echo -e "Sourcing virtualenvwrapper.sh in '~/.bashrc'...\n\n"
+  printf '\n' >> ~/.bashrc
   echo 'source /usr/local/bin/virtualenvwrapper.sh' >> ~/.bashrc
 else
   echo -e "Sourcing virtualenvwrapper.sh is already properly configured. Continuing setup...\n\n"
 fi
 # echo 'export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python3' >> ~/.bashrc
 source ~/.bashrc
+printf '\n' >> ~/.bash_profile
 echo '[ -r ~/.bashrc ] && . ~/.bashrc' >> ~/.bash_profile
 source ~/.bash_profile
 echo -e "====================================================================\n"
