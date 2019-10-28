@@ -111,6 +111,7 @@ class BaseLeague(FantasyFootballReportObject):
         self.matchups_by_week = {}
         self.teams_by_week = {}
         self.players_by_week = {}
+        self.standings_by_week = {}
         self.current_standings = []
 
         self.player_data_by_week_function = None
@@ -125,21 +126,21 @@ class BaseLeague(FantasyFootballReportObject):
         result format is like:
         [
             {
-                'team1': {
+                'team1.team_id': {
                     'result': 'W',
                     'score': 100
                 },
-                'team2': {
+                'team2.team_id': {
                     'result': 'L',
                     'score': 50
                 }
             },
             {
-                'team3': {
+                'team3.team_id': {
                     'result': 'T',
                     'score': 75
                 },
-                'team4': {
+                'team4.team_id': {
                     'result': 'T',
                     'score': 75
                 }
@@ -158,7 +159,7 @@ class BaseLeague(FantasyFootballReportObject):
 
             teams = {}
             for team in matchup.teams:
-                teams[team.name] = {
+                teams[str(team.team_id)] = {
                     "result": "T" if is_tied else "W" if team.team_id == winning_team else "L",
                     "score": team.points
                 }
@@ -262,7 +263,46 @@ class BaseTeam(FantasyFootballReportObject):
         self.positions_filled_active = []
         self.coaching_efficiency = 0
         self.luck = 0
-        self.record = None
+        self.record = BaseRecord()
+        self.record_by_week = defaultdict(BaseRecord)
+
+
+class BaseRecord(FantasyFootballReportObject):
+
+    def __init__(self, week=0):
+        """Custom team record object.
+
+        :param week: week if record_type is "weekly", otherwise None
+        """
+        super().__init__()
+
+        if week > 0:
+            self.record_type = "weekly"
+            self.week = week
+        else:
+            self.record_type = "overall"
+        self.wins = 0
+        self.losses = 0
+        self.ties = 0
+        self.percentage = round(float(self.wins / (self.wins + self.losses + self.ties)), 3)
+
+    def __setattr__(self, key, value):
+        if key == "record_type":
+            if value not in ["overall", "weekly"]:
+                raise ValueError("BaseRecord.record_type attribute must be either \"overall\" or \"weekly\".")
+
+        if key == "week":
+            if self.record_type == "overall":
+                raise ValueError(
+                    "BaseRecord.week attribute cannot be assigned when BaseRecord.record_type = \"overall\".")
+
+        self.__dict__[key] = value
+
+        if key in ["wins", "losses", "ties"]:
+            self.recalculate_percentage()
+
+    def recalculate_percentage(self):
+        self.percentage = round(float(self.wins / (self.wins + self.ties + self.losses)), 3)
 
 
 class BaseManager(FantasyFootballReportObject):

@@ -178,7 +178,7 @@ class FantasyFootballReport(object):
                 metrics_calculator=metrics_calculator,
                 metrics={
                     "coaching_efficiency": CoachingEfficiency(self.config, self.league.get_roster_slots_by_type()),
-                    "matchups_results": metrics_calculator.calculate_luck_and_record(
+                    "luck": metrics_calculator.calculate_luck_and_record(
                         self.league.teams_by_week.get(str(week_counter)),
                         self.league.get_custom_weekly_matchups(str(week_counter))
                     ),

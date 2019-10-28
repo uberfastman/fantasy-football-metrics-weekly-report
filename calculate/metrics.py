@@ -8,7 +8,7 @@ from statistics import mean
 
 import numpy as np
 
-from dao.base import BaseLeague, BaseTeam, BasePlayer
+from dao.base import BaseLeague, BaseTeam, BaseRecord, BasePlayer
 
 logger = logging.getLogger(__name__)
 
@@ -481,20 +481,29 @@ class CalculateMetrics(object):
             # # # uncomment to test power ranking ties
             # team.power_rank = test_power_rank
 
-    def calculate_luck_and_record(self, teams, matchups_list):
+    @staticmethod
+    def calculate_record_by_week(week, teams, custom_weekly_matchups):
+        record = BaseRecord(int(week))
 
-        results = defaultdict(dict)
+        for matchup in custom_weekly_matchups:
+            pass
+
+
+    @staticmethod
+    def calculate_luck_and_record(teams, matchups_list):
+        luck_results = defaultdict(defaultdict)
         matchups = {
-            self.decode_byte_string(name): value[
-                "result"] for pair in matchups_list for name, value in list(pair.items())
+            str(team_id): value[
+                "result"] for pair in matchups_list for team_id, value in list(pair.items())
         }
 
         for team_1 in teams.values():  # type: BaseTeam
-            record = {
-                "W": 0,
-                "L": 0,
-                "T": 0
-            }
+            luck_record = BaseRecord()
+            # luck_record = {
+            #     "W": 0,
+            #     "L": 0,
+            #     "T": 0
+            # }
 
             for team_2 in teams.values():
                 if team_1.team_id == team_2.team_id:
@@ -503,13 +512,16 @@ class CalculateMetrics(object):
                 score_2 = team_2.points
 
                 if float(score_1) > float(score_2):
-                    record["W"] += 1
+                    # luck_record["W"] += 1
+                    luck_record.wins += 1
                 elif float(score_1) < float(score_2):
-                    record["L"] += 1
+                    # luck_record["L"] += 1
+                    luck_record.losses += 1
                 else:
-                    record["T"] += 1
+                    # luck_record["T"] += 1
+                    luck_record.ties += 1
 
-            results[team_1.team_id]["record"] = record
+            luck_results[team_1.team_id]["luck_record"] = luck_record
 
             # calc luck %
             # TODO: assuming no ties...  how are tiebreakers handled?
@@ -517,17 +529,20 @@ class CalculateMetrics(object):
             # number of teams excluding current team
             num_teams = float(len(teams)) - 1
 
-            if record["W"] != 0 and record["L"] != 0:
-                matchup_result = matchups[self.decode_byte_string(team_1.name)]
+            # if luck_record["W"] != 0 and luck_record["L"] != 0:
+            if luck_record.wins != 0 and luck_record.losses != 0:
+                matchup_result = matchups[str(team_1.team_id)]
                 if matchup_result == "W" or matchup_result == "T":
-                    luck = (record["L"] + record["T"]) / num_teams
+                    # luck = (luck_record["L"] + luck_record["T"]) / num_teams
+                    luck = (luck_record.losses + luck_record.ties) / num_teams
                 else:
-                    luck = 0 - (record["W"] + record["T"]) / num_teams
+                    # luck = 0 - (luck_record["W"] + luck_record["T"]) / num_teams
+                    luck = 0 - (luck_record.wins + luck_record.ties) / num_teams
 
             # noinspection PyTypeChecker
-            results[team_1.team_id]["luck"] = luck * 100
+            luck_results[team_1.team_id]["luck"] = luck * 100
 
-        return results
+        return luck_results
 
     @staticmethod
     def get_ranks_for_metric(data_for_metric, power_ranked_teams, metric_ranking_key):
