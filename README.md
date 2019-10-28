@@ -67,10 +67,12 @@ _\* General setup excludes Google Drive and Slack integrations. See [Additional 
 <a name="automated-setup"></a>
 #### Automated Setup
 
-##### ***FOR USERS RUNNING macOS ONLY (and potentially Linux, although this is untested in Linux)***
+##### ***FOR USERS RUNNING macOS ONLY***
 There is a pre-made setup bash script in the top level of this repository called `setup.sh`. In lieu of doing the manual setup steps, you can simply do the following:
+
+* ***Note***: This script has not been extensively tested. It was added in order to simplify the required setup steps, but please still do your best to verify that things worked properly after running it before moving on to running the application.
  
-* download the script by righ-clicking [https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/develop/setup.sh](https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/develop/setup.sh) and selecting "Download Linked File". A file download should start to your local downloads folder (default is `~/Downloads/` on macOS).
+* Download the script by righ-clicking [https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/develop/setup.sh](https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/develop/setup.sh) and selecting "Download Linked File". A file download should start to your local downloads folder (default is `~/Downloads/` on macOS).
 
 * Open a command line prompt
     * ***macOS***: type `Cmd + Space` (`⌘ + Space`) to bring up Spotlight, and search for "Terminal" and hit enter).
