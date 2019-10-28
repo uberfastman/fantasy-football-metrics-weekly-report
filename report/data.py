@@ -140,6 +140,8 @@ class ReportData(object):
                 team_result.points,
                 team_result.coaching_efficiency,
                 team_result.luck,
+                team_result.luck2,
+                team_result.luck3,
                 z_score_results[team_result.team_id]
             ])
 
@@ -156,8 +158,17 @@ class ReportData(object):
         self.coaching_efficiency_dqs.update(metrics.get("coaching_efficiency").coaching_efficiency_dqs)
 
         # luck data
+        get_luck = lambda x: float(x.luck)
         self.data_for_luck = metrics_calculator.get_luck_data(
-            sorted(self.teams_results.values(), key=lambda x: float(x.luck), reverse=True))
+            sorted(self.teams_results.values(), key=get_luck, reverse=True), lambda x: "{0:.2f}%".format(get_luck(x)))
+        # luck2 data
+        get_luck_2 = lambda x: float(x.luck2) if x.luck2 else 0
+        self.data_for_luck2 = metrics_calculator.get_luck_data(
+            sorted(self.teams_results.values(), key=get_luck_2, reverse=True), lambda x: "{0:.2f}".format(get_luck_2(x)))
+        # luck3 data
+        get_luck_3 = lambda x: float(x.luck3) if x.luck3 else 0
+        self.data_for_luck3 = metrics_calculator.get_luck_data(
+            sorted(self.teams_results.values(), key=get_luck_3, reverse=True), lambda x: "{0:.2f}".format(get_luck_3(x)))
 
         # bad boy data
         self.data_for_bad_boy_rankings = metrics_calculator.get_bad_boy_data(
@@ -200,6 +211,12 @@ class ReportData(object):
         self.ties_for_luck = metrics_calculator.get_ties_count(self.data_for_luck, "luck", self.break_ties)
         self.num_first_place_for_luck = len(
             [list(group) for key, group in itertools.groupby(self.data_for_luck, lambda x: x[3])][0])
+        self.ties_for_luck2 = metrics_calculator.get_ties_count(self.data_for_luck2, "luck", self.break_ties)
+        self.num_first_place_for_luck2 = len(
+            [list(group) for key, group in itertools.groupby(self.data_for_luck2, lambda x: x[3])][0])
+        self.ties_for_luck3 = metrics_calculator.get_ties_count(self.data_for_luck3, "luck", self.break_ties)
+        self.num_first_place_for_luck3 = len(
+            [list(group) for key, group in itertools.groupby(self.data_for_luck3, lambda x: x[3])][0])
 
         # get number of bad boy rankings ties and ties for first
         self.ties_for_bad_boy_rankings = metrics_calculator.get_ties_count(self.data_for_bad_boy_rankings, "bad_boy",

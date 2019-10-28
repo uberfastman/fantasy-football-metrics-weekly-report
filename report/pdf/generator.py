@@ -91,6 +91,8 @@ class PdfGenerator(object):
         self.data_for_scores = report_data.data_for_scores
         self.data_for_coaching_efficiency = report_data.data_for_coaching_efficiency
         self.data_for_luck = report_data.data_for_luck
+        self.data_for_luck2 = report_data.data_for_luck2
+        self.data_for_luck3 = report_data.data_for_luck3
         self.data_for_power_rankings = report_data.data_for_power_rankings
         self.data_for_z_scores = report_data.data_for_z_scores
         self.data_for_bad_boy_rankings = report_data.data_for_bad_boy_rankings
@@ -236,6 +238,8 @@ class PdfGenerator(object):
         self.weekly_highest_ce_headers = [["Week", "Team", "Manager", "Coaching Efficiency (%)"]]
         self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
         self.luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)"]]
+        self.luck2_headers = [["Place", "Team", "Manager", "Luck", "Season Avg. (Place)"]]
+        self.luck3_headers = [["Place", "Team", "Manager", "Luck", "Season Avg. (Place)"]]
         self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]]
         self.beef_headers = [["Place", "Team", "Manager", "TABBU(s)"]]
         self.zscores_headers = [["Place", "Team", "Manager", "Z-Score"]]
@@ -295,6 +299,16 @@ class PdfGenerator(object):
                 num_first_places = 0
             else:
                 num_first_places = self.report_data.num_first_place_for_luck
+        elif metric_type == "luck2":
+            if not self.report_data.num_first_place_for_luck2 > 0:
+                num_first_places = 0
+            else:
+                num_first_places = self.report_data.num_first_place_for_luck2
+        elif metric_type == "luck3":
+            if not self.report_data.num_first_place_for_luck3 > 0:
+                num_first_places = 0
+            else:
+                num_first_places = self.report_data.num_first_place_for_luck3
         elif metric_type == "power_ranking":
             if not self.report_data.ties_for_first_for_power_rankings > 0:
                 num_first_places = 0
@@ -348,7 +362,7 @@ class PdfGenerator(object):
 
     def create_section(self, elements, title_text, headers, data, table_style, table_style_ties, col_widths,
                        subtitle_text=None, row_heights=None, tied_metric=False, metric_type=None):
-
+        
         title = self.create_title(title_text, element_type="section",
                                   anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>",
                                   subtitle_text=subtitle_text)
@@ -477,6 +491,14 @@ class PdfGenerator(object):
 
         elif metric_type == "luck":
             if self.report_data.ties_for_luck > 0:
+                elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
+        
+        elif metric_type == "luck2":
+            if self.report_data.ties_for_luck2 > 0:
+                elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
+
+        elif metric_type == "luck3":
+            if self.report_data.ties_for_luck3 > 0:
                 elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
 
         elif metric_type == "power_ranking":
@@ -906,6 +928,40 @@ class PdfGenerator(object):
                 self.widths_5_cols_1,
                 tied_metric=self.report_data.ties_for_luck > 0,
                 metric_type="luck"
+            )
+            elements.append(self.add_page_break())
+            
+            # luck2
+            self.create_section(
+                elements,
+                "Team Luck Rankings (v2)",
+                self.luck2_headers,
+                self.data_for_luck2,
+                self.style,
+                self.style_tied_luck,
+                self.widths_5_cols_1,
+                tied_metric=self.report_data.ties_for_luck2 > 0,
+                metric_type="luck2",
+                subtitle_text=[
+                    "(win_chance - 0.5) + (zscore - opponent_zscore)"
+                ]
+            )
+            elements.append(self.spacer_twentieth_inch)
+            
+            # luck3
+            self.create_section(
+                elements,
+                "Team Luck Rankings (v3)",
+                self.luck3_headers,
+                self.data_for_luck3,
+                self.style,
+                self.style_tied_luck,
+                self.widths_5_cols_1,
+                tied_metric=self.report_data.ties_for_luck3 > 0,
+                metric_type="luck3",
+                subtitle_text=[
+                    "abs(luck) * (zscore - opponent_zscore)"
+                ]
             )
 
         if self.config.getboolean("Report", "league_score_rankings") or self.config.getboolean(

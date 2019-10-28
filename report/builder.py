@@ -154,6 +154,8 @@ class FantasyFootballReport(object):
         time_series_points_data = []
         time_series_efficiency_data = []
         time_series_luck_data = []
+        time_series_luck_data2 = []
+        time_series_luck_data3 = []
         time_series_power_rank_data = []
         time_series_zscore_data = []
 
@@ -169,6 +171,18 @@ class FantasyFootballReport(object):
             metrics_calculator = CalculateMetrics(self.config, self.league_id, self.league.num_playoff_slots,
                                                   self.playoff_prob_sims)
 
+            metrics = {
+                "coaching_efficiency": CoachingEfficiency(self.config, self.league.get_roster_slots_by_type()),
+                "matchups_results": metrics_calculator.calculate_matchup_results(
+                    self.league.teams_by_week.get(str(week_counter)),
+                    self.league.get_custom_weekly_matchups(str(week_counter)),
+                    season_weekly_teams_results
+                ),
+                "playoff_probs": self.playoff_probs,
+                "bad_boy_stats": self.bad_boy_stats,
+                "beef_stats": self.beef_stats
+            }
+
             report_data = ReportData(
                 config=self.config,
                 league=self.league,
@@ -176,16 +190,7 @@ class FantasyFootballReport(object):
                 week_counter=str(week_counter),
                 week_for_report=week_for_report,
                 metrics_calculator=metrics_calculator,
-                metrics={
-                    "coaching_efficiency": CoachingEfficiency(self.config, self.league.get_roster_slots_by_type()),
-                    "matchups_results": metrics_calculator.calculate_luck_and_record(
-                        self.league.teams_by_week.get(str(week_counter)),
-                        self.league.get_custom_weekly_matchups(str(week_counter))
-                    ),
-                    "playoff_probs": self.playoff_probs,
-                    "bad_boy_stats": self.bad_boy_stats,
-                    "beef_stats": self.beef_stats
-                },
+                metrics=metrics,
                 break_ties=self.break_ties,
                 dq_ce=self.dq_ce,
                 testing=self.test
@@ -219,6 +224,8 @@ class FantasyFootballReport(object):
             weekly_points_data = []
             weekly_coaching_efficiency_data = []
             weekly_luck_data = []
+            weekly_luck2_data = []
+            weekly_luck3_data = []
             weekly_z_score_data = []
             weekly_power_rank_data = []
 
@@ -228,8 +235,10 @@ class FantasyFootballReport(object):
                 weekly_points_data.append([int(week_counter), float(team[3])])
                 weekly_coaching_efficiency_data.append([int(week_counter), team[4]])
                 weekly_luck_data.append([int(week_counter), float(team[5])])
-                weekly_z_score_data.append([int(week_counter), team[6]])
-                weekly_power_rank_data.append([int(week_counter), team[7]])
+                weekly_luck2_data.append([int(week_counter), float(team[6]) if team[6] else 0])
+                weekly_luck3_data.append([int(week_counter), float(team[7]) if team[6] else 0])
+                weekly_z_score_data.append([int(week_counter), team[8]])
+                weekly_power_rank_data.append([int(week_counter), team[9]])
 
             week_for_report_ordered_team_names = ordered_team_names
             week_for_report_ordered_managers = ordered_team_managers
@@ -241,6 +250,10 @@ class FantasyFootballReport(object):
                     time_series_efficiency_data.append([team_efficiency])
                 for team_luck in weekly_luck_data:
                     time_series_luck_data.append([team_luck])
+                for team_luck in weekly_luck_data:
+                    time_series_luck_data2.append([team_luck])
+                for team_luck in weekly_luck3_data:
+                    time_series_luck_data3.append([team_luck])
                 for team_zscore in weekly_z_score_data:
                     time_series_zscore_data.append([team_zscore])
                 for team_power_rank in weekly_power_rank_data:
@@ -286,6 +299,16 @@ class FantasyFootballReport(object):
             "data_for_luck",
             with_percent=True
         )
+        report_data.data_for_luck2 = season_average_calculator.get_average(
+            time_series_luck_data2,
+            "data_for_luck2",
+            with_percent=False
+        )
+        report_data.data_for_luck3 = season_average_calculator.get_average(
+            time_series_luck_data3,
+            "data_for_luck3",
+            with_percent=False
+        )
 
         report_data.data_for_power_rankings = season_average_calculator.get_average(
             time_series_power_rank_data,
@@ -298,6 +321,8 @@ class FantasyFootballReport(object):
                                 time_series_points_data,
                                 time_series_efficiency_data,
                                 time_series_luck_data,
+                                time_series_luck_data2,
+                                time_series_luck_data3,
                                 time_series_zscore_data,
                                 time_series_power_rank_data]
 

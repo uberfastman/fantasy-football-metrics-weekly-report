@@ -134,13 +134,13 @@ class CalculateMetrics(object):
         return coaching_efficiency_results_data
 
     @staticmethod
-    def get_luck_data(luck_results):
+    def get_luck_data(luck_results, get_luck_val):
         luck_results_data = []
         place = 1
         for team in luck_results:  # type: BaseTeam
             ranked_team_name = team.name
             ranked_team_manager = team.manager_str
-            ranked_luck = "%.2f%%" % team.luck
+            ranked_luck = get_luck_val(team)
 
             luck_results_data.append([place, ranked_team_name, ranked_team_manager, ranked_luck])
 
@@ -481,26 +481,39 @@ class CalculateMetrics(object):
             # # # uncomment to test power ranking ties
             # team.power_rank = test_power_rank
 
-    def calculate_luck_and_record(self, teams, matchups_list):
+    def calculate_matchup_results(self, teams, current_week_matchups, weekly_team_results):
 
         results = defaultdict(dict)
-        matchups = {
-            self.decode_byte_string(name): value[
-                "result"] for pair in matchups_list for name, value in list(pair.items())
-        }
 
-        for team_1 in teams.values():  # type: BaseTeam
+        matchups = {}
+        # current_week_matchups is a weird custom format with name and not id?
+        # make matchups object with keys as team ids
+        # also lookup opponent based on matchups...
+        for key in teams.keys():
+            matchup = None
+            for m in current_week_matchups:
+                if teams[key].name in [name for name in m.keys()]:
+                    matchup = m
+                    break
+            
+            opponent_team_name = next(t for t in matchup.keys() if t != teams[key].name)
+            opponent_team_id = next(t for t in teams.values() if t.name == opponent_team_name)
+
+            matchups[key] = {
+                'result': matchup[teams[key].name]['result'],
+                'opponent': opponent_team_id
+            }
+
+        for key, all_team_matchups in itertools.groupby(itertools.permutations(teams.keys(), 2), lambda x: x[0]):
             record = {
                 "W": 0,
                 "L": 0,
                 "T": 0
             }
 
-            for team_2 in teams.values():
-                if team_1.team_id == team_2.team_id:
-                    continue
-                score_1 = team_1.points
-                score_2 = team_2.points
+            for matchup in all_team_matchups:
+                score_1 = teams[matchup[0]].points
+                score_2 = teams[matchup[1]].points
 
                 if float(score_1) > float(score_2):
                     record["W"] += 1
@@ -509,23 +522,43 @@ class CalculateMetrics(object):
                 else:
                     record["T"] += 1
 
-            results[team_1.team_id]["record"] = record
+            results[key]["record"] = record
 
-            # calc luck %
-            # TODO: assuming no ties...  how are tiebreakers handled?
-            luck = 0.0
-            # number of teams excluding current team
-            num_teams = float(len(teams)) - 1
+            num_teams = float(len(teams))
 
-            if record["W"] != 0 and record["L"] != 0:
-                matchup_result = matchups[self.decode_byte_string(team_1.name)]
-                if matchup_result == "W" or matchup_result == "T":
-                    luck = (record["L"] + record["T"]) / num_teams
-                else:
-                    luck = 0 - (record["W"] + record["T"]) / num_teams
+            # win chance %
+            win_chance = (record['W'] / (num_teams - 1)) + (record['T'] / ((num_teams - 1) * 2))
+            results[key]["win_chance"] = win_chance
 
-            # noinspection PyTypeChecker
-            results[team_1.team_id]["luck"] = luck * 100
+            # luck metric
+            matchup_result = matchups[key]['result']
+            if matchup_result == "W" or matchup_result == "T":
+                luck = (record["L"] + record["T"]) / (num_teams - 1)
+            else:
+                luck = 0 - (record["W"] + record["T"]) / (num_teams - 1)
+
+            results[key]["luck"] = luck * 100
+
+            # zscore
+            points = [week[key].points for week in weekly_team_results] + [teams[key].points]
+            zscore = self.calculate_team_z_score(points)
+            results[key]["z_score"] = zscore
+
+        # luck 2/3 (requires zscore for all teams)
+        for key in teams.keys():
+            results[key]["luck2"] = None
+            results[key]["luck3"] = None
+            zscore = results[key]["z_score"]
+            if zscore:
+                opponent = matchups[key]["opponent"]
+                opponent_zscore = results[opponent.team_id]["z_score"]
+                
+                results[key]["luck2"] = (results[key]["win_chance"] - 0.5) + (0 if not zscore else zscore - opponent_zscore)
+                results[key]["luck3"] = abs(results[key]["luck"] / 100) * (1 if not zscore else zscore - opponent_zscore)
+                # print(teams[key].name)
+                # print(results[key]["luck"])
+                # print(results[key]["luck2"])
+                # print(results[key]["luck3"])
 
         return results
 
@@ -558,28 +591,23 @@ class CalculateMetrics(object):
                                               team_rankings["luck_ranking"]) // 3.0
         return power_ranked_teams
 
-    @staticmethod
-    def calculate_z_scores(weekly_teams_results):
+    def calculate_team_z_score(self, team_points):
+        if len(team_points) <= 2:
+            return None
 
+        points_excluding_current = team_points[:-1]
+        current_points = team_points[-1]
+
+        standard_deviation = np.std(points_excluding_current)
+        mean = np.mean(points_excluding_current)
+        return (current_points - mean) / standard_deviation
+
+    def calculate_z_scores(self, weekly_teams_results):
         results = {}
-
-        # can only determine z_score
-        can_calculate = len(weekly_teams_results) > 2
 
         # iterates through team ids of first week since team ids remain unchanged
         for team_id in weekly_teams_results[0].keys():
-            z_score = None
-
-            if can_calculate:
-                scores = [week[team_id].points for week in weekly_teams_results]
-
-                scores_excluding_current = scores[:-1]
-                current_score = scores[-1]
-
-                standard_deviation = np.std(scores_excluding_current)
-                mean_score = np.mean(scores_excluding_current)
-                z_score = (current_score - mean_score) / standard_deviation
-
-            results[team_id] = z_score
+            points = [week[team_id].points for week in weekly_teams_results]
+            results[team_id] = self.calculate_team_z_score(points)
 
         return results

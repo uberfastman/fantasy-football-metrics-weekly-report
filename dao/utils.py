@@ -206,6 +206,9 @@ def add_report_team_stats(team,  # type: BaseTeam
 
     # # retrieve luck and record
     team.luck = metrics.get("matchups_results").get(team.team_id).get("luck")
+    team.luck2 = metrics.get("matchups_results").get(team.team_id).get("luck2")
+    team.luck3 = metrics.get("matchups_results").get(team.team_id).get("luck3")
+
     team.record = metrics.get("matchups_results").get(team.team_id).get("record")
 
     return team

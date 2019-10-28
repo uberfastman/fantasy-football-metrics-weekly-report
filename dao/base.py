@@ -262,6 +262,8 @@ class BaseTeam(FantasyFootballReportObject):
         self.positions_filled_active = []
         self.coaching_efficiency = 0
         self.luck = 0
+        self.luck2 = 0
+        self.luck3 = 0
         self.record = None
 
 
