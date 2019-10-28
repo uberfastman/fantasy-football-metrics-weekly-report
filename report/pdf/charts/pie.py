@@ -84,11 +84,11 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
         n = len(self.pie.data)
         self.set_items(n, self.pie.slices, 'fillColor', pdf_chart_colors)
         self.legend.colorNamePairs = [
-            (self.pie.slices[i].fillColor, (self.pie.labels[i][0:20], '%0.2f' % data[i])) for i in xrange(n)]
+            (self.pie.slices[i].fillColor, (self.pie.labels[i][0:20], '%0.2f' % data[i])) for i in range(n)]
 
     @staticmethod
     def set_items(n, obj, attr, values):
         m = len(values)
         i = m // n
-        for j in xrange(n):
+        for j in range(n):
             setattr(obj[j], attr, values[j * i % m])

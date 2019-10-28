@@ -1,4 +1,4 @@
-yffpy>=2.0.0
+yffpy>=2.6.0
 yahoo_oauth==0.1.9
 reportlab==3.3.0
 pillow==5.4.1
@@ -12,3 +12,4 @@ oauth2client
 PyDrive
 requests
 urllib3
+pytest

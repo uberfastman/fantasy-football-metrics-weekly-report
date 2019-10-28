@@ -1,5 +1,7 @@
 # Fantasy Football Metrics Weekly Report
 
+[![Build Status](https://travis-ci.org/uberfastman/fantasy-football-metrics-weekly-report.svg?branch=develop)](https://travis-ci.org/uberfastman/fantasy-football-metrics-weekly-report)
+
 ### Table of Contents
 * [About](#about)
     * [Example Report](#example-report)
