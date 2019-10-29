@@ -11,7 +11,7 @@ from yffpy.data import Data
 from yffpy.models import Game, League, Matchup, Team, Manager, Player, RosterPosition, Stat
 from yffpy.query import YahooFantasyFootballQuery
 
-from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseManager, BasePlayer, BaseStat
+from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
 
 # Suppress YahooFantasyFootballQuery debug logging
 logging.getLogger("yffpy.query").setLevel(level=logging.INFO)
@@ -333,27 +333,33 @@ class LeagueData(object):
                     league.players_by_week[str(week)][base_player.player_id] = base_player
 
         for ranked_team in self.league_info.standings.teams:
-            y_team = ranked_team.get("team")  # type: Team
+            team_data = ranked_team.get("team")  # type: Team
+            league_team = league.teams_by_week.get(str(self.week_for_report)).get(
+                str(team_data.team_id))  # type: BaseTeam
 
-            team = league.teams_by_week.get(str(self.week_for_report)).get(str(y_team.team_id))  # type: BaseTeam
-
-            team.wins = int(y_team.wins)
-            team.losses = int(y_team.losses)
-            team.ties = int(y_team.ties)
-            team.percentage = float(y_team.percentage)
-            if y_team.streak_type == "win":
-                team.streak_type = "W"
-            elif y_team.streak_type == "loss":
-                team.streak_type = "L"
+            if team_data.streak_type == "win":
+                streak_type = "W"
+            elif team_data.streak_type == "loss":
+                streak_type = "L"
             else:
-                team.streak_type = "T"
-            team.streak_len = int(y_team.streak_length)
-            team.streak_str = str(team.streak_type) + "-" + str(y_team.streak_length)
-            team.points_against = float(y_team.points_against)
-            team.points_for = float(y_team.points_for)
-            team.rank = int(y_team.rank)
+                streak_type = "T"
+
+            league_team.current_record = BaseRecord(
+                wins=int(team_data.wins),
+                losses=int(team_data.losses),
+                ties=int(team_data.ties),
+                percentage=float(team_data.percentage),
+                points_for=float(team_data.points_for),
+                points_against=float(team_data.points_against),
+                streak_type=streak_type,
+                streak_len=int(team_data.streak_length),
+                team_id=league_team.team_id,
+                team_name=league_team.name,
+                rank=int(team_data.rank)
+            )
+            league_team.streak_str = league_team.current_record.get_streak_str()
 
         league.current_standings = sorted(
-            league.teams_by_week.get(str(self.week_for_report)).values(), key=lambda x: x.rank)
+            league.teams_by_week.get(str(self.week_for_report)).values(), key=lambda x: x.current_record.rank)
 
         return league

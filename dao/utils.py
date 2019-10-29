@@ -206,10 +206,7 @@ def add_report_team_stats(team,  # type: BaseTeam
 
     # # retrieve luck and record
     team.luck = metrics.get("luck").get(team.team_id).get("luck")
-    team.record = metrics.get("luck").get(team.team_id).get("luck_record")
-    print("LUCK RECORD...?")
-    print(team.record)
-    print()
+    team.record = metrics.get("records").get(team.team_id)
 
     return team
 

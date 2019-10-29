@@ -14,7 +14,7 @@ from itertools import groupby
 import requests
 from requests.exceptions import HTTPError
 
-from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseManager, BasePlayer, BaseStat
+from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
 
 logger = logging.getLogger(__name__)
 
@@ -321,9 +321,9 @@ class LeagueData(object):
                     matchup[0].get("points")) == float(matchup[1].get("points")) else False
 
                 for team in matchup:
-                    base_team = BaseTeam()
-
                     team_info = team.get("info")
+                    team_settings = team_info.get("settings")
+                    base_team = BaseTeam()
 
                     base_team.week = int(matchups_week)
                     base_team.name = team_info.get("owner").get("metadata").get("team_name") if team_info.get(
@@ -347,36 +347,32 @@ class LeagueData(object):
                     base_team.num_trades = sum(len(self.league_transactions_by_week.get(str(week), {}).get(
                         str(base_team.team_id), {}).get("trades", [])) for week in range(1, int(week) + 1))
 
-                    team_settings = team_info.get("settings")
-
                     base_team.waiver_priority = team_settings.get("waiver_position")
                     base_team.faab = league.faab_budget - int(team_settings.get("waiver_budget_used"))
                     base_team.url = None
 
-                    base_team.wins = int(team_settings.get("wins"))
-                    base_team.losses = int(team_settings.get("losses"))
-                    base_team.ties = int(team_settings.get("ties"))
-                    base_team.percentage = round(
-                        float(base_team.wins / (base_team.wins + base_team.losses + base_team.ties)), 3)
-
-                    # TODO: must build streaks from custom standings week by week
-                    base_team.streak_str = "N/A"
-                    # if team > 0:
-                    #     base_team.streak_type = "W"
-                    # elif team < 0:
-                    #     base_team.streak_type = "L"
-                    # else:
-                    #     base_team.streak_type = "T"
-                    # base_team.streak_len = None
-                    # base_team.streak_str = None
-                    base_team.points_for = float(str(team_settings.get("fpts")) + "." + str(
-                        team_settings.get("fpts_decimal")))
-                    base_team.points_against = float(str(team_settings.get("fpts_against")) + "." + str(
-                        team_settings.get("fpts_against_decimal")))
-
+                    team_rank = None
                     for roster in self.standings:
                         if int(roster.get("roster_id")) == int(base_team.team_id):
-                            base_team.rank = int(self.standings.index(roster) + 1)
+                            team_rank = int(self.standings.index(roster) + 1)
+
+                    base_team.current_record = BaseRecord(
+                        wins=int(team_settings.get("wins")),
+                        losses=int(team_settings.get("losses")),
+                        ties=int(team_settings.get("ties")),
+                        percentage=round(float(int(team_settings.get("wins")) / (
+                                int(team_settings.get("wins")) + int(team_settings.get("losses")) +
+                                int(team_settings.get("ties")))), 3),
+                        points_for=float(str(team_settings.get("fpts")) + "." + str(team_settings.get("fpts_decimal"))),
+                        points_against=float(str(team_settings.get("fpts_against")) + "." +
+                                             str(team_settings.get("fpts_against_decimal"))),
+                        streak_type=None,
+                        streak_len=0,
+                        team_id=base_team.team_id,
+                        team_name=base_team.name,
+                        rank=team_rank
+                    )
+                    base_team.streak_str = base_team.current_record.get_streak_str()
 
                     # add team to matchup teams
                     base_matchup.teams.append(base_team)
@@ -428,17 +424,18 @@ class LeagueData(object):
                             base_player.first_name = player.get("first_name") + " " + player.get("last_name")
                             base_player.full_name = base_player.first_name
                             base_player.nfl_team_name = base_player.first_name
+                            base_player.headshot_url = "https://sleepercdn.com/images/team_logos/nfl/" + \
+                                                       str(base_player.player_id).lower() + ".png"
                         else:
                             base_player.first_name = player.get("first_name")
                             base_player.last_name = player.get("last_name")
                             base_player.full_name = player.get("full_name")
-                        base_player.headshot_url = "https://sleepercdn.com/content/nfl/players/thumb/" + \
-                                                   str(base_player.player_id) + ".jpg"
+                            base_player.headshot_url = "https://sleepercdn.com/content/nfl/players/thumb/" + \
+                                                       str(base_player.player_id) + ".jpg"
                         base_player.owner_team_id = None
                         base_player.owner_team_id = None
                         base_player.percent_owned = None
 
-                        # reception_scoring_value = self.league_info.get("scoring_settings").get("rec")
                         player_stats = player.get("stats")
                         player_projected_stats = player.get("projected")
                         if player_stats:
@@ -452,25 +449,6 @@ class LeagueData(object):
                                 if stat in self.league_scoring.keys():
                                     projected_points += (value * self.league_scoring.get(stat))
 
-                            # points_standard = player_stats.get("pts_std", 0)
-                            # points_proj_standard = player_projected_stats.get("pts_std", 0)
-                            # points_half_ppr = player_stats.get("pts_half_ppr")
-                            # points_proj_half_ppr = player_projected_stats.get("pts_half_ppr")
-                            # points_ppr = player_stats.get("pts_ppr")
-                            # points_proj_ppr = player_projected_stats.get("pts_ppr")
-                            # if reception_scoring_value == 0.5:
-                            #     base_player.points = points_half_ppr if points_half_ppr else points_standard
-                            #     base_player.projected_points = points_proj_half_ppr if points_proj_half_ppr else \
-                            #         points_proj_standard
-                            # elif reception_scoring_value == 1.0:
-                            #     base_player.points = points_ppr if points_ppr else points_standard
-                            #     base_player.projected_points = points_proj_ppr if points_proj_ppr else \
-                            #         points_proj_standard
-                            # else:
-                            #     base_player.points = points_standard
-                            #     base_player.projected_points = points_proj_standard
-                            # base_player.points = points
-                            # base_player.projected_points = projected_points
                             base_player.points = round(points, 2)
                             base_player.projected_points = round(projected_points, 2)
                         else:
@@ -524,6 +502,7 @@ class LeagueData(object):
                         league.players_by_week[str(week)][base_player.player_id] = base_player
 
         league.current_standings = sorted(
-            league.teams_by_week.get(str(self.week_for_report)).values(), key=lambda x: x.rank)
+            league.teams_by_week.get(str(self.week_for_report)).values(), key=lambda x: x.current_record.rank
+        )
 
         return league

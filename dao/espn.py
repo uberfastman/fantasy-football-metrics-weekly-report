@@ -15,7 +15,7 @@ from ff_espn_api.box_score import BoxScore
 from ff_espn_api.constant import POSITION_MAP
 from ff_espn_api.league import checkRequestStatus
 
-from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseManager, BasePlayer, BaseStat
+from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
 
 logger = logging.getLogger(__name__)
 
@@ -182,20 +182,19 @@ class LeagueData(object):
                 base_matchup.complete = True if int(week) != int(self.current_week) else False
                 base_matchup.tied = True if (matchup.home_score == matchup.away_score) else False
 
-                for team in [matchup.home_team, matchup.away_team]:  # type: Team
-                    team_json = self.teams_json[str(team.team_id)]
-
+                for matchup_team in [matchup.home_team, matchup.away_team]:  # type: Team
+                    team_json = self.teams_json[str(matchup_team.team_id)]
                     base_team = BaseTeam()
 
                     base_team.week = int(week)
-                    base_team.name = team.team_name
+                    base_team.name = matchup_team.team_name
                     base_team.num_moves = team_json["transactionCounter"].get("acquisitions", 0)
                     base_team.num_trades = team_json["transactionCounter"].get("trades", 0)
 
-                    if isinstance(team.owner, list):
-                        team_managers = team.owner
+                    if isinstance(matchup_team.owner, list):
+                        team_managers = matchup_team.owner
                     else:
-                        team_managers = [team.owner]
+                        team_managers = [matchup_team.owner]
 
                     for manager in team_managers:
                         base_manager = BaseManager()
@@ -208,10 +207,10 @@ class LeagueData(object):
 
                     base_team.manager_str = ", ".join([manager.name for manager in base_team.managers])
 
-                    base_team.team_id = str(team.team_id)
+                    base_team.team_id = str(matchup_team.team_id)
 
                     team_is_home = False
-                    if team.team_id == matchup.home_team.team_id:
+                    if int(base_team.team_id) == int(matchup.home_team.team_id):
                         team_is_home = True
                         base_team.points = float(matchup.home_score)
                     else:
@@ -253,12 +252,13 @@ class LeagueData(object):
         for week, rosters in self.rosters_by_week.items():
             league.players_by_week[str(week)] = {}
             for team_id, roster in rosters.items():
+                team_json = self.rosters_json_by_week[str(week)][int(team_id)]
                 league_team = league.teams_by_week.get(str(week)).get(str(team_id))  # type: BaseTeam
-                league_team_json = self.rosters_json_by_week[str(week)][int(team_id)]
+
                 for player in roster:  # type: BoxPlayer
 
                     player_json = {}
-                    for league_player_json in league_team_json:
+                    for league_player_json in team_json:
                         if player.playerId == league_player_json["playerId"]:
                             player_json = league_player_json["playerPoolEntry"]["player"]
 
@@ -322,30 +322,34 @@ class LeagueData(object):
                     league.players_by_week[str(week)][base_player.player_id] = base_player
 
         for ranked_team in self.league_standings:
+            team_json = self.teams_json[str(ranked_team.team_id)]
+            league_team = league.teams_by_week.get(str(self.week_for_report)).get(
+                str(ranked_team.team_id))  # type: BaseTeam
 
-            team = league.teams_by_week.get(str(self.week_for_report)).get(str(ranked_team.team_id))  # type: BaseTeam
-
-            team_json = self.teams_json[str(team.team_id)]
-
-            team.wins = int(ranked_team.wins)
-            team.losses = int(ranked_team.losses)
-            team.ties = team_json["record"]["overall"].get("ties", 0)
-            team.percentage = round(float(team_json["record"]["overall"].get("percentage", 0)), 3)
             if ranked_team.streak_type == "WIN":
-                team.streak_type = "W"
+                streak_type = "W"
             elif ranked_team.streak_type == "LOSS":
-                team.streak_type = "L"
+                streak_type = "L"
             else:
-                team.streak_type = "T"
+                streak_type = "T"
 
-            team.streak_len = int(ranked_team.streak_length)
-            team.streak_str = str(team.streak_type) + "-" + str(ranked_team.streak_length)
-            team.points_against = float(ranked_team.points_against)
-            team.points_for = float(ranked_team.points_for)
-            team.rank = int(ranked_team.standing)
+            league_team.current_record = BaseRecord(
+                wins=int(ranked_team.wins),
+                losses=int(ranked_team.losses),
+                ties=team_json["record"]["overall"].get("ties", 0),
+                percentage=round(float(team_json["record"]["overall"].get("percentage", 0)), 3),
+                points_for=float(ranked_team.points_for),
+                points_against=float(ranked_team.points_against),
+                streak_type=streak_type,
+                streak_len=int(ranked_team.streak_length),
+                team_id=league_team.team_id,
+                team_name=league_team.name,
+                rank=int(ranked_team.standing)
+            )
+            league_team.streak_str = league_team.current_record.get_streak_str()
 
         league.current_standings = sorted(
-            league.teams_by_week.get(str(self.week_for_report)).values(), key=lambda x: x.rank)
+            league.teams_by_week.get(str(self.week_for_report)).values(), key=lambda x: x.current_record.rank)
 
         return league
 

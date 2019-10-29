@@ -8,6 +8,7 @@ import urllib.request
 from configparser import ConfigParser
 from urllib.error import URLError
 
+from PIL import Image, ImageFile
 from reportlab.graphics.shapes import Line, Drawing
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
@@ -21,8 +22,8 @@ from reportlab.platypus import Image
 from reportlab.platypus import PageBreak
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.platypus import Spacer
-from reportlab.rl_settings import canvas_basefontname as bfn
 from reportlab.platypus.flowables import KeepTogether
+from reportlab.rl_settings import canvas_basefontname as bfn
 
 from dao.base import BaseLeague, BaseTeam, BasePlayer
 from report.data import ReportData
@@ -60,6 +61,7 @@ def get_image(url, data_dir, week, width=1 * inch):
     iw, ih = img.getSize()
     aspect = ih / float(iw)
 
+    ImageFile.LOAD_TRUNCATED_IMAGES = True
     scaled_img = Image(local_img_path, width=width, height=(width * aspect))
 
     return scaled_img
@@ -728,8 +730,10 @@ class PdfGenerator(object):
                                                   1 * inch)
 
                 data = [["BOOOOOOOOM", "...b... U... s... T"],
-                        [best_weekly_player.full_name + " -- " + best_weekly_player.nfl_team_name,
-                         worst_weekly_player.full_name + " -- " + worst_weekly_player.nfl_team_name],
+                        [best_weekly_player.full_name + " -- " + (best_weekly_player.nfl_team_name if
+                         best_weekly_player.nfl_team_name else "N/A"),
+                         worst_weekly_player.full_name + " -- " + (worst_weekly_player.nfl_team_name if
+                         worst_weekly_player.nfl_team_name else "N/A")],
                         [best_player_headshot, worst_player_headshot],
                         [best_weekly_player.points, worst_weekly_player.points]]
                 table = Table(data, colWidths=4.0 * inch)

@@ -6,7 +6,6 @@ import datetime
 import json
 import logging
 import os
-# import pickle
 import random
 import traceback
 
@@ -37,10 +36,10 @@ class PlayoffProbabilities(object):
                 team.team_id,
                 team.name,
                 team.manager_str,
-                int(team.wins),
-                int(team.losses),
-                int(team.ties),
-                float(team.points_for),
+                int(team.record.get_wins()),
+                int(team.record.get_losses()),
+                int(team.record.get_ties()),
+                float(team.record.get_points_for()),
                 self.num_playoff_slots,
                 self.simulations
             )
@@ -111,9 +110,6 @@ class PlayoffProbabilities(object):
                         if not os.path.exists(save_dir):
                             os.makedirs(save_dir)
 
-                        # with open(os.path.join(save_dir, "playoff_probs_data.pkl"), "wb") as pp_out:
-                        #     pickle.dump(self.playoff_probs_data, pp_out, pickle.HIGHEST_PROTOCOL)
-
                         with open(os.path.join(save_dir, "playoff_probs_data.json"), "w") as pp_out:
                             json.dump(self.playoff_probs_data, pp_out, ensure_ascii=False, indent=2)
 
@@ -123,9 +119,6 @@ class PlayoffProbabilities(object):
                     playoff_probs_data_file_path = os.path.join(
                         self.data_dir, "week_" + str(week_for_report), "playoff_probs_data.pkl")
                     if os.path.exists(playoff_probs_data_file_path):
-                        # with open(playoff_probs_data_file_path, "rb") as pp_in:
-                        #     self.playoff_probs_data = pickle.load(pp_in)
-
                         with open(playoff_probs_data_file_path, "r") as pp_in:
                             self.playoff_probs_data = json.load(pp_in)
                     else:
