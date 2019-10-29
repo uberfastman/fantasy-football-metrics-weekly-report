@@ -169,6 +169,8 @@ class FantasyFootballReport(object):
             metrics_calculator = CalculateMetrics(self.config, self.league_id, self.league.num_playoff_slots,
                                                   self.playoff_prob_sims)
 
+            custom_weekly_matchups = self.league.get_custom_weekly_matchups(str(week_counter))
+
             report_data = ReportData(
                 config=self.config,
                 league=self.league,
@@ -178,9 +180,15 @@ class FantasyFootballReport(object):
                 metrics_calculator=metrics_calculator,
                 metrics={
                     "coaching_efficiency": CoachingEfficiency(self.config, self.league.get_roster_slots_by_type()),
-                    "matchups_results": metrics_calculator.calculate_luck_and_record(
+                    "luck": metrics_calculator.calculate_luck(
                         self.league.teams_by_week.get(str(week_counter)),
-                        self.league.get_custom_weekly_matchups(str(week_counter))
+                        custom_weekly_matchups
+                    ),
+                    "records": metrics_calculator.calculate_records(
+                        week_counter,
+                        self.league,
+                        self.league.standings if self.league.standings else self.league.current_standings,
+                        custom_weekly_matchups
                     ),
                     "playoff_probs": self.playoff_probs,
                     "bad_boy_stats": self.bad_boy_stats,

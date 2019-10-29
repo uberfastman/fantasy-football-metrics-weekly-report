@@ -3,12 +3,12 @@ __email__ = "wrenjr@yahoo.com"
 
 import itertools
 import logging
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from statistics import mean
 
 import numpy as np
 
-from dao.base import BaseLeague, BaseTeam, BasePlayer
+from dao.base import BaseLeague, BaseTeam, BaseRecord, BasePlayer
 
 logger = logging.getLogger(__name__)
 
@@ -29,19 +29,18 @@ class CalculateMetrics(object):
             return string
 
     @staticmethod
-    def get_standings_data(
-            league  # type: BaseLeague
-    ):
+    def get_standings_data(league: BaseLeague):
         current_standings_data = []
-        for team in league.current_standings:  # type: BaseTeam
+        for team in league.standings:  # type: BaseTeam
             current_standings_data.append([
-                team.rank,
+                team.record.rank,
                 team.name,
                 team.manager_str,
-                str(team.wins) + "-" + str(team.losses) + "-" + str(team.ties) + " (" + str(team.percentage) + ")",
-                round(float(team.points_for), 2),
-                round(float(team.points_against), 2),
-                team.streak_str,
+                str(team.record.get_wins()) + "-" + str(team.record.get_losses()) + "-" + str(team.record.get_ties()) +
+                " (" + str(team.record.get_percentage()) + ")",
+                round(float(team.record.get_points_for()), 2),
+                round(float(team.record.get_points_against()), 2),
+                team.record.get_streak_str(),
                 team.waiver_priority if not league.is_faab else "$%d" % team.faab,
                 team.num_moves,
                 team.num_trades
@@ -68,7 +67,8 @@ class CalculateMetrics(object):
                 [
                     team.name,
                     team.manager_str,
-                    str(team.wins) + "-" + str(team.losses) + "-" + str(team.ties) + " (" + str(team.percentage) + ")",
+                    str(team.record.get_wins()) + "-" + str(team.record.get_losses()) + "-" +
+                    str(team.record.get_ties()) + " (" + str(team.record.get_percentage()) + ")",
                     team_playoffs_data[int(team.team_id)][1],
                     team_playoffs_data[int(team.team_id)][3]
                 ] +
@@ -481,20 +481,66 @@ class CalculateMetrics(object):
             # # # uncomment to test power ranking ties
             # team.power_rank = test_power_rank
 
-    def calculate_luck_and_record(self, teams, matchups_list):
+    @staticmethod
+    def calculate_records(week, league: BaseLeague, standings, custom_weekly_matchups):
 
-        results = defaultdict(dict)
+        records = defaultdict(BaseRecord)
+        for team in standings:  # type: BaseTeam
+            if week == 1:
+                record = BaseRecord(int(week), team_id=team.team_id, team_name=team.name)
+            else:
+                previous_week_record = league.records_by_week[str(int(week) - 1)][team.team_id]  # type: BaseRecord
+                record = BaseRecord(
+                    int(week),
+                    wins=previous_week_record.get_wins(),
+                    ties=previous_week_record.get_ties(),
+                    losses=previous_week_record.get_losses(),
+                    points_for=previous_week_record.get_points_for(),
+                    points_against=previous_week_record.get_points_against(),
+                    streak_type=previous_week_record.get_streak_type(),
+                    streak_len=previous_week_record.get_streak_length(),
+                    team_id=team.team_id,
+                    team_name=team.name
+                )
+
+            for matchup in custom_weekly_matchups:
+                for team_id, matchup_result in matchup.items():
+                    if str(team_id) == str(team.team_id):
+                        outcome = matchup_result["result"]
+                        if outcome == "W":
+                            record.add_win()
+                        elif outcome == "L":
+                            record.add_loss()
+                        else:
+                            record.add_tie()
+                        record.add_points_for(matchup_result["points_for"])
+                        record.add_points_against(matchup_result["points_against"])
+                        records[team.team_id] = record
+
+            team.record = record
+
+        ordered_records = OrderedDict()
+        standings_rank = 1
+        for ordered_record in sorted(
+                records.items(),
+                key=lambda x: (-x[1].get_wins(), -x[1].get_losses(), -x[1].get_ties(), -x[1].get_points_for())):
+            ordered_record[1].rank = standings_rank
+            ordered_records[ordered_record[0]] = ordered_record[1]
+            standings_rank += 1
+
+        league.records_by_week[str(week)] = ordered_records
+        return records
+
+    @staticmethod
+    def calculate_luck(teams, matchups_list):
+        luck_results = defaultdict(defaultdict)
         matchups = {
-            self.decode_byte_string(name): value[
-                "result"] for pair in matchups_list for name, value in list(pair.items())
+            str(team_id): value[
+                "result"] for pair in matchups_list for team_id, value in list(pair.items())
         }
 
         for team_1 in teams.values():  # type: BaseTeam
-            record = {
-                "W": 0,
-                "L": 0,
-                "T": 0
-            }
+            luck_record = BaseRecord()
 
             for team_2 in teams.values():
                 if team_1.team_id == team_2.team_id:
@@ -503,13 +549,13 @@ class CalculateMetrics(object):
                 score_2 = team_2.points
 
                 if float(score_1) > float(score_2):
-                    record["W"] += 1
+                    luck_record.add_win()
                 elif float(score_1) < float(score_2):
-                    record["L"] += 1
+                    luck_record.add_loss()
                 else:
-                    record["T"] += 1
+                    luck_record.add_tie()
 
-            results[team_1.team_id]["record"] = record
+            luck_results[team_1.team_id]["luck_record"] = luck_record
 
             # calc luck %
             # TODO: assuming no ties...  how are tiebreakers handled?
@@ -517,17 +563,18 @@ class CalculateMetrics(object):
             # number of teams excluding current team
             num_teams = float(len(teams)) - 1
 
-            if record["W"] != 0 and record["L"] != 0:
-                matchup_result = matchups[self.decode_byte_string(team_1.name)]
+            # if luck_record["W"] != 0 and luck_record["L"] != 0:
+            if luck_record.get_wins() != 0 and luck_record.get_losses() != 0:
+                matchup_result = matchups[str(team_1.team_id)]
                 if matchup_result == "W" or matchup_result == "T":
-                    luck = (record["L"] + record["T"]) / num_teams
+                    luck = (luck_record.get_losses() + luck_record.get_ties()) / num_teams
                 else:
-                    luck = 0 - (record["W"] + record["T"]) / num_teams
+                    luck = 0 - (luck_record.get_wins() + luck_record.get_ties()) / num_teams
 
             # noinspection PyTypeChecker
-            results[team_1.team_id]["luck"] = luck * 100
+            luck_results[team_1.team_id]["luck"] = luck * 100
 
-        return results
+        return luck_results
 
     @staticmethod
     def get_ranks_for_metric(data_for_metric, power_ranked_teams, metric_ranking_key):
@@ -578,7 +625,8 @@ class CalculateMetrics(object):
 
                 standard_deviation = np.std(scores_excluding_current)
                 mean_score = np.mean(scores_excluding_current)
-                z_score = (current_score - mean_score) / standard_deviation
+                z_score = (float(current_score) - float(mean_score)) / float(
+                    standard_deviation) if standard_deviation != 0 else 0
 
             results[team_id] = z_score
 

@@ -14,7 +14,7 @@ import requests
 from bs4 import BeautifulSoup
 from requests.exceptions import HTTPError
 
-from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseManager, BasePlayer, BaseStat
+from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
 
 logger = logging.getLogger(__name__)
 
@@ -287,7 +287,7 @@ class LeagueData(object):
             if pos_name == "RB/WR/TE/QB":
                 league.flex_positions = ["QB", "WR", "RB", "TE"]
 
-            if pos_name != "D/ST" and "/" in pos_name :
+            if pos_name != "D/ST" and "/" in pos_name:
                 pos_name = "FLEX"
 
             league.roster_positions.append(pos_name)
@@ -309,13 +309,13 @@ class LeagueData(object):
                 base_matchup.tied = True if matchup.get("homeResult") == "TIE" else False
 
                 for key in ["home", "away"]:
-                    team = matchup.get(key)  # type: dict
+                    team_data = matchup.get(key)  # type: dict
                     base_team = BaseTeam()
 
                     base_team.week = int(matchups_week)
-                    base_team.name = team.get("name")
+                    base_team.name = team_data.get("name")
 
-                    for manager in self.league_teams[team.get("id")].get("owners"):
+                    for manager in self.league_teams[team_data.get("id")].get("owners"):
                         base_manager = BaseManager()
 
                         base_manager.manager_id = str(manager.get("id"))
@@ -326,7 +326,7 @@ class LeagueData(object):
 
                     base_team.manager_str = ", ".join([manager.name for manager in base_team.managers])
 
-                    base_team.team_id = str(team.get("id"))
+                    base_team.team_id = str(team_data.get("id"))
                     base_team.points = float(matchup.get(key + "Score", {}).get("score", {}).get("value", 0))
                     base_team.projected_points = None
 
@@ -336,27 +336,33 @@ class LeagueData(object):
                     base_team.num_trades = str(
                         self.league_transactions_by_team[str(base_team.team_id)].get("trades", 0)) + "*"
 
-                    base_team.waiver_priority = team.get("waiverAcquisitionBudget", {}).get("value")
-                    base_team.faab = team.get("waiverAcquisitionBudget", {}).get("value")
+                    base_team.waiver_priority = team_data.get("waiverAcquisitionBudget", {}).get("value")
+                    base_team.faab = team_data.get("waiverAcquisitionBudget", {}).get("value")
                     base_team.url = "https://www.fleaflicker.com/nfl/leagues/" + self.league_id + "/teams/" + \
-                                    str(team.get("id"))
+                                    str(team_data.get("id"))
 
-                    base_team.wins = int(team.get("recordOverall", {}).get("wins", 0))
-                    base_team.losses = int(team.get("recordOverall", {}).get("losses", 0))
-                    base_team.ties = int(team.get("recordOverall", {}).get("ties", 0))
-                    base_team.percentage = round(float(team.get("recordOverall", {}).get("winPercentage", {}).get(
-                        "value", 0)), 3)
-                    if team.get("streak").get("value") > 0:
-                        base_team.streak_type = "W"
-                    elif team.get("streak").get("value") < 0:
-                        base_team.streak_type = "L"
+                    if team_data.get("streak").get("value") > 0:
+                        streak_type = "W"
+                    elif team_data.get("streak").get("value") < 0:
+                        streak_type = "L"
                     else:
-                        base_team.streak_type = "T"
-                    base_team.streak_len = int(abs(team.get("streak", {}).get("value", 0)))
-                    base_team.streak_str = str(base_team.streak_type) + "-" + str(base_team.streak_len)
-                    base_team.points_against = float(team.get("pointsAgainst", {}).get("value", 0))
-                    base_team.points_for = float(team.get("pointsFor", {}).get("value", 0))
-                    base_team.rank = int(team.get("recordOverall", {}).get("rank", 0))
+                        streak_type = "T"
+
+                    base_team.current_record = BaseRecord(
+                        wins=int(team_data.get("recordOverall", {}).get("wins", 0)),
+                        losses=int(team_data.get("recordOverall", {}).get("losses", 0)),
+                        ties=int(team_data.get("recordOverall", {}).get("ties", 0)),
+                        percentage=round(float(team_data.get("recordOverall", {}).get("winPercentage", {}).get(
+                            "value", 0)), 3),
+                        points_for=float(team_data.get("pointsFor", {}).get("value", 0)),
+                        points_against=float(team_data.get("pointsAgainst", {}).get("value", 0)),
+                        streak_type=streak_type,
+                        streak_len=int(abs(team_data.get("streak", {}).get("value", 0))),
+                        team_id=base_team.team_id,
+                        team_name=base_team.name,
+                        rank=int(team_data.get("recordOverall", {}).get("rank", 0))
+                    )
+                    base_team.streak_str = base_team.current_record.get_streak_str()
 
                     # add team to matchup teams
                     base_matchup.teams.append(base_team)
@@ -415,7 +421,8 @@ class LeagueData(object):
                         base_player.primary_position = flea_pro_player.get("position")
 
                         base_player.selected_position = flea_player_position.get("label")
-                        base_player.selected_position_is_flex = True if "/" in flea_pro_player.get("position") else False
+                        base_player.selected_position_is_flex = True if "/" in flea_pro_player.get(
+                            "position") else False
                         base_player.status = flea_pro_player.get("injury", {}).get("typeAbbreviaition")
 
                         base_player.eligible_positions = [pos for positions in flea_league_player.get(
@@ -438,6 +445,6 @@ class LeagueData(object):
                         league.players_by_week[str(week)][base_player.player_id] = base_player
 
         league.current_standings = sorted(
-            league.teams_by_week.get(str(self.week_for_report)).values(), key=lambda x: x.rank)
+            league.teams_by_week.get(str(self.week_for_report)).values(), key=lambda x: x.current_record.rank)
 
         return league

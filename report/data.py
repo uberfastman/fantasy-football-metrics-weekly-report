@@ -41,6 +41,18 @@ class ReportData(object):
             ) for team in league.teams_by_week.get(str(week_counter)).values()
         }
 
+        records = {}
+        for team_id, team in self.teams_results.items():
+            records[team_id] = team.record
+
+        league.standings = sorted(
+            league.teams_by_week.get(str(week_counter)).values(),
+            key=lambda x: (
+                league.records_by_week[str(week_counter)][x.team_id].rank,
+                -league.records_by_week[str(week_counter)][x.team_id].get_points_for()
+            )
+        )
+
         # option to disqualify manually configured team(s) (in config.ini) for current week of coaching efficiency
         self.coaching_efficiency_dqs = {}
         if int(week_counter) == int(week_for_report):
@@ -84,11 +96,11 @@ class ReportData(object):
 
         # playoff probabilities data
         self.data_for_playoff_probs = metrics.get("playoff_probs").calculate(week_counter, week_for_report,
-                                                                             league.current_standings,
+                                                                             league.standings,
                                                                              remaining_matchups)
         if self.data_for_playoff_probs:
             self.data_for_playoff_probs = metrics_calculator.get_playoff_probs_data(
-                league.current_standings,
+                league.standings,
                 self.data_for_playoff_probs
             )
         else:

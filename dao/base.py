@@ -111,6 +111,9 @@ class BaseLeague(FantasyFootballReportObject):
         self.matchups_by_week = {}
         self.teams_by_week = {}
         self.players_by_week = {}
+        self.records_by_week = {}
+
+        self.standings = []
         self.current_standings = []
 
         self.player_data_by_week_function = None
@@ -125,23 +128,27 @@ class BaseLeague(FantasyFootballReportObject):
         result format is like:
         [
             {
-                'team1': {
+                'team1.team_id': {
                     'result': 'W',
-                    'score': 100
+                    'points_for': 100
+                    'points_against': 50
                 },
-                'team2': {
+                'team2.team_id': {
                     'result': 'L',
-                    'score': 50
+                    'points_for': 50
+                    'points_against': 100
                 }
             },
             {
-                'team3': {
+                'team3.team_id': {
                     'result': 'T',
-                    'score': 75
+                    'points_for': 75
+                    'points_against': 75
                 },
-                'team4': {
+                'team4.team_id': {
                     'result': 'T',
-                    'score': 75
+                    'points_for': 75
+                    'points_against': 75
                 }
             }
         ]
@@ -158,9 +165,14 @@ class BaseLeague(FantasyFootballReportObject):
 
             teams = {}
             for team in matchup.teams:
-                teams[team.name] = {
+                if matchup.teams.index(team) == 0:
+                    opponent = matchup.teams[1]
+                else:
+                    opponent = matchup.teams[0]
+                teams[str(team.team_id)] = {
                     "result": "T" if is_tied else "W" if team.team_id == winning_team else "L",
-                    "score": team.points
+                    "points_for": team.points,
+                    "points_against": opponent.points
                 }
 
             matchup_list.append(teams)
@@ -238,15 +250,6 @@ class BaseTeam(FantasyFootballReportObject):
         self.waiver_priority = 0
         self.faab = 0
         self.url = None
-        self.wins = 0
-        self.losses = 0
-        self.ties = 0
-        self.percentage = 0
-        self.streak_type = None
-        self.streak_len = 0
-        self.points_against = 0
-        self.points_for = 0
-        self.rank = 0
         self.roster = []
 
         # custom report attributes
@@ -262,7 +265,125 @@ class BaseTeam(FantasyFootballReportObject):
         self.positions_filled_active = []
         self.coaching_efficiency = 0
         self.luck = 0
-        self.record = None
+        self.record = BaseRecord()
+        self.current_record = BaseRecord()
+
+
+class BaseRecord(FantasyFootballReportObject):
+
+    def __init__(self, week=0, wins=0, ties=0, losses=0, percentage=None, points_for=0, points_against=0,
+                 streak_type=None, streak_len=0, team_id=None, team_name=None, rank=None):
+        """Custom team record object.
+
+        :param week: week if record_type is "weekly"
+        """
+        super().__init__()
+
+        if week > 0:
+            self._record_type = "weekly"
+            self.week = week
+        else:
+            self._record_type = "overall"
+
+        self._wins = wins
+        self._ties = ties
+        self._losses = losses
+        self._points_for = points_for
+        self._points_against = points_against
+        self._streak_type = streak_type
+        self._streak_len = streak_len
+
+        self.team_id = team_id
+        self.team_name = team_name
+        self.rank = rank
+
+        self._percentage = percentage if percentage else self._calculate_percentage()
+        self._record_str = self._format_record()
+
+    def __setattr__(self, key, value):
+        if key == "week":
+            if self._record_type == "overall":
+                raise ValueError(
+                    "BaseRecord.week attribute cannot be assigned when BaseRecord.record_type = \"overall\".")
+
+        self.__dict__[key] = value
+
+    def _calculate_percentage(self):
+        num_matchups = self._wins + self._ties + self._losses
+        if num_matchups > 0:
+            percentage = round(float(self._wins / num_matchups), 3)
+        else:
+            percentage = round(0, 3)
+        return percentage
+
+    def _format_record(self):
+        if self._ties > 0:
+            record_str = "{}-{}-{} ({})".format(self._wins, self._losses, self._ties, self._points_for)
+        else:
+            record_str = "{}-{} ({})".format(self._wins, self._losses, self._points_for)
+        return record_str
+
+    def _update_streak(self, streak_type):
+        if self._streak_type == streak_type:
+            self._streak_len += 1
+        else:
+            self._streak_type = streak_type
+            self._streak_len = 1
+
+    def get_wins(self):
+        return self._wins
+
+    def add_win(self):
+        self._wins += 1
+        self._percentage = self._calculate_percentage()
+        self._record_str = self._format_record()
+        self._update_streak("W")
+
+    def get_losses(self):
+        return self._losses
+
+    def add_loss(self):
+        self._losses += 1
+        self._percentage = self._calculate_percentage()
+        self._record_str = self._format_record()
+        self._update_streak("L")
+
+    def get_ties(self):
+        return self._ties
+
+    def add_tie(self):
+        self._ties += 1
+        self._percentage = self._calculate_percentage()
+        self._record_str = self._format_record()
+        self._update_streak("T")
+
+    def get_points_for(self):
+        return self._points_for
+
+    def add_points_for(self, points):
+        self._points_for += points
+        self._record_str = self._format_record()
+
+    def get_points_against(self):
+        return self._points_against
+
+    def add_points_against(self, points):
+        self._points_against += points
+
+    def get_percentage(self):
+        return "%.3f" % self._percentage
+
+    def get_record_str(self):
+        return self._record_str
+
+    def get_streak_type(self):
+        return self._streak_type
+
+    def get_streak_length(self):
+        return self._streak_len
+
+    def get_streak_str(self):
+        return "{}-{}".format(self._streak_type, self._streak_len)
 
 
 class BaseManager(FantasyFootballReportObject):
