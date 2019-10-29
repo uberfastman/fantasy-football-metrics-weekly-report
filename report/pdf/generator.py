@@ -37,7 +37,7 @@ logger = get_logger(__name__, propagate=False)
 logging.getLogger("PIL.PngImagePlugin").setLevel(level=logging.INFO)
 
 
-def get_image(url, data_dir, week, width=1 * inch):
+def get_image(url, data_dir, week, width=1.5 * inch):
     headshots_dir = os.path.join(data_dir, "week_" + str(week), "player_headshots")
 
     if not os.path.exists(headshots_dir):
@@ -725,9 +725,9 @@ class PdfGenerator(object):
                 worst_weekly_player = starting_players[-1]
 
                 best_player_headshot = get_image(best_weekly_player.headshot_url, self.data_dir, self.week_for_report,
-                                                 1 * inch)
+                                                 1.5 * inch)
                 worst_player_headshot = get_image(worst_weekly_player.headshot_url, self.data_dir, self.week_for_report,
-                                                  1 * inch)
+                                                  1.5 * inch)
 
                 data = [["BOOOOOOOOM", "...b... U... s... T"],
                         [best_weekly_player.full_name + " -- " + (best_weekly_player.nfl_team_name if
