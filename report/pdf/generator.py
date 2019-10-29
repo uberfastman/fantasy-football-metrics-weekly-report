@@ -18,7 +18,9 @@ from reportlab.lib.pagesizes import inch
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.utils import ImageReader
-from reportlab.platypus import Image
+# from reportlab.platypus import Image
+from reportlab.platypus.flowables import Image as ReportLabImage
+
 from reportlab.platypus import PageBreak
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.platypus import Spacer
@@ -37,7 +39,7 @@ logger = get_logger(__name__, propagate=False)
 logging.getLogger("PIL.PngImagePlugin").setLevel(level=logging.INFO)
 
 
-def get_image(url, data_dir, week, width=1.5 * inch):
+def get_player_image(url, data_dir, week, width=1.0 * inch):
     headshots_dir = os.path.join(data_dir, "week_" + str(week), "player_headshots")
 
     if not os.path.exists(headshots_dir):
@@ -55,14 +57,24 @@ def get_image(url, data_dir, week, width=1.5 * inch):
                 local_img_path = os.path.join("resources", "images", "photo-not-available.jpeg")
     else:
         logger.error("No available URL for player.")
-        local_img_path = os.path.join("resources", "images", "photo-not-available.jpeg")
+        img_name = "photo-not-available.jpeg"
+        local_img_path = os.path.join("resources", "images", img_name)
 
-    img = ImageReader(local_img_path)
-    iw, ih = img.getSize()
+    img_reader = ImageReader(local_img_path)
+    iw, ih = img_reader.getSize()
     aspect = ih / float(iw)
 
     ImageFile.LOAD_TRUNCATED_IMAGES = True
-    scaled_img = Image(local_img_path, width=width, height=(width * aspect))
+
+    # TODO: figure out how to reduce image sizes/compress headshots so reports aren't over 50mb (GroupMe limit)
+    # img = Image.open(local_img_path)
+    # img.resize((int(width), int(width * aspect)), Image.ANTIALIAS)
+    # img.convert("RGB")
+    # img.save(os.path.join(headshots_dir, "test-" + str(img_name)), quality=90, optimize=True)
+    # scaled_img = ReportLabImage(
+    #     os.path.join(headshots_dir, "test-" + str(img_name)), width=width, height=(width * aspect))
+
+    scaled_img = ReportLabImage(local_img_path, width=width, height=(width * aspect))
 
     return scaled_img
 
@@ -241,7 +253,7 @@ class PdfGenerator(object):
         self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]]
         self.beef_headers = [["Place", "Team", "Manager", "TABBU(s)"]]
         self.zscores_headers = [["Place", "Team", "Manager", "Z-Score"]]
-        self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
+        self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
 
         self.style_efficiency_dqs = None
         self.style_tied_scores = self.set_tied_values_style(self.report_data.ties_for_scores, table_style_list,
@@ -411,9 +423,9 @@ class PdfGenerator(object):
                 data = temp_data
 
         if metric_type == "beef":
-            cow_icon = self.get_image(os.path.join("resources", "images", "cow.png"), width=0.20 * inch)
-            beef_icon = self.get_image(os.path.join("resources", "images", "beef.png"), width=0.20 * inch)
-            half_beef_icon = self.get_image(os.path.join("resources", "images", "beef-half.png"), width=0.10 * inch)
+            cow_icon = self.get_img(os.path.join("resources", "images", "cow.png"), width=0.20 * inch)
+            beef_icon = self.get_img(os.path.join("resources", "images", "beef.png"), width=0.20 * inch)
+            half_beef_icon = self.get_img(os.path.join("resources", "images", "beef-half.png"), width=0.10 * inch)
             # lowest_tabbu = float(data[-1][3])
             # mod_5_remainder = lowest_tabbu % 5
             # beef_count_floor = lowest_tabbu - mod_5_remainder
@@ -455,43 +467,28 @@ class PdfGenerator(object):
         else:
             data_table.setStyle(table_style_ties)
 
+        table_content = [[title], [data_table]]
+        if tied_metric:
+            tied_metric_footer = self.get_tied_metric_footer(metric_type)
+            if tied_metric_footer:
+                table_content.append([tied_metric_footer])
         table_with_title = KeepTogether(Table(
-            [[title], [data_table]],
+            table_content,
             style=TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER")])
         ))
 
         elements.append(table_with_title)
-        self.add_tied_metric_footer(elements, metric_type)
+        # self.get_tied_metric_footer(metric_type)
 
-    def add_tied_metric_footer(self, elements, metric_type):
+    def get_tied_metric_footer(self, metric_type):
 
-        if metric_type == "scores":
-            if self.report_data.ties_for_scores > 0:
-                if not self.break_ties:
-                    elements.append(self.spacer_twentieth_inch)
-                    elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
-
-        elif metric_type == "coaching_efficiency":
-            if self.report_data.ties_for_coaching_efficiency > 0:
-                if not self.break_ties:
-                    elements.append(self.spacer_twentieth_inch)
-                    elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
-
-        elif metric_type == "luck":
-            if self.report_data.ties_for_luck > 0:
-                elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
-
-        elif metric_type == "power_ranking":
-            if self.report_data.ties_for_power_rankings > 0:
-                elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
-
-        elif metric_type == "bad_boy":
-            if self.report_data.ties_for_bad_boy_rankings > 0:
-                elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
-
-        elif metric_type == "beef":
-            if self.report_data.ties_for_beef_rankings > 0:
-                elements.append(Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"]))
+        if metric_type in ["scores", "coaching_efficiency"]:
+            if not self.break_ties:
+                return Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"])
+            else:
+                return None
+        else:
+            return Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"])
 
     def create_title(self, title_text, title_width=8.5, element_type=None, anchor="", subtitle_text=None):
 
@@ -614,11 +611,11 @@ class PdfGenerator(object):
         return points_line_chart
 
     @staticmethod
-    def get_image(path, width=1 * inch):
+    def get_img(path, width=1 * inch):
         img = ImageReader(path)
         iw, ih = img.getSize()
         aspect = ih / float(iw)
-        return Image(path, width=width, height=(width * aspect))
+        return ReportLabImage(path, width=width, height=(width * aspect))
 
     def create_team_stats_pages(self, doc_elements, weekly_team_data_by_position, season_average_team_data_by_position):
 
@@ -724,10 +721,10 @@ class PdfGenerator(object):
                 best_weekly_player = starting_players[0]
                 worst_weekly_player = starting_players[-1]
 
-                best_player_headshot = get_image(best_weekly_player.headshot_url, self.data_dir, self.week_for_report,
-                                                 1.5 * inch)
-                worst_player_headshot = get_image(worst_weekly_player.headshot_url, self.data_dir, self.week_for_report,
-                                                  1.5 * inch)
+                best_player_headshot = get_player_image(best_weekly_player.headshot_url, self.data_dir,
+                                                        self.week_for_report, 1.5 * inch)
+                worst_player_headshot = get_player_image(worst_weekly_player.headshot_url, self.data_dir,
+                                                         self.week_for_report, 1.5 * inch)
 
                 data = [["BOOOOOOOOM", "...b... U... s... T"],
                         [best_weekly_player.full_name + " -- " + (best_weekly_player.nfl_team_name if
