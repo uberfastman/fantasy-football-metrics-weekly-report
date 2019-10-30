@@ -214,11 +214,10 @@ def add_report_team_stats(team: BaseTeam, league: BaseLeague, week_counter, metr
     return team
 
 
-def get_player_game_time_statuses(league: BaseLeague):
+def get_player_game_time_statuses(week, league: BaseLeague):
 
-    file_name = "week_" + str(league.week_for_report) + "-player_status_data.html"
-    file_dir = os.path.join(league.data_dir, str(league.season), str(league.league_id),
-                            "week_" + str(league.week_for_report))
+    file_name = "week_" + str(week) + "-player_status_data.html"
+    file_dir = os.path.join(league.data_dir, str(league.season), str(league.league_id), "week_" + str(week))
     file_path = os.path.join(file_dir, file_name)
 
     if not league.dev_offline:
@@ -229,7 +228,7 @@ def get_player_game_time_statuses(league: BaseLeague):
         }
         params = {
             "yr": str(league.season),
-            "wk": str(league.week_for_report),
+            "wk": str(week),
             "type": "reg"
         }
 

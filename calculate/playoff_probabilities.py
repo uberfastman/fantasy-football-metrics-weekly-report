@@ -117,7 +117,7 @@ class PlayoffProbabilities(object):
                     logger.info("Using saved Monte Carlo playoff simulations for playoff probabilities.")
 
                     playoff_probs_data_file_path = os.path.join(
-                        self.data_dir, "week_" + str(week_for_report), "playoff_probs_data.pkl")
+                        self.data_dir, "week_" + str(week_for_report), "playoff_probs_data.json")
                     if os.path.exists(playoff_probs_data_file_path):
                         with open(playoff_probs_data_file_path, "r") as pp_in:
                             self.playoff_probs_data = json.load(pp_in)

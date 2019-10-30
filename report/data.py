@@ -32,7 +32,7 @@ class ReportData(object):
 
         inactive_players = []
         if dq_ce:
-            injured_players = get_player_game_time_statuses(league).findAll("div", {"class": "tr"})
+            injured_players = get_player_game_time_statuses(week_counter, league).findAll("div", {"class": "tr"})
             for player in injured_players:
                 player_name = player.find("a").text.strip()
                 player_status_info = player.find("div", {"class": "td w20 hidden-xs"}).find("b")
@@ -175,7 +175,8 @@ class ReportData(object):
 
         # coaching efficiency data
         self.data_for_coaching_efficiency = metrics_calculator.get_coaching_efficiency_data(
-            sorted(self.teams_results.values(), key=lambda x: float(x.coaching_efficiency), reverse=True))
+            sorted(self.teams_results.values(), key=lambda x: float(
+                x.coaching_efficiency) if x.coaching_efficiency != "DQ" else 0, reverse=True))
         self.num_coaching_efficiency_dqs = metrics_calculator.coaching_efficiency_dq_count
         self.coaching_efficiency_dqs.update(metrics.get("coaching_efficiency").coaching_efficiency_dqs)
 

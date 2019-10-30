@@ -149,6 +149,6 @@ class CoachingEfficiency(object):
                 self.coaching_efficiency_dqs[team_name] = -1
 
             if efficiency_disqualification:
-                coaching_efficiency = 0.0
+                coaching_efficiency = "DQ"
 
         return coaching_efficiency

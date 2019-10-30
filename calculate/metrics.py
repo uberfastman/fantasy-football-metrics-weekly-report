@@ -120,8 +120,7 @@ class CalculateMetrics(object):
             ranked_team_manager = team.manager_str
             ranked_coaching_efficiency = team.coaching_efficiency
 
-            if ranked_coaching_efficiency == 0.0:
-                ranked_coaching_efficiency = "DQ"
+            if ranked_coaching_efficiency == "DQ":
                 self.coaching_efficiency_dq_count += 1
             else:
                 ranked_coaching_efficiency = "%.2f%%" % float(ranked_coaching_efficiency)
@@ -192,82 +191,49 @@ class CalculateMetrics(object):
             team_index = 0
             place = 1
             while ties_count != num_ties:
-
                 for group in groups:
-                    if len(group) > 1:
+                    group_has_ties = len(group) > 1 and "DQ" not in group[0]
+                    if group_has_ties:
                         ties_count += sum(range(len(group)))
 
-                        for team in group:
-                            if tie_type == "power_ranking":
-                                results_data[team_index] = [
-                                    str(team[0]) + "*",
-                                    team[1],
-                                    team[2],
-                                ]
-                            elif tie_type == "score" and break_ties:
-                                results_data[team_index] = [
-                                    str(place),
-                                    team[1],
-                                    team[2],
-                                    team[3]
-                                ]
-                                if group.index(team) != (len(group) - 1):
-                                    place += 1
-                            elif tie_type == "bad_boy":
-                                results_data[team_index] = [
-                                    str(place) + "*",
-                                    team[1],
-                                    team[2],
-                                    team[3],
-                                    team[4],
-                                    team[5]
-                                ]
-                            else:
-                                results_data[team_index] = [
-                                    str(place) + "*",
-                                    team[1],
-                                    team[2],
-                                    team[3]
-                                ]
-                            if tie_type == "score":
-                                results_data[team_index].append(team[4])
-                            team_index += 1
-                        place += 1
-
-                    else:
+                    for team in group:
                         if tie_type == "power_ranking":
                             results_data[team_index] = [
-                                group[0][0],
-                                group[0][1],
-                                group[0][2],
+                                str(team[0]) + ("*" if group_has_ties else ""),
+                                team[1],
+                                team[2],
                             ]
                         elif tie_type == "score" and break_ties:
                             results_data[team_index] = [
                                 str(place),
-                                group[0][1],
-                                group[0][2],
-                                group[0][3]
+                                team[1],
+                                team[2],
+                                team[3]
                             ]
+                            if group.index(team) != (len(group) - 1):
+                                place += 1
                         elif tie_type == "bad_boy":
                             results_data[team_index] = [
-                                str(place),
-                                group[0][1],
-                                group[0][2],
-                                group[0][3],
-                                group[0][4],
-                                group[0][5]
+                                str(place) + ("*" if group_has_ties else ""),
+                                team[1],
+                                team[2],
+                                team[3],
+                                team[4],
+                                team[5]
                             ]
                         else:
                             results_data[team_index] = [
-                                str(place),
-                                group[0][1],
-                                group[0][2],
-                                group[0][3]
+                                str(place) + ("*" if group_has_ties else ""),
+                                team[1],
+                                team[2],
+                                team[3]
                             ]
+
                         if tie_type == "score":
-                            results_data[team_index].append(group[0][4])
+                            results_data[team_index].append(team[4])
+
                         team_index += 1
-                        place += 1
+                    place += (1 + len(group))
         return num_ties
 
     @staticmethod
@@ -373,7 +339,10 @@ class CalculateMetrics(object):
             place = 1
             for group in groups:
                 # for team in sorted(group, key=lambda x: x[-2], reverse=True):
-                for team in sorted(group, key=lambda x: (x[-2], x[-1]), reverse=True):
+                for team in sorted(
+                        group,
+                        key=lambda x: (x[-2] if x[-2] != "DQ" else 0, x[-1]),
+                        reverse=True):
                     if groups.index(group) != 0:
                         team[0] = place
                     else:
