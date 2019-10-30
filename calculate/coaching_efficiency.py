@@ -3,6 +3,7 @@ __email__ = "wrenjr@yahoo.com"
 
 import math
 from collections import defaultdict, Counter
+from dao.utils import get_player_game_time_statuses
 
 
 class CoachingEfficiency(object):
@@ -10,7 +11,7 @@ class CoachingEfficiency(object):
     def __init__(self, config, roster_settings):
         self.config = config
 
-        self.prohibited_status_list = [
+        self.inactive_statuses = [
             str(status) for status in self.config.get("Configuration", "prohibited_statuses").split(",")]
 
         self.roster_slot_counts = roster_settings["position_counts"]
@@ -92,11 +93,18 @@ class CoachingEfficiency(object):
                     if create_tuple(player) == optimal_flex_player:
                         yield player
 
-    def is_player_eligible(self, player, week):
-        return player.status in self.prohibited_status_list or player.bye_week == week
+    def is_player_eligible(self, player, week, inactives):
+        # return player.status in self.inactive_statuses or player.bye_week == week
+        print(player.full_name)
+        print(player.owner_team_name)
+        if player.full_name in inactives:
+            print(player.full_name, "is OUT!")
+        print()
+
+        return player.status in self.inactive_statuses or player.bye_week == week or player.full_name in inactives
 
     def execute_coaching_efficiency(self, team_name, team_roster, team_points, positions_filled_active, week,
-                                    dq_eligible=False):
+                                    inactive_players, dq_eligible=False):
 
         eligible_players = defaultdict(list)
         for player in team_roster:
@@ -130,8 +138,10 @@ class CoachingEfficiency(object):
 
         # apply coaching efficiency eligibility requirements if CE disqualification enabled (dq_ce=True)
         if dq_eligible:
+            # TODO: not all platforms use BN for bench (ESPN uses BE)
             bench_players = [p for p in team_roster if p.selected_position == "BN"]  # exclude IR players
-            ineligible_efficiency_player_count = len([p for p in bench_players if self.is_player_eligible(p, week)])
+            ineligible_efficiency_player_count = len(
+                [p for p in bench_players if self.is_player_eligible(p, week, inactive_players)])
 
             if Counter(self.roster_active_slots) == Counter(positions_filled_active):
                 # divide bench slots by 2 and DQ team if number of ineligible players >= the ceiling of that value

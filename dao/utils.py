@@ -2,20 +2,26 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
 import logging
+import os
 import sys
 
+import requests
+from bs4 import BeautifulSoup
 from urllib3 import connectionpool, poolmanager
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
 from dao.base import BaseLeague, BaseTeam, BasePlayer
+from dao.espn import LeagueData as EspnLeagueData
 from dao.fleaflicker import LeagueData as FleaflickerLeagueData
 from dao.sleeper import LeagueData as SleeperLeagueData
 from dao.yahoo import LeagueData as YahooLeagueData
-from dao.espn import LeagueData as EspnLeagueData
 
 logger = logging.getLogger(__name__)
 logger.propagate = False
+
+# Suppress webscraping debug logging
+logger.setLevel(level=logging.INFO)
 
 
 def user_week_input_validation(config, week, retrieved_current_week):
@@ -151,12 +157,8 @@ def add_report_player_stats(player,  # type: BasePlayer
     return player
 
 
-def add_report_team_stats(team,  # type: BaseTeam
-                          league,  # type: BaseLeague
-                          week_counter,
-                          metrics_calculator,
-                          metrics,
-                          dq_ce):
+def add_report_team_stats(team: BaseTeam, league: BaseLeague, week_counter, metrics_calculator, metrics, dq_ce,
+                          inactive_players):
     team.name = metrics_calculator.decode_byte_string(team.name)
     bench_positions = league.get_roster_slots_by_type().get("positions_bench")
 
@@ -201,6 +203,7 @@ def add_report_team_stats(team,  # type: BaseTeam
         team.points,
         team.positions_filled_active,
         int(week_counter),
+        inactive_players,
         dq_eligible=dq_ce
     )
 
@@ -209,6 +212,51 @@ def add_report_team_stats(team,  # type: BaseTeam
     team.record = metrics.get("records").get(team.team_id)
 
     return team
+
+
+def get_player_game_time_statuses(league: BaseLeague):
+
+    file_name = "week_" + str(league.week_for_report) + "-player_status_data.html"
+    file_dir = os.path.join(league.data_dir, str(league.season), str(league.league_id),
+                            "week_" + str(league.week_for_report))
+    file_path = os.path.join(file_dir, file_name)
+
+    if not league.dev_offline:
+        user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) " \
+                     "Version/13.0.2 Safari/605.1.15"
+        headers = {
+            "user-agent": user_agent
+        }
+        params = {
+            "yr": str(league.season),
+            "wk": str(league.week_for_report),
+            "type": "reg"
+        }
+
+        response = requests.get("https://www.footballdb.com/transactions/injuries.html", headers=headers, params=params)
+
+        html_soup = BeautifulSoup(response.text, "html.parser")
+        # html_soup = BeautifulSoup(response.content, "html.parser")
+        logger.debug("Response URL: {}".format(response.url))
+        logger.debug("Response (HTML): {}".format(html_soup))
+    else:
+        try:
+            with open(file_path, "r", encoding="utf-8") as data_in:
+                html_soup = BeautifulSoup(data_in.read(), "html.parser")
+        except FileNotFoundError:
+            logger.error(
+                "FILE {} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
+                    file_path))
+            sys.exit()
+
+    if league.save_data:
+        if not os.path.exists(file_dir):
+            os.makedirs(file_dir)
+
+        with open(file_path, "w", encoding="utf-8") as data_out:
+            data_out.write(html_soup.prettify())
+
+    return html_soup
 
 
 def patch_http_connection_pool(**constructor_kwargs):

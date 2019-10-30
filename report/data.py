@@ -6,7 +6,7 @@ import itertools
 from calculate.metrics import CalculateMetrics
 from calculate.points_by_position import PointsByPosition
 from dao.base import BaseLeague, BaseMatchup, BaseTeam
-from dao.utils import add_report_team_stats
+from dao.utils import add_report_team_stats, get_player_game_time_statuses
 from report.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)
@@ -30,6 +30,17 @@ class ReportData(object):
         self.dq_ce = dq_ce
         self.is_faab = league.is_faab
 
+        inactive_players = []
+        if dq_ce:
+            injured_players = get_player_game_time_statuses(league).findAll("div", {"class": "tr"})
+            for player in injured_players:
+                player_name = player.find("a").text.strip()
+                player_status_info = player.find("div", {"class": "td w20 hidden-xs"}).find("b")
+                if player_status_info:
+                    player_status = player_status_info.text.strip()
+                    if player_status == "Out":
+                        inactive_players.append(player_name)
+
         self.teams_results = {
             team.team_id: add_report_team_stats(
                 team,
@@ -38,6 +49,7 @@ class ReportData(object):
                 metrics_calculator,
                 metrics,
                 dq_ce,
+                inactive_players
             ) for team in league.teams_by_week.get(str(week_counter)).values()
         }
 
