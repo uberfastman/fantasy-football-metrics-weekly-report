@@ -3,7 +3,6 @@ __email__ = "wrenjr@yahoo.com"
 
 import math
 from collections import defaultdict, Counter
-from dao.utils import get_player_game_time_statuses
 
 
 class CoachingEfficiency(object):
@@ -99,6 +98,9 @@ class CoachingEfficiency(object):
     def execute_coaching_efficiency(self, team_name, team_roster, team_points, positions_filled_active, week,
                                     inactive_players, dq_eligible=False):
 
+        # TODO: move this to config?
+        bench_slot_names = ["BN", "BE"]
+
         eligible_players = defaultdict(list)
         for player in team_roster:
             for position in self.get_eligible_positions(player):
@@ -131,15 +133,18 @@ class CoachingEfficiency(object):
 
         # apply coaching efficiency eligibility requirements if CE disqualification enabled (dq_ce=True)
         if dq_eligible:
-            # TODO: not all platforms use BN for bench (ESPN uses BE)
-            bench_players = [p for p in team_roster if p.selected_position == "BN"]  # exclude IR players
+            bench_players = [
+                p for p in team_roster if p.selected_position in bench_slot_names
+            ]  # exclude IR players
             ineligible_efficiency_player_count = len(
                 [p for p in bench_players if self.is_player_eligible(p, week, inactive_players)])
 
             if Counter(self.roster_active_slots) == Counter(positions_filled_active):
+                bench_slot_name = list(set(self.roster_slot_counts.keys()).intersection(set(bench_slot_names)))[0]
+
                 # divide bench slots by 2 and DQ team if number of ineligible players >= the ceiling of that value
                 if ineligible_efficiency_player_count < math.ceil(
-                        self.roster_slot_counts.get("BN", 0) / 2.0):  # exclude IR players
+                        self.roster_slot_counts.get(bench_slot_name, 0) / 2.0):  # exclude IR players
                     efficiency_disqualification = False
                 else:
                     efficiency_disqualification = True
