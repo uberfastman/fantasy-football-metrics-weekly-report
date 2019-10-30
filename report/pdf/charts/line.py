@@ -6,6 +6,7 @@ from reportlab.graphics.charts.axes import XValueAxis
 from reportlab.graphics.charts.legends import LineLegend
 from reportlab.graphics.charts.lineplots import LinePlot
 from reportlab.graphics.charts.textlabels import Label
+# noinspection PyProtectedMember
 from reportlab.graphics.shapes import Drawing, _DrawingEditorMixin, Rect
 from reportlab.graphics.widgets.markers import makeMarker
 from reportlab.lib.colors import PCMYKColor, black
@@ -24,6 +25,7 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
        lines they are associated with.
     """
 
+    # noinspection PyPep8Naming
     def __init__(self, data, title, x_axis_params, y_axis_params, series_names, series_colors_cmyk, box_width,
                  box_height, chart_width, chart_height, width=550, height=215, *args, **kw):
         Drawing.__init__(self, width, height, *args, **kw)

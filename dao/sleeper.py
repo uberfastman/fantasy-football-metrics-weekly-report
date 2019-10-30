@@ -211,7 +211,7 @@ class LeagueData(object):
                 except HTTPError as e:
                     # log error and terminate query if status code is not 200
                     logger.error("REQUEST FAILED WITH STATUS CODE: {} - {}".format(response.status_code, e))
-                    sys.exit()
+                    sys.exit("...run aborted.")
 
                 response_json = response.json()
                 logger.debug("Response (JSON): {}".format(response_json))
@@ -223,7 +223,7 @@ class LeagueData(object):
                 logger.error(
                     "FILE {} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                         file_path))
-                sys.exit()
+                sys.exit("...run aborted.")
 
         if self.save_data or check_for_saved_data:
             if run_query:
