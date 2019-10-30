@@ -112,7 +112,7 @@ class LeagueData(object):
                 logger.error(
                     "FILE {} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                         file_path))
-                sys.exit()
+                sys.exit("...run aborted.")
 
         if self.save_data:
             if not os.path.exists(file_dir):

@@ -129,7 +129,7 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, c
         logger.error(
             "Generating fantasy football reports for the \"{}\" fantasy football platform is not currently supported. "
             "Please change your settings in config.ini and try again.".format(platform))
-        sys.exit()
+        sys.exit("...run aborted.")
 
 
 def add_report_player_stats(player,  # type: BasePlayer
@@ -236,7 +236,6 @@ def get_player_game_time_statuses(league: BaseLeague):
         response = requests.get("https://www.footballdb.com/transactions/injuries.html", headers=headers, params=params)
 
         html_soup = BeautifulSoup(response.text, "html.parser")
-        # html_soup = BeautifulSoup(response.content, "html.parser")
         logger.debug("Response URL: {}".format(response.url))
         logger.debug("Response (HTML): {}".format(html_soup))
     else:
@@ -247,7 +246,7 @@ def get_player_game_time_statuses(league: BaseLeague):
             logger.error(
                 "FILE {} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                     file_path))
-            sys.exit()
+            sys.exit("...run aborted.")
 
     if league.save_data:
         if not os.path.exists(file_dir):

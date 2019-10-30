@@ -26,11 +26,11 @@ if os.path.isfile("config.ini"):
     else:
         logger.error(
             "Unable to access configuration file \"config.ini\". Please check that file permissions are properly set.")
-        sys.exit()
+        sys.exit("...run aborted.")
 else:
     logger.error(
         "Configuration file \"config.ini\" not found. Please make sure that it exists in project root directory.")
-    sys.exit()
+    sys.exit("...run aborted.")
 
 config = ConfigParser()
 config.read("config.ini")
@@ -63,9 +63,8 @@ def main(argv):
     if missing_dependency_count > 0:
         logger.error(
             "MISSING {} ".format(str(missing_dependency_count)) + (
-                "DEPENDENCY" if missing_dependency_count == 1 else "DEPENDENCIES") +
-            ". Report generation aborted.")
-        sys.exit()
+                "DEPENDENCY" if missing_dependency_count == 1 else "DEPENDENCIES"))
+        sys.exit("...run aborted.")
 
     usage_str = \
         "\n" \
@@ -100,7 +99,7 @@ def main(argv):
         # help/manual
         if opt in ("-h", "--help"):
             print(usage_str)
-            sys.exit()
+            sys.exit(0)
 
         # generate report
         elif opt in ("-f", "--fantasy-platform"):
@@ -282,7 +281,7 @@ if __name__ == '__main__':
                 logger.warning(
                     "You have configured \"config.ini\" with unsupported Slack setting: post_or_file = {}. "
                     "Please choose \"post\" or \"file\" and try again.".format(post_or_file))
-                sys.exit()
+                sys.exit("...run aborted.")
             if slack_response.get("ok"):
                 logger.info("Report {} successfully posted to Slack!".format(report_pdf))
             else:

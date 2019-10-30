@@ -94,13 +94,6 @@ class CoachingEfficiency(object):
                         yield player
 
     def is_player_eligible(self, player, week, inactives):
-        # return player.status in self.inactive_statuses or player.bye_week == week
-        print(player.full_name)
-        print(player.owner_team_name)
-        if player.full_name in inactives:
-            print(player.full_name, "is OUT!")
-        print()
-
         return player.status in self.inactive_statuses or player.bye_week == week or player.full_name in inactives
 
     def execute_coaching_efficiency(self, team_name, team_roster, team_points, positions_filled_active, week,

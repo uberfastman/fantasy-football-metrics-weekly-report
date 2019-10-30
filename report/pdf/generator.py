@@ -8,7 +8,8 @@ import urllib.request
 from configparser import ConfigParser
 from urllib.error import URLError
 
-from PIL import Image, ImageFile
+# from PIL import Image
+from PIL import ImageFile
 from reportlab.graphics.shapes import Line, Drawing
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
@@ -1108,7 +1109,7 @@ class TableOfContents(object):
     def format_toc_section(self, title, color="blue"):
         return [
             Paragraph(
-                "<a href = page.html#" + str(self.toc_anchor) + " color=" + color + "><b><u>" + title + "</u></b></a>",
+                "<a href = #page.html#" + str(self.toc_anchor) + " color=" + color + "><b><u>" + title + "</u></b></a>",
                 self.toc_style_right),
             Paragraph(". . . . . . . . . . . . . . . . . . . .", self.toc_style_center),
             Paragraph(str(self.toc_page), self.toc_style_left)
