@@ -257,7 +257,6 @@ class FantasyFootballReport(object):
                 for index, team_points in enumerate(weekly_points_data):
                     time_series_points_data[index].append(team_points)
                 for index, team_efficiency in enumerate(weekly_coaching_efficiency_data):
-                    # if float(team_efficiency[1]) != 0.0:
                     if team_efficiency[1] != "DQ":
                         time_series_efficiency_data[index].append(team_efficiency)
                 for index, team_luck in enumerate(weekly_luck_data):

@@ -338,7 +338,6 @@ class CalculateMetrics(object):
             resolved_coaching_efficiency_results_data = []
             place = 1
             for group in groups:
-                # for team in sorted(group, key=lambda x: x[-2], reverse=True):
                 for team in sorted(
                         group,
                         key=lambda x: (x[-2] if x[-2] != "DQ" else 0, x[-1]),

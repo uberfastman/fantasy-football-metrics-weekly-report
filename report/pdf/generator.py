@@ -19,12 +19,13 @@ from reportlab.lib.pagesizes import inch
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.utils import ImageReader
-# from reportlab.platypus import Image
-from reportlab.platypus.flowables import Image as ReportLabImage
-
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import PageBreak
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.platypus import Spacer
+# from reportlab.platypus import Image
+from reportlab.platypus.flowables import Image as ReportLabImage
 from reportlab.platypus.flowables import KeepTogether
 from reportlab.rl_settings import canvas_basefontname as bfn
 
@@ -145,6 +146,34 @@ class PdfGenerator(object):
         self.spacer_five_inch = Spacer(1, 5.00 * inch)
 
         # configure text styles
+        self.font = "Helvetica"
+        self.font_bold = "Helvetica-Bold"
+        self.font_italic = "Helvetica-Oblique"
+        self.font_bold_italic = "Helvetica-BoldOblique"
+
+        # self.font = "Times-Roman"
+        # self.font_bold = "Times-Bold"
+        # self.font_italic = "Times-Italic"
+        # self.font_bold_italic = "Times-BoldItalic"
+
+        # configure custom font(s)
+        use_custom_font = False
+        if use_custom_font:
+            # self.font = "Symbola"
+            # self.font_bold = "Symbola-Bold"
+            # self.font_italic = "Symbola-Italic"
+            # self.font_bold_italic = "Symbola-BoldItalic"
+
+            self.font = "OpenSansEmoji"
+            self.font_bold = "OpenSansEmoji-Bold"
+            self.font_italic = "OpenSansEmoji-Italic"
+            self.font_bold_italic = "OpenSansEmoji-BoldItalic"
+
+            pdfmetrics.registerFont(TTFont(self.font, "resources/fonts/" + self.font + ".ttf"))
+            pdfmetrics.registerFont(TTFont(self.font_bold, "resources/fonts/" + self.font + ".ttf"))
+            pdfmetrics.registerFont(TTFont(self.font_italic, "resources/fonts/" + self.font + ".ttf"))
+            pdfmetrics.registerFont(TTFont(self.font_bold_italic, "resources/fonts/" + self.font + ".ttf"))
+
         self.stylesheet = getSampleStyleSheet()
         self.stylesheet.add(ParagraphStyle(name="HC",
                                            parent=self.stylesheet["Normal"],
@@ -182,6 +211,7 @@ class PdfGenerator(object):
 
         title_table_style_list = [
             ("TEXTCOLOR", (0, 0), (-1, -1), colors.black),
+            ("FONT", (0, 0), (-1, -1), self.font),
             ("ALIGN", (0, 0), (-1, -1), "CENTER"),
             ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
         ]
@@ -191,8 +221,9 @@ class PdfGenerator(object):
         # Reportlab fonts: https://github.com/mattjmorrison/ReportLab/blob/master/src/reportlab/lib/fonts.py
         table_style_list = [
             ("TEXTCOLOR", (0, 1), (-1, 1), colors.green),
-            ("FONT", (0, 1), (-1, 1), "Helvetica-Oblique"),
-            ("FONT", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONT", (0, 0), (-1, -1), self.font),
+            ("FONT", (0, 1), (-1, 1), self.font_italic),
+            ("FONT", (0, 0), (-1, 0), self.font_bold),
             ("FONTSIZE", (0, 0), (-1, -1), 10),
             ("TOPPADDING", (0, 0), (-1, -1), 1),
             ("ALIGN", (0, 0), (-1, -1), "CENTER"),
@@ -215,8 +246,9 @@ class PdfGenerator(object):
         boom_bust_table_style_list = [
             ("TEXTCOLOR", (0, 0), (0, -1), colors.green),
             ("TEXTCOLOR", (1, 0), (1, -1), colors.darkred),
-            ("FONT", (0, 0), (-1, -1), "Helvetica-Bold"),
-            ("FONT", (0, 1), (-1, 1), "Helvetica-Oblique"),
+            ("FONT", (0, 0), (-1, -1), self.font),
+            ("FONT", (0, 0), (-1, -1), self.font_bold),
+            ("FONT", (0, 1), (-1, 1), self.font_italic),
             ("FONTSIZE", (0, 0), (-1, 0), 16),
             ("FONTSIZE", (0, 1), (-1, -2), 14),
             ("FONTSIZE", (0, -1), (-1, -1), 20),
@@ -329,7 +361,7 @@ class PdfGenerator(object):
         tied_values_table_style_list = list(table_style_list)
         if metric_type == "scores" and self.break_ties:
             tied_values_table_style_list.append(("TEXTCOLOR", (0, 1), (-1, 1), colors.green))
-            tied_values_table_style_list.append(("FONT", (0, 1), (-1, 1), "Helvetica-Oblique"))
+            tied_values_table_style_list.append(("FONT", (0, 1), (-1, 1), self.font_italic))
         else:
             iterator = num_first_places
             index = 1
@@ -339,7 +371,7 @@ class PdfGenerator(object):
                 color = colors.green
             while iterator > 0:
                 tied_values_table_style_list.append(("TEXTCOLOR", (0, index), (-1, index), color))
-                tied_values_table_style_list.append(("FONT", (0, index), (-1, index), "Helvetica-Oblique"))
+                tied_values_table_style_list.append(("FONT", (0, index), (-1, index), self.font_italic))
                 iterator -= 1
                 index += 1
 
@@ -448,14 +480,17 @@ class PdfGenerator(object):
                     beefs += [beef_icon] * int((num_beefs / 2))
                     beefs.append(half_beef_icon)
 
+                # noinspection PyTypeChecker
                 beefs.insert(0, team[-1] + " ")
                 beefs = [beefs]
                 beefs_col_widths = [0.20 * inch] * (num_beefs if num_beefs > 0 else num_cows)
                 beefs_col_widths.insert(0, 0.50 * inch)
                 beefs_table = Table(beefs, colWidths=beefs_col_widths, rowHeights=0.25 * inch)
                 if data.index(team) == 0:
-                    beefs_table_style = TableStyle([("TEXTCOLOR", (0, 0), (-1, -1), colors.green),
-                                                    ("FONT", (0, 0), (-1, -1), "Helvetica-Oblique")])
+                    beefs_table_style = TableStyle([
+                        ("TEXTCOLOR", (0, 0), (-1, -1), colors.green),
+                        ("FONT", (0, 0), (-1, -1), self.font_italic)
+                    ])
                     beefs_table.setStyle(beefs_table_style)
                 team[-1] = beefs_table
 
@@ -754,7 +789,7 @@ class PdfGenerator(object):
         # doc = SimpleDocTemplate(filename_with_path, pagesize=LETTER, rightMargin=25, leftMargin=25, topMargin=10,
         #                         bottomMargin=10)
         doc = SimpleDocTemplate(filename_with_path, pagesize=LETTER, rightMargin=25, leftMargin=25, topMargin=10,
-                                bottomMargin=10)
+                                bottomMargin=10, initialFontName=self.font, initialFontSize=12)
         doc.pagesize = portrait(LETTER)
 
         # document title
@@ -785,7 +820,7 @@ class PdfGenerator(object):
             # update playoff probabilities style to make playoff teams green
             playoff_probs_style = copy.deepcopy(self.style)
             playoff_probs_style.add("TEXTCOLOR", (0, 1), (-1, self.playoff_slots), colors.green)
-            playoff_probs_style.add("FONT", (0, 1), (-1, -1), "Helvetica")
+            playoff_probs_style.add("FONT", (0, 1), (-1, -1), self.font)
 
             data_for_playoff_probs = self.report_data.data_for_playoff_probs
             team_num = 1
@@ -793,14 +828,14 @@ class PdfGenerator(object):
                 for team in data_for_playoff_probs:
                     if float(team[3].split("%")[0]) == 100.00 and int(team[4].split(" ")[0]) == 0:
                         playoff_probs_style.add("TEXTCOLOR", (0, team_num), (-1, team_num), colors.darkgreen)
-                        playoff_probs_style.add("FONT", (0, team_num), (-1, team_num), "Helvetica-BoldOblique")
+                        playoff_probs_style.add("FONT", (0, team_num), (-1, team_num), self.font_bold_italic)
 
                     if (int(team[4].split(" ")[0]) + int(self.week_for_report)) > self.num_regular_season_weeks:
                         playoff_probs_style.add("TEXTCOLOR", (4, team_num), (4, team_num), colors.red)
 
                         if float(team[3].split("%")[0]) == 0.00:
                             playoff_probs_style.add("TEXTCOLOR", (0, team_num), (-1, team_num), colors.darkred)
-                            playoff_probs_style.add("FONT", (0, team_num), (-1, team_num), "Helvetica-BoldOblique")
+                            playoff_probs_style.add("FONT", (0, team_num), (-1, team_num), self.font_bold_italic)
 
                     team_num += 1
 
