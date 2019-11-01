@@ -26,18 +26,17 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
     """
 
     # noinspection PyPep8Naming
-    def __init__(self, data, title, x_axis_params, y_axis_params, series_names, series_colors_cmyk, box_width,
-                 box_height, chart_width, chart_height, width=550, height=215, *args, **kw):
+    def __init__(self, data, font, font_bold, title, x_axis_params, y_axis_params, series_names, series_colors_cmyk,
+                 box_width, box_height, chart_width, chart_height, width=550, height=215, *args, **kw):
         Drawing.__init__(self, width, height, *args, **kw)
-        Drawing.hAlign = 'CENTER'
+        Drawing.hAlign = "CENTER"
 
-        font_name = 'Helvetica'
         # self.width = 550
         # self.height = 240
         self.width = box_width
         self.height = box_height
-        self._add(self, LinePlot(), name='chart', validate=None, desc=None)
-        self._add(self, LineLegend(), name='legend', validate=None, desc=None)
+        self._add(self, LinePlot(), name="chart", validate=None, desc=None)
+        self._add(self, LineLegend(), name="legend", validate=None, desc=None)
 
         # self.chart.width = 490
         # self.chart.height = 150
@@ -50,7 +49,7 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         for color in series_colors_cmyk:
             index = series_colors_cmyk.index(color)
             self.chart.lines[index].strokeColor = PCMYKColor(color[0], color[1], color[2], color[3], alpha=color[4])
-            self.chart.lines[index].symbol = makeMarker('FilledCircle')
+            self.chart.lines[index].symbol = makeMarker("FilledCircle")
             self.chart.lines[index].symbol.strokeColor = PCMYKColor(color[0], color[1], color[2], color[3],
                                                                     alpha=color[4])
             self.chart.lines[index].symbol.size = 5
@@ -62,13 +61,13 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         # set size of swatches
         self.legend.dx = 0
         self.legend.dy = -5
-        self.legend.fontName = font_name
+        self.legend.fontName = font
         self.legend.fontSize = 8 if len(series_names) % 3 == 0 else 7
-        self.legend.alignment = 'right'
+        self.legend.alignment = "right"
         self.legend.columnMaximum = 2 if len(series_names) % 3 == 0 else 3
         self.legend.dxTextSpace = 4
         self.legend.variColumn = 1
-        self.legend.boxAnchor = 'nw'
+        self.legend.boxAnchor = "nw"
         self.legend.deltay = 10
         self.legend.autoXPadding = 20
 
@@ -79,42 +78,42 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         self.background.x = 0
         self.background.fillColor = PCMYKColor(16, 12, 13, 0, alpha=30)
 
-        self.make_title(title)
+        self.make_title(title, font=font_bold)
         self.make_data(data)
-        self.make_x_axis(*x_axis_params)
-        self.make_y_axis(*y_axis_params)
+        self.make_x_axis(*x_axis_params, font=font)
+        self.make_y_axis(*y_axis_params, font=font)
         self.make_series_labels(series_names)
 
-    def make_title(self, title):
-        self._add(self, Label(), name='Title', validate=None, desc="The title at the top of the chart")
+    def make_title(self, title, font="Helvetica"):
+        self._add(self, Label(), name="Title", validate=None, desc="The title at the top of the chart")
 
-        self.Title.fontName = 'Helvetica-Bold'
+        self.Title.fontName = font
         self.Title.fontSize = 14
         self.Title.x = 265
         self.Title.y = 225
         self.Title._text = title
         self.Title.maxWidth = 500
         self.Title.height = 20
-        self.Title.textAnchor = 'middle'
+        self.Title.textAnchor = "middle"
 
-    def make_x_axis(self, x_label, x_min, x_max, x_step):
-        self._add(self, Label(), name='XLabel', validate=None, desc="The label on the horizontal axis")
+    def make_x_axis(self, x_label, x_min, x_max, x_step, font="Helvetica"):
+        self._add(self, Label(), name="XLabel", validate=None, desc="The label on the horizontal axis")
 
-        self.XLabel.fontName = 'Helvetica'
+        self.XLabel.fontName = font
         self.XLabel.fontSize = 10
         self.XLabel.x = 22
         self.XLabel.y = 45
-        self.XLabel.textAnchor = 'middle'
+        self.XLabel.textAnchor = "middle"
         self.XLabel.maxWidth = 500
         self.XLabel.height = 20
         self.XLabel._text = x_label
 
         self.chart.xValueAxis = XValueAxis()
-        self.chart.xValueAxis.labels.boxAnchor = 'autox'
+        self.chart.xValueAxis.labels.boxAnchor = "autox"
         self.chart.xValueAxis.valueMin = x_min
         self.chart.xValueAxis.valueMax = x_max
         self.chart.xValueAxis.valueStep = x_step
-        self.chart.xValueAxis.labels.fontName = "Helvetica"
+        self.chart.xValueAxis.labels.fontName = font
         self.chart.xValueAxis.labels.fontSize = 10
         self.chart.xValueAxis.visibleTicks = 1
         self.chart.xValueAxis.labels.rightPadding = 0
@@ -124,15 +123,15 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         # print(self.chart.xValueAxis.getProperties())
         # self.chart.xValueAxis.labels.angle = 45
 
-    def make_y_axis(self, y_label, y_min, y_max, y_step):
+    def make_y_axis(self, y_label, y_min, y_max, y_step, font="Helvetica"):
         self._add(self, Label(), name='YLabel', validate=None, desc="The label on the vertical axis")
 
-        self.YLabel.fontName = 'Helvetica'
+        self.YLabel.fontName = font
         self.YLabel.fontSize = 10
         self.YLabel.x = 20
         self.YLabel.y = 140
         self.YLabel.angle = 90
-        self.YLabel.textAnchor = 'middle'
+        self.YLabel.textAnchor = "middle"
         self.YLabel.maxWidth = 200
         self.YLabel.height = 20
         self.YLabel._text = y_label
@@ -143,14 +142,14 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         self.chart.yValueAxis.visibleGrid = 1
         self.chart.yValueAxis.visibleAxis = 1
         self.chart.yValueAxis.visibleTicks = 0
-        self.chart.yValueAxis.labels.fontName = "Helvetica"
+        self.chart.yValueAxis.labels.fontName = font
         self.chart.yValueAxis.labels.fontSize = 10
-        self.chart.yValueAxis.labelTextFormat = '%0.0f'
+        self.chart.yValueAxis.labelTextFormat = "%0.0f"
         self.chart.yValueAxis.strokeWidth = 0
         self.chart.yValueAxis.gridStrokeWidth = 0.25
         self.chart.yValueAxis.labels.rightPadding = 5
         self.chart.yValueAxis.maximumTicks = 15
-        self.chart.yValueAxis.rangeRound = 'both'
+        self.chart.yValueAxis.rangeRound = "both"
         self.chart.yValueAxis.avoidBoundFrac = 0.1
         self.chart.yValueAxis.labels.dx = 3
         self.chart.yValueAxis.forceZero = 0

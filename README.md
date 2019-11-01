@@ -17,6 +17,7 @@
     * [macOS Launch Script](#macos-launch-script)
 * [Configuration](#configuration)
    * [Report Features](#report-features)
+   * [Report Formatting](#report-formatting)
    * [Report Settings](#report-settings)
 * [Usage](#usage)
     * [Virtual Environment](#virtual-environment)
@@ -374,6 +375,16 @@ For those of you who wish to configure the report to include a custom subset of 
     team_bad_boy_stats = True
     team_beef_stats = True
     team_boom_or_bust = True
+
+<a name="report-formatting"></a>
+#### Report Formatting
+
+The report can also have some of its visual formatting configured. The following formatting options are available:
+
+    font = helvetica
+    font_size = 12
+    
+The values seen in the `supported_fonts` configuration option are the currently supported fonts for the app.
 
 <a name="report-settings"></a>
 #### Report Settings

@@ -1,23 +1,22 @@
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
-import copy
 import logging
 import os
 import urllib.request
 from configparser import ConfigParser
+from copy import deepcopy
 from urllib.error import URLError
 
 # from PIL import Image
 from PIL import ImageFile
 from reportlab.graphics.shapes import Line, Drawing
 from reportlab.lib import colors
+from reportlab.lib import styles
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
-from reportlab.lib.fonts import tt2ps
 from reportlab.lib.pagesizes import LETTER, portrait
 from reportlab.lib.pagesizes import inch
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -27,13 +26,13 @@ from reportlab.platypus import Spacer
 # from reportlab.platypus import Image
 from reportlab.platypus.flowables import Image as ReportLabImage
 from reportlab.platypus.flowables import KeepTogether
-from reportlab.rl_settings import canvas_basefontname as bfn
 
 from dao.base import BaseLeague, BaseTeam, BasePlayer
 from report.data import ReportData
 from report.logger import get_logger
 from report.pdf.charts.line import LineChartGenerator
 from report.pdf.charts.pie import BreakdownPieDrawing
+from resources.documentation import descriptions
 
 logger = get_logger(__name__, propagate=False)
 
@@ -102,26 +101,6 @@ class PdfGenerator(object):
         self.playoff_prob_sims = playoff_prob_sims
         self.num_coaching_efficiency_dqs = report_data.num_coaching_efficiency_dqs
 
-        # data for report
-        self.report_data = report_data
-        self.data_for_scores = report_data.data_for_scores
-        self.data_for_coaching_efficiency = report_data.data_for_coaching_efficiency
-        self.data_for_luck = report_data.data_for_luck
-        self.data_for_power_rankings = report_data.data_for_power_rankings
-        self.data_for_z_scores = report_data.data_for_z_scores
-        self.data_for_bad_boy_rankings = report_data.data_for_bad_boy_rankings
-        self.data_for_beef_rankings = report_data.data_for_beef_rankings
-        self.data_for_weekly_points_by_position = report_data.data_for_weekly_points_by_position
-        self.data_for_season_average_team_points_by_position = report_data.data_for_season_avg_points_by_position
-        self.data_for_season_weekly_top_scorers = report_data.data_for_season_weekly_top_scorers
-        self.data_for_season_weekly_highest_ce = report_data.data_for_season_weekly_highest_ce
-
-        # table of contents
-        self.toc = TableOfContents(self.config, self.break_ties)
-
-        # team data for use on team specific stats pages
-        self.teams_results = report_data.teams_results
-
         # table column widths
         self.widths_4_cols_2 = [1.00 * inch, 2.25 * inch, 2.25 * inch, 2.25 * inch]
         self.widths_4_cols_2 = [1.00 * inch, 2.50 * inch, 2.50 * inch, 1.75 * inch]
@@ -146,65 +125,102 @@ class PdfGenerator(object):
         self.spacer_five_inch = Spacer(1, 5.00 * inch)
 
         # configure text styles
-        self.font = "Helvetica"
-        self.font_bold = "Helvetica-Bold"
-        self.font_italic = "Helvetica-Oblique"
-        self.font_bold_italic = "Helvetica-BoldOblique"
+        self.font_size = config.getint("Report", "font_size")
+        font_key = config.get("Report", "font")
+        supported_fonts = [font.strip() for font in self.config.get("Report", "supported_fonts").split(",")]
+        if font_key not in supported_fonts:
+            logger.warning("The {} font is not supported at this time. Report formatting has defaulted to Helvetica. "
+                           "Please try again with one of the following supported font keys:"
+                           "{}".format(font_key, supported_fonts))
+        font_dict = {
+            "helvetica": 1,
+            "times": 2,
+            "symbola": 3,
+            "opensansemoji": 4,
+            "sketchcollege": 5,
+            "leaguegothic": 6
+        }
+        if font_key in font_dict.keys():
+            which_font = font_dict[font_key]
+        else:
+            which_font = 0
+        use_custom_font = False if which_font < 3 else True
 
-        # self.font = "Times-Roman"
-        # self.font_bold = "Times-Bold"
-        # self.font_italic = "Times-Italic"
-        # self.font_bold_italic = "Times-BoldItalic"
-
+        if which_font == 1:
+            self.font = "Helvetica"
+            self.font_bold = "Helvetica-Bold"
+            self.font_italic = "Helvetica-Oblique"
+            self.font_bold_italic = "Helvetica-BoldOblique"
+        elif which_font == 2:
+            self.font = "Times-Roman"
+            self.font_bold = "Times-Bold"
+            self.font_italic = "Times-Italic"
+            self.font_bold_italic = "Times-BoldItalic"
         # configure custom font(s)
-        use_custom_font = False
-        if use_custom_font:
-            # self.font = "Symbola"
-            # self.font_bold = "Symbola-Bold"
-            # self.font_italic = "Symbola-Italic"
-            # self.font_bold_italic = "Symbola-BoldItalic"
-
+        elif use_custom_font and which_font == 3:
+            self.font = "Symbola"
+            self.font_bold = "Symbola"
+            self.font_italic = "Symbola"
+            self.font_bold_italic = "Symbola"
+        elif use_custom_font and which_font == 4:
             self.font = "OpenSansEmoji"
-            self.font_bold = "OpenSansEmoji-Bold"
-            self.font_italic = "OpenSansEmoji-Italic"
-            self.font_bold_italic = "OpenSansEmoji-BoldItalic"
+            self.font_bold = "OpenSansEmoji"
+            self.font_italic = "OpenSansEmoji"
+            self.font_bold_italic = "OpenSansEmoji"
+        elif use_custom_font and which_font == 5:
+            self.font = "SketchCollege"
+            self.font_bold = "SketchCollege"
+            self.font_italic = "SketchCollege"
+            self.font_bold_italic = "SketchCollege"
+        elif use_custom_font and which_font == 6:
+            self.font = "LeagueGothicRegular"
+            self.font_bold = "LeagueGothicRegular"
+            self.font_italic = "LeagueGothicItalic"
+            self.font_bold_italic = "LeagueGothicItalic"
+        else:
+            # default to Helvetica
+            self.font = "Helvetica"
+            self.font_bold = "Helvetica-Bold"
+            self.font_italic = "Helvetica-Oblique"
+            self.font_bold_italic = "Helvetica-BoldOblique"
 
+        if use_custom_font:
             pdfmetrics.registerFont(TTFont(self.font, "resources/fonts/" + self.font + ".ttf"))
             pdfmetrics.registerFont(TTFont(self.font_bold, "resources/fonts/" + self.font + ".ttf"))
             pdfmetrics.registerFont(TTFont(self.font_italic, "resources/fonts/" + self.font + ".ttf"))
             pdfmetrics.registerFont(TTFont(self.font_bold_italic, "resources/fonts/" + self.font + ".ttf"))
 
-        self.stylesheet = getSampleStyleSheet()
-        self.stylesheet.add(ParagraphStyle(name="HC",
-                                           parent=self.stylesheet["Normal"],
-                                           fontSize=14,
-                                           alignment=TA_CENTER,
-                                           spaceAfter=6),
-                            alias="header-centered")
+        styles._baseFontName = self.font
+        self.stylesheet = styles.getSampleStyleSheet()
+        self.stylesheet.add(
+            ParagraphStyle(
+                name="HC",
+                parent=self.stylesheet["Normal"],
+                fontSize=self.font_size + 2,
+                font=self.font,
+                alignment=TA_CENTER,
+                spaceAfter=6
+            ),
+            alias="header-centered"
+        )
         self.text_style_title = self.stylesheet["HC"]
         self.text_style = self.stylesheet["BodyText"]
         self.text_style_normal = self.stylesheet["Normal"]
         self.text_style_h1 = self.stylesheet["Heading1"]
+        self.text_style_h1.fontName = self.font
         self.text_style_h2 = self.stylesheet["Heading2"]
+        self.text_style_h2.fontName = self.font
         self.text_style_h3 = self.stylesheet["Heading3"]
-        self.text_style_h4 = self.stylesheet["Heading4"]
-        self.text_style_h5 = self.stylesheet["Heading5"]
-        self.text_style_h6 = self.stylesheet["Heading6"]
+        self.text_style_h3.fontName = self.font
         self.text_style_subtitles = ParagraphStyle(name="subtitles",
                                                    parent=self.text_style_normal,
-                                                   fontName=tt2ps(bfn, 1, 1),
-                                                   fontSize=8,
+                                                   # fontName=tt2ps(bfn, 1, 1),
+                                                   fontName=self.font_bold_italic,
+                                                   fontSize=self.font_size - 4,
                                                    leading=10,
                                                    spaceBefore=0,
                                                    spaceAfter=0)
-        self.text_style_invisible = ParagraphStyle(name="invisible",
-                                                   parent=self.text_style_normal,
-                                                   fontName=tt2ps(bfn, 1, 1),
-                                                   fontSize=0,
-                                                   textColor=colors.white,
-                                                   leading=10,
-                                                   spaceBefore=0,
-                                                   spaceAfter=0)
+        self.text_style_invisible = ParagraphStyle(name="invisible", fontSize=0, textColor=colors.white)
 
         # configure word wrap
         self.text_style.wordWrap = "CJK"
@@ -224,7 +240,7 @@ class PdfGenerator(object):
             ("FONT", (0, 0), (-1, -1), self.font),
             ("FONT", (0, 1), (-1, 1), self.font_italic),
             ("FONT", (0, 0), (-1, 0), self.font_bold),
-            ("FONTSIZE", (0, 0), (-1, -1), 10),
+            ("FONTSIZE", (0, 0), (-1, -1), self.font_size - 2),
             ("TOPPADDING", (0, 0), (-1, -1), 1),
             ("ALIGN", (0, 0), (-1, -1), "CENTER"),
             ("GRID", (0, 0), (-1, -1), 0.5, colors.gray),
@@ -234,12 +250,22 @@ class PdfGenerator(object):
             ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey)
         ]
+
+        # general table style
         self.style = TableStyle(table_style_list)
-        style_left_alight_right_col_list = copy.deepcopy(table_style_list)
+
+        # table style for left aligned final column
+        style_left_alight_right_col_list = deepcopy(table_style_list)
         style_left_alight_right_col_list.append(("ALIGN", (-1, 1), (-1, -1), "LEFT"))
-        self.style_left_alighn_right_col = TableStyle(style_left_alight_right_col_list)
-        self.style_no_highlight = TableStyle(table_style_list[2:])
-        red_highlight = table_style_list.copy()
+        self.style_left_align_right_col = TableStyle(style_left_alight_right_col_list)
+
+        # table style without any color highlighting on the first line
+        no_highlight = deepcopy(table_style_list[4:])
+        no_highlight.append(("FONT", (0, 0), (-1, -1), self.font))
+        self.style_no_highlight = TableStyle(no_highlight)
+
+        # table style with red highlighting on the first line
+        red_highlight = deepcopy(table_style_list)
         red_highlight[0] = ("TEXTCOLOR", (0, 1), (-1, 1), colors.darkred)
         self.style_red_highlight = TableStyle(red_highlight)
 
@@ -249,9 +275,9 @@ class PdfGenerator(object):
             ("FONT", (0, 0), (-1, -1), self.font),
             ("FONT", (0, 0), (-1, -1), self.font_bold),
             ("FONT", (0, 1), (-1, 1), self.font_italic),
-            ("FONTSIZE", (0, 0), (-1, 0), 16),
-            ("FONTSIZE", (0, 1), (-1, -2), 14),
-            ("FONTSIZE", (0, -1), (-1, -1), 20),
+            ("FONTSIZE", (0, 0), (-1, 0), self.font_size + 4),
+            ("FONTSIZE", (0, 1), (-1, -2), self.font_size + 2),
+            ("FONTSIZE", (0, -1), (-1, -1), self.font_size + 8),
             ("ALIGN", (0, 0), (-1, -1), "CENTER"),
             ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
         ]
@@ -288,6 +314,28 @@ class PdfGenerator(object):
         self.zscores_headers = [["Place", "Team", "Manager", "Z-Score"]]
         self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
 
+        # options: "document", "section", or None
+        self.report_title = self.create_title(report_title_text, element_type="document")
+
+        footer_data = [[self.spacer_five_inch],
+                       [Paragraph(report_footer_text, self.text_style_normal)]]
+        self.report_footer = Table(footer_data, colWidths=7.75 * inch)
+
+        # data for report
+        self.report_data = report_data
+        self.data_for_scores = report_data.data_for_scores
+        self.data_for_coaching_efficiency = report_data.data_for_coaching_efficiency
+        self.data_for_luck = report_data.data_for_luck
+        self.data_for_power_rankings = report_data.data_for_power_rankings
+        self.data_for_z_scores = report_data.data_for_z_scores
+        self.data_for_bad_boy_rankings = report_data.data_for_bad_boy_rankings
+        self.data_for_beef_rankings = report_data.data_for_beef_rankings
+        self.data_for_weekly_points_by_position = report_data.data_for_weekly_points_by_position
+        self.data_for_season_average_team_points_by_position = report_data.data_for_season_avg_points_by_position
+        self.data_for_season_weekly_top_scorers = report_data.data_for_season_weekly_top_scorers
+        self.data_for_season_weekly_highest_ce = report_data.data_for_season_weekly_highest_ce
+
+        # dynamically create table styles based on number of ties in metrics
         self.style_efficiency_dqs = None
         self.style_tied_scores = self.set_tied_values_style(self.report_data.ties_for_scores, table_style_list,
                                                             "scores")
@@ -303,21 +351,24 @@ class PdfGenerator(object):
         self.style_tied_beef = self.set_tied_values_style(self.report_data.ties_for_beef_rankings,
                                                           style_left_alight_right_col_list, "beef")
 
-        # options: "document", "section", or None
-        self.report_title = self.create_title(report_title_text, element_type="document")
+        # table of contents
+        self.toc = TableOfContents(self.font, self.font_size, self.config, self.break_ties)
 
-        footer_data = [[self.spacer_five_inch],
-                       [Paragraph(report_footer_text, getSampleStyleSheet()["Normal"])]]
-        self.report_footer = Table(footer_data, colWidths=7.75 * inch)
+        # appendix
+        self.appendix = Appendix("Appendix I: Rankings & Metrics", self.create_title, self.toc.get_current_anchor,
+                                 self.font_size, self.text_style)
+
+        # team data for use on team specific stats pages
+        self.teams_results = report_data.teams_results
 
     # noinspection PyUnusedLocal
-    @staticmethod
-    def add_page_number(canvas, doc):
+    def add_page_number(self, canvas, doc):
         """
         Add the page number
         """
         page_num = canvas.getPageNumber()
         text = "Page %s" % page_num
+        canvas.setFont(self.font, self.font_size - 4)
         canvas.drawRightString(4.45 * inch, 0.25 * inch, text)
 
     def add_page_break(self):
@@ -396,16 +447,27 @@ class PdfGenerator(object):
     def create_section(self, elements, title_text, headers, data, table_style, table_style_ties, col_widths,
                        subtitle_text=None, row_heights=None, tied_metric=False, metric_type=None):
 
-        title = self.create_title(title_text, element_type="section",
-                                  anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>",
-                                  subtitle_text=subtitle_text)
+        section_anchor = str(self.toc.get_current_anchor())
+        self.appendix.add_entry(
+            title_text,
+            section_anchor,
+            getattr(descriptions, title_text.replace(" ", "_").replace("-", "_").lower())
+        )
+        appendix_anchor = self.appendix.get_last_entry_anchor()
+        title = self.create_title(
+            '''<a href = #page.html#''' + appendix_anchor + ''' color=blue>''' +
+            '''<u><b>''' + title_text + '''</b></u></a>''',
+            element_type="section",
+            anchor="<a name = page.html#" + section_anchor + "></a>",
+            subtitle_text=subtitle_text
+        )
         self.toc.add_metric_section(title_text)
 
         if metric_type == "standings":
             font_reduction = 0
             for x in range(1, (len(data) % 12) + 1, 4):
                 font_reduction += 1
-            table_style.add("FONTSIZE", (0, 0), (-1, -1), 10 - font_reduction)
+            table_style.add("FONTSIZE", (0, 0), (-1, -1), (self.font_size - 2) - font_reduction)
             if self.report_data.is_faab:
                 headers[0][7] = "FAAB"
 
@@ -413,7 +475,7 @@ class PdfGenerator(object):
             font_reduction = 0
             for x in range(1, (len(data[0][5:]) % 6) + 2):
                 font_reduction += 1
-            table_style.add("FONTSIZE", (0, 0), (-1, -1), 10 - font_reduction)
+            table_style.add("FONTSIZE", (0, 0), (-1, -1), (self.font_size - 2) - font_reduction)
 
         if metric_type == "scores":
             if self.break_ties and self.report_data.ties_for_scores > 0:
@@ -485,14 +547,19 @@ class PdfGenerator(object):
                 beefs = [beefs]
                 beefs_col_widths = [0.20 * inch] * (num_beefs if num_beefs > 0 else num_cows)
                 beefs_col_widths.insert(0, 0.50 * inch)
-                beefs_table = Table(beefs, colWidths=beefs_col_widths, rowHeights=0.25 * inch)
+                tabbu_column_table = Table(beefs, colWidths=beefs_col_widths, rowHeights=0.25 * inch)
+
+                tabbu_column_table_style_list = [
+                    ("FONT", (0, 0), (-1, -1), self.font),
+                    ("FONTSIZE", (0, 0), (-1, -1), self.font_size - 2)
+                ]
                 if data.index(team) == 0:
-                    beefs_table_style = TableStyle([
+                    tabbu_column_table_style_list.extend([
                         ("TEXTCOLOR", (0, 0), (-1, -1), colors.green),
                         ("FONT", (0, 0), (-1, -1), self.font_italic)
                     ])
-                    beefs_table.setStyle(beefs_table_style)
-                team[-1] = beefs_table
+                tabbu_column_table.setStyle(TableStyle(tabbu_column_table_style_list))
+                team[-1] = tabbu_column_table
 
         data_table = self.create_data_table(headers, data, table_style, table_style_ties, col_widths, row_heights,
                                             tied_metric)
@@ -520,11 +587,11 @@ class PdfGenerator(object):
 
         if metric_type in ["scores", "coaching_efficiency"]:
             if not self.break_ties:
-                return Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"])
+                return Paragraph(self.tie_for_first_footer, self.text_style_normal)
             else:
                 return None
         else:
-            return Paragraph(self.tie_for_first_footer, getSampleStyleSheet()["Normal"])
+            return Paragraph(self.tie_for_first_footer, self.text_style_normal)
 
     def create_title(self, title_text, title_width=8.5, element_type=None, anchor="", subtitle_text=None):
 
@@ -589,8 +656,7 @@ class PdfGenerator(object):
             table.setStyle(self.style)
         return table
 
-    @staticmethod
-    def create_line_chart(data, data_length, series_names, chart_title, x_axis_title, y_axis_title, y_step):
+    def create_line_chart(self, data, data_length, series_names, chart_title, x_axis_title, y_axis_title, y_step):
 
         # see https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/ for colors
         series_colors = [
@@ -628,6 +694,8 @@ class PdfGenerator(object):
 
         points_line_chart = LineChartGenerator(
             data,
+            self.font,
+            self.font_bold,
             chart_title,
             [x_axis_title, 0, data_length + 1, 1],
             [y_axis_title, values_min, values_max, y_step],
@@ -690,8 +758,8 @@ class PdfGenerator(object):
                 team_table = Table(
                     [[self.create_title("Weekly Points by Position", title_width=2.00),
                       self.create_title("Season Average Points by Position", title_width=2.00)],
-                     [BreakdownPieDrawing(labels, weekly_data),
-                      BreakdownPieDrawing(labels, season_data)]],
+                     [BreakdownPieDrawing(labels, weekly_data, font=self.font),
+                      BreakdownPieDrawing(labels, season_data, font=self.font)]],
                     colWidths=[4.25 * inch, 4.25 * inch],
                     style=TableStyle([
                         ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.white),
@@ -801,7 +869,7 @@ class PdfGenerator(object):
         # standings
         if self.config.getboolean("Report", "league_standings"):
             # update standings style to vertically justify all rows
-            standings_style = copy.deepcopy(self.style)
+            standings_style = deepcopy(self.style)
             standings_style.add("VALIGN", (0, 0), (-1, -1), "MIDDLE")
 
             self.create_section(
@@ -818,7 +886,7 @@ class PdfGenerator(object):
 
         if self.config.getboolean("Report", "league_playoff_probs"):
             # update playoff probabilities style to make playoff teams green
-            playoff_probs_style = copy.deepcopy(self.style)
+            playoff_probs_style = deepcopy(self.style)
             playoff_probs_style.add("TEXTCOLOR", (0, 1), (-1, self.playoff_slots), colors.green)
             playoff_probs_style.add("FONT", (0, 1), (-1, -1), self.font)
 
@@ -1005,7 +1073,7 @@ class PdfGenerator(object):
                 "Beef Rankings",
                 self.beef_headers,
                 self.data_for_beef_rankings,
-                self.style_left_alighn_right_col,
+                self.style_left_align_right_col,
                 self.style_tied_beef,
                 self.widths_4_cols_4,
                 tied_metric=self.report_data.ties_for_beef_rankings > 0,
@@ -1068,6 +1136,11 @@ class PdfGenerator(object):
             self.create_team_stats_pages(elements, self.data_for_weekly_points_by_position,
                                          self.data_for_season_average_team_points_by_position)
 
+        # add appendix for metrics
+        elements.append(self.appendix.get_appendix())
+        elements.append(self.add_page_break())
+        self.toc.add_appendix("Appendix I: Rankings & Metrics")
+
         # insert table of contents after report title and spacer
         elements.insert(2, self.toc.get_toc())
 
@@ -1075,23 +1148,26 @@ class PdfGenerator(object):
 
         # build pdf
         logger.info("generating PDF ({})...".format(filename_with_path.split("/")[-1]))
-        doc.build(elements, onFirstPage=self.add_page_number, onLaterPages=self.add_page_number)
+        # doc.build(elements, onFirstPage=self.add_page_number, onLaterPages=self.add_page_number)
+        doc.build(elements, onLaterPages=self.add_page_number)
 
         return doc.filename
 
 
 class TableOfContents(object):
 
-    def __init__(self, config, break_ties):
+    def __init__(self, font, font_size, config, break_ties):
 
         self.config = config  # type: ConfigParser
         self.break_ties = break_ties
 
-        self.toc_style_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=12)
-        self.toc_style_center = ParagraphStyle(name="tocc", alignment=TA_CENTER, fontSize=12)
-        self.toc_style_left = ParagraphStyle(name="tocl", alignment=TA_LEFT, fontSize=12)
-        self.toc_style_title_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=14)
-        self.toc_style_title_left = ParagraphStyle(name="tocl", alignment=TA_LEFT, fontSize=14)
+        self.toc_style_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=font_size, fontName=font)
+        self.toc_style_center = ParagraphStyle(name="tocc", alignment=TA_CENTER, fontSize=font_size, fontName=font)
+        self.toc_style_left = ParagraphStyle(name="tocl", alignment=TA_LEFT, fontSize=font_size, fontName=font)
+        self.toc_style_title_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=font_size + 2,
+                                                    fontName=font)
+        self.toc_style_title_left = ParagraphStyle(name="tocl", alignment=TA_LEFT, fontSize=font_size + 2,
+                                                   fontName=font)
 
         self.toc_anchor = 0
 
@@ -1101,6 +1177,7 @@ class TableOfContents(object):
         self.toc_metric_section_data = None
         self.toc_chart_section_data = None
         self.toc_team_section_data = None
+        self.toc_appendix_data = None
         if self.config.getboolean(
                 "Report", "league_standings") or self.config.getboolean(
                 "Report", "league_playoff_probs") or self.config.getboolean(
@@ -1115,6 +1192,11 @@ class TableOfContents(object):
                 "Report", "league_beef_rankings"):
             self.toc_metric_section_data = [
                 [Paragraph("<b><i>Metrics</i></b>", self.toc_style_title_right),
+                 "",
+                 Paragraph("<b><i>Page</i></b>", self.toc_style_title_left)]
+            ]
+            self.toc_appendix_data = [
+                [Paragraph("<b><i>Appendices</i></b>", self.toc_style_title_right),
                  "",
                  Paragraph("<b><i>Page</i></b>", self.toc_style_title_left)]
             ]
@@ -1172,6 +1254,11 @@ class TableOfContents(object):
         self.toc_chart_section_data.append(chart_section)
         self.toc_anchor += 1
 
+    def add_appendix(self, title):
+        appendix_section = self.format_toc_section(title)
+        self.toc_appendix_data.append(appendix_section)
+        self.toc_anchor += 1
+
     def get_current_anchor(self):
         return self.toc_anchor
 
@@ -1179,9 +1266,57 @@ class TableOfContents(object):
         return Table(
             (self.toc_metric_section_data + [["", "", ""]] if self.toc_metric_section_data else []) +
             (self.toc_chart_section_data + [["", "", ""]] if self.toc_chart_section_data else []) +
-            (self.toc_team_section_data if self.toc_team_section_data else []),
+            (self.toc_team_section_data + [["", "", ""]] if self.toc_team_section_data else []) +
+            (self.toc_appendix_data if self.toc_appendix_data else []),
             colWidths=[3.25 * inch, 2 * inch, 2.50 * inch],
             rowHeights=[0.30 * inch] * len(self.toc_metric_section_data) + [0.10 * inch] +
                        [0.30 * inch] * len(self.toc_chart_section_data) + [0.10 * inch] +
-                       [0.30 * inch] * len(self.toc_team_section_data)
+                       [0.30 * inch] * len(self.toc_team_section_data) + [0.10 * inch] +
+                       [0.30 * inch] * len(self.toc_appendix_data)
+        )
+
+
+class Appendix(object):
+
+    def __init__(self, title, title_formatter, toc_anchor_getter, font_size, style):
+        self.title = title
+        self.title_formatter = title_formatter
+        self.toc_anchor_getter = toc_anchor_getter
+        self.font_size = font_size
+        self.style = style
+        self.entries = []
+        self.entry_anchor_num = 1000
+
+    def get_last_entry_anchor(self):
+        return str(self.entry_anchor_num - 1)
+
+    def add_entry(self, title, section_anchor, text):
+        body_style = deepcopy(self.style)  # type: ParagraphStyle
+        body_style.fontSize = self.font_size - 4
+        body_style.firstLineIndent = 1
+        entry = Paragraph(
+            '''<para align=left>''' +
+            '''<a name = page.html#''' + str(self.entry_anchor_num) + '''></a>''' +
+            '''<a href = #page.html#''' + section_anchor +
+            ''' color=blue><b><u>''' +
+            title +
+            '''</u></b></a><br/></para><para>&nbsp;&nbsp;&nbsp;&nbsp;''' +
+            text +
+            '''<br/><br/></para>''',
+            body_style
+        )
+        self.entry_anchor_num += 1
+        self.entries.append([entry])
+
+    def get_appendix(self):
+        title = self.title_formatter(
+            self.title,
+            title_width=7.75,
+            element_type="section",
+            anchor="<a name = page.html#" + str(self.toc_anchor_getter()) + "></a>"
+        )
+        self.entries.insert(0, [title])
+        return Table(
+            self.entries,
+            colWidths=[7.75 * inch]
         )
