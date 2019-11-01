@@ -107,6 +107,7 @@ class BaseLeague(FantasyFootballReportObject):
         self.roster_position_counts = defaultdict(int)
         self.active_positions = []
         self.flex_positions = []
+        self.super_flex_positions = []
 
         self.matchups_by_week = {}
         self.teams_by_week = {}
@@ -183,6 +184,7 @@ class BaseLeague(FantasyFootballReportObject):
             "position_counts": self.roster_position_counts,
             "positions_active": self.active_positions,
             "positions_flex": self.flex_positions,
+            "positions_super_flex": self.super_flex_positions,
             "positions_bench": self.bench_positions
         }
 

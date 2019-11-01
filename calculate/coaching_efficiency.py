@@ -15,8 +15,10 @@ class CoachingEfficiency(object):
 
         self.roster_slot_counts = roster_settings["position_counts"]
         self.roster_active_slots = roster_settings["positions_active"]
+        # TODO: support different types of flex (WR/TE, etc.)
         self.flex_positions = {
-            "FLEX": roster_settings["positions_flex"]
+            "FLEX": roster_settings["positions_flex"],
+            "SUPER_FLEX": roster_settings["positions_super_flex"]
         }
 
         flex_def_positions = ["DB", "DL", "LB", "DT", "DE", "S", "CB"]

@@ -293,13 +293,9 @@ class LeagueData(object):
             #     league.flex_positions = ["WR", "RB"]
             # TODO: how to tell the difference when player starting positions are not specified?
             if pos_name == "FLEX":
-                flex_positions = ["WR", "RB", "TE"]
-                if len(flex_positions) > len(league.flex_positions):
-                    league.flex_positions = flex_positions
-            elif pos_name == "SUPER_FLEX":
-                flex_positions = ["QB", "WR", "RB", "TE"]
-                if len(flex_positions) > len(league.flex_positions):
-                    league.flex_positions = flex_positions
+                league.flex_positions = ["WR", "RB", "TE"]
+            if pos_name == "SUPER_FLEX":
+                league.super_flex_positions = ["QB", "WR", "RB", "TE"]
 
             # if pos_name != "D/ST" and "/" in pos_name:
             #     pos_name = "FLEX"
