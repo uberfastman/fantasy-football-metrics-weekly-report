@@ -324,9 +324,10 @@ class FantasyFootballReport(object):
             self.league.name + " (" + str(self.league_id) + ") Week " + \
             str(self.league.week_for_report) + " Report"
         report_footer_text = \
-            "<para alignment='center'>Report generated %s for %s Fantasy Football league '%s' (%s).</para>" % \
+            "<para alignment='center'>Report generated %s for %s Fantasy Football league '%s' with id %s " \
+            "(<a href=\"%s\" color=blue><u>%s</u></a>).</para>" % \
             ("{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), self.platform_str, self.league.name,
-             self.league_id)
+             self.league_id, self.league.url, self.league.url)
 
         if not os.path.isdir(report_save_dir):
             os.makedirs(report_save_dir)

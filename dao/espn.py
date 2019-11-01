@@ -161,13 +161,13 @@ class LeagueData(object):
 
             if pos_name == "RB/WR":
                 league.flex_positions = ["RB", "WR"]
+                pos_name = "FLEX"
             if pos_name == "RB/WR/TE":
                 league.flex_positions = ["RB", "WR", "TE"]
-            if pos_name == "QB/RB/WR/TE":
-                league.flex_positions = ["QB", "RB", "Wr", "TE"]
-
-            if "/" in pos_name and pos_name != "D/ST":
                 pos_name = "FLEX"
+            if pos_name == "QB/RB/WR/TE":
+                league.super_flex_positions = ["QB", "RB", "Wr", "TE"]
+                pos_name = "SUPER_FLEX"
 
             league.roster_positions.append(pos_name)
             league.roster_position_counts[pos_name] = int(count)
