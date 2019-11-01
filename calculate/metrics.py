@@ -233,7 +233,7 @@ class CalculateMetrics(object):
                             results_data[team_index].append(team[4])
 
                         team_index += 1
-                    place += (1 + len(group))
+                    place += 1
         return num_ties
 
     @staticmethod
@@ -531,7 +531,6 @@ class CalculateMetrics(object):
             # number of teams excluding current team
             num_teams = float(len(teams)) - 1
 
-            # if luck_record["W"] != 0 and luck_record["L"] != 0:
             if luck_record.get_wins() != 0 and luck_record.get_losses() != 0:
                 matchup_result = matchups[str(team_1.team_id)]
                 if matchup_result == "W" or matchup_result == "T":

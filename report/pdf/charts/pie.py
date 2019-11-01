@@ -11,7 +11,7 @@ from reportlab.lib.colors import white
 
 # noinspection PyUnresolvedReferences
 class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
-    def __init__(self, labels, data, width=400, height=200, *args, **kw):
+    def __init__(self, labels, data, width=400, height=200, font="Helvetica", *args, **kw):
         # see https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/ for colors
         pdf_chart_colors = [
             HexColor("#e6194b"),  # red
@@ -38,7 +38,7 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
 
         Drawing.__init__(self, width, height, *args, **kw)
         # adding a pie chart to the drawing
-        self._add(self, Pie(), name='pie', validate=None, desc=None)
+        self._add(self, Pie(), name="pie", validate=None, desc=None)
         self.pie.width = 150
         self.pie.height = self.pie.width
         self.pie.x = 75
@@ -61,14 +61,14 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
         self.pie.slices.strokeColor = white
         self.pie.slices.strokeWidth = 1
         # adding legend
-        self._add(self, Legend(), name='legend', validate=None, desc=None)
+        self._add(self, Legend(), name="legend", validate=None, desc=None)
         self.legend.x = 235
         self.legend.y = height / 2
         self.legend.dx = 8
         self.legend.dy = 8
-        self.legend.fontName = 'Helvetica'
+        self.legend.fontName = font
         self.legend.fontSize = 7
-        self.legend.boxAnchor = 'w'
+        self.legend.boxAnchor = "w"
         self.legend.columnMaximum = 10
         self.legend.strokeWidth = 1
         self.legend.strokeColor = black
@@ -77,14 +77,14 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
         self.legend.autoXPadding = 5
         self.legend.yGap = 0
         self.legend.dxTextSpace = 5
-        self.legend.alignment = 'right'
+        self.legend.alignment = "right"
         self.legend.dividerLines = 1 | 2 | 4
         self.legend.dividerOffsY = 4.5
         self.legend.subCols.rpad = 30
         n = len(self.pie.data)
-        self.set_items(n, self.pie.slices, 'fillColor', pdf_chart_colors)
+        self.set_items(n, self.pie.slices, "fillColor", pdf_chart_colors)
         self.legend.colorNamePairs = [
-            (self.pie.slices[i].fillColor, (self.pie.labels[i][0:20], '%0.2f' % data[i])) for i in range(n)]
+            (self.pie.slices[i].fillColor, (self.pie.labels[i][0:20], "%0.2f" % data[i])) for i in range(n)]
 
     @staticmethod
     def set_items(n, obj, attr, values):
