@@ -15,19 +15,12 @@ logger = get_logger(__name__, propagate=False)
 class ReportData(object):
 
     def __init__(self,
-                 config,
-                 league,  # type: BaseLeague
-                 season_weekly_teams_results,
-                 week_counter,
-                 week_for_report,
-                 metrics_calculator,  # type: CalculateMetrics
-                 metrics,
-                 break_ties=False,
-                 dq_ce=False,
-                 testing=False):
+                 config, league: BaseLeague, season_weekly_teams_results, week_counter, week_for_report,
+                 metrics_calculator: CalculateMetrics, metrics, break_ties=False, dq_ce=False, testing=False):
 
         self.break_ties = break_ties
         self.dq_ce = dq_ce
+        self.has_divisions = league.has_divisions
         self.is_faab = league.is_faab
 
         inactive_players = []
@@ -105,6 +98,13 @@ class ReportData(object):
 
         # current standings data
         self.data_for_current_standings = metrics_calculator.get_standings_data(league)
+
+        # current division standings data
+        self.divisions = None
+        self.data_for_current_division_standings = None
+        if self.has_divisions:
+            self.divisions = league.divisions
+            self.data_for_current_division_standings = metrics_calculator.get_division_standings_data(league)
 
         # playoff probabilities data
         self.data_for_playoff_probs = metrics.get("playoff_probs").calculate(week_counter, week_for_report,
