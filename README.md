@@ -193,7 +193,7 @@ There is a pre-made setup bash script in the top level of this repository called
     
     * Once the app is created, it should redirect you to a page for your app, which will show both a `Client ID` and a `Client Secret`.
     
-    * Rename `EXAMPLE-private.json` (located in the `auth/yahoo` directory) to just `private.json`, and copy the `Client ID` and `Client Secret` values to their respective fields (make sure the strings are wrapped regular quotes (`""`), NOT formatted quotes (`“”`)). The path to this file will be needed to point YFFPY to your credentials.
+    * Copy the file `EXAMPLE-private.json` (located in the `auth/yahoo/` directory), and rename the file copy `private.json`, then copy and paste the `Client ID` and `Client Secret` values from your above created Yahoo app to their respective fields (make sure the strings are wrapped regular quotes (`""`), NOT formatted quotes (`“”`)). The path to this file will be needed to point YFFPY to your credentials.
     
     * The first time you run the app, it will initialize the OAuth connection between the report generator and your Yahoo account.
     
@@ -246,7 +246,7 @@ Sleeper has a public API, the documentation for which is available [here](https:
 <a name="espn-setup"></a>
 #### ESPN Setup
 
-ESPN has a public API, but it was just changed from v2 to v3, which introduced some variance to its functionality. At the present time it is also undocumented and subject to unexpected and sudden changes. *Please note, some of the data required to provide certain information to the report is not currently available in the Sleeper API, so a few small things are excluded in the report until such a time as the data becomes available*. That being said, the missing data does not fundamentally limit the capability of the app to generate a complete report.
+ESPN has a public API, but it was just changed from v2 to v3, which introduced some variance to its functionality. At the present time it is also undocumented and subject to unexpected and sudden changes. *Please note, some of the data required to provide certain information to the report is not currently available in the ESPN API, so a few small things are excluded in the report until such a time as the data becomes available*. That being said, the missing data does not fundamentally limit the capability of the app to generate a complete report.
 
 * Retrieve your ESPN league ID. You can find it by looking at the URL of your league in your browser:
 
@@ -277,7 +277,7 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
     
     * Depending on what web browser (Firefox, Chrome, Edge, Brave, etc.) you are using, the process for viewing your session cookies in the web inspector will be different. I recommend Googling *"how to inspect element in [browser]"* (for your specific browser) to learn how to use that browser's web inspector.
            
-    * Rename `auth/espn/EXAMPLE-private.json` to `auth/espn/private.json`, and copy the above cookies into their respective fields. Please note, the `swid` will be surrounded by curly braces (`{...}`), which must be included.
+    * Copy the file `EXAMPLE-private.json` (located in the `auth/espn/` directory), and rename the file copy `private.json`, then copy and paste the above cookies into their respective fields. Please note, the `swid` will be surrounded by curly braces (`{...}`), which must be included.
     
 * **NOTE**: *Because ESPN made the change to their API between 2018 and 2019, ESPN support in the Fantasy Football Metrics Weekly Report application is currently limited to the 2019 season and later. Support for historical seasons will be implemented at a later time.
 
@@ -568,7 +568,7 @@ The following setup steps are ***required*** in order to allow the Slack integra
 
 * You should be redirected back to the app management page for your app. At the top of the `OAuth & Permissions` section you should now see a field containing and `OAuth Access Token`.
 
-* Rename `auth/slack/EXAMPLE-token.json` to `token.json`, and copy the above `OAuth Access Token` into the field value of `token.json` where it says `"SLACK_APP_OAUTH_ACCESS_TOKEN_STRING"`, replacing that string. Make sure you are using douple quotes (`"`) on either side of your token string. 
+* Copy the file `EXAMPLE-token.json` (located in the `auth/slack/` directory), and rename the file copy `token.json`, then copy and paste the above `OAuth Access Token` into the field value of `token.json` where it says `"SLACK_APP_OAUTH_ACCESS_TOKEN_STRING"`, replacing that string. Make sure you are using douple quotes (`"`) on either side of your token string. 
 
 * *You can now upload your reports to Slack, either by updating the following values in `config.ini`:*
 
