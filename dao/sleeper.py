@@ -264,9 +264,14 @@ class LeagueData(object):
         league.name = self.league_info.get("name")
         league.week = int(self.current_week)
         league.season = self.league_info.get("season")
-        league.num_teams = self.league_settings.get("num_teams")
+        league.num_teams = int(self.league_settings.get("num_teams"))
         league.num_playoff_slots = int(self.num_playoff_slots)
         league.num_regular_season_weeks = int(self.num_regular_season_weeks)
+        league.num_divisions = int(self.league_settings.get("divisions", 0))
+        # TODO: missing division names
+        league.divisions = None
+        if league.num_divisions > 0:
+            league.has_divisions = True
         league.faab_budget = int(self.league_settings.get("waiver_budget"))
         if league.faab_budget > 0:
             league.is_faab = True
@@ -347,11 +352,14 @@ class LeagueData(object):
                     base_team.faab = league.faab_budget - int(team_settings.get("waiver_budget_used"))
                     base_team.url = None
 
+                    team_standings_info = None
                     team_rank = None
                     for roster in self.standings:
                         if int(roster.get("roster_id")) == int(base_team.team_id):
+                            team_standings_info = roster
                             team_rank = int(self.standings.index(roster) + 1)
 
+                    base_team.division = team_standings_info.get("settings").get("division")
                     base_team.current_record = BaseRecord(
                         wins=int(team_settings.get("wins")),
                         losses=int(team_settings.get("losses")),
@@ -366,7 +374,8 @@ class LeagueData(object):
                         streak_len=0,
                         team_id=base_team.team_id,
                         team_name=base_team.name,
-                        rank=team_rank
+                        rank=team_rank,
+                        division=base_team.division
                     )
                     base_team.streak_str = base_team.current_record.get_streak_str()
 

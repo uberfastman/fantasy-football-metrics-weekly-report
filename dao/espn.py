@@ -65,6 +65,11 @@ class LeagueData(object):
         self.current_week = self.league.current_week
         self.num_playoff_slots = int(self.league_settings.playoff_team_count)
         self.num_regular_season_weeks = int(self.league.settings.reg_season_count)
+        self.divisions = {
+            str(division.get("id")): division.get("name")
+            for division in self.league_settings_json.get("scheduleSettings").get("divisions")
+        }
+        self.num_divisions = len(self.divisions) if len(self.divisions) > 1 else 0
 
         # use hijacked raw json since roster settings are not exposed in the API wrapper
         self.roster_positions = {
@@ -133,12 +138,15 @@ class LeagueData(object):
         league.num_teams = int(self.league_settings.team_count)
         league.num_playoff_slots = int(self.num_playoff_slots)
         league.num_regular_season_weeks = int(self.num_regular_season_weeks)
-
+        league.num_divisions = self.num_divisions
+        if league.num_divisions > 0:
+            league.has_divisions = True
         # use hijacked raw json since acquisition settings are not exposed in the API wrapper
         league.faab_budget = int(self.league_settings_json.get("acquisitionSettings", {}).get("acquisitionBudget", 0))
         if league.faab_budget > 0:
             league.is_faab = True
-        league.url = self.league.ENDPOINT
+        # league.url = self.league.ENDPOINT
+        league.url = "https://fantasy.espn.com/football/league?leagueId={}".format(self.league_id)
 
         # TODO: set up with ESPN player endpoint
         # league.player_data_by_week_function = self.league.player_map
@@ -206,7 +214,6 @@ class LeagueData(object):
                         base_team.managers.append(base_manager)
 
                     base_team.manager_str = ", ".join([manager.name for manager in base_team.managers])
-
                     base_team.team_id = str(matchup_team.team_id)
 
                     team_is_home = False
@@ -223,6 +230,45 @@ class LeagueData(object):
                             team_json["transactionCounter"].get("acquisitionBudgetSpent", 0))
                     base_team.url = "https://fantasy.espn.com/football/team?leagueId=48153503&teamId={}".format(
                         base_team.team_id)
+
+                    if matchup_team.streak_type == "WIN":
+                        streak_type = "W"
+                    elif matchup_team.streak_type == "LOSS":
+                        streak_type = "L"
+                    else:
+                        streak_type = "T"
+
+                    if team_json["record"]["division"].get("streakType") == "WIN":
+                        division_streak_type = "W"
+                    elif team_json["record"]["division"].get("streakType") == "LOSS":
+                        division_streak_type = "L"
+                    else:
+                        division_streak_type = "T"
+
+                    base_team.division = matchup_team.division_id if self.num_divisions > 0 else None
+                    base_team.current_record = BaseRecord(
+                        wins=int(matchup_team.wins),
+                        losses=int(matchup_team.losses),
+                        ties=int(team_json["record"]["overall"].get("ties", 0)),
+                        percentage=round(float(team_json["record"]["overall"].get("percentage", 0)), 3),
+                        points_for=float(matchup_team.points_for),
+                        points_against=float(matchup_team.points_against),
+                        streak_type=streak_type,
+                        streak_len=int(matchup_team.streak_length),
+                        team_id=matchup_team.team_id,
+                        team_name=matchup_team.team_name,
+                        rank=int(matchup_team.standing),
+                        division=base_team.division,
+                        division_wins=int(team_json["record"]["division"].get("wins", 0)),
+                        division_losses=int(team_json["record"]["division"].get("losses", 0)),
+                        division_ties=int(team_json["record"]["division"].get("ties", 0)),
+                        division_percentage=round(float(team_json["record"]["division"].get("percentage", 0)), 3),
+                        division_streak_type=division_streak_type,
+                        division_streak_len=int(team_json["record"]["division"].get("streakLength", 0))
+                    )
+                    base_team.streak_str = base_team.current_record.get_streak_str()
+                    if base_matchup.division_matchup:
+                        base_team.division_streak_str = base_team.current_record.get_division_streak_str()
 
                     # add team to matchup teams
                     base_matchup.teams.append(base_team)
@@ -320,33 +366,6 @@ class LeagueData(object):
 
                     # add player to league players by week
                     league.players_by_week[str(week)][base_player.player_id] = base_player
-
-        for ranked_team in self.league_standings:
-            team_json = self.teams_json[str(ranked_team.team_id)]
-            league_team = league.teams_by_week.get(str(self.week_for_report)).get(
-                str(ranked_team.team_id))  # type: BaseTeam
-
-            if ranked_team.streak_type == "WIN":
-                streak_type = "W"
-            elif ranked_team.streak_type == "LOSS":
-                streak_type = "L"
-            else:
-                streak_type = "T"
-
-            league_team.current_record = BaseRecord(
-                wins=int(ranked_team.wins),
-                losses=int(ranked_team.losses),
-                ties=team_json["record"]["overall"].get("ties", 0),
-                percentage=round(float(team_json["record"]["overall"].get("percentage", 0)), 3),
-                points_for=float(ranked_team.points_for),
-                points_against=float(ranked_team.points_against),
-                streak_type=streak_type,
-                streak_len=int(ranked_team.streak_length),
-                team_id=league_team.team_id,
-                team_name=league_team.name,
-                rank=int(ranked_team.standing)
-            )
-            league_team.streak_str = league_team.current_record.get_streak_str()
 
         league.current_standings = sorted(
             league.teams_by_week.get(str(self.week_for_report)).values(), key=lambda x: x.current_record.rank)

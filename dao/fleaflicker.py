@@ -95,8 +95,14 @@ class LeagueData(object):
 
         self.league_teams = {}
         self.ranked_league_teams = []
+        self.num_divisions = 0
+        self.divisions = {}
         for division in self.league_standings.get("divisions"):
+            self.divisions[str(division.get("id"))] = division.get("name")
+            self.num_divisions += 1
             for team in division.get("teams"):
+                team["division_id"] = division.get("id")
+                team["division_name"] = division.get("name")
                 self.league_teams[team.get("id")] = team
                 self.ranked_league_teams.append(team)
 
@@ -256,6 +262,10 @@ class LeagueData(object):
         league.num_teams = int(self.league_info.get("size"))
         league.num_playoff_slots = int(self.num_playoff_slots)
         league.num_regular_season_weeks = int(self.num_regular_season_weeks)
+        league.num_divisions = self.num_divisions
+        league.divisions = self.divisions
+        if league.num_divisions > 0:
+            league.has_divisions = True
         league.faab_budget = int(self.league_info.get("defaultWaiverBudget", 0))
         if league.faab_budget > 0:
             league.is_faab = True
@@ -312,6 +322,12 @@ class LeagueData(object):
                     team_data = matchup.get(key)  # type: dict
                     base_team = BaseTeam()
 
+                    opposite_key = "away" if key == "home" else "home"
+                    team_division = self.league_teams[team_data.get("id")].get("division_id")
+                    opponent_division = self.league_teams[matchup.get(opposite_key).get("id")].get("division_id")
+                    if team_division and opponent_division and team_division == opponent_division:
+                        base_matchup.division_matchup = True
+
                     base_team.week = int(matchups_week)
                     base_team.name = team_data.get("name")
 
@@ -348,6 +364,7 @@ class LeagueData(object):
                     else:
                         streak_type = "T"
 
+                    base_team.division = team_division
                     base_team.current_record = BaseRecord(
                         wins=int(team_data.get("recordOverall", {}).get("wins", 0)),
                         losses=int(team_data.get("recordOverall", {}).get("losses", 0)),
@@ -360,9 +377,19 @@ class LeagueData(object):
                         streak_len=int(abs(team_data.get("streak", {}).get("value", 0))),
                         team_id=base_team.team_id,
                         team_name=base_team.name,
-                        rank=int(team_data.get("recordOverall", {}).get("rank", 0))
+                        rank=int(team_data.get("recordOverall", {}).get("rank", 0)),
+                        division=base_team.division,
+                        division_wins=int(team_data.get("recordDivision", {}).get("wins", 0)),
+                        division_losses=int(team_data.get("recordDivision", {}).get("losses", 0)),
+                        division_ties=int(team_data.get("recordDivision", {}).get("ties", 0)),
+                        division_percentage=round(float(team_data.get("recordDivision", {}).get(
+                            "winPercentage", {}).get("value", 0)), 3),
+                        division_rank=int(team_data.get("recordDivision", {}).get("rank", 0))
                     )
+
                     base_team.streak_str = base_team.current_record.get_streak_str()
+                    if base_matchup.division_matchup:
+                        base_team.division_streak_str = base_team.current_record.get_division_streak_str()
 
                     # add team to matchup teams
                     base_matchup.teams.append(base_team)

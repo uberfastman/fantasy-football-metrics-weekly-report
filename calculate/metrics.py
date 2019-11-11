@@ -48,31 +48,121 @@ class CalculateMetrics(object):
         return current_standings_data
 
     @staticmethod
-    def get_playoff_probs_data(league_standings, team_playoffs_data):
+    def get_division_standings_data(league: BaseLeague):
+        # group teams into divisions
+        division_groups = [
+            list(group) for key, group in itertools.groupby(
+                sorted(league.standings, key=lambda x: x.division),
+                lambda x: str(x.division))
+        ]
 
+        # sort the teams
+        sorted_divisions = {}
+        for division_num in range(1, league.num_divisions + 1):
+            sorted_divisions[division_num] = sorted(
+                division_groups[division_num - 1],
+                key=lambda x: (
+                    x.record.get_wins(),
+                    -x.record.get_losses(),
+                    x.record.get_ties(),
+                    x.record.get_division_wins(),
+                    -x.record.get_division_losses(),
+                    x.record.get_division_ties(),
+                    float(x.record.get_points_for())
+                ),
+                reverse=True
+            )
+
+        # TODO: figure out how to get this ranking right
+        ranked_division_teams = []
+        for division in sorted_divisions.values():
+            for team in division:
+                ranked_division_teams.append(team)
+        ranked_division_teams = sorted(
+            ranked_division_teams,
+            key=lambda x: (
+                x.record.get_wins(),
+                -x.record.get_losses(),
+                x.record.get_ties(),
+                x.record.get_division_wins(),
+                -x.record.get_division_losses(),
+                x.record.get_division_ties(),
+                float(x.record.get_points_for())
+            ),
+            reverse=True
+        )
+        team_ranks_by_id = {}
+        rank = 1
+        for team in ranked_division_teams:
+            team_ranks_by_id[team.team_id] = rank
+            rank += 1
+
+        modified_team_names = defaultdict()
+        current_division_standings_data = []
+        for division in sorted_divisions.values():
+            division_standings_data = []
+            for team in division:
+                if division.index(team) == 0:
+                    modified_team_names[team.team_id] = "†"
+                else:
+                    modified_team_names[team.team_id] = ""
+                division_standings_data.append([
+                    team_ranks_by_id[team.team_id],
+                    team.name + modified_team_names[team.team_id],
+                    team.manager_str,
+                    str(team.record.get_wins()) + "-" + str(team.record.get_losses()) + "-" + str(
+                        team.record.get_ties()) +
+                    " (" + str(team.record.get_percentage()) + ")",
+                    str(team.record.get_division_wins()) + "-" + str(team.record.get_division_losses()) + "-" + str(
+                        team.record.get_division_ties()) +
+                    " (" + str(team.record.get_division_percentage()) + ")",
+                    round(float(team.record.get_points_for()), 2),
+                    round(float(team.record.get_points_against()), 2),
+                    team.record.get_streak_str(),
+                    team.waiver_priority if not league.is_faab else "$%d" % team.faab,
+                    team.num_moves,
+                    team.num_trades,
+                    str(team.division)  # stored here temporarily to pass team divisions to report generator
+                ])
+            current_division_standings_data.append(division_standings_data)
+        return current_division_standings_data
+
+    @staticmethod
+    def get_playoff_probs_data(league_standings, data_for_playoff_probs):
+
+        has_divisions = False
         playoff_probs_data = []
         for team in league_standings:  # type: BaseTeam
 
             # sum rolling place percentages together to get a cumulative percentage chance of achieving that place
             summed_stats = []
             ndx = 1
-            team_stats = team_playoffs_data[int(team.team_id)][2]
+            team_stats = data_for_playoff_probs[int(team.team_id)][2]
             while ndx <= len(team_stats):
                 summed_stats.append(sum(team_stats[:ndx]))
                 ndx += 1
             if summed_stats[-1] > 100.00:
                 summed_stats[-1] = 100.00
 
+            team_playoffs_data = [
+                data_for_playoff_probs[int(team.team_id)][0],
+                team.manager_str,
+                str(team.record.get_wins()) + "-" + str(team.record.get_losses()) + "-" +
+                str(team.record.get_ties()) + " (" + str(team.record.get_percentage()) + ")",
+                data_for_playoff_probs[int(team.team_id)][1],
+                data_for_playoff_probs[int(team.team_id)][3]
+            ] + summed_stats
+
+            if team.record.division or team.record.division == 0:
+                has_divisions = True
+                team_playoffs_data.insert(
+                    3,
+                    str(team.record.get_division_wins()) + "-" + str(team.record.get_division_losses()) + "-" +
+                    str(team.record.get_division_ties()) + " (" + str(team.record.get_division_percentage()) + ")",
+                )
+
             playoff_probs_data.append(
-                [
-                    team.name,
-                    team.manager_str,
-                    str(team.record.get_wins()) + "-" + str(team.record.get_losses()) + "-" +
-                    str(team.record.get_ties()) + " (" + str(team.record.get_percentage()) + ")",
-                    team_playoffs_data[int(team.team_id)][1],
-                    team_playoffs_data[int(team.team_id)][3]
-                ] +
-                summed_stats
+                team_playoffs_data
                 # FOR LEAGUES WITH CUSTOM PLAYOFFS NOT SUPPORTED BY YAHOO
                 # TODO: FIX/REFACTOR
                 # [
@@ -81,15 +171,19 @@ class CalculateMetrics(object):
                 # ]
             )
 
-        sorted_playoff_probs_data = sorted(playoff_probs_data, key=lambda x: x[3], reverse=True)
+        prob_ndx = 3
+        if has_divisions:
+            prob_ndx = 4
+
+        sorted_playoff_probs_data = sorted(playoff_probs_data, key=lambda x: x[prob_ndx], reverse=True)
         for team_playoff_probs_data in sorted_playoff_probs_data:
-            team_playoff_probs_data[3] = "%.2f%%" % team_playoff_probs_data[3]
-            if team_playoff_probs_data[4] == 1:
-                team_playoff_probs_data[4] = "%d win" % team_playoff_probs_data[4]
+            team_playoff_probs_data[prob_ndx] = "%.2f%%" % team_playoff_probs_data[prob_ndx]
+            if team_playoff_probs_data[prob_ndx + 1] == 1:
+                team_playoff_probs_data[prob_ndx + 1] = "%d win" % team_playoff_probs_data[prob_ndx + 1]
             else:
-                team_playoff_probs_data[4] = "%d wins" % team_playoff_probs_data[4]
-            ndx = 5
-            for stat in team_playoff_probs_data[5:]:
+                team_playoff_probs_data[prob_ndx + 1] = "%d wins" % team_playoff_probs_data[prob_ndx + 1]
+            ndx = prob_ndx + 2
+            for stat in team_playoff_probs_data[prob_ndx + 2:]:
                 team_playoff_probs_data[ndx] = "%.2f%%" % stat
                 ndx += 1
 
@@ -455,7 +549,7 @@ class CalculateMetrics(object):
         records = defaultdict(BaseRecord)
         for team in standings:  # type: BaseTeam
             if week == 1:
-                record = BaseRecord(int(week), team_id=team.team_id, team_name=team.name)
+                record = BaseRecord(int(week), team_id=team.team_id, team_name=team.name, division=team.division)
             else:
                 previous_week_record = league.records_by_week[str(int(week) - 1)][team.team_id]  # type: BaseRecord
                 record = BaseRecord(
@@ -468,7 +562,15 @@ class CalculateMetrics(object):
                     streak_type=previous_week_record.get_streak_type(),
                     streak_len=previous_week_record.get_streak_length(),
                     team_id=team.team_id,
-                    team_name=team.name
+                    team_name=team.name,
+                    division=team.division,
+                    division_wins=previous_week_record.get_division_wins(),
+                    division_ties=previous_week_record.get_division_ties(),
+                    division_losses=previous_week_record.get_division_losses(),
+                    division_points_for=previous_week_record.get_division_points_for(),
+                    division_points_against=previous_week_record.get_division_points_against(),
+                    division_streak_type=previous_week_record.get_division_streak_type(),
+                    division_streak_len=previous_week_record.get_division_streak_length()
                 )
 
             for matchup in custom_weekly_matchups:
@@ -477,12 +579,21 @@ class CalculateMetrics(object):
                         outcome = matchup_result["result"]
                         if outcome == "W":
                             record.add_win()
+                            if matchup_result["division"]:
+                                record.add_division_win()
                         elif outcome == "L":
                             record.add_loss()
+                            if matchup_result["division"]:
+                                record.add_division_loss()
                         else:
                             record.add_tie()
+                            if matchup_result["division"]:
+                                record.add_division_tie()
                         record.add_points_for(matchup_result["points_for"])
                         record.add_points_against(matchup_result["points_against"])
+                        if matchup_result["division"]:
+                            record.add_division_points_for(matchup_result["points_for"])
+                            record.add_division_points_against(matchup_result["points_against"])
                         records[team.team_id] = record
 
             team.record = record
