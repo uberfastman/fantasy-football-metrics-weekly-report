@@ -9,7 +9,6 @@ import logging
 import os
 import random
 import traceback
-from collections import defaultdict
 
 import numpy as np
 

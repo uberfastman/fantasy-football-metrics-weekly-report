@@ -40,7 +40,7 @@ logger = get_logger(__name__, propagate=False)
 logging.getLogger("PIL.PngImagePlugin").setLevel(level=logging.INFO)
 
 
-def get_player_image(url, data_dir, week, width=1.0 * inch):
+def get_player_image(url, data_dir, week, width=1.0 * inch, player_name=None):
     headshots_dir = os.path.join(data_dir, "week_" + str(week), "player_headshots")
 
     if not os.path.exists(headshots_dir):
@@ -54,10 +54,11 @@ def get_player_image(url, data_dir, week, width=1.0 * inch):
             try:
                 urllib.request.urlretrieve(url, local_img_path)
             except URLError:
-                logger.error("Unable to retrieve player headshot at url {}".format(url))
+                logger.error("Unable to retrieve player headshot{} at url {}".format(
+                    (" for player " + player_name) if player_name else "", url))
                 local_img_path = os.path.join("resources", "images", "photo-not-available.jpeg")
     else:
-        logger.error("No available URL for player.")
+        logger.error("No available URL for player{}.".format(" " + player_name if player_name else ""))
         img_name = "photo-not-available.jpeg"
         local_img_path = os.path.join("resources", "images", img_name)
 
@@ -839,9 +840,10 @@ class PdfGenerator(object):
                 worst_weekly_player = starting_players[-1]
 
                 best_player_headshot = get_player_image(best_weekly_player.headshot_url, self.data_dir,
-                                                        self.week_for_report, 1.5 * inch)
+                                                        self.week_for_report, 1.5 * inch, best_weekly_player.full_name)
                 worst_player_headshot = get_player_image(worst_weekly_player.headshot_url, self.data_dir,
-                                                         self.week_for_report, 1.5 * inch)
+                                                         self.week_for_report, 1.5 * inch,
+                                                         worst_weekly_player.full_name)
 
                 data = [["BOOOOOOOOM", "...b... U... s... T"],
                         [best_weekly_player.full_name + " -- " + (best_weekly_player.nfl_team_name if

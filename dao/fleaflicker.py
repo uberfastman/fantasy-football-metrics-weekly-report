@@ -436,7 +436,13 @@ class LeagueData(object):
                             base_player.first_name = flea_pro_player.get("nameFirst")
                             base_player.last_name = flea_pro_player.get("nameLast")
                         base_player.full_name = flea_pro_player.get("nameFull")
-                        base_player.headshot_url = flea_pro_player.get("headshotUrl")
+                        # get team D/ST pictures from ESPN because Fleaflicker does not make them available
+                        if flea_player_position.get("label") == "D/ST":
+                            base_player.headshot_url = \
+                                "https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/{}.png".format(
+                                    base_player.nfl_team_abbr)
+                        else:
+                            base_player.headshot_url = flea_pro_player.get("headshotUrl")
                         base_player.owner_team_id = flea_league_player.get("owner", {}).get("id")
                         base_player.owner_team_name = flea_league_player.get("owner", {}).get("name")
                         base_player.percent_owned = 0
