@@ -95,6 +95,7 @@ class ReportData(object):
         self.data_for_season_avg_points_by_position = None
         self.data_for_season_weekly_top_scorers = None
         self.data_for_season_weekly_highest_ce = None
+        self.data_for_season_weekly_player_points = None
 
         # current standings data
         self.data_for_current_standings = metrics_calculator.get_standings_data(league)

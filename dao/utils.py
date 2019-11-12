@@ -158,7 +158,7 @@ def add_report_player_stats(player,  # type: BasePlayer
 
 
 def add_report_team_stats(team: BaseTeam, league: BaseLeague, week_counter, metrics_calculator, metrics, dq_ce,
-                          inactive_players):
+                          inactive_players) -> BaseTeam:
     team.name = metrics_calculator.decode_byte_string(team.name)
     bench_positions = league.get_roster_slots_by_type().get("positions_bench")
 
