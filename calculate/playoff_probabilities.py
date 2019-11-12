@@ -145,6 +145,7 @@ class PlayoffProbabilities(object):
                         for division in sorted_divisions.values():
                             ranked_division = sorted(division, key=lambda x: x.division_leader_tally, reverse=True)
                             modified_team_names[ranked_division[0].team_id] = "†"
+                            teams_for_playoff_probs[ranked_division[0].team_id].is_predicted_division_leader = True
 
                     for team in teams_for_playoff_probs.values():  # type: TeamWithPlayoffProbs
                         playoff_min_wins = round((avg_wins[self.num_playoff_slots - 1]) / self.simulations, 2)
@@ -155,9 +156,11 @@ class PlayoffProbabilities(object):
 
                         self.playoff_probs_data[int(team.team_id)] = [
                             team.name + modified_team_names[team.team_id],
-                            team.get_playoff_tally(),
+                            team.get_playoff_chance_percentage(),
                             team.get_playoff_stats(),
-                            needed_wins
+                            needed_wins,
+                            # add value for if team was predicted division winner to pass to the later sort function
+                            team.is_predicted_division_leader
                         ]
 
                     delta = datetime.datetime.now() - begin
@@ -207,7 +210,14 @@ class PlayoffProbabilities(object):
         for division_num in range(1, self.num_divisions + 1):
             sorted_divisions[division_num] = sorted(
                 division_groups[division_num - 1],
-                key=lambda x: x.get_division_wins_with_points(),
+                key=lambda x: (
+                    x.get_wins_with_points(),
+                    -x.losses,
+                    x.ties,
+                    x.get_division_wins_with_points(),
+                    -x.division_losses,
+                    x.division_ties
+                ),
                 reverse=True
             )
 
@@ -241,6 +251,7 @@ class TeamWithPlayoffProbs(object):
         self.points_for = float(points_for)
         self.division_points_for = float(division_points_for)
         self.division_leader_tally = 0
+        self.is_predicted_division_leader = False
         self.playoff_tally = 0
         self.playoff_stats = [0] * int(playoff_slots)
         self.simulations = int(simulations)
@@ -278,7 +289,7 @@ class TeamWithPlayoffProbs(object):
     def get_division_wins_with_points(self):
         return self.division_wins + (self.division_points_for / 1000000)
 
-    def get_playoff_tally(self):
+    def get_playoff_chance_percentage(self):
         return round((self.playoff_tally / self.simulations) * 100.0, 2)
 
     def get_playoff_stats(self):

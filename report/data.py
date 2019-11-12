@@ -67,7 +67,7 @@ class ReportData(object):
                     self.coaching_efficiency_dqs[team] = -2
                     for team_result in self.teams_results.values():
                         if team == team_result.name:
-                            team_result.coaching_efficiency = 0.0
+                            team_result.coaching_efficiency = "DQ"
 
         # used only for testing what happens when different metrics are tied; requires uncommenting lines in method
         if testing:

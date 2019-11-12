@@ -135,23 +135,27 @@ class CalculateMetrics(object):
         for team in league_standings:  # type: BaseTeam
 
             # sum rolling place percentages together to get a cumulative percentage chance of achieving that place
-            summed_stats = []
-            ndx = 1
-            team_stats = data_for_playoff_probs[int(team.team_id)][2]
-            while ndx <= len(team_stats):
-                summed_stats.append(sum(team_stats[:ndx]))
-                ndx += 1
-            if summed_stats[-1] > 100.00:
-                summed_stats[-1] = 100.00
+            # summed_stats = []
+            # ndx = 1
+            team_with_playoff_probs = data_for_playoff_probs[int(team.team_id)]
+            team_playoff_stats = team_with_playoff_probs[2]
+            # while ndx <= len(team_playoff_stats):
+            #     summed_stats.append(sum(team_playoff_stats[:ndx]))
+            #     ndx += 1
+            # if summed_stats[-1] > 100.00:
+            #     summed_stats[-1] = 100.00
+            if team_playoff_stats[-1] > 100.00:
+                team_playoff_stats[-1] = 100.00
 
             team_playoffs_data = [
-                data_for_playoff_probs[int(team.team_id)][0],
+                team_with_playoff_probs[0],
                 team.manager_str,
                 str(team.record.get_wins()) + "-" + str(team.record.get_losses()) + "-" +
                 str(team.record.get_ties()) + " (" + str(team.record.get_percentage()) + ")",
-                data_for_playoff_probs[int(team.team_id)][1],
-                data_for_playoff_probs[int(team.team_id)][3]
-            ] + summed_stats
+                team_with_playoff_probs[1],
+                team_with_playoff_probs[3]
+            ] + team_playoff_stats
+            # ] + summed_stats
 
             if team.record.division or team.record.division == 0:
                 has_divisions = True
@@ -160,6 +164,9 @@ class CalculateMetrics(object):
                     str(team.record.get_division_wins()) + "-" + str(team.record.get_division_losses()) + "-" +
                     str(team.record.get_division_ties()) + " (" + str(team.record.get_division_percentage()) + ")",
                 )
+
+            # add value for if team was predicted division winner to pass to the later sort function
+            team_playoffs_data.append(team_with_playoff_probs[4])
 
             playoff_probs_data.append(
                 team_playoffs_data
@@ -175,8 +182,9 @@ class CalculateMetrics(object):
         if has_divisions:
             prob_ndx = 4
 
-        sorted_playoff_probs_data = sorted(playoff_probs_data, key=lambda x: x[prob_ndx], reverse=True)
+        sorted_playoff_probs_data = sorted(playoff_probs_data, key=lambda x: (x[-1], x[prob_ndx]), reverse=True)
         for team_playoff_probs_data in sorted_playoff_probs_data:
+            team_playoff_probs_data.pop(-1)
             team_playoff_probs_data[prob_ndx] = "%.2f%%" % team_playoff_probs_data[prob_ndx]
             if team_playoff_probs_data[prob_ndx + 1] == 1:
                 team_playoff_probs_data[prob_ndx + 1] = "%d win" % team_playoff_probs_data[prob_ndx + 1]
