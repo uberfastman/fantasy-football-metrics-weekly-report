@@ -519,7 +519,7 @@ The following setup steps are ***required*** in order to allow the Google Drive 
 
 * Your credentials JSON file will download. Rename it `credentials.json`, and put it in the `auth/google/` directory where `EXAMPLE-credentials.json` is located.
 
-* Open a terminal window and run `python utils/quickstart.py`.
+* Open a terminal window and run `python resources/google_quickstart.py`.
 
 * A browser window will open asking you to either select a Google account to log into (if you have multiple) or log in. Select your account/login.
 
