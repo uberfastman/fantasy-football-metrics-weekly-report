@@ -523,19 +523,15 @@ class PdfGenerator(object):
             cow_icon = self.get_img(os.path.join("resources", "images", "cow.png"), width=0.20 * inch)
             beef_icon = self.get_img(os.path.join("resources", "images", "beef.png"), width=0.20 * inch)
             half_beef_icon = self.get_img(os.path.join("resources", "images", "beef-half.png"), width=0.10 * inch)
-            # lowest_tabbu = float(data[-1][3])
-            # mod_5_remainder = lowest_tabbu % 5
-            # beef_count_floor = lowest_tabbu - mod_5_remainder
 
             for team in data:
-                num_cows = int(float(team[3]) // 5) - 1  # subtract one to make sure there are always beef icons
+                num_cows = int(float(team[3]) // 5)
                 num_beefs = int(float(team[3]) / 0.5) - (num_cows * 10)
-                # num_beefs = int((float(team[3]) - beef_count_floor) / 0.5) - (num_cows * 10)
 
                 if num_cows > 0:
-                    beefs = [cow_icon] * num_cows
+                    num_beefs += 10
+                    beefs = [cow_icon] * (num_cows - 1)  # subtract one to make sure there are always beef icons
                 else:
-                    num_beefs = num_beefs - 10
                     beefs = []
 
                 if num_beefs % 2 == 0:
@@ -722,11 +718,6 @@ class PdfGenerator(object):
             chart_width,
             chart_height
         )
-        # points_line_chart.make_title(chart_title)
-        # points_line_chart.make_data(data)
-        # points_line_chart.make_x_axis(x_axis_title, 0, data_length + 1, 1)
-        # points_line_chart.make_y_axis(y_axis_title, values_min, values_max, y_step)
-        # points_line_chart.make_series_labels(series_names)
 
         return points_line_chart
 
@@ -857,13 +848,15 @@ class PdfGenerator(object):
                                                          self.week_for_report, 1.5 * inch,
                                                          worst_weekly_player.full_name)
 
-                data = [["BOOOOOOOOM", "...b... U... s... T"],
-                        [best_weekly_player.full_name + " -- " + (best_weekly_player.nfl_team_name if
-                         best_weekly_player.nfl_team_name else "N/A"),
-                         worst_weekly_player.full_name + " -- " + (worst_weekly_player.nfl_team_name if
-                         worst_weekly_player.nfl_team_name else "N/A")],
-                        [best_player_headshot, worst_player_headshot],
-                        [best_weekly_player.points, worst_weekly_player.points]]
+                data = [
+                    ["BOOOOOOOOM", "...b... U... s... T"],
+                    [best_weekly_player.full_name + " -- " + (best_weekly_player.nfl_team_name if
+                     best_weekly_player.nfl_team_name else "N/A"),
+                     worst_weekly_player.full_name + " -- " + (worst_weekly_player.nfl_team_name if
+                     worst_weekly_player.nfl_team_name else "N/A")],
+                    [best_player_headshot, worst_player_headshot],
+                    [round(best_weekly_player.points, 2), round(worst_weekly_player.points, 2)]
+                ]
                 # TODO: figure out how to get player points from weeks they were not started or on roster
                 # ["{} ({} avg: +{}%)".format(
                 #     round(best_weekly_player.points, 2),

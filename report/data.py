@@ -152,8 +152,8 @@ class ReportData(object):
                 z_score_rank += 1
 
         # points by position data
-        point_by_position = PointsByPosition(league.get_roster_slots_by_type(), week_for_report)
-        self.data_for_weekly_points_by_position = point_by_position.get_weekly_points_by_position(self.teams_results)
+        points_by_position = PointsByPosition(league, week_for_report)
+        self.data_for_weekly_points_by_position = points_by_position.get_weekly_points_by_position(self.teams_results)
 
         # teams data and season average points by position data
         self.data_for_teams = []
@@ -298,7 +298,7 @@ class ReportData(object):
                     ce_dq_str += "{} (ineligible bench players: {}/{}), ".format(
                         team_name,
                         ineligible_players_count,
-                        league.get_roster_slots_by_type().get("position_counts").get("BN"))
+                        league.roster_position_counts.get("BN"))  # exclude IR
             weekly_metrics_output_string += "   COACHING EFFICIENCY DQs: {}\n".format(ce_dq_str[:-2])
 
         # output weekly metrics info

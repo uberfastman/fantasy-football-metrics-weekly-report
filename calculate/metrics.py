@@ -377,7 +377,7 @@ class CalculateMetrics(object):
 
         if league.player_data_by_week_function:
             coaching_efficiency_results_data_with_tiebreakers = []
-            bench_positions = league.get_roster_slots_by_type().get("positions_bench")
+            bench_positions = league.bench_positions
 
             season_average_points_by_player_dict = defaultdict(list)
             if break_ties and ties_for_coaching_efficiency > 0 and int(week) == int(week_for_report):

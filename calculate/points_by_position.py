@@ -3,22 +3,19 @@ __email__ = "wrenjr@yahoo.com"
 
 import copy
 
-from dao.base import BaseTeam, BasePlayer
+from dao.base import BaseLeague, BaseTeam, BasePlayer
 from report.logger import get_logger
 
 logger = get_logger(__name__)
 
 
 class PointsByPosition(object):
-    def __init__(self, roster_settings, week_for_report):
+    def __init__(self, league: BaseLeague, week_for_report):
 
         self.week_for_report = week_for_report
-        self.roster_slot_counts = roster_settings.get("position_counts")
-        self.flex_positions = {
-            "FLEX": roster_settings["positions_flex"],
-            "D": ["D", "DB", "DL", "LB", "DT", "DE", "S", "CB"]
-        }
-        self.bench_positions = roster_settings.get("positions_bench")
+        self.roster_slot_counts = league.roster_position_counts
+        self.bench_positions = league.bench_positions
+        self.flex_types = list(league.get_flex_positions_dict().keys())
 
     def get_points_for_position(self, players, position):
         total_points_by_position = 0
@@ -55,8 +52,7 @@ class PointsByPosition(object):
         player_points_by_position = []
         starting_players = [p for p in roster if p.selected_position not in self.bench_positions]
         for slot in list(self.roster_slot_counts.keys()):
-            # TODO: support different variations of FLEX (WR/RB, WR/RB/TE, WR/TE, etc.) separately
-            if slot not in self.bench_positions and slot not in ["FLEX", "SUPER_FLEX"]:
+            if slot not in self.bench_positions and slot not in self.flex_types:
                 player_points_by_position.append([slot, self.get_points_for_position(starting_players, slot)])
 
         player_points_by_position = sorted(player_points_by_position, key=lambda x: x[0])

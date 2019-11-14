@@ -56,20 +56,20 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         self.chart.lines.strokeWidth = 2
 
         self.legend.colorNamePairs = Auto(obj=self.chart)
-        self.legend.x = 10
-        self.legend.y = 30
+        self.legend.x = 10 * (len(series_names) // 5)  # adjust how far to the left/right the legend labels are
+        self.legend.y = 12 * (len(series_names) // 5)  # adjust how far up/down the legend labels are
         # set size of swatches
         self.legend.dx = 0
         self.legend.dy = -5
         self.legend.fontName = font
-        self.legend.fontSize = 8 if len(series_names) % 3 == 0 else 7
+        self.legend.fontSize = 100 // len(series_names)
         self.legend.alignment = "right"
-        self.legend.columnMaximum = 2 if len(series_names) % 3 == 0 else 3
+        self.legend.columnMaximum = (len(series_names) // 5) + 1  # adjust number of ROWS allowed in legend
         self.legend.dxTextSpace = 4
         self.legend.variColumn = 1
         self.legend.boxAnchor = "nw"
-        self.legend.deltay = 10
-        self.legend.autoXPadding = 20
+        self.legend.deltay = 10  # adjust the space between legend rows
+        self.legend.autoXPadding = 15 * ((len(series_names) // 5) + 1)  # adjust the space between legend columns
 
         self.background = Rect(0, 0, self.width, self.height, strokeWidth=0, fillColor=PCMYKColor(0, 0, 10, 0))
         self.background.strokeColor = black
