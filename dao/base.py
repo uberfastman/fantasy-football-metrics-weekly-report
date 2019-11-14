@@ -109,8 +109,11 @@ class BaseLeague(FantasyFootballReportObject):
         self.roster_positions = []
         self.roster_position_counts = defaultdict(int)
         self.active_positions = []
-        self.flex_positions = []
-        self.super_flex_positions = []
+        self.flex_positions_rb_wr = []
+        self.flex_positions_te_wr = []
+        self.flex_positions_rb_te_wr = []
+        self.flex_positions_qb_rb_te_wr = []
+        self.flex_positions_idp = []
 
         self.matchups_by_week = {}
         self.teams_by_week = {}
@@ -188,13 +191,13 @@ class BaseLeague(FantasyFootballReportObject):
             matchup_list.append(teams)
         return matchup_list
 
-    def get_roster_slots_by_type(self):
+    def get_flex_positions_dict(self):
         return {
-            "position_counts": self.roster_position_counts,
-            "positions_active": self.active_positions,
-            "positions_flex": self.flex_positions,
-            "positions_super_flex": self.super_flex_positions,
-            "positions_bench": self.bench_positions
+            "FLEX_RB_WR": self.flex_positions_rb_wr,
+            "FLEX_TE_WR": self.flex_positions_te_wr,
+            "FLEX_RB_TE_WR": self.flex_positions_rb_te_wr,
+            "FLEX_QB_RB_TE_WR": self.flex_positions_qb_rb_te_wr,
+            "FLEX_IDP": self.flex_positions_idp
         }
 
     def get_playoff_probs(self, save_data=False, playoff_prob_sims=None, dev_offline=False, recalculate=True):

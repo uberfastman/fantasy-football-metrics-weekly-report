@@ -8,7 +8,7 @@ import os
 from copy import deepcopy
 
 from yffpy.data import Data
-from yffpy.models import Game, League, Matchup, Team, Manager, Division, Player, RosterPosition, Stat
+from yffpy.models import Game, League, Matchup, Team, Manager, Player, RosterPosition, Stat
 from yffpy.query import YahooFantasyFootballQuery
 
 from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
@@ -177,6 +177,7 @@ class LeagueData(object):
             data_type_class=Player
         )
 
+    # noinspection PyTypeChecker
     def map_data_to_base(self, base_league_class):
         league = base_league_class(self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data,
                                    self.dev_offline)  # type: BaseLeague
@@ -199,8 +200,7 @@ class LeagueData(object):
         league.player_data_by_week_function = self.get_player_data
         league.player_data_by_week_key = "player_points_value"
 
-        league.bench_positions = [
-            str(bench_position) for bench_position in self.config.get("Configuration", "bench_positions").split(",")]
+        league.bench_positions = ["BN", "IR"]
 
         for position in self.roster_positions:
             pos = position.get("roster_position")  # type: RosterPosition
@@ -208,21 +208,26 @@ class LeagueData(object):
             pos_name = pos.position
             pos_count = int(pos.count)
 
+            if pos_name == "W/R":
+                league.flex_positions_rb_wr = ["RB", "WR"]
+                pos_name = "FLEX_RB_WR"
+            if pos_name == "W/T":
+                league.flex_positions_te_wr = ["TE", "WR"]
+            if pos_name == "W/R/T":
+                league.flex_positions_rb_te_wr = ["RB", "TE", "WR"]
+                pos_name = "FLEX_RB_TE_WR"
+            if pos_name == "Q/W/R/T":
+                league.flex_positions_qb_rb_te_wr = ["QB", "RB", "TE", "WR"]
+                pos_name = "FLEX_QB_RB_TE_WR"
+            if pos_name == "D":
+                league.flex_positions_idp = ["CB", "DB", "DE", "DL", "DT", "LB",  "S"]
+                pos_name = "FLEX_IDP"
+
             pos_counter = deepcopy(pos_count)
             while pos_counter > 0:
                 if pos_name not in league.bench_positions:
                     league.active_positions.append(pos_name)
                 pos_counter -= 1
-
-            if pos_name == "W/R":
-                league.flex_positions = ["WR", "RB"]
-                pos_name = "FLEX"
-            if pos_name == "W/R/T":
-                league.flex_positions = ["WR", "RB", "TE"]
-                pos_name = "FLEX"
-            if pos_name == "Q/W/R/T":
-                league.super_flex_positions = ["QB", "WR", "RB", "TE"]
-                pos_name = "SUPER_FLEX"
 
             league.roster_positions.append(pos_name)
             league.roster_position_counts[pos_name] = pos_count
@@ -357,10 +362,23 @@ class LeagueData(object):
                         y_player_for_week.percent_owned_value) if y_player_for_week.percent_owned_value else 0
                     base_player.points = float(y_player_for_week.player_points_value)
                     base_player.position_type = y_player_for_week.position_type
+
                     base_player.primary_position = y_player_for_week.primary_position
-                    base_player.selected_position = y_player_for_week.selected_position_value
+                    if y_player_for_week.selected_position_value == "W/R":
+                        base_player.selected_position = "FLEX_RB_WR"
+                    elif y_player_for_week.selected_position_value == "W/T":
+                        base_player.selected_position = "FLEX_TE_WR"
+                    elif y_player_for_week.selected_position_value == "W/R/T":
+                        base_player.selected_position = "FLEX_RB_TE_WR"
+                    elif y_player_for_week.selected_position_value == "Q/W/R/T":
+                        base_player.selected_position = "FLEX_QB_RB_TE_WR"
+                    elif y_player_for_week.selected_position_value == "D":
+                        base_player.selected_position = "FLEX_IDP"
+                    else:
+                        base_player.selected_position = y_player_for_week.selected_position_value
                     base_player.selected_position_is_flex = True if int(
                         y_player_for_week.selected_position.is_flex) == 1 else False
+
                     base_player.status = y_player_for_week.status
 
                     eligible_positions = y_player_for_week.eligible_positions
@@ -369,6 +387,16 @@ class LeagueData(object):
 
                     for position in eligible_positions:
                         pos = position.get("position")
+                        if pos == "W/R":
+                            pos = "FLEX_RB_WR"
+                        elif pos == "W/T":
+                            pos = "FLEX_TE_WR"
+                        elif pos == "W/R/T":
+                            pos = "FLEX_RB_TE_WR"
+                        elif pos == "Q/W/R/T":
+                            pos = "FLEX_QB_RB_TE_WR"
+                        elif pos == "D":
+                            pos = "FLEX_IDP"
                         base_player.eligible_positions.append(pos)
 
                     for stat in y_player_for_week.stats:

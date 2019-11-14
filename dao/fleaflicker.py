@@ -274,8 +274,7 @@ class LeagueData(object):
         # league.player_data_by_week_function = None
         # league.player_data_by_week_key = None
 
-        league.bench_positions = [
-            str(bench_position) for bench_position in self.config.get("Configuration", "bench_positions").split(",")]
+        league.bench_positions = ["BN", "IR"]
 
         for position in self.roster_positions:
             pos_name = position.get("label")
@@ -284,21 +283,24 @@ class LeagueData(object):
             else:
                 pos_count = int(position.get("max"))
 
+            if pos_name == "RB/WR":
+                league.flex_positions_rb_wr = ["RB", "WR"]
+                pos_name = "FLEX_RB_WR"
+            if pos_name == "WR/TE":
+                league.flex_positions_te_wr = ["TE", "WR"]
+                pos_name = "FLEX_TE_WR"
+            if pos_name == "RB/WR/TE":
+                league.flex_positions_rb_te_wr = ["RB", "TE", "WR"]
+                pos_name = "FLEX_RB_TE_WR"
+            if pos_name == "RB/WR/TE/QB":
+                league.flex_positions_qb_rb_te_wr = ["QB", "RB", "TE", "WR"]
+                pos_name = "FLEX_QB_RB_TE_WR"
+
             pos_counter = deepcopy(pos_count)
             while pos_counter > 0:
                 if pos_name not in league.bench_positions:
                     league.active_positions.append(pos_name)
                 pos_counter -= 1
-
-            if pos_name == "RB/WR":
-                league.flex_positions = ["WR", "RB"]
-                pos_name = "FLEX"
-            if pos_name == "RB/WR/TE":
-                league.flex_positions = ["WR", "RB", "TE"]
-                pos_name = "FLEX"
-            if pos_name == "RB/WR/TE/QB":
-                league.super_flex_positions = ["QB", "WR", "RB", "TE"]
-                pos_name = "SUPER_FLEX"
 
             league.roster_positions.append(pos_name)
             league.roster_position_counts[pos_name] = pos_count
@@ -453,14 +455,36 @@ class LeagueData(object):
                             "position") in self.offensive_positions else "D"
                         base_player.primary_position = flea_pro_player.get("position")
 
-                        base_player.selected_position = flea_player_position.get("label")
-                        base_player.selected_position_is_flex = True if "/" in flea_pro_player.get(
-                            "position") else False
-                        base_player.status = flea_pro_player.get("injury", {}).get("typeAbbreviaition")
-
-                        base_player.eligible_positions = [pos for positions in flea_league_player.get(
+                        eligible_positions = [pos for positions in flea_league_player.get(
                             "rankFantasy", {}).get("positions", {}) for pos in positions.get("position", {}).get(
                             "eligibility")]
+                        for position in eligible_positions:
+                            base_player.eligible_positions.append(position)
+                            if position in league.flex_positions_rb_wr:
+                                base_player.eligible_positions.append("FLEX_RB_WR")
+                            if position in league.flex_positions_te_wr:
+                                base_player.eligible_positions.append("FLEX_TE_WR")
+                            if position in league.flex_positions_rb_te_wr:
+                                base_player.eligible_positions.append("FLEX_RB_TE_WR")
+                            if position in league.flex_positions_qb_rb_te_wr:
+                                base_player.eligible_positions.append("FLEX_QB_RB_TE_WR")
+                        base_player.eligible_positions = list(set(base_player.eligible_positions))
+
+                        selected_position = flea_player_position.get("label")
+                        if selected_position == "RB/WR":
+                            base_player.selected_position = "FLEX_RB_WR"
+                        elif selected_position == "WR/TE":
+                            base_player.selected_position = "FLEX_TE_WR"
+                        elif selected_position == "RB/WR/TE":
+                            base_player.selected_position = "FLEX_RB_TE_WR"
+                        elif selected_position == "RB/WR/TE/QB":
+                            base_player.selected_position = "FLEX_QB_RB_TE_WR"
+                        else:
+                            base_player.selected_position = selected_position
+                        base_player.selected_position_is_flex = True if "/" in flea_pro_player.get(
+                            "position") else False
+
+                        base_player.status = flea_pro_player.get("injury", {}).get("typeAbbreviaition")
 
                         for stat in flea_league_player.get("viewingActualStats"):
                             base_stat = BaseStat()

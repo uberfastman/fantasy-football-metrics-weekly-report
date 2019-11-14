@@ -152,30 +152,32 @@ class LeagueData(object):
         # league.player_data_by_week_function = self.league.player_map
         # league.player_data_by_week_key = "player_points_value"
 
-        league.bench_positions = [
-            str(bench_position) for bench_position in self.config.get("Configuration", "bench_positions").split(",")
-        ]
-        league.bench_positions = [
-            "BE" if bench_position == "BN" else bench_position for bench_position in league.bench_positions
-        ]
+        league.bench_positions = ["BN", "IR"]  # ESPN uses "BE" for the bench slot, but this app adjusts it to "BN"
 
         for position, count in self.roster_positions.items():
             pos_name = deepcopy(position)
+
+            if pos_name == "BE":
+                pos_name = "BN"
+
+            if pos_name == "RB/WR":
+                league.flex_positions_rb_wr = ["RB", "WR"]
+                pos_name = "FLEX_RB_WR"
+            if pos_name == "WR/TE":
+                league.flex_positions_te_wr = ["TE", "WR"]
+                pos_name = "FLEX_TE_WR"
+            if pos_name == "RB/WR/TE":
+                league.flex_positions_rb_te_wr = ["RB", "TE", "WR"]
+                pos_name = "FLEX_RB_TE_WR"
+            if pos_name == "QB/RB/WR/TE":
+                league.flex_positions_qb_rb_te_wr = ["QB", "RB", "TE", "WR"]
+                pos_name = "FLEX_QB_RB_TE_WR"
+
             pos_counter = deepcopy(int(count))
             while pos_counter > 0:
                 if pos_name not in league.bench_positions:
                     league.active_positions.append(pos_name)
                 pos_counter -= 1
-
-            if pos_name == "RB/WR":
-                league.flex_positions = ["RB", "WR"]
-                pos_name = "FLEX"
-            if pos_name == "RB/WR/TE":
-                league.flex_positions = ["RB", "WR", "TE"]
-                pos_name = "FLEX"
-            if pos_name == "QB/RB/WR/TE":
-                league.super_flex_positions = ["QB", "RB", "Wr", "TE"]
-                pos_name = "SUPER_FLEX"
 
             league.roster_positions.append(pos_name)
             league.roster_position_counts[pos_name] = int(count)
@@ -341,15 +343,38 @@ class LeagueData(object):
 
                     base_player.position_type = "O" if base_player.display_position in self.offensive_positions \
                         else "D"
-
                     base_player.primary_position = player.position
-                    base_player.selected_position = player.slot_position
+
+                    eligible_positions = player.eligibleSlots
+                    for position in eligible_positions:
+                        if position == "BE":
+                            position = "BN"
+                        elif position == "RB/WR":
+                            position = "FLEX_RB_WR"
+                        elif position == "WR/TE":
+                            position = "FLEX_TE_WR"
+                        elif position == "RB/WR/TE":
+                            position = "FLEX_RB_TE_WR"
+                        elif position == "QB/RB/WR/TE":
+                            position = "FLEX_QB_RB_TE_WR"
+                        base_player.eligible_positions.append(position)
+
+                    if player.slot_position == "BE":
+                        base_player.selected_position = "BN"
+                    elif player.slot_position == "RB/WR":
+                        base_player.selected_position = "FLEX_RB_WR"
+                    elif player.slot_position == "WR/TE":
+                        base_player.selected_position = "FLEX_TE_WR"
+                    elif player.slot_position == "RB/WR/TE":
+                        base_player.selected_position = "FLEX_RB_TE_WR"
+                    elif player.slot_position == "QB/RB/WR/TE":
+                        base_player.selected_position = "FLEX_QB_RB_TE_WR"
+                    else:
+                        base_player.selected_position = player.slot_position
                     base_player.selected_position_is_flex = True if "/" in player.slot_position and \
                                                                     player.slot_position != "D/ST" else False
-                    base_player.status = player_json.get("injuryStatus")
 
-                    for position in player.eligibleSlots:
-                        base_player.eligible_positions.append(position)
+                    base_player.status = player_json.get("injuryStatus")
 
                     if player_json["stats"]:
                         for stat_id, stat_value in player_json["stats"][0]["stats"].items():

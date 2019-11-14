@@ -281,29 +281,25 @@ class LeagueData(object):
         league.player_data_by_week_function = None
         league.player_data_by_week_key = None
 
-        league.bench_positions = [
-            str(bench_position) for bench_position in self.config.get("Configuration", "bench_positions").split(",")]
+        league.bench_positions = ["BN", "IR"]
 
         for position, count in self.roster_positions.items():
             pos_name = position
             pos_count = count
+
+            # TODO: no differentiation in API amongst Flex (WR / RB), Flex (WR / TE), and Flex (WR / RB / TE)...?
+            if pos_name == "FLEX":
+                pos_name = "FLEX_RB_TE_WR"
+                league.flex_positions_rb_te_wr = ["RB", "TE", "WR"]
+            if pos_name == "SUPER_FLEX":
+                pos_name = "FLEX_QB_RB_TE_WR"
+                league.flex_positions_qb_rb_te_wr = ["QB", "RB", "TE", "WR"]
 
             pos_counter = deepcopy(pos_count)
             while pos_counter > 0:
                 if pos_name not in league.bench_positions:
                     league.active_positions.append(pos_name)
                 pos_counter -= 1
-
-            # if pos_name == "FLEX":
-            #     league.flex_positions = ["WR", "RB"]
-            # TODO: how to tell the difference when player starting positions are not specified?
-            if pos_name == "FLEX":
-                league.flex_positions = ["WR", "RB", "TE"]
-            if pos_name == "SUPER_FLEX":
-                league.super_flex_positions = ["QB", "WR", "RB", "TE"]
-
-            # if pos_name != "D/ST" and "/" in pos_name:
-            #     pos_name = "FLEX"
 
             league.roster_positions.append(pos_name)
             league.roster_position_counts[pos_name] = pos_count
@@ -407,10 +403,17 @@ class LeagueData(object):
 
         for week, rosters in self.rosters_by_week.items():
             league.players_by_week[str(week)] = {}
+            team_count = 1
             for team_id, roster in rosters.items():
                 league_team = league.teams_by_week.get(str(week)).get(str(team_id))  # type: BaseTeam
 
-                team_filled_positions = deepcopy(self.league_info.get("roster_positions"))  # type: list
+                team_filled_positions = [
+                    position if position not in ["FLEX", "SUPER_FLEX"]
+                    else "FLEX_RB_TE_WR" if position == "FLEX"
+                    else "FLEX_QB_RB_TE_WR" if position == "SUPER_FLEX"
+                    else position
+                    for position in self.league_info.get("roster_positions")
+                ]
 
                 for player in roster:
                     if player:
@@ -464,31 +467,51 @@ class LeagueData(object):
                             else "D"
                         base_player.primary_position = player.get("position")
 
+                        eligible_positions = player.get("fantasy_positions")
+                        for position in eligible_positions:
+                            base_player.eligible_positions.append(position)
+                            if position in league.flex_positions_rb_te_wr:
+                                base_player.eligible_positions.append("FLEX_RB_TE_WR")
+                            if position in league.flex_positions_qb_rb_te_wr:
+                                base_player.eligible_positions.append("FLEX_QB_RB_TE_WR")
+                        base_player.eligible_positions = list(set(base_player.eligible_positions))
+
                         if player["starter"]:
-                            if base_player.primary_position in team_filled_positions:
-                                base_player.selected_position = base_player.primary_position
+                            available_primary_slots = list(set(base_player.eligible_positions).intersection(
+                                set(team_filled_positions)).difference({"FLEX_RB_TE_WR", "FLEX_QB_RB_TE_WR"}))
+
+                            available_flex_slots = list(set(base_player.eligible_positions).intersection(
+                                set(league.flex_positions_rb_te_wr)))
+
+                            available_super_flex_slots = list(set(base_player.eligible_positions).intersection(
+                                set(league.flex_positions_qb_rb_te_wr)))
+
+                            if len(available_primary_slots) > 0:
+                                if base_player.primary_position in available_primary_slots:
+                                    base_player.selected_position = base_player.primary_position
+                                else:
+                                    base_player.selected_position = available_primary_slots[0]
                                 base_player.selected_position_is_flex = False
-                                team_filled_positions.pop(team_filled_positions.index(base_player.primary_position))
-                            elif base_player.primary_position in league.flex_positions:
-                                base_player.selected_position = "FLEX"
+                                team_filled_positions.pop(team_filled_positions.index(base_player.selected_position))
+
+                            elif len(available_flex_slots) > 0 and "FLEX_RB_TE_WR" in team_filled_positions:
+                                base_player.selected_position = "FLEX_RB_TE_WR"
                                 base_player.selected_position_is_flex = True
-                                try:
-                                    team_filled_positions.pop(team_filled_positions.index(
-                                        base_player.selected_position))
-                                except ValueError:
-                                    base_player.selected_position = "SUPER_FLEX"
-                                    team_filled_positions.pop(team_filled_positions.index(
-                                        base_player.selected_position))
+                                team_filled_positions.pop(team_filled_positions.index(base_player.selected_position))
+
+                            elif len(available_super_flex_slots) > 0 and "FLEX_QB_RB_TE_WR" in team_filled_positions:
+                                base_player.selected_position = "FLEX_QB_RB_TE_WR"
+                                base_player.selected_position_is_flex = True
+                                team_filled_positions.pop(team_filled_positions.index(base_player.selected_position))
+
+                            else:
+                                raise ValueError("Player position missing! Check data!")
                             league_team.projected_points += base_player.projected_points
                         else:
                             base_player.selected_position = "BN"
                             base_player.selected_position_is_flex = False
 
                         base_player.status = player.get("status")
-
-                        base_player.eligible_positions = player.get("fantasy_positions")
-                        if base_player.selected_position not in player.get("fantasy_positions"):
-                            base_player.eligible_positions.append(base_player.selected_position)
 
                         if player_stats:
                             for stat, value in player_stats.items():
@@ -505,6 +528,8 @@ class LeagueData(object):
 
                         # add player to league players by week
                         league.players_by_week[str(week)][base_player.player_id] = base_player
+
+                team_count += 1
 
         league.current_standings = sorted(
             league.teams_by_week.get(str(self.week_for_report)).values(), key=lambda x: x.current_record.rank
