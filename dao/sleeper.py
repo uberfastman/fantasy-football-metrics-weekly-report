@@ -275,7 +275,8 @@ class LeagueData(object):
         league.faab_budget = int(self.league_settings.get("waiver_budget"))
         if league.faab_budget > 0:
             league.is_faab = True
-        league.url = self.base_url + "league/" + str(self.league_id)
+        # league.url = self.base_url + "league/" + str(self.league_id)
+        league.url = "https://sleeper.app/leagues/" + str(self.league_id)
 
         # TODO: hook up to collected player stats by week
         league.player_data_by_week_function = None
@@ -294,6 +295,9 @@ class LeagueData(object):
             if pos_name == "SUPER_FLEX":
                 pos_name = "FLEX_QB_RB_TE_WR"
                 league.flex_positions_qb_rb_te_wr = ["QB", "RB", "TE", "WR"]
+            if pos_name == "IDP_FLEX":
+                pos_name = "FLEX_IDP"
+                league.flex_positions_idp = ["DB", "DL", "LB"]
 
             pos_counter = deepcopy(pos_count)
             while pos_counter > 0:
@@ -408,9 +412,10 @@ class LeagueData(object):
                 league_team = league.teams_by_week.get(str(week)).get(str(team_id))  # type: BaseTeam
 
                 team_filled_positions = [
-                    position if position not in ["FLEX", "SUPER_FLEX"]
+                    position if position not in ["FLEX", "SUPER_FLEX", "IDP_FLEX"]
                     else "FLEX_RB_TE_WR" if position == "FLEX"
                     else "FLEX_QB_RB_TE_WR" if position == "SUPER_FLEX"
+                    else "FLEX_IDP" if position == "IDP_FLEX"
                     else position
                     for position in self.league_info.get("roster_positions")
                 ]
@@ -470,10 +475,14 @@ class LeagueData(object):
                         eligible_positions = player.get("fantasy_positions")
                         for position in eligible_positions:
                             base_player.eligible_positions.append(position)
+
                             if position in league.flex_positions_rb_te_wr:
                                 base_player.eligible_positions.append("FLEX_RB_TE_WR")
                             if position in league.flex_positions_qb_rb_te_wr:
                                 base_player.eligible_positions.append("FLEX_QB_RB_TE_WR")
+                            if position in league.flex_positions_idp:
+                                base_player.eligible_positions.append("FLEX_IDP")
+
                         base_player.eligible_positions = list(set(base_player.eligible_positions))
 
                         if player["starter"]:
@@ -485,6 +494,9 @@ class LeagueData(object):
 
                             available_super_flex_slots = list(set(base_player.eligible_positions).intersection(
                                 set(league.flex_positions_qb_rb_te_wr)))
+
+                            available_idp_flex_slots = list(set(base_player.eligible_positions).intersection(
+                                set(league.flex_positions_idp)))
 
                             if len(available_primary_slots) > 0:
                                 if base_player.primary_position in available_primary_slots:
@@ -502,6 +514,11 @@ class LeagueData(object):
                             elif len(available_super_flex_slots) > 0 and "FLEX_QB_RB_TE_WR" in team_filled_positions:
                                 base_player.selected_position = "FLEX_QB_RB_TE_WR"
                                 base_player.selected_position_is_flex = True
+                                team_filled_positions.pop(team_filled_positions.index(base_player.selected_position))
+
+                            elif len(available_idp_flex_slots) > 0 and "FLEX_IDP" in team_filled_positions:
+                                base_player.selected_position = "FLEX_IDP"
+                                # base_player.selected_position_is_flex = True
                                 team_filled_positions.pop(team_filled_positions.index(base_player.selected_position))
 
                             else:
