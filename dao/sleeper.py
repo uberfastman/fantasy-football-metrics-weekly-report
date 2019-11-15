@@ -100,6 +100,26 @@ class LeagueData(object):
                 refresh_days_delay=1
             )
 
+        self.player_season_stats = {
+            player_id: player_stats for player_id, player_stats in self.query(
+                self.base_url + "stats/nfl/regular/" + str(self.season),
+                os.path.join(self.data_dir, str(self.season), str(self.league_id)),
+                str(self.league_id) + "-player_season_stats.json",
+                check_for_saved_data=True,
+                refresh_days_delay=1
+            ).items()
+        }
+
+        self.player_season_projected_stats = {
+            player_id: player_projected_stats for player_id, player_projected_stats in self.query(
+                self.base_url + "projections/nfl/regular/" + str(self.season),
+                os.path.join(self.data_dir, str(self.season), str(self.league_id)),
+                str(self.league_id) + "-player_season_projected_stats.json",
+                check_for_saved_data=True,
+                refresh_days_delay=1
+            ).items()
+        }
+
         # with open(os.path.join(
         #         self.data_dir, str(self.season), str(self.league_id), "player_stats_by_week.json"), "w") as out:
         #     json.dump(self.player_stats_data_by_week, out, ensure_ascii=False, indent=2)
@@ -256,6 +276,22 @@ class LeagueData(object):
                 self.fetch_player_data(player_id, week) for player_id in team["players"]
             ]
         return matchup
+
+    def get_player_points(self, stats, projected_stats):
+        if stats:
+            points = 0
+            for stat, value in stats.items():
+                if stat in self.league_scoring.keys():
+                    points += (value * self.league_scoring.get(stat))
+
+            projected_points = 0
+            for stat, value in projected_stats.items():
+                if stat in self.league_scoring.keys():
+                    projected_points += (value * self.league_scoring.get(stat))
+
+            return round(points, 2), round(projected_points, 2)
+        else:
+            return 0, 0
 
     def map_data_to_base(self, base_league_class):
         league = base_league_class(self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data,
@@ -450,23 +486,15 @@ class LeagueData(object):
                         base_player.percent_owned = None
 
                         player_stats = player.get("stats")
-                        player_projected_stats = player.get("projected")
-                        if player_stats:
-                            points = 0
-                            for stat, value in player_stats.items():
-                                if stat in self.league_scoring.keys():
-                                    points += (value * self.league_scoring.get(stat))
+                        base_player.points, base_player.projected_points = self.get_player_points(
+                            stats=player_stats,
+                            projected_stats=player.get("projected")
+                        )
 
-                            projected_points = 0
-                            for stat, value in player_projected_stats.items():
-                                if stat in self.league_scoring.keys():
-                                    projected_points += (value * self.league_scoring.get(stat))
-
-                            base_player.points = round(points, 2)
-                            base_player.projected_points = round(projected_points, 2)
-                        else:
-                            base_player.points = 0
-                            base_player.projected_points = 0
+                        base_player.season_points, base_player.season_projected_points = self.get_player_points(
+                            stats=self.player_season_stats[str(base_player.player_id)],
+                            projected_stats=self.player_season_projected_stats[str(base_player.player_id)]
+                        )
 
                         base_player.position_type = "O" if base_player.display_position in self.offensive_positions \
                             else "D"

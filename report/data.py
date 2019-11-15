@@ -20,6 +20,8 @@ class ReportData(object):
 
         self.break_ties = break_ties
         self.dq_ce = dq_ce
+        self.week = league.week
+        self.bench_positions = league.bench_positions
         self.has_divisions = league.has_divisions
         self.is_faab = league.is_faab
 
@@ -95,7 +97,6 @@ class ReportData(object):
         self.data_for_season_avg_points_by_position = None
         self.data_for_season_weekly_top_scorers = None
         self.data_for_season_weekly_highest_ce = None
-        self.data_for_season_weekly_player_points = None
 
         # current standings data
         self.data_for_current_standings = metrics_calculator.get_standings_data(league)

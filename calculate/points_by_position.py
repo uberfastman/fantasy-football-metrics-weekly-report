@@ -16,7 +16,7 @@ class PointsByPosition(object):
         self.roster_slot_counts = league.roster_position_counts
         self.bench_positions = league.bench_positions
         self.flex_types = list(league.get_flex_positions_dict().keys())
-        # self.flex_types.remove("FLEX_IDP")  # can uncomment this line to add FLEX_IDP to team points by position
+        self.flex_types.remove("FLEX_IDP")  # comment/uncomment line to remove/add FLEX_IDP to team points by position
 
     def get_points_for_position(self, players, position):
         total_points_by_position = 0

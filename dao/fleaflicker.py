@@ -449,6 +449,9 @@ class LeagueData(object):
                         base_player.owner_team_name = flea_league_player.get("owner", {}).get("name")
                         base_player.percent_owned = 0
                         base_player.points = float(flea_league_player.get("viewingActualPoints", {}).get("value", 0))
+                        base_player.season_points = float(flea_league_player.get("seasonTotal", {}).get("value", 0))
+                        base_player.season_average_points = round(float(
+                            flea_league_player.get("seasonAverage", {}).get("value", 0)), 2)
                         base_player.projected_points = None
 
                         base_player.position_type = "O" if flea_pro_player.get(

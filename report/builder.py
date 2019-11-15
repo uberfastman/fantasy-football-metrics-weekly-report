@@ -161,7 +161,6 @@ class FantasyFootballReport(object):
         season_weekly_top_scorers = []
         season_weekly_highest_ce = []
         season_weekly_teams_results = []
-        season_weekly_player_points = defaultdict(lambda: defaultdict(float))
 
         week_counter = 1
         while week_counter <= self.league.week_for_report:
@@ -204,9 +203,6 @@ class FantasyFootballReport(object):
                 for weekly_team_points_by_position in report_data.data_for_weekly_points_by_position:
                     if weekly_team_points_by_position[0] == team_id:
                         season_avg_points_by_position[team_id].append(weekly_team_points_by_position[1])
-                # add player to season weekly player points for future season average player points usage
-                for player in team_result.roster:  # type: BasePlayer
-                    season_weekly_player_points[player.player_id][player.week_for_report] = player.points
 
             top_scorer = {
                 "week": week_counter,
@@ -275,7 +271,6 @@ class FantasyFootballReport(object):
         report_data.data_for_season_avg_points_by_position = season_avg_points_by_position
         report_data.data_for_season_weekly_top_scorers = season_weekly_top_scorers
         report_data.data_for_season_weekly_highest_ce = season_weekly_highest_ce
-        report_data.data_for_season_weekly_player_points = season_weekly_player_points
 
         # calculate season average metrics and then add columns for them to their respective metric table data
         season_average_calculator = SeasonAverageCalculator(week_for_report_ordered_team_names, report_data,

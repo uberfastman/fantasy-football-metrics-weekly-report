@@ -7,7 +7,6 @@ import urllib.request
 from configparser import ConfigParser
 from copy import deepcopy
 from urllib.error import URLError
-from statistics import mean
 
 # from PIL import Image
 from PIL import ImageFile
@@ -332,7 +331,6 @@ class PdfGenerator(object):
         self.data_for_season_average_team_points_by_position = report_data.data_for_season_avg_points_by_position
         self.data_for_season_weekly_top_scorers = report_data.data_for_season_weekly_top_scorers
         self.data_for_season_weekly_highest_ce = report_data.data_for_season_weekly_highest_ce
-        self.data_for_season_weekly_player_points = report_data.data_for_season_weekly_player_points
 
         # dynamically create table styles based on number of ties in metrics
         self.style_efficiency_dqs = None
@@ -825,20 +823,33 @@ class PdfGenerator(object):
             if self.config.getboolean("Report", "team_boom_or_bust"):
                 starting_players = []
                 for player in player_info:  # type: BasePlayer
-                    if player.selected_position not in ["BN", "IR"]:
-                        # TODO: figure out how to get player points from weeks they were not started or on roster
-                        # player_weekly_points = []
-                        # for week in range(1, self.week_for_report):  # ignore score for current week
-                        #     player_weekly_points.append(
-                        #         self.data_for_season_weekly_player_points[player.player_id][week])
-                        # player.season_average_points = round(mean(player_weekly_points), 2)
+                    if player.selected_position not in self.report_data.bench_positions:
+                        if player.season_points and player.week_for_report > 1:
+                            player.season_average_points = round(
+                                (player.season_points - player.points) / (player.week_for_report - 1), 2)
+                            player.season_average_points = round(
+                                (player.season_points - player.points -
+                                 ((self.report_data.week - player.week_for_report - 1) *
+                                  player.season_average_points)) / (player.week_for_report - 1), 2)
+                        else:
+                            player.season_points = 0
+                            player.season_average_points = 0
                         starting_players.append(player)
 
-                starting_players = sorted(starting_players, key=lambda x: x.points, reverse=True)
-                # TODO: figure out how to get player points from weeks they were not started or on roster
-                # starting_players = sorted(starting_players, key=lambda x: round(
-                #     ((x.points - x.season_average_points) / x.season_average_points) * 100, 2) if
-                #     x.season_average_points > 0 else 100.00, reverse=True)
+                if any(player.season_points for player in starting_players) and starting_players[0].week_for_report > 1:
+                    starting_players = sorted(
+                        starting_players,
+                        key=lambda x:
+                            round(((x.points - x.season_average_points) / x.season_average_points) * 100, 2)
+                            if x.season_average_points > 0
+                            else 100
+                            if x.season_average_points == 0
+                            else round(((x.points - x.season_average_points) / x.season_average_points) * -100, 2),
+                        reverse=True
+                    )
+                else:
+                    starting_players = sorted(starting_players, key=lambda x: x.points, reverse=True)
+
                 best_weekly_player = starting_players[0]
                 worst_weekly_player = starting_players[-1]
 
@@ -851,25 +862,36 @@ class PdfGenerator(object):
                 data = [
                     ["BOOOOOOOOM", "...b... U... s... T"],
                     [best_weekly_player.full_name + " -- " + (best_weekly_player.nfl_team_name if
-                     best_weekly_player.nfl_team_name else "N/A"),
+                                                              best_weekly_player.nfl_team_name else "N/A"),
                      worst_weekly_player.full_name + " -- " + (worst_weekly_player.nfl_team_name if
-                     worst_weekly_player.nfl_team_name else "N/A")],
-                    [best_player_headshot, worst_player_headshot],
-                    [round(best_weekly_player.points, 2), round(worst_weekly_player.points, 2)]
+                                                               worst_weekly_player.nfl_team_name else "N/A")],
+                    [best_player_headshot, worst_player_headshot]
                 ]
-                # TODO: figure out how to get player points from weeks they were not started or on roster
-                # ["{} ({} avg: +{}%)".format(
-                #     round(best_weekly_player.points, 2),
-                #     best_weekly_player.season_average_points,
-                #     round(((best_weekly_player.points - best_weekly_player.season_average_points) /
-                #            best_weekly_player.season_average_points) * 100, 2)
-                # ),
-                #  "{} ({} avg: -{}%)".format(
-                #      round(worst_weekly_player.points, 2),
-                #      worst_weekly_player.season_average_points,
-                #      round(((worst_weekly_player.season_average_points - worst_weekly_player.points) /
-                #             best_weekly_player.season_average_points) * 100, 2)
-                #  )]]
+                if any(player.season_points for player in starting_players) and starting_players[0].week_for_report > 1:
+                    data.append(
+                        [
+                            "{} ({} avg: +{}%)".format(
+                                round(best_weekly_player.points, 2),
+                                best_weekly_player.season_average_points,
+                                round(((best_weekly_player.points - best_weekly_player.season_average_points) /
+                                       best_weekly_player.season_average_points) * 100, 2)
+                            ),
+                            "{} ({} avg: -{}%)".format(
+                                round(worst_weekly_player.points, 2),
+                                worst_weekly_player.season_average_points,
+                                round(((worst_weekly_player.season_average_points - worst_weekly_player.points) /
+                                       worst_weekly_player.season_average_points) * 100, 2)
+                                if worst_weekly_player.season_average_points > 0
+                                else "∞"
+                                if worst_weekly_player.season_average_points == 0
+                                else round(((worst_weekly_player.season_average_points - worst_weekly_player.points) /
+                                            worst_weekly_player.season_average_points) * -100, 2)
+                            )
+                        ]
+                    )
+                else:
+                    data.append([round(best_weekly_player.points, 2), round(worst_weekly_player.points, 2)])
+
                 table = Table(data, colWidths=4.0 * inch)
                 table.setStyle(self.boom_bust_table_style)
                 doc_elements.append(self.spacer_half_inch)

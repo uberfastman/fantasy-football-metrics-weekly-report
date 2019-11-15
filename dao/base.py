@@ -525,6 +525,7 @@ class BasePlayer(FantasyFootballReportObject):
         self.points = 0
         self.projected_points = 0
         self.season_points = 0
+        self.season_projected_points = 0
         self.season_average_points = 0
         self.position_type = None
         self.primary_position = None
