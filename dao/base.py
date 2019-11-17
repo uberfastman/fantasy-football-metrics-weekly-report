@@ -126,7 +126,7 @@ class BaseLeague(FantasyFootballReportObject):
         self.player_data_by_week_function = None
         self.player_data_by_week_key = None
 
-    def get_player_data_by_week(self, player_id, week):
+    def get_player_data_by_week(self, player_id, week=None):
         return getattr(self.player_data_by_week_function(player_id, week), self.player_data_by_week_key)
 
     def get_custom_weekly_matchups(self, week_for_report):

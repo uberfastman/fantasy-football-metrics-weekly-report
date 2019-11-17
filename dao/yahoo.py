@@ -167,15 +167,45 @@ class LeagueData(object):
                     ) for team in self.league_info.standings.teams
             }
 
-    def get_player_data(self, player_key, week):
-        # YAHOO API QUERY: run query to retrieve stats for specific player for a chosen week
-        return self.yahoo_data.retrieve(
-            player_key,
-            self.yahoo_query.get_player_stats_by_week,
-            params={"player_key": player_key, "chosen_week": str(week)},
-            new_data_dir=os.path.join(self.data_dir, str(self.season), self.league_id, "week_" + str(week), "players"),
-            data_type_class=Player
-        )
+        # TODO: too many request to Yahoo, triggers 999 rate limiting error
+        # self.player_stats_by_week = defaultdict(lambda: defaultdict(Player))
+        # self.player_season_stats = {}
+        # for wk in range(1, int(self.week_for_report) + 1):
+        #     for roster in self.rosters_by_week[str(wk)].values():
+        #         for player in roster:
+        #             y_player = player.get("player")  # type: Player
+        #             player_id = str(y_player.player_id)
+        #             player_key = str(y_player.player_key)
+        #
+        #             for week in range(1, int(self.week_for_report) + 1):
+        #                 if player_id not in self.player_stats_by_week[str(week)].keys():
+        #                     self.player_stats_by_week[str(week)][player_id] = self.get_player_data(
+        #                         player_key=player_key, week=str(week))
+        #
+        #             if player_id not in self.player_season_stats.keys():
+        #                 self.player_season_stats[player_id] = self.get_player_data(player_key=player_key)
+
+    def get_player_data(self, player_key, week=None):
+        # YAHOO API QUERY: run query to retrieve stats for specific player for chosen week if supplied, else for season
+        params = {"player_key": player_key}
+        if week:
+            params["chosen_week"] = week
+
+            return self.yahoo_data.retrieve(
+                player_key,
+                self.yahoo_query.get_player_stats_by_week,
+                params=params,
+                new_data_dir=os.path.join(self.data_dir, str(self.season), self.league_id, "week_" + str(week), "players"),
+                data_type_class=Player
+            )
+        else:
+            return self.yahoo_data.retrieve(
+                player_key,
+                self.yahoo_query.get_player_stats_for_season,
+                params=params,
+                new_data_dir=os.path.join(self.data_dir, str(self.season), self.league_id, "players"),
+                data_type_class=Player
+            )
 
     # noinspection PyTypeChecker
     def map_data_to_base(self, base_league_class):
