@@ -209,6 +209,7 @@ def add_report_team_stats(team: BaseTeam, league: BaseLeague, week_counter, metr
 
     # # retrieve luck and record
     team.luck = metrics.get("luck").get(team.team_id).get("luck")
+    team.weekly_overall_record = metrics.get("luck").get(team.team_id).get("luck_record")
     team.record = metrics.get("records").get(team.team_id)
 
     return team

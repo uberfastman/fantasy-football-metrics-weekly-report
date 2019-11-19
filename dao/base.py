@@ -283,6 +283,7 @@ class BaseTeam(FantasyFootballReportObject):
         self.positions_filled_active = []
         self.coaching_efficiency = 0
         self.luck = 0
+        self.weekly_overall_record = BaseRecord()
         self.record = BaseRecord()
         self.current_record = BaseRecord()
 
@@ -319,7 +320,8 @@ class BaseRecord(FantasyFootballReportObject):
         self.rank = rank
         self._percentage = percentage if percentage else self._calculate_percentage(
             self._wins, self._ties, self._losses)
-        self._record_str = self._format_record(self._wins, self._ties, self._losses, self._points_for)
+        self._record_str = self._format_record(self._wins, self._ties, self._losses)
+        self._record_and_pf_str = self._format_record(self._wins, self._ties, self._losses, self._points_for)
 
         self.division = division
         self._division_wins = division_wins
@@ -353,12 +355,26 @@ class BaseRecord(FantasyFootballReportObject):
             percentage = round(0, 3)
         return percentage
 
+    def _format_record(self, wins, ties, losses, points_for=None):
+        if points_for:
+            return self._format_record_with_points_for(wins, ties, losses, points_for)
+        else:
+            return self._format_record_without_points_for(wins, ties, losses)
+
     @staticmethod
-    def _format_record(wins, ties, losses, points_for):
+    def _format_record_with_points_for(wins, ties, losses, points_for):
         if ties > 0:
             record_str = "{}-{}-{} ({})".format(wins, losses, ties, round(points_for, 2))
         else:
             record_str = "{}-{} ({})".format(wins, losses, round(points_for, 2))
+        return record_str
+
+    @staticmethod
+    def _format_record_without_points_for(wins, ties, losses):
+        if ties > 0:
+            record_str = "{}-{}-{}".format(wins, losses, ties)
+        else:
+            record_str = "{}-{}".format(wins, losses)
         return record_str
 
     def _update_streak(self, streak_type):
@@ -374,7 +390,8 @@ class BaseRecord(FantasyFootballReportObject):
     def add_win(self):
         self._wins += 1
         self._percentage = self._calculate_percentage(self._wins, self._ties, self._losses)
-        self._record_str = self._format_record(self._wins, self._ties, self._losses, self._points_for)
+        self._record_str = self._format_record(self._wins, self._ties, self._losses)
+        self._record_and_pf_str = self._format_record(self._wins, self._ties, self._losses, self._points_for)
         self._update_streak("W")
 
     def get_losses(self):
@@ -383,7 +400,8 @@ class BaseRecord(FantasyFootballReportObject):
     def add_loss(self):
         self._losses += 1
         self._percentage = self._calculate_percentage(self._wins, self._ties, self._losses)
-        self._record_str = self._format_record(self._wins, self._ties, self._losses, self._points_for)
+        self._record_str = self._format_record(self._wins, self._ties, self._losses)
+        self._record_and_pf_str = self._format_record(self._wins, self._ties, self._losses, self._points_for)
         self._update_streak("L")
 
     def get_ties(self):
@@ -392,7 +410,8 @@ class BaseRecord(FantasyFootballReportObject):
     def add_tie(self):
         self._ties += 1
         self._percentage = self._calculate_percentage(self._wins, self._ties, self._losses)
-        self._record_str = self._format_record(self._wins, self._ties, self._losses, self._points_for)
+        self._record_str = self._format_record(self._wins, self._ties, self._losses)
+        self._record_and_pf_str = self._format_record(self._wins, self._ties, self._losses, self._points_for)
         self._update_streak("T")
 
     def get_points_for(self):
@@ -400,7 +419,8 @@ class BaseRecord(FantasyFootballReportObject):
 
     def add_points_for(self, points):
         self._points_for += points
-        self._record_str = self._format_record(self._wins, self._ties, self._losses, self._points_for)
+        self._record_str = self._format_record(self._wins, self._ties, self._losses)
+        self._record_and_pf_str = self._format_record(self._wins, self._ties, self._losses, self._points_for)
 
     def get_points_against(self):
         return self._points_against
@@ -413,6 +433,9 @@ class BaseRecord(FantasyFootballReportObject):
 
     def get_record_str(self):
         return self._record_str
+
+    def get_record_and_pf_str(self):
+        return self._record_and_pf_str
 
     def get_streak_type(self):
         return self._streak_type
@@ -438,6 +461,8 @@ class BaseRecord(FantasyFootballReportObject):
         self._division_percentage = self._calculate_percentage(
             self._division_wins, self._division_ties, self._division_losses)
         self._record_str = self._format_record(
+            self._division_wins, self._division_ties, self._division_losses)
+        self._record_and_pf_str = self._format_record(
             self._division_wins, self._division_ties, self._division_losses, self._division_points_for)
         self._update_division_streak("W")
 
@@ -449,6 +474,8 @@ class BaseRecord(FantasyFootballReportObject):
         self._division_percentage = self._calculate_percentage(
             self._division_wins, self._division_ties, self._division_losses)
         self._record_str = self._format_record(
+            self._division_wins, self._division_ties, self._division_losses)
+        self._record_and_pf_str = self._format_record(
             self._division_wins, self._division_ties, self._division_losses, self._division_points_for)
         self._update_division_streak("L")
 
@@ -460,6 +487,8 @@ class BaseRecord(FantasyFootballReportObject):
         self._division_percentage = self._calculate_percentage(
             self._division_wins, self._division_ties, self._division_losses)
         self._record_str = self._format_record(
+            self._division_wins, self._division_ties, self._division_losses)
+        self._record_and_pf_str = self._format_record(
             self._division_wins, self._division_ties, self._division_losses, self._division_points_for)
         self._update_division_streak("T")
 

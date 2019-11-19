@@ -9,7 +9,7 @@ from calculate.coaching_efficiency import CoachingEfficiency
 from calculate.metrics import CalculateMetrics
 from calculate.points_by_position import PointsByPosition
 from calculate.season_averages import SeasonAverageCalculator
-from dao.base import BaseLeague, BasePlayer
+from dao.base import BaseLeague, BaseTeam
 from dao.utils import league_data_factory, patch_http_connection_pool
 from report.data import ReportData
 from report.logger import get_logger
@@ -230,7 +230,7 @@ class FantasyFootballReport(object):
             weekly_z_score_data = []
             weekly_power_rank_data = []
 
-            for team in report_data.data_for_teams:
+            for team in report_data.data_for_teams:  # type: list
                 ordered_team_names.append(team[1])
                 ordered_team_managers.append(team[2])
                 weekly_points_data.append([int(week_counter), float(team[3])])
@@ -294,6 +294,12 @@ class FantasyFootballReport(object):
             "data_for_luck",
             with_percent=True
         )
+
+        # add weekly record to luck data
+        for team_luck_data_entry in report_data.data_for_luck:
+            for team in self.league.teams_by_week[str(self.league.week_for_report)].values():  # type: BaseTeam
+                if team_luck_data_entry[1] == team.name:
+                    team_luck_data_entry.append(team.weekly_overall_record.get_record_str())
 
         report_data.data_for_power_rankings = season_average_calculator.get_average(
             time_series_power_rank_data,

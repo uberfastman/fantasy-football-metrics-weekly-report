@@ -4,10 +4,11 @@ __email__ = "wrenjr@yahoo.com"
 import numpy as np
 
 from calculate.metrics import CalculateMetrics
+from report.data import ReportData
 
 
 class SeasonAverageCalculator(object):
-    def __init__(self, team_names, report_data, break_ties):
+    def __init__(self, team_names, report_data: ReportData, break_ties):
         self.team_names = team_names
         self.report_data = report_data
         self.break_ties = break_ties

@@ -104,6 +104,7 @@ class PdfGenerator(object):
         self.widths_5_cols_1 = [0.45 * inch, 1.95 * inch, 1.85 * inch, 1.75 * inch, 1.75 * inch]
         self.widths_6_cols_1 = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.00 * inch, 1.50 * inch, 1.00 * inch]
         self.widths_6_cols_2 = [0.75 * inch, 1.75 * inch, 1.25 * inch, 1.00 * inch, 2.00 * inch, 1.00 * inch]
+        self.widths_6_cols_3 = [0.45 * inch, 1.80 * inch, 1.70 * inch, 0.75 * inch, 1.45 * inch, 1.60 * inch]
         self.widths_7_cols_1 = [0.50 * inch, 1.75 * inch, 1.50 * inch, 0.75 * inch, 1.50 * inch, 0.75 * inch,
                                 1.00 * inch]
         self.widths_10_cols_1 = [0.45 * inch, 1.80 * inch, 1.05 * inch, 1.00 * inch, 0.80 * inch, 1.05 * inch,
@@ -305,7 +306,7 @@ class PdfGenerator(object):
         self.weekly_top_scorer_headers = [["Week", "Team", "Manager", "Score"]]
         self.weekly_highest_ce_headers = [["Week", "Team", "Manager", "Coaching Efficiency (%)"]]
         self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
-        self.luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)"]]
+        self.luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)", "Weekly Record (W-L-T)"]]
         self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]]
         self.beef_headers = [["Place", "Team", "Manager", "TABBU(s)"]]
         self.zscores_headers = [["Place", "Team", "Manager", "Z-Score"]]
@@ -1114,7 +1115,8 @@ class PdfGenerator(object):
                 self.data_for_luck,
                 self.style,
                 self.style_tied_luck,
-                self.widths_5_cols_1,
+                # self.widths_5_cols_1,
+                self.widths_6_cols_3,
                 tied_metric=self.report_data.ties_for_luck > 0,
                 metric_type="luck"
             ))
