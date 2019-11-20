@@ -38,5 +38,5 @@ urllib3==1.25.6
 wcwidth==0.1.7
 websocket-client==0.54.0
 yahoo-oauth==0.1.9
-yffpy==2.6.0
+yfpy==3.0.0
 zipp==0.6.0

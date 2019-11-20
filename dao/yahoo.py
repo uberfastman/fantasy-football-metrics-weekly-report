@@ -7,14 +7,14 @@ import os
 # from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 
-from yffpy.data import Data
-from yffpy.models import Game, League, Matchup, Team, Manager, Player, RosterPosition, Stat
-from yffpy.query import YahooFantasyFootballQuery
+from yfpy.data import Data
+from yfpy.models import Game, League, Matchup, Team, Manager, Player, RosterPosition, Stat
+from yfpy.query import YahooFantasySportsQuery
 
 from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
 
 # Suppress YahooFantasyFootballQuery debug logging
-logging.getLogger("yffpy.query").setLevel(level=logging.INFO)
+logging.getLogger("yfpy.query").setLevel(level=logging.INFO)
 
 
 class LeagueData(object):
@@ -39,7 +39,7 @@ class LeagueData(object):
 
         self.yahoo_data = Data(self.data_dir, save_data=save_data, dev_offline=dev_offline)
         yahoo_auth_dir = os.path.join(base_dir, config.get("Yahoo", "yahoo_auth_dir"))
-        self.yahoo_query = YahooFantasyFootballQuery(yahoo_auth_dir, self.league_id, self.game_id,
+        self.yahoo_query = YahooFantasySportsQuery(yahoo_auth_dir, self.league_id, self.game_id,
                                                      offline=dev_offline)
 
         if self.game_id and self.game_id != "nfl":

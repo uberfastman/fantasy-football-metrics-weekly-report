@@ -1,5 +1,7 @@
 # Fantasy Football Metrics Weekly Report
 
+[![latest-release.png](resources/images/latest-release.png)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/latest)
+
 [![Build Status](https://travis-ci.org/uberfastman/fantasy-football-metrics-weekly-report.svg?branch=develop)](https://travis-ci.org/uberfastman/fantasy-football-metrics-weekly-report)
 
 ### Table of Contents
@@ -73,7 +75,7 @@ There is a pre-made setup bash script in the top level of this repository called
 
 * ***Note***: This script has not been extensively tested. It was added in order to simplify the required setup steps, but please still do your best to verify that things worked properly after running it before moving on to running the application.
  
-* Download the script by righ-clicking [https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/develop/setup.sh](https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/develop/setup.sh) and selecting "Download Linked File". A file download should start to your local downloads folder (default is `~/Downloads/` on macOS).
+* Download the script by right-clicking [https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/develop/setup.sh](https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/develop/setup.sh) and selecting "Download Linked File". A file download should start to your local downloads folder (default is `~/Downloads/` on macOS).
 
 * Open a command line prompt
     * ***macOS***: type `Cmd + Space` (`⌘ + Space`) to bring up Spotlight, and search for "Terminal" and hit enter).
@@ -177,7 +179,7 @@ There is a pre-made setup bash script in the top level of this repository called
 
 * Go to [https://developer.yahoo.com/apps/create/](https://developer.yahoo.com/apps/create/) and create an app (you must be logged into your Yahoo account as stated above). For the app, select the following options:
 
-    * `Application Name` (**Required**): `yffpy` (you can name your app whatever you want, but this is just an example).
+    * `Application Name` (**Required**): `yahoo fantasy sports metrics` (you can name your app whatever you want, but this is just an example).
     
     * `Application Type` (**Required**): select the `Installed Application` radio button.
     
@@ -193,7 +195,7 @@ There is a pre-made setup bash script in the top level of this repository called
     
     * Once the app is created, it should redirect you to a page for your app, which will show both a `Client ID` and a `Client Secret`.
     
-    * Copy the file `EXAMPLE-private.json` (located in the `auth/yahoo/` directory), and rename the file copy `private.json`, then copy and paste the `Client ID` and `Client Secret` values from your above created Yahoo app to their respective fields (make sure the strings are wrapped regular quotes (`""`), NOT formatted quotes (`“”`)). The path to this file will be needed to point YFFPY to your credentials.
+    * Copy the file `EXAMPLE-private.json` (located in the `auth/yahoo/` directory), and rename the file copy `private.json`, then copy and paste the `Client ID` and `Client Secret` values from your above created Yahoo app to their respective fields (make sure the strings are wrapped regular quotes (`""`), NOT formatted quotes (`“”`)). The path to this file will be needed to point the YFPY API wrapper responsible for data retrieval to your credentials.
     
     * The first time you run the app, it will initialize the OAuth connection between the report generator and your Yahoo account.
     
@@ -594,9 +596,9 @@ In addition to printing output from the application to the commadn line, the Fan
 Occasionally when you use the Yahoo fantasy football API, there are hangups on the other end that can cause data not to transmit, and you might encounter an error similar to this:
 ```
 Traceback (most recent call last):
-  File "yffpy-app.py", line 114, in <module>
+  File "yfpy-app.py", line 114, in <module>
     var = app.run()
-  File "/Users/your_username/PATH/T0/LOCAL/PROJECT/yffpy-app.py", line 429, in run
+  File "/Users/your_username/PATH/T0/LOCAL/PROJECT/yfpy-app.py", line 429, in run
     for team in team_standings:
 IndexError: list index out of range
 ```
