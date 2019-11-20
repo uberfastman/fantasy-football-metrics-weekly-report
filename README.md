@@ -1,6 +1,6 @@
 # Fantasy Football Metrics Weekly Report
 
-[![latest-release.png](resources/images/latest-release.png)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/latest)
+<img src="resources/images/latest-release.png" alt="Latest Release" height="20"/>
 
 [![Build Status](https://travis-ci.org/uberfastman/fantasy-football-metrics-weekly-report.svg?branch=develop)](https://travis-ci.org/uberfastman/fantasy-football-metrics-weekly-report)
 
