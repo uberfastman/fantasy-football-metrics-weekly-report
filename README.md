@@ -135,7 +135,8 @@ There is a pre-made setup bash script in the top level of this repository called
 * Run `cd fantasy-football-metrics-weekly-report` to enter the project directory.
 
 * Set up a virtual environment:
-    * macOS/Linux:
+
+    * **macOS/Linux**:
 
         * Run `pip3 install virtualenv virtualenvwrapper` (if not already installed).
 
@@ -150,18 +151,25 @@ There is a pre-made setup bash script in the top level of this repository called
         * Run `source ~/.bashrc`
 
         * Run `which python3`. This should output something like `/usr/local/bin/python3`. Copy that path for the next step.
+        
+    * **Windows**:
+   
+        * Run `pip3 install virtualenv virtualenvwrapper-win`
+            
+        * ***Details for using `virtualenvwrapper-win` can be found [here](https://pypi.org/project/virtualenvwrapper-win/).***
 
-        * Run `mkvirtualenv -p /usr/local/bin/python3 fantasy-football-metrics-weekly-report`.
+    
+* Run `mkvirtualenv -p /usr/local/bin/python3 fantasy-football-metrics-weekly-report`.
 
-        * When the previous command is finished running, your command line prompt should now look something like this:
-            ```
-            (fantasy-football-metrics-weekly-report) [username@Computer 02:52:01 PM] ~/fantasy-football-metrics-weekly-report $
-            ```
-        Congratulations, you have successfully created a Python 3 virtual environment for the project to run in!
+* When the previous command is finished running, your command line prompt should now look something like this:
 
-    * Windows:
-        * ***If you are using Windows, please follow the instructions for using `virtualenvwrapper-win` [here](https://pypi.org/project/virtualenvwrapper-win/), and adjust the above steps for setting up a virtualenv in macOS/Linux accordingly!***
-
+    ```
+    (fantasy-football-metrics-weekly-report) [username@Computer 02:52:01 PM] ~/fantasy-football-metrics-weekly-report $
+    ```
+        
+    Congratulations, you have successfully created a Python 3 virtual environment for the project to run in!
+            
+        
 * Finally, run `pip install -r requirements.txt`
 
 ---
