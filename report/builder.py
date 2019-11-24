@@ -181,13 +181,13 @@ class FantasyFootballReport(object):
                 metrics={
                     "coaching_efficiency": CoachingEfficiency(self.config, self.league),
                     "luck": metrics_calculator.calculate_luck(
-                        self.league.teams_by_week.get(str(week_counter)),
+                        week_counter,
+                        self.league,
                         custom_weekly_matchups
                     ),
                     "records": metrics_calculator.calculate_records(
                         week_counter,
                         self.league,
-                        self.league.standings if self.league.standings else self.league.current_standings,
                         custom_weekly_matchups
                     ),
                     "playoff_probs": self.playoff_probs,
@@ -330,10 +330,20 @@ class FantasyFootballReport(object):
             self.league.name + " (" + str(self.league_id) + ") Week " + \
             str(self.league.week_for_report) + " Report"
         report_footer_text = \
-            "<para alignment='center'>Report generated %s for %s Fantasy Football league '%s' with id %s " \
-            "(<a href=\"%s\" color=blue><u>%s</u></a>).</para>" % \
-            ("{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), self.platform_str, self.league.name,
-             self.league_id, self.league.url, self.league.url)
+            "<para alignment='center'>" \
+            "Report generated {} for {} Fantasy Football league '{}' with id {} " \
+            "(<a href=\"{}\" color=blue><u>{}</u></a>)." \
+            "<br></br><br></br><br></br>" \
+            "If you enjoy using the Fantasy Football Metrics Weekly Report app, please feel free help support its " \
+            "development here:" \
+            "</para>".format(
+                "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()),
+                self.platform_str,
+                self.league.name,
+                self.league_id,
+                self.league.url,
+                self.league.url
+            )
 
         if not os.path.isdir(report_save_dir):
             os.makedirs(report_save_dir)

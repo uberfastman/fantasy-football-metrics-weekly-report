@@ -81,6 +81,34 @@ def get_player_image(url, data_dir, week, width=1.0 * inch, player_name=None):
     return scaled_img
 
 
+# noinspection PyPep8Naming
+class HyperlinkedImage(ReportLabImage, object):
+    """Class written by Dennis Golomazov on stackoverflow here: https://stackoverflow.com/a/39134216
+    Adopted from http://stackoverflow.com/a/26294527/304209.
+    """
+
+    def __init__(self, filename, hyperlink=None, width=None, height=None, kind='direct',
+                 mask='auto', lazy=1, hAlign='CENTER'):
+        """The only variable added to __init__() is hyperlink.
+
+        It defaults to None for the if statement used later.
+        """
+        super(HyperlinkedImage, self).__init__(filename, width, height, kind, mask, lazy,
+                                               hAlign=hAlign)
+        self.hyperlink = hyperlink
+
+    def drawOn(self, canvas, x, y, _sW=0):
+        if self.hyperlink:  # If a hyperlink is given, create a canvas.linkURL()
+            # This is basically adjusting the x coordinate according to the alignment
+            # given to the flowable (RIGHT, LEFT, CENTER)
+            x1 = self._hAlignAdjust(x, _sW)
+            y1 = y
+            x2 = x1 + self._width
+            y2 = y1 + self._height
+            canvas.linkURL(url=self.hyperlink, rect=(x1, y1, x2, y2), thickness=0, relative=1)
+        super(HyperlinkedImage, self).drawOn(canvas, x, y, _sW)
+
+
 class PdfGenerator(object):
     def __init__(self, config: ConfigParser,  league: BaseLeague, playoff_prob_sims, report_title_text,
                  report_footer_text, report_data: ReportData):
@@ -315,9 +343,17 @@ class PdfGenerator(object):
         # options: "document", "section", or None
         self.report_title = self.create_title(report_title_text, element_type="document")
 
-        footer_data = [[self.spacer_five_inch],
-                       [Paragraph(report_footer_text, self.text_style_normal)]]
-        self.report_footer = Table(footer_data, colWidths=7.75 * inch)
+        footer_data = [
+            [self.spacer_five_inch],
+            [Paragraph(report_footer_text, self.text_style_normal)],
+            [
+                self.get_img(
+                    "resources/images/donate.png",
+                    hyperlink="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=VZZCNLRHH9BQS"
+                )
+            ]
+        ]
+        self.report_footer = Table(footer_data, colWidths=7.75 * inch, style=self.title_style)
 
         # data for report
         self.report_data = report_data
@@ -721,11 +757,22 @@ class PdfGenerator(object):
         return points_line_chart
 
     @staticmethod
-    def get_img(path, width=1 * inch):
+    def get_img(path, width=1 * inch, hyperlink=None):
         img = ImageReader(path)
         iw, ih = img.getSize()
         aspect = ih / float(iw)
-        return ReportLabImage(path, width=width, height=(width * aspect))
+
+        if hyperlink:
+            image = HyperlinkedImage(
+                path,
+                "https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=VZZCNLRHH9BQS",
+                width=width,
+                height=(width * aspect)
+            )
+        else:
+            image = ReportLabImage(path, width=width, height=(width * aspect))
+
+        return image
 
     def create_team_stats_pages(self, doc_elements, weekly_team_data_by_position, season_average_team_data_by_position):
 

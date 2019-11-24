@@ -39,8 +39,7 @@ class LeagueData(object):
 
         self.yahoo_data = Data(self.data_dir, save_data=save_data, dev_offline=dev_offline)
         yahoo_auth_dir = os.path.join(base_dir, config.get("Yahoo", "yahoo_auth_dir"))
-        self.yahoo_query = YahooFantasySportsQuery(yahoo_auth_dir, self.league_id, self.game_id,
-                                                     offline=dev_offline)
+        self.yahoo_query = YahooFantasySportsQuery(yahoo_auth_dir, self.league_id, self.game_id, offline=dev_offline)
 
         if self.game_id and self.game_id != "nfl":
             yahoo_fantasy_game = self.yahoo_data.retrieve(str(self.game_id) + "-game-metadata",
@@ -195,7 +194,8 @@ class LeagueData(object):
                 player_key,
                 self.yahoo_query.get_player_stats_by_week,
                 params=params,
-                new_data_dir=os.path.join(self.data_dir, str(self.season), self.league_id, "week_" + str(week), "players"),
+                new_data_dir=os.path.join(
+                    self.data_dir, str(self.season), self.league_id, "week_" + str(week), "players"),
                 data_type_class=Player
             )
         else:
@@ -277,6 +277,12 @@ class LeagueData(object):
                     y_team = team.get("team")  # type: Team
                     base_team = BaseTeam()
 
+                    opposite_key = 1 if y_matchup.teams.index(team) == 0 else 0
+                    team_division = y_team.division_id
+                    opponent_division = y_matchup.teams[opposite_key].get("team").division_id
+                    if team_division and opponent_division and team_division == opponent_division:
+                        base_matchup.division_matchup = True
+
                     base_team.week = int(y_matchup.week)
                     base_team.name = y_team.name
                     base_team.num_moves = y_team.number_of_moves
@@ -320,7 +326,7 @@ class LeagueData(object):
                     else:
                         streak_type = "T"
 
-                    base_team.division = y_team.division_id
+                    base_team.division = team_division
                     base_team.current_record = BaseRecord(
                         wins=int(team_standings_info.wins),
                         losses=int(team_standings_info.losses),
@@ -356,10 +362,12 @@ class LeagueData(object):
                     # add team to league teams by week
                     league.teams_by_week[str(week)][str(base_team.team_id)] = base_team
 
-                    if y_team.team_key == y_matchup.winner_team_key:
-                        base_matchup.winner = base_team
-                    else:
-                        base_matchup.loser = base_team
+                    # no winner/loser if matchup is tied
+                    if not base_matchup.tied:
+                        if y_team.team_key == y_matchup.winner_team_key:
+                            base_matchup.winner = base_team
+                        else:
+                            base_matchup.loser = base_team
 
                 # add matchup to league matchups by week
                 league.matchups_by_week[str(week)].append(base_matchup)

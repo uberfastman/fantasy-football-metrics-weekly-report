@@ -17,9 +17,11 @@ logger = logging.getLogger(__name__)
 
 class PlayoffProbabilities(object):
 
-    def __init__(self, simulations, num_weeks, num_playoff_slots, data_dir, num_divisions=0, save_data=False,
+    def __init__(self, config, simulations, num_weeks, num_playoff_slots, data_dir, num_divisions=0, save_data=False,
                  recalculate=False, dev_offline=False):
-        self.simulations = int(simulations)
+        self.config = config
+        self.simulations = int(simulations) if simulations is not None else self.config.getint(
+            "Configuration", "num_playoff_simulations")
         self.num_weeks = int(num_weeks)
         self.num_playoff_slots = int(num_playoff_slots)
         self.data_dir = data_dir

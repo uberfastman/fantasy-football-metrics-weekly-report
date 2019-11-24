@@ -553,7 +553,8 @@ class CalculateMetrics(object):
             # team.power_rank = test_power_rank
 
     @staticmethod
-    def calculate_records(week, league: BaseLeague, standings, custom_weekly_matchups):
+    def calculate_records(week, league: BaseLeague, custom_weekly_matchups):
+        standings = league.standings if league.standings else league.current_standings
 
         records = defaultdict(BaseRecord)
         for team in standings:  # type: BaseTeam
@@ -581,6 +582,8 @@ class CalculateMetrics(object):
                     division_streak_type=previous_week_record.get_division_streak_type(),
                     division_streak_len=previous_week_record.get_division_streak_length()
                 )
+
+            # league.matchups_by_week[str(week)]
 
             for matchup in custom_weekly_matchups:
                 for team_id, matchup_result in matchup.items():
@@ -620,11 +623,14 @@ class CalculateMetrics(object):
         return records
 
     @staticmethod
-    def calculate_luck(teams, matchups_list):
+    def calculate_luck(week, league: BaseLeague, custom_weekly_matchups):
         luck_results = defaultdict(defaultdict)
+
+        teams = league.teams_by_week.get(str(week))
+
         matchups = {
             str(team_id): value[
-                "result"] for pair in matchups_list for team_id, value in list(pair.items())
+                "result"] for pair in custom_weekly_matchups for team_id, value in list(pair.items())
         }
 
         for team_1 in teams.values():  # type: BaseTeam

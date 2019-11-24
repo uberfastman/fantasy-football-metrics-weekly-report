@@ -203,8 +203,8 @@ class BaseLeague(FantasyFootballReportObject):
     def get_playoff_probs(self, save_data=False, playoff_prob_sims=None, dev_offline=False, recalculate=True):
         # TODO: UPDATE USAGE OF recalculate PARAM (could use self.dev_offline)
         return PlayoffProbabilities(
-            int(playoff_prob_sims) if playoff_prob_sims is not None else self.config.getint("Configuration",
-                                                                                            "num_playoff_simulations"),
+            self.config,
+            playoff_prob_sims,
             self.num_regular_season_weeks,
             self.num_playoff_slots,
             data_dir=os.path.join(self.data_dir, str(self.season), self.league_id),
@@ -244,10 +244,13 @@ class BaseMatchup(FantasyFootballReportObject):
         self.winner = BaseTeam()  # type: BaseTeam
         self.loser = BaseTeam()  # type: BaseTeam
 
-    def __setattr__(self, name, value):
-        if name == "complete" and not isinstance(value, bool):
+    def __setattr__(self, key, value):
+        if key == "complete" and not isinstance(value, bool):
             raise ValueError("Matchup completion status can only be \"True\" or \"False\"!")
-        super().__setattr__(name, value)
+        if key == "tied" and value:
+            self.winner = None
+            self.loser = None
+        super().__setattr__(key, value)
 
 
 class BaseTeam(FantasyFootballReportObject):

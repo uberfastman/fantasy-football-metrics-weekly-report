@@ -362,6 +362,24 @@ class LeagueData(object):
                     team_settings = team_info.get("settings")
                     base_team = BaseTeam()
 
+                    base_team.team_id = team.get("roster_id")
+
+                    opposite_key = 1 if matchup.index(team) == 0 else 0
+                    team_standings_info = None
+                    opposite_team_standings_info = None
+                    team_rank = None
+                    for roster in self.standings:
+                        if int(roster.get("roster_id")) == int(base_team.team_id):
+                            team_standings_info = roster
+                            team_rank = int(self.standings.index(roster) + 1)
+                        elif int(roster.get("roster_id")) == int(matchup[opposite_key].get("roster_id")):
+                            opposite_team_standings_info = roster
+
+                    team_division = team_standings_info.get("settings").get("division")
+                    opponent_division = opposite_team_standings_info.get("settings").get("division")
+                    if team_division and opponent_division and team_division == opponent_division:
+                        base_matchup.division_matchup = True
+
                     base_team.week = int(matchups_week)
                     base_team.name = team_info.get("owner").get("metadata").get("team_name") if team_info.get(
                         "owner").get("metadata").get("team_name") else team_info.get("owner").get("display_name")
@@ -377,7 +395,6 @@ class LeagueData(object):
 
                     # base_team.manager_str = ", ".join([manager.name for manager in base_team.managers])
                     base_team.manager_str = team_info.get("owner").get("display_name")
-                    base_team.team_id = team.get("roster_id")
                     base_team.points = round(float(team.get("points")), 2) if team.get("points") else 0
                     base_team.num_moves = sum(len(self.league_transactions_by_week.get(str(week), {}).get(
                         str(base_team.team_id), {}).get("moves", [])) for week in range(1, int(week) + 1))
@@ -388,14 +405,7 @@ class LeagueData(object):
                     base_team.faab = league.faab_budget - int(team_settings.get("waiver_budget_used"))
                     base_team.url = None
 
-                    team_standings_info = None
-                    team_rank = None
-                    for roster in self.standings:
-                        if int(roster.get("roster_id")) == int(base_team.team_id):
-                            team_standings_info = roster
-                            team_rank = int(self.standings.index(roster) + 1)
-
-                    base_team.division = team_standings_info.get("settings").get("division")
+                    base_team.division = team_division
                     base_team.current_record = BaseRecord(
                         wins=int(team_settings.get("wins")),
                         losses=int(team_settings.get("losses")),
@@ -414,6 +424,8 @@ class LeagueData(object):
                         division=base_team.division
                     )
                     base_team.streak_str = base_team.current_record.get_streak_str()
+                    if base_matchup.division_matchup:
+                        base_team.division_streak_str = base_team.current_record.get_division_streak_str()
 
                     # add team to matchup teams
                     base_matchup.teams.append(base_team)
@@ -421,6 +433,7 @@ class LeagueData(object):
                     # add team to league teams by week
                     league.teams_by_week[str(week)][str(base_team.team_id)] = base_team
 
+                    # no winner/loser if matchup is tied
                     if not base_matchup.tied:
                         if base_team.team_id == matchup[0].get("roster_id"):
                             if matchup[0].get("points") and matchup[1].get("points") and float(
@@ -434,9 +447,6 @@ class LeagueData(object):
                                 base_matchup.winner = base_team
                             else:
                                 base_matchup.loser = base_team
-                    else:
-                        # TODO: how to set winner/loser with ties?
-                        pass
 
                 # add matchup to league matchups by week
                 league.matchups_by_week[str(week)].append(base_matchup)

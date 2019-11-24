@@ -20,7 +20,7 @@ class SeasonAverageCalculator(object):
         for team in data:
             team_name = self.team_names[team_index]
 
-            valid_values = [value[1] for value in team if (value[1] and value[1] != "DQ")]
+            valid_values = [value[1] for value in team if (value[1] is not None and value[1] != "DQ")]
             average = np.mean(valid_values)
             season_average_value = "{0:.2f}".format(average)
 

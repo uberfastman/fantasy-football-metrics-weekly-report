@@ -192,9 +192,19 @@ class LeagueData(object):
                 base_matchup.complete = True if int(week) != int(self.current_week) else False
                 base_matchup.tied = True if (matchup.home_score == matchup.away_score) else False
 
-                for matchup_team in [matchup.home_team, matchup.away_team]:  # type: Team
+                matchup_teams = {
+                    "home": matchup.home_team,
+                    "away": matchup.away_team
+                }
+                for key, matchup_team in matchup_teams.items():
                     team_json = self.teams_json[str(matchup_team.team_id)]
                     base_team = BaseTeam()
+
+                    opposite_key = "away" if key == "home" else "home"
+                    team_division = matchup_team.division_id if self.num_divisions > 0 else None
+                    opponent_division = matchup_teams[opposite_key].division_id if self.num_divisions > 0 else None
+                    if team_division and opponent_division and team_division == opponent_division:
+                        base_matchup.division_matchup = True
 
                     base_team.week = int(week)
                     base_team.name = matchup_team.team_name
@@ -247,7 +257,7 @@ class LeagueData(object):
                     else:
                         division_streak_type = "T"
 
-                    base_team.division = matchup_team.division_id if self.num_divisions > 0 else None
+                    base_team.division = team_division
                     base_team.current_record = BaseRecord(
                         wins=int(matchup_team.wins),
                         losses=int(matchup_team.losses),
@@ -278,21 +288,17 @@ class LeagueData(object):
                     # add team to league teams by week
                     league.teams_by_week[str(week)][str(base_team.team_id)] = base_team
 
-                    # TODO: how to set winner/loser with ties?
+                    # no winner/loser if matchup is tied
                     if team_is_home:
                         if matchup.home_score > matchup.away_score:
                             base_matchup.winner = base_team
                         elif matchup.home_score < matchup.away_score:
                             base_matchup.loser = base_team
-                        else:
-                            pass
                     else:
                         if matchup.home_score > matchup.away_score:
                             base_matchup.loser = base_team
                         elif matchup.home_score < matchup.away_score:
                             base_matchup.winner = base_team
-                        else:
-                            pass
 
                 # add matchup to league matchups by week
                 league.matchups_by_week[str(week)].append(base_matchup)

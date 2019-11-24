@@ -101,22 +101,23 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, c
 
         elif platform == "sleeper":
             current_nfl_week = config.getint("Configuration", "current_week")
-            input_str = "Sleeper does not provide the current NFL week in the API. Are you trying to generate a " \
-                        "report for week {} (current NFL week {})? (y/n) -> ".format(
-                            current_nfl_week - 1, current_nfl_week)
-            time.sleep(1)
-            is_current_week_correct = input(input_str)
-            if is_current_week_correct == "n":
-                chosen_week = input("For which week would you like to generate a report? (1 - 17) -> ")
-                if 0 < int(chosen_week) < 18:
-                    week_for_report = chosen_week
+            if not week_for_report:
+                input_str = "Sleeper does not provide the current NFL week in the API. Are you trying to generate a " \
+                            "report for week {} (current NFL week {})? (y/n) -> ".format(
+                                current_nfl_week - 1, current_nfl_week)
+                time.sleep(1)
+                is_current_week_correct = input(input_str)
+                if is_current_week_correct == "n":
+                    chosen_week = input("For which week would you like to generate a report? (1 - 17) -> ")
+                    if 0 < int(chosen_week) < 18:
+                        week_for_report = chosen_week
+                    else:
+                        raise ValueError("Invalid week number (must be 1 through 17). Please try running the report "
+                                         "generator again with a valid current NFL week in \"config.ini\".")
+                elif is_current_week_correct == "y":
+                    pass
                 else:
-                    raise ValueError("Invalid week number (must be 1 through 17). Please try running the report "
-                                     "generator again with a valid current NFL week in \"config.ini\".")
-            elif is_current_week_correct == "y":
-                pass
-            else:
-                raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
+                    raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
 
             fleaflicker_league = SleeperLeagueData(
                 week_for_report,

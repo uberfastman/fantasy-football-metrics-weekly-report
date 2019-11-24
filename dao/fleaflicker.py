@@ -399,12 +399,10 @@ class LeagueData(object):
                     # add team to league teams by week
                     league.teams_by_week[str(week)][str(base_team.team_id)] = base_team
 
+                    # no winner/loser if matchup is tied
                     if matchup.get(key + "Result") == "WIN":
                         base_matchup.winner = base_team
-                    elif matchup.get(key + "Result") == "TIE":
-                        # TODO: how to set winner/loser with ties?
-                        pass
-                    else:
+                    elif matchup.get(key + "Result") == "LOSE":
                         base_matchup.loser = base_team
 
                 # add matchup to league matchups by week
