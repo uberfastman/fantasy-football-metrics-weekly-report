@@ -402,7 +402,7 @@ class LeagueData(object):
                         str(base_team.team_id), {}).get("trades", [])) for week in range(1, int(week) + 1))
 
                     base_team.waiver_priority = team_settings.get("waiver_position")
-                    base_team.faab = league.faab_budget - int(team_settings.get("waiver_budget_used"))
+                    base_team.faab = league.faab_budget - int(team_settings.get("waiver_budget_used", 0))
                     base_team.url = None
 
                     base_team.division = team_division

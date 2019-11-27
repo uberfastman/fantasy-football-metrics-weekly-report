@@ -310,7 +310,7 @@ class LeagueData(object):
                     base_team.projected_points = float(y_team.projected_points)
                     base_team.waiver_priority = y_team.waiver_priority
                     if league.is_faab:
-                        base_team.faab = int(y_team.faab_balance)
+                        base_team.faab = int(y_team.faab_balance) if y_team.faab_balance else 0
                     base_team.url = y_team.url
 
                     team_standings_info = Team({})
