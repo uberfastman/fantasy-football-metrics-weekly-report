@@ -396,6 +396,12 @@ The report can also have some of its visual formatting configured. The following
     
 The values seen in the `supported_fonts` configuration option are the currently supported fonts for the app.
 
+The player headshots retrieved for individual team pages can come in varying resolutions, and when they are extremely high resolution, they can inflate the size of the report PDF. In order to allow the user to reduce the size of the final report PDF if desired, the following option is available:
+
+    image_quality = 75
+    
+The default value for the image quality is 75%, allowing for a reasonable reduction in image size without sacrificing overall aesthetic quality. However, this value can be set on a scale of 0%-100%, depending on the preferences of the user.
+
 <a name="report-settings"></a>
 #### Report Settings
 

@@ -436,8 +436,8 @@ class LeagueData(object):
                             base_player.first_name = flea_pro_player.get("nameFirst")
                             base_player.last_name = flea_pro_player.get("nameLast")
                         base_player.full_name = flea_pro_player.get("nameFull")
-                        # get team D/ST pictures from ESPN because Fleaflicker does not make them available
                         if flea_player_position.get("label") == "D/ST":
+                            # use ESPN D/ST team logo (higher resolution) because Fleaflicker does not provide them
                             base_player.headshot_url = \
                                 "https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/{}.png".format(
                                     base_player.nfl_team_abbr)

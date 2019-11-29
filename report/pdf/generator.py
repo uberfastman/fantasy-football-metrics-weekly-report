@@ -3,12 +3,13 @@ __email__ = "wrenjr@yahoo.com"
 
 import logging
 import os
+import sys
 import urllib.request
 from configparser import ConfigParser
 from copy import deepcopy
 from urllib.error import URLError
 
-# from PIL import Image
+from PIL import Image
 from PIL import ImageFile
 from reportlab.graphics.shapes import Line, Drawing
 from reportlab.lib import colors
@@ -23,7 +24,6 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import PageBreak
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.platypus import Spacer
-# from reportlab.platypus import Image
 from reportlab.platypus.flowables import Image as ReportLabImage
 from reportlab.platypus.flowables import KeepTogether
 
@@ -40,7 +40,7 @@ logger = get_logger(__name__, propagate=False)
 logging.getLogger("PIL.PngImagePlugin").setLevel(level=logging.INFO)
 
 
-def get_player_image(url, data_dir, week, width=1.0 * inch, player_name=None):
+def get_player_image(url, data_dir, week, image_quality, width=1.0 * inch, player_name=None, dev_offline=False):
     headshots_dir = os.path.join(data_dir, "week_" + str(week), "player_headshots")
 
     if not os.path.exists(headshots_dir):
@@ -49,17 +49,40 @@ def get_player_image(url, data_dir, week, width=1.0 * inch, player_name=None):
     if url:
         img_name = url.split("/")[-1]
         local_img_path = os.path.join(headshots_dir, img_name)
+        local_img_jpg_path = os.path.join(headshots_dir, img_name.split(".")[0] + ".jpg")
 
-        if not os.path.exists(local_img_path):
-            try:
-                urllib.request.urlretrieve(url, local_img_path)
-            except URLError:
-                logger.error("Unable to retrieve player headshot{} at url {}".format(
-                    (" for player " + player_name) if player_name else "", url))
-                local_img_path = os.path.join("resources", "images", "photo-not-available.jpeg")
+        if not os.path.exists(local_img_jpg_path):
+            if not os.path.exists(local_img_path):
+                if not dev_offline:
+                    try:
+                        urllib.request.urlretrieve(url, local_img_path)
+                    except URLError:
+                        logger.error("Unable to retrieve player headshot{} at url {}".format(
+                            (" for player " + player_name) if player_name else "", url))
+                        local_img_path = os.path.join("resources", "images", "photo-not-available.jpg")
+                else:
+                    logger.error(
+                        "FILE {} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
+                            local_img_path))
+                    sys.exit("...run aborted.")
+
+            img = Image.open(local_img_path)
+            if img.mode != "RGBA":
+                img = img.convert("RGBA")
+
+            # Create a white rgba background
+            background = Image.new("RGB", img.size, "WHITE")
+            background.paste(img, (0, 0), img)
+            img = background
+            img = img.convert("RGB")
+            local_img_path = local_img_jpg_path
+            img.save(local_img_path, quality=image_quality, optimize=True)
+        else:
+            local_img_path = local_img_jpg_path
+
     else:
         logger.error("No available URL for player{}.".format(" " + player_name if player_name else ""))
-        img_name = "photo-not-available.jpeg"
+        img_name = "photo-not-available.jpg"
         local_img_path = os.path.join("resources", "images", img_name)
 
     img_reader = ImageReader(local_img_path)
@@ -67,14 +90,6 @@ def get_player_image(url, data_dir, week, width=1.0 * inch, player_name=None):
     aspect = ih / float(iw)
 
     ImageFile.LOAD_TRUNCATED_IMAGES = True
-
-    # TODO: figure out how to reduce image sizes/compress headshots so reports aren't over 50mb (GroupMe limit)
-    # img = Image.open(local_img_path)
-    # img.resize((int(width), int(width * aspect)), Image.ANTIALIAS)
-    # img.convert("RGB")
-    # img.save(os.path.join(headshots_dir, "test-" + str(img_name)), quality=90, optimize=True)
-    # scaled_img = ReportLabImage(
-    #     os.path.join(headshots_dir, "test-" + str(img_name)), width=width, height=(width * aspect))
 
     scaled_img = ReportLabImage(local_img_path, width=width, height=(width * aspect))
 
@@ -901,11 +916,16 @@ class PdfGenerator(object):
                 best_weekly_player = starting_players[0]
                 worst_weekly_player = starting_players[-1]
 
-                best_player_headshot = get_player_image(best_weekly_player.headshot_url, self.data_dir,
-                                                        self.week_for_report, 1.5 * inch, best_weekly_player.full_name)
-                worst_player_headshot = get_player_image(worst_weekly_player.headshot_url, self.data_dir,
-                                                         self.week_for_report, 1.5 * inch,
-                                                         worst_weekly_player.full_name)
+                best_player_headshot = get_player_image(
+                    best_weekly_player.headshot_url, self.data_dir, self.week_for_report,
+                    self.config.getint("Report", "image_quality"), 1.5 * inch, best_weekly_player.full_name,
+                    self.report_data.league.dev_offline
+                )
+                worst_player_headshot = get_player_image(
+                    worst_weekly_player.headshot_url, self.data_dir, self.week_for_report,
+                    self.config.getint("Report", "image_quality"), 1.5 * inch, worst_weekly_player.full_name,
+                    self.report_data.league.dev_offline
+                )
 
                 data = [
                     ["BOOOOOOOOM", "...b... U... s... T"],

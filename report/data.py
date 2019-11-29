@@ -18,6 +18,7 @@ class ReportData(object):
                  config, league: BaseLeague, season_weekly_teams_results, week_counter, week_for_report,
                  metrics_calculator: CalculateMetrics, metrics, break_ties=False, dq_ce=False, testing=False):
 
+        self.league = league
         self.break_ties = break_ties
         self.dq_ce = dq_ce
         self.week = league.week

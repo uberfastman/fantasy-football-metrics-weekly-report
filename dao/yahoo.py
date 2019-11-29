@@ -393,7 +393,11 @@ class LeagueData(object):
                     if base_player.display_position != "DEF":
                         base_player.headshot_url = "https:" + y_player_for_week.headshot_url.split(":")[-1]
                     else:
-                        base_player.headshot_url = y_player_for_week.headshot_url
+                        # use ESPN D/ST team logo (higher resolution)
+                        base_player.headshot_url = \
+                            "https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/{}.png".format(
+                                base_player.nfl_team_abbr)
+                        # base_player.headshot_url = y_player_for_week.headshot_url
                     base_player.owner_team_id = y_player_for_week.ownership.owner_team_key
                     base_player.owner_team_name = y_player_for_week.ownership.owner_team_name
                     base_player.percent_owned = float(
