@@ -52,8 +52,14 @@ class LeagueData(object):
         scraped_league_info = self.scrape(self.league_url, os.path.join(
             self.data_dir, str(self.season), str(self.league_id)), str(self.league_id) + "-league-info.html")
 
-        self.current_season = scraped_league_info.find(
-            "ul", attrs={"class": "dropdown-menu pull-right"}).find("li", attrs={"class": "active"}).text.strip()
+        try:
+            self.current_season = scraped_league_info.find(
+                "ul", attrs={"class": "dropdown-menu pull-right"}).find("li", attrs={"class": "active"}).text.strip()
+        except AttributeError:
+            scraped_league_playoffs = self.scrape(self.league_url + "/playoffs", os.path.join(
+                self.data_dir, str(self.season), str(self.league_id)), str(self.league_id) + "-league-playoffs.html")
+            self.current_season = scraped_league_playoffs.find(
+                "small", attrs={"class": "btn btn-primary disabled"}).text.strip()
 
         scraped_league_scores = self.scrape(self.league_url + "/scores", os.path.join(
             self.data_dir, str(self.season), str(self.league_id)), str(self.league_id) + "-league-scores.html")

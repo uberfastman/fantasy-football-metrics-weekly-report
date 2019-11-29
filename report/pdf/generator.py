@@ -906,7 +906,9 @@ class PdfGenerator(object):
                             round(((x.points - x.season_average_points) / x.season_average_points) * 100, 2)
                             if x.season_average_points > 0
                             else 100
-                            if x.season_average_points == 0
+                            if x.points > 0
+                            else 0
+                            if x.points == 0
                             else round(((x.points - x.season_average_points) / x.season_average_points) * -100, 2),
                         reverse=True
                     )
@@ -943,6 +945,11 @@ class PdfGenerator(object):
                                 best_weekly_player.season_average_points,
                                 round(((best_weekly_player.points - best_weekly_player.season_average_points) /
                                        best_weekly_player.season_average_points) * 100, 2)
+                                if best_weekly_player.season_average_points > 0
+                                else "∞"
+                                if best_weekly_player.season_average_points == 0
+                                else round(((best_weekly_player.season_average_points - best_weekly_player.points) /
+                                            best_weekly_player.season_average_points) * -100, 2)
                             ),
                             "{} ({} avg: -{}%)".format(
                                 round(worst_weekly_player.points, 2),
