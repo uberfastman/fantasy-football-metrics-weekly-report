@@ -537,7 +537,7 @@ class PdfGenerator(object):
                     self.data_for_scores[index] = team[:-1]
 
         if metric_type == "coaching_efficiency":
-            if self.break_ties and self.report_data.ties_for_coaching_efficiency > 0:
+            if self.break_ties and tied_metric:
                 self.efficiency_headers[0][3] = "CE (%)"
                 self.efficiency_headers[0].extend(["# > Avg.", "Sum % > Avg."])
             else:
@@ -1179,7 +1179,8 @@ class PdfGenerator(object):
                 self.style,
                 self.style_tied_efficiencies,
                 self.widths_5_cols_1,
-                tied_metric=self.report_data.ties_for_coaching_efficiency > 0,
+                tied_metric=((self.report_data.ties_for_coaching_efficiency > 0) and
+                             (self.report_data.league.player_data_by_week_function is not None)),
                 metric_type="coaching_efficiency"
             ))
             elements.append(self.spacer_twentieth_inch)

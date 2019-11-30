@@ -286,7 +286,8 @@ class FantasyFootballReport(object):
             time_series_efficiency_data,
             "data_for_coaching_efficiency",
             with_percent=True,
-            first_ties=report_data.num_first_place_for_coaching_efficiency_before_resolution > 1
+            first_ties=((report_data.num_first_place_for_coaching_efficiency_before_resolution > 1) and
+                        (report_data.league.player_data_by_week_function is not None))
         )
 
         report_data.data_for_luck = season_average_calculator.get_average(
