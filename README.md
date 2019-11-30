@@ -402,6 +402,8 @@ The player headshots retrieved for individual team pages can come in varying res
     
 The default value for the image quality is 75%, allowing for a reasonable reduction in image size without sacrificing overall aesthetic quality. However, this value can be set on a scale of 0%-100%, depending on the preferences of the user.
 
+Once the initial images have been retrieved and quality has been adjusted, the report will cache those images and continue to use those indefinitely until you delete the `output/data/<YEAR>/<LEAGUE_ID>/week_<WEEK_#>/player_headshots` for that week, since otherwise the images would continue to have their quality reduced until the headshots degraded entirely.
+
 <a name="report-settings"></a>
 #### Report Settings
 
@@ -423,6 +425,7 @@ In addition to turning on/off the features of the report PDF itself, there are a
 | `num_teams`                              | Number of teams in selected league. |
 | `num_regular_season_weeks`               | Number of regular season weeks in selected league. |
 | `num_playoff_slots`                      | Number of playoff slots in selected league. |
+| `num_playoff_slots_per_division`         | Numbers of teams per division that qualify for the playoffs. |
 | `coaching_efficiency_disqualified_teams` | Teams manually DQed from coaching efficiency rankings (if any). |
 | `yahoo_auth_dir`                         | Directory where Yahoo OAuth accesses and stores credentials and refresh tokens. |
 | `google_drive_upload`                    | Turn on (`True`) or off (`False`) the Google Drive upload functionality. |
