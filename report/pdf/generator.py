@@ -1107,7 +1107,10 @@ class PdfGenerator(object):
                                       "\nProbabilities account for division winners in addition to overall "
                                       "win/loss/tie record." if self.report_data.has_divisions else ""),
                     metric_type="playoffs",
-                    footer_text="† Predicted Division Leaders"
+                    footer_text="† Predicted Division Leaders{}".format(
+                        "<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                        "‡ Predicted Division Qualifiers" if self.config.getint(
+                            "Configuration", "num_playoff_slots_per_division") > 1 else "")
                     if self.report_data.has_divisions else None
                 ))
 

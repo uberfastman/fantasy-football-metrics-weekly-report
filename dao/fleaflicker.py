@@ -72,11 +72,19 @@ class LeagueData(object):
 
         elements = scraped_league_rules.findAll(["dt", "dd"])
         for elem in elements:
-            if elem.string == "Playoffs":
-                self.num_playoff_slots = elements[elements.index(elem) + 1].span.string
-                self.num_regular_season_weeks = int(
-                    elements[elements.index(elem) + 1].contents[1].split()[-1].split("-")[0]) - 1
+            if elem.text.strip() == "Playoffs":
+                self.num_playoff_slots = int(elements[elements.index(elem) + 1].span.text.strip())
 
+                playoff_weeks_elements = elements[elements.index(elem) + 1].findAll(text=True, recursive=False)
+                if any((text.strip() and "Weeks" in text) for text in playoff_weeks_elements):
+                    for text in playoff_weeks_elements:
+                        if text.strip() and "Weeks" in text:
+                            for txt in text.split():
+                                if "-" in txt:
+                                    self.num_regular_season_weeks = int(txt.split("-")[0]) - 1
+                else:
+                    self.num_regular_season_weeks = config.get("Configuration", "num_regular_season_weeks")
+                break
             else:
                 self.num_playoff_slots = config.get("Configuration", "num_playoff_slots")
                 self.num_regular_season_weeks = config.get("Configuration", "num_regular_season_weeks")

@@ -168,6 +168,9 @@ class CalculateMetrics(object):
             # add value for if team was predicted division winner to pass to the later sort function
             team_playoffs_data.append(team_with_playoff_probs[4])
 
+            # add value for if team was predicted division qualifier to pass to the later sort function
+            team_playoffs_data.append(team_with_playoff_probs[5])
+
             playoff_probs_data.append(
                 team_playoffs_data
                 # FOR LEAGUES WITH CUSTOM PLAYOFFS NOT SUPPORTED BY YAHOO
@@ -182,9 +185,10 @@ class CalculateMetrics(object):
         if has_divisions:
             prob_ndx = 4
 
-        sorted_playoff_probs_data = sorted(playoff_probs_data, key=lambda x: (x[-1], x[prob_ndx]), reverse=True)
+        sorted_playoff_probs_data = sorted(playoff_probs_data, key=lambda x: (x[-2], x[-1], x[prob_ndx]), reverse=True)
         for team_playoff_probs_data in sorted_playoff_probs_data:
-            team_playoff_probs_data.pop(-1)
+            team_playoff_probs_data.pop(-1)  # remove "division qualifier" bool (original index: -1)
+            team_playoff_probs_data.pop(-1)  # remove "division winner" bool (original index: -2)
             team_playoff_probs_data[prob_ndx] = "%.2f%%" % team_playoff_probs_data[prob_ndx]
             if team_playoff_probs_data[prob_ndx + 1] == 1:
                 team_playoff_probs_data[prob_ndx + 1] = "%d win" % team_playoff_probs_data[prob_ndx + 1]
