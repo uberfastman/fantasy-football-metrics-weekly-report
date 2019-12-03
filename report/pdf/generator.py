@@ -1075,12 +1075,14 @@ class PdfGenerator(object):
                     prob_ndx = 3
                     if self.report_data.has_divisions:
                         prob_ndx = 4
-                    if float(team[prob_ndx].split("%")[0]) == 100.00 and int(team[prob_ndx + 1].split(" ")[0]) == 0:
+                    # if float(team[prob_ndx].split("%")[0]) == 100.00 and int(team[prob_ndx + 1].split(" ")[0]) == 0:
+                    if float(team[prob_ndx].split("%")[0]) == 100.00:
                         playoff_probs_style.add("TEXTCOLOR", (0, team_num), (-1, team_num), colors.darkgreen)
                         playoff_probs_style.add("FONT", (0, team_num), (-1, team_num), self.font_bold_italic)
 
-                    if (int(team[prob_ndx + 1].split(" ")[0]) + int(
-                            self.week_for_report)) > self.num_regular_season_weeks:
+                    if ((int(team[prob_ndx + 1].split(" ")[0]) + int(
+                            self.week_for_report)) > self.num_regular_season_weeks) or (
+                            float(team[prob_ndx].split("%")[0]) == 0.00):
                         playoff_probs_style.add(
                             "TEXTCOLOR", (prob_ndx + 1, team_num), (prob_ndx + 1, team_num), colors.red)
 
