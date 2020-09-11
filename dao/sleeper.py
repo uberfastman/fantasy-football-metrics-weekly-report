@@ -96,16 +96,6 @@ class LeagueData(object):
                     )
                 }
 
-                # self.player_stats_data_by_week[str(week_for_player_stats)] = self.query(
-                #     self.base_stat_url + "stats/nfl/" + str(season) + "/" + str(week_for_player_stats) +
-                #         "?season_type=regular",
-                #     os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(
-                #         week_for_player_stats)),
-                #     "week_" + str(week_for_player_stats) + "-player_stats_by_week.json",
-                #     check_for_saved_data=True,
-                #     refresh_days_delay=1
-                # )
-
             self.player_projected_stats_data_by_week[str(week_for_player_stats)] = {
                 player["player_id"]: player["stats"] for player in self.query(
                     self.base_stat_url + "projections/nfl/" + str(season) + "/" + str(week_for_player_stats) +
@@ -117,29 +107,6 @@ class LeagueData(object):
                     refresh_days_delay=1
                 )
             }
-            # self.player_projected_stats_data_by_week[str(week_for_player_stats)] = self.query(
-            #     self.base_stat_url + "projections/nfl/" + str(season) + "/" + str(week_for_player_stats) +
-            #         "?season_type=regular",
-            #     os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(
-            #         week_for_player_stats)),
-            #     "week_" + str(week_for_player_stats) + "-player_projected_stats_by_week.json",
-            #     check_for_saved_data=True,
-            #     refresh_days_delay=1
-            # )
-
-        # player_season_projected_stats = self.query(
-        #         self.base_stat_url + "projections/nfl/" + str(self.season) + "?season_type=regular",
-        #         os.path.join(self.data_dir, str(self.season), str(self.league_id)),
-        #         str(self.league_id) + "-player_season_projected_stats.json",
-        #         check_for_saved_data=True,
-        #         refresh_days_delay=1
-        #     )
-        #
-        # for item in player_season_projected_stats:
-        #     print(item["player_id"])
-        #     print(item["stats"])
-        #     print(item)
-        #     print("\n-----\n")
 
         self.player_season_stats = {
             player["player_id"]: player["stats"] for player in self.query(
