@@ -1,12 +1,14 @@
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
+import itertools
 import json
 import logging
 import os
 from collections import OrderedDict
 
 import requests
+from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +26,9 @@ class BadBoyStats(object):
         self.nfl_team_abbreviations = [
             "ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE",
             "DAL", "DEN", "DET", "GB", "HOU", "IND", "JAC", "KC",  # http://nflarrest.com uses JAC for JAX
-            "LAC", "LA", "MIA", "MIN", "NE", "NO", "NYG", "NYJ",  # http://nflarrest.com uses LA for LAR
-            "OAK", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS"
+            "LAC", "LV", "MIA", "MIN", "NE", "NO", "NYG", "NYJ",  # http://nflarrest.com uses LA for LAR
+            "OAK", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS",
+            "LA", "SD"  # teams that no longer exists
         ]
 
         # small reference dict to convert between commonly used alternate team abbreviations
@@ -34,10 +37,20 @@ class BadBoyStats(object):
             "LAR": "LA"
         }
 
-        nfl_arrest_api_team_base_url = "https://nflarrest.com/api/v1/team/arrests/"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Safari/605.1.15"
+        # position type reference
+        self.position_types = {
+            "C": "D", "CB": "D", "DB": "D", "DE": "D", "DE/DT": "D", "DT": "D", "LB": "D", "S": "D",  # defense
+            "FB": "O", "QB": "O", "RB": "O", "TE": "O", "WR": "O",  # offense
+            "K": "S", "P": "S",  # special teams
+            "OG": "L", "OL": "L", "OT": "L",  # offensive line
+            "OC": "C",  # coaching staff
         }
+
+        # nfl_arrest_api_team_base_url = "https://nflarrest.com/api/v1/team/arrests/"
+        # headers = {
+        #     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko)" +
+        #                   " Version/13.0 Safari/605.1.15"
+        # }
 
         # create parent directory if it does not exist
         if not os.path.exists(data_dir):
@@ -48,7 +61,7 @@ class BadBoyStats(object):
                                "crime-categories.json"), mode="r", encoding="utf-8") as crimes:
             self.crime_rankings = json.load(crimes)
 
-        # for outputting all unique crime categories found by nflarrest api
+        # for outputting all unique crime categories found in the USA Today NFL arrests data
         self.unique_crime_categories_for_output = {}
 
         # preserve raw retrieved player crime data for reference and later usage
@@ -66,10 +79,45 @@ class BadBoyStats(object):
         # fetch crimes of players from the web if not running in offline mode or if refresh=True
         if self.refresh or not self.dev_offline:
             if not self.bad_boy_data:
+
+                # Scrape USA Today NFL crime database site
+                usa_today_nfl_arrest_url = "https://www.usatoday.com/sports/nfl/arrests/"
+                r = requests.get(usa_today_nfl_arrest_url)
+                data = r.text
+                soup = BeautifulSoup(data, "html.parser")
+                self.bad_boy_data = {}
+
+                arrests = []
+                types = set()
+                for row in soup.findAll("tr"):
+                    cells = row.findAll("td")
+                    if len(cells) > 0:
+                        arrests.append({
+                            "name": cells[2].text,
+                            "team": "FA" if (cells[1].text == "Free agent" or cells[1].text == "Free Agent")
+                                else cells[1].text,
+                            "date": cells[0].text,
+                            "position": cells[3].text,
+                            "position_type": self.position_types[cells[3].text],
+                            "case": cells[4].text.upper(),
+                            "crime": cells[5].text.upper(),
+                            "description": cells[6].text,
+                            "outcome": cells[7].text
+                        })
+                        types.add(cells[3].text)
+
+                arrests_by_team = {
+                    key: list(group) for key, group in itertools.groupby(
+                        sorted(arrests, key=lambda x: x["team"]),
+                        lambda x: x["team"]
+                    )
+                }
+
                 for team_abbr in self.nfl_team_abbreviations:
-                    response = requests.get(nfl_arrest_api_team_base_url + team_abbr, headers=headers)
-                    logger.debug("Response {} for {} nflarrest query.".format(response.status_code, team_abbr))
-                    self.add_entry(team_abbr, response)
+                    # response = requests.get(nfl_arrest_api_team_base_url + team_abbr, headers=headers)
+                    # logger.debug("Response {} for {} nflarrest query.".format(response.status_code, team_abbr))
+                    # self.add_entry(team_abbr, response)
+                    self.add_entry(team_abbr, arrests_by_team.get(team_abbr))
 
                 self.save_bad_boy_data()
 
@@ -104,9 +152,9 @@ class BadBoyStats(object):
             with open(self.bad_boy_raw_data_file_path, "w", encoding="utf-8") as bad_boy_raw_out:
                 json.dump(self.raw_bad_boy_json, bad_boy_raw_out, ensure_ascii=False, indent=2)
 
-    def add_entry(self, team_abbr, response):
+    def add_entry(self, team_abbr, arrests):
 
-        if response:
+        if arrests:
             nfl_team = {
                 "pos": "DEF",
                 "players": {},
@@ -117,11 +165,11 @@ class BadBoyStats(object):
                 "worst_offense_points": 0
             }
 
-            for player_arrest in response.json():
-                player_name = player_arrest.get("Name")
-                player_pos = player_arrest.get("Position")
-                player_pos_type = player_arrest.get("Position_type")
-                offense_category = str.upper(player_arrest.get("Category"))
+            for player_arrest in arrests:
+                player_name = player_arrest.get("name")
+                player_pos = player_arrest.get("position")
+                player_pos_type = player_arrest.get("position_type")
+                offense_category = str.upper(player_arrest.get("crime"))
 
                 # Add each crime to output categories for generation of crime-categories-output.json file, which can
                 # be used to replace the existing crime-categories.json file. Each new crime categories will default to

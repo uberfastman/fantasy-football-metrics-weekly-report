@@ -35,3 +35,13 @@ def test_beef_init():
     )
     beef_stats.generate_player_info_json()
     assert beef_stats.beef_data is not None
+
+
+if __name__ == '__main__':
+    print("Testing features...")
+
+    # uncomment below function to test bad boy data retrieval
+    # test_bad_boy_init()
+
+    # uncomment below function to test player weight (beef) data retrieval
+    # test_beef_init()

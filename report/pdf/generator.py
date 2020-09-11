@@ -838,7 +838,8 @@ class PdfGenerator(object):
                 doc_elements.append(KeepTogether(team_table))
                 doc_elements.append(self.spacer_quarter_inch)
 
-            if self.config.getboolean("Report", "team_bad_boy_stats"):
+            if self.config.getboolean("Report", "league_bad_boy_rankings") and \
+                    self.config.getboolean("Report", "team_bad_boy_stats"):
                 offending_players = []
                 for player in player_info:
                     if player.bad_boy_points > 0:
@@ -861,7 +862,8 @@ class PdfGenerator(object):
                     doc_elements.append(KeepTogether(bad_boys_table))
                     doc_elements.append(self.spacer_tenth_inch)
 
-            if self.config.getboolean("Report", "team_beef_stats"):
+            if self.config.getboolean("Report", "league_beef_rankings") and \
+                    self.config.getboolean("Report", "team_beef_stats"):
                 doc_elements.append(self.create_title("Beefiest Bois", 8.5, "section"))
                 doc_elements.append(self.spacer_tenth_inch)
                 beefy_players = sorted(player_info, key=lambda x: x.tabbu, reverse=True)
