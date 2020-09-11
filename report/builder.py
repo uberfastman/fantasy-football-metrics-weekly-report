@@ -123,13 +123,17 @@ class FantasyFootballReport(object):
         self.playoff_probs = self.league.get_playoff_probs(self.save_data, self.playoff_prob_sims,
                                                            self.dev_offline, recalculate=True)
 
-        begin = datetime.datetime.now()
-        logger.info("Retrieving bad boy data from http://nflarrest.com {}...".format(
-            "website" if not self.dev_offline or self.refresh_web_data else "saved data"))
-        self.bad_boy_stats = self.league.get_bad_boy_stats(self.save_data, self.dev_offline, self.refresh_web_data)
-        delta = datetime.datetime.now() - begin
-        logger.info("...retrieved all bad boy data from http://nflarrest.com {} in {}\n".format(
-            "website" if not self.dev_offline else "saved data", str(delta)))
+        # TODO: what happened to Patrick Murphy's NFL arrests API?
+        if self.config.getboolean("Report", "league_bad_boy_rankings"):
+            begin = datetime.datetime.now()
+            logger.info("Retrieving bad boy data from http://nflarrest.com {}...".format(
+                "website" if not self.dev_offline or self.refresh_web_data else "saved data"))
+            self.bad_boy_stats = self.league.get_bad_boy_stats(self.save_data, self.dev_offline, self.refresh_web_data)
+            delta = datetime.datetime.now() - begin
+            logger.info("...retrieved all bad boy data from http://nflarrest.com {} in {}\n".format(
+                "website" if not self.dev_offline else "saved data", str(delta)))
+        else:
+            self.bad_boy_stats = None
 
         begin = datetime.datetime.now()
         logger.info("Retrieving beef data from Fox Sports {}...".format(

@@ -152,7 +152,8 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, c
         sys.exit("...run aborted.")
 
 
-def add_report_player_stats(player,  # type: BasePlayer
+def add_report_player_stats(config,
+                            player,  # type: BasePlayer
                             bench_positions,
                             metrics):
     player.bad_boy_crime = str()
@@ -162,28 +163,31 @@ def add_report_player_stats(player,  # type: BasePlayer
     player.tabbu = float()
 
     if player.selected_position not in bench_positions:
-        bad_boy_stats = metrics.get("bad_boy_stats")  # type: BadBoyStats
-        player.bad_boy_crime = bad_boy_stats.get_player_bad_boy_crime(
-            player.full_name, player.nfl_team_abbr, player.primary_position)
-        player.bad_boy_points = bad_boy_stats.get_player_bad_boy_points(
-            player.full_name, player.nfl_team_abbr, player.primary_position)
-        player.bad_boy_num_offenders = bad_boy_stats.get_player_bad_boy_num_offenders(
-            player.full_name, player.nfl_team_abbr, player.primary_position)
 
-        beef_stats = metrics.get("beef_stats")  # type: BeefStats
-        player.weight = beef_stats.get_player_weight(player.first_name, player.last_name, player.nfl_team_abbr)
-        player.tabbu = beef_stats.get_player_tabbu(player.first_name, player.last_name, player.nfl_team_abbr)
+        if config.getboolean("Report", "league_bad_boy_rankings"):
+            bad_boy_stats = metrics.get("bad_boy_stats")  # type: BadBoyStats
+            player.bad_boy_crime = bad_boy_stats.get_player_bad_boy_crime(
+                player.full_name, player.nfl_team_abbr, player.primary_position)
+            player.bad_boy_points = bad_boy_stats.get_player_bad_boy_points(
+                player.full_name, player.nfl_team_abbr, player.primary_position)
+            player.bad_boy_num_offenders = bad_boy_stats.get_player_bad_boy_num_offenders(
+                player.full_name, player.nfl_team_abbr, player.primary_position)
+
+        if config.getboolean("Report", "league_beef_rankings"):
+            beef_stats = metrics.get("beef_stats")  # type: BeefStats
+            player.weight = beef_stats.get_player_weight(player.first_name, player.last_name, player.nfl_team_abbr)
+            player.tabbu = beef_stats.get_player_tabbu(player.first_name, player.last_name, player.nfl_team_abbr)
 
     return player
 
 
-def add_report_team_stats(team: BaseTeam, league: BaseLeague, week_counter, metrics_calculator, metrics, dq_ce,
+def add_report_team_stats(config, team: BaseTeam, league: BaseLeague, week_counter, metrics_calculator, metrics, dq_ce,
                           inactive_players) -> BaseTeam:
     team.name = metrics_calculator.decode_byte_string(team.name)
     bench_positions = league.bench_positions
 
     for player in team.roster:
-        add_report_player_stats(player, bench_positions, metrics)
+        add_report_player_stats(config, player, bench_positions, metrics)
 
     starting_lineup_points = round(
         sum([p.points for p in team.roster if p.selected_position not in bench_positions]), 2)
@@ -195,24 +199,27 @@ def add_report_team_stats(team: BaseTeam, league: BaseLeague, week_counter, metr
 
     team.bench_points = round(sum([p.points for p in team.roster if p.selected_position in bench_positions]), 2)
 
-    team.bad_boy_points = 0
-    team.worst_offense = None
-    team.num_offenders = 0
-    team.worst_offense_score = 0
-    for p in team.roster:
-        if p.selected_position not in bench_positions:
-            if p.bad_boy_points > 0:
-                team.bad_boy_points += p.bad_boy_points
-                if p.selected_position == "DEF":
-                    team.num_offenders += p.bad_boy_num_offenders
-                else:
-                    team.num_offenders += 1
-                if p.bad_boy_points > team.worst_offense_score:
-                    team.worst_offense = p.bad_boy_crime
-                    team.worst_offense_score = p.bad_boy_points
+    if config.getboolean("Report", "league_bad_boy_rankings"):
+        team.bad_boy_points = 0
+        team.worst_offense = None
+        team.num_offenders = 0
+        team.worst_offense_score = 0
+        for p in team.roster:
+            if p.selected_position not in bench_positions:
+                if p.bad_boy_points > 0:
+                    team.bad_boy_points += p.bad_boy_points
+                    if p.selected_position == "DEF":
+                        team.num_offenders += p.bad_boy_num_offenders
+                    else:
+                        team.num_offenders += 1
+                    if p.bad_boy_points > team.worst_offense_score:
+                        team.worst_offense = p.bad_boy_crime
+                        team.worst_offense_score = p.bad_boy_points
 
-    team.total_weight = sum([p.weight for p in team.roster if p.selected_position not in bench_positions])
-    team.tabbu = sum([p.tabbu for p in team.roster if p.selected_position not in bench_positions])
+    if config.getboolean("Report", "league_beef_rankings"):
+        team.total_weight = sum([p.weight for p in team.roster if p.selected_position not in bench_positions])
+        team.tabbu = sum([p.tabbu for p in team.roster if p.selected_position not in bench_positions])
+
     team.positions_filled_active = [p.selected_position for p in team.roster if
                                     p.selected_position not in bench_positions]
 

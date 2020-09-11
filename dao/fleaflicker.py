@@ -120,7 +120,10 @@ class LeagueData(object):
                 self.league_teams[team.get("id")] = team
                 self.ranked_league_teams.append(team)
 
-        self.ranked_league_teams = sorted(self.ranked_league_teams, key=lambda x: x.get("recordOverall").get("rank"))
+        self.ranked_league_teams = sorted(
+            self.ranked_league_teams,
+            key=lambda x: x.get("recordOverall").get("rank") if x.get("recordOverall").get("rank") else 0
+        )
 
         self.matchups_by_week = {}
         for wk in range(1, int(self.num_regular_season_weeks) + 1):
@@ -294,8 +297,10 @@ class LeagueData(object):
             pos_name = position.get("label")
             if position.get("start"):
                 pos_count = int(position.get("start"))
+            elif position.get("label") == "BN":
+                pos_count = int(position.get("max")) if position.get("max") else 0
             else:
-                pos_count = int(position.get("max"))
+                pos_count = 0
 
             if pos_name == "RB/WR":
                 league.flex_positions_rb_wr = ["RB", "WR"]
@@ -373,10 +378,13 @@ class LeagueData(object):
                     base_team.url = "https://www.fleaflicker.com/nfl/leagues/" + self.league_id + "/teams/" + \
                                     str(team_data.get("id"))
 
-                    if team_data.get("streak").get("value") > 0:
-                        streak_type = "W"
-                    elif team_data.get("streak").get("value") < 0:
-                        streak_type = "L"
+                    if team_data.get("streak").get("value"):
+                        if team_data.get("streak").get("value") > 0:
+                            streak_type = "W"
+                        elif team_data.get("streak").get("value") < 0:
+                            streak_type = "L"
+                        else:
+                            streak_type = "T"
                     else:
                         streak_type = "T"
 

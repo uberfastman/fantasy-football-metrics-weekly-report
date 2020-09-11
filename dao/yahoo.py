@@ -328,21 +328,25 @@ class LeagueData(object):
 
                     base_team.division = team_division
                     base_team.current_record = BaseRecord(
-                        wins=int(team_standings_info.wins),
-                        losses=int(team_standings_info.losses),
-                        ties=int(team_standings_info.ties),
-                        percentage=float(team_standings_info.percentage),
-                        points_for=float(team_standings_info.points_for),
-                        points_against=float(team_standings_info.points_against),
+                        wins=int(team_standings_info.wins) if team_standings_info.wins else 0,
+                        losses=int(team_standings_info.losses) if team_standings_info.losses else 0,
+                        ties=int(team_standings_info.ties) if team_standings_info.ties else 0,
+                        percentage=float(team_standings_info.percentage) if team_standings_info.percentage else 0.0,
+                        points_for=float(team_standings_info.points_for) if team_standings_info.points_for else 0.0,
+                        points_against=float(team_standings_info.points_against) if team_standings_info.points_against
+                            else 0.0,
                         streak_type=streak_type,
-                        streak_len=int(team_standings_info.streak_length),
+                        streak_len=int(team_standings_info.streak_length) if team_standings_info.streak_type else 0,
                         team_id=y_team.team_id,
                         team_name=y_team.name,
-                        rank=int(team_standings_info.rank),
+                        rank=int(team_standings_info.rank) if team_standings_info.rank else 0,
                         division=base_team.division,
-                        division_wins=int(team_standings_info.team_standings.divisional_outcome_totals.wins),
-                        division_losses=int(team_standings_info.team_standings.divisional_outcome_totals.losses),
-                        division_ties=int(team_standings_info.team_standings.divisional_outcome_totals.ties),
+                        division_wins=int(team_standings_info.team_standings.divisional_outcome_totals.wins) if
+                            team_standings_info.team_standings.divisional_outcome_totals.wins else 0,
+                        division_losses=int(team_standings_info.team_standings.divisional_outcome_totals.losses) if
+                            team_standings_info.team_standings.divisional_outcome_totals.losses else 0,
+                        division_ties=int(team_standings_info.team_standings.divisional_outcome_totals.ties) if
+                            team_standings_info.team_standings.divisional_outcome_totals.ties else 0,
                         division_percentage=round(float(
                             team_standings_info.team_standings.divisional_outcome_totals.wins / (
                                     team_standings_info.team_standings.divisional_outcome_totals.wins +
@@ -382,7 +386,7 @@ class LeagueData(object):
 
                     base_player.week_for_report = int(week)
                     base_player.player_id = y_player_for_week.player_key
-                    base_player.bye_week = int(y_player_for_week.bye)
+                    base_player.bye_week = int(y_player_for_week.bye) if y_player_for_week.bye else 0
                     base_player.display_position = y_player_for_week.display_position
                     base_player.nfl_team_id = y_player_for_week.editorial_team_key
                     base_player.nfl_team_abbr = y_player_for_week.editorial_team_abbr
@@ -402,7 +406,8 @@ class LeagueData(object):
                     base_player.owner_team_name = y_player_for_week.ownership.owner_team_name
                     base_player.percent_owned = float(
                         y_player_for_week.percent_owned_value) if y_player_for_week.percent_owned_value else 0
-                    base_player.points = float(y_player_for_week.player_points_value)
+                    base_player.points = float(y_player_for_week.player_points_value) if \
+                        y_player_for_week.player_points_value else 0
                     base_player.position_type = y_player_for_week.position_type
 
                     base_player.primary_position = y_player_for_week.primary_position

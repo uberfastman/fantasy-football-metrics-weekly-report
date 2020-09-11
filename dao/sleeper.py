@@ -49,6 +49,7 @@ class LeagueData(object):
             os.makedirs(self.data_dir)
 
         self.base_url = "https://api.sleeper.app/v1/"
+        self.base_stat_url = "https://api.sleeper.app/"
 
         self.league_info = self.query(
             self.base_url + "league/" + str(self.league_id),
@@ -82,42 +83,82 @@ class LeagueData(object):
         self.player_projected_stats_data_by_week = {}
         for week_for_player_stats in range(1, int(self.num_regular_season_weeks) + 1):
             if int(week_for_player_stats) <= int(self.week_for_report):
-                self.player_stats_data_by_week[str(week_for_player_stats)] = self.query(
-                    self.base_url + "stats/nfl/regular/" + str(season) + "/" + str(week_for_player_stats),
+
+                self.player_stats_data_by_week[str(week_for_player_stats)] = {
+                    player["player_id"]: player["stats"] for player in self.query(
+                        self.base_stat_url + "stats/nfl/" + str(season) + "/" + str(week_for_player_stats) +
+                            "?season_type=regular",
+                        os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(
+                            week_for_player_stats)),
+                        "week_" + str(week_for_player_stats) + "-player_stats_by_week.json",
+                        check_for_saved_data=True,
+                        refresh_days_delay=1
+                    )
+                }
+
+                # self.player_stats_data_by_week[str(week_for_player_stats)] = self.query(
+                #     self.base_stat_url + "stats/nfl/" + str(season) + "/" + str(week_for_player_stats) +
+                #         "?season_type=regular",
+                #     os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(
+                #         week_for_player_stats)),
+                #     "week_" + str(week_for_player_stats) + "-player_stats_by_week.json",
+                #     check_for_saved_data=True,
+                #     refresh_days_delay=1
+                # )
+
+            self.player_projected_stats_data_by_week[str(week_for_player_stats)] = {
+                player["player_id"]: player["stats"] for player in self.query(
+                    self.base_stat_url + "projections/nfl/" + str(season) + "/" + str(week_for_player_stats) +
+                        "?season_type=regular",
                     os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(
                         week_for_player_stats)),
-                    "week_" + str(week_for_player_stats) + "-player_stats_by_week.json",
+                    "week_" + str(week_for_player_stats) + "-player_projected_stats_by_week.json",
                     check_for_saved_data=True,
                     refresh_days_delay=1
                 )
+            }
+            # self.player_projected_stats_data_by_week[str(week_for_player_stats)] = self.query(
+            #     self.base_stat_url + "projections/nfl/" + str(season) + "/" + str(week_for_player_stats) +
+            #         "?season_type=regular",
+            #     os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(
+            #         week_for_player_stats)),
+            #     "week_" + str(week_for_player_stats) + "-player_projected_stats_by_week.json",
+            #     check_for_saved_data=True,
+            #     refresh_days_delay=1
+            # )
 
-            self.player_projected_stats_data_by_week[str(week_for_player_stats)] = self.query(
-                self.base_url + "projections/nfl/regular/" + str(season) + "/" + str(week_for_player_stats),
-                os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(
-                    week_for_player_stats)),
-                "week_" + str(week_for_player_stats) + "-player_projected_stats_by_week.json",
-                check_for_saved_data=True,
-                refresh_days_delay=1
-            )
+        # player_season_projected_stats = self.query(
+        #         self.base_stat_url + "projections/nfl/" + str(self.season) + "?season_type=regular",
+        #         os.path.join(self.data_dir, str(self.season), str(self.league_id)),
+        #         str(self.league_id) + "-player_season_projected_stats.json",
+        #         check_for_saved_data=True,
+        #         refresh_days_delay=1
+        #     )
+        #
+        # for item in player_season_projected_stats:
+        #     print(item["player_id"])
+        #     print(item["stats"])
+        #     print(item)
+        #     print("\n-----\n")
 
         self.player_season_stats = {
-            player_id: player_stats for player_id, player_stats in self.query(
-                self.base_url + "stats/nfl/regular/" + str(self.season),
+            player["player_id"]: player["stats"] for player in self.query(
+                self.base_stat_url + "stats/nfl/" + str(self.season) + "?season_type=regular",
                 os.path.join(self.data_dir, str(self.season), str(self.league_id)),
                 str(self.league_id) + "-player_season_stats.json",
                 check_for_saved_data=True,
                 refresh_days_delay=1
-            ).items()
+            )
         }
 
         self.player_season_projected_stats = {
-            player_id: player_projected_stats for player_id, player_projected_stats in self.query(
-                self.base_url + "projections/nfl/regular/" + str(self.season),
+            player["player_id"]: player["stats"] for player in self.query(
+                self.base_stat_url + "projections/nfl/" + str(self.season) + "?season_type=regular",
                 os.path.join(self.data_dir, str(self.season), str(self.league_id)),
                 str(self.league_id) + "-player_season_projected_stats.json",
                 check_for_saved_data=True,
                 refresh_days_delay=1
-            ).items()
+            )
         }
 
         # with open(os.path.join(
@@ -142,7 +183,8 @@ class LeagueData(object):
                 x.get("settings").get("wins"),
                 -x.get("settings").get("losses"),
                 x.get("settings").get("ties"),
-                float(str(x.get("settings").get("fpts")) + "." + str(x.get("settings").get("fpts_decimal")))
+                float(str(x.get("settings").get("fpts")) + "." + (str(x.get("settings").get("fpts_decimal") if x.get(
+                    "settings").get("fpts_decimal") else "0")))
             ),
             reverse=True
         )
@@ -278,20 +320,19 @@ class LeagueData(object):
         return matchup
 
     def get_player_points(self, stats, projected_stats):
+        points = 0
         if stats:
-            points = 0
             for stat, value in stats.items():
                 if stat in self.league_scoring.keys():
                     points += (value * self.league_scoring.get(stat))
 
-            projected_points = 0
+        projected_points = 0
+        if projected_stats:
             for stat, value in projected_stats.items():
                 if stat in self.league_scoring.keys():
                     projected_points += (value * self.league_scoring.get(stat))
 
-            return round(points, 2), round(projected_points, 2)
-        else:
-            return 0, 0
+        return round(points, 2), round(projected_points, 2)
 
     def map_data_to_base(self, base_league_class):
         league = base_league_class(self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data,
@@ -381,20 +422,34 @@ class LeagueData(object):
                         base_matchup.division_matchup = True
 
                     base_team.week = int(matchups_week)
-                    base_team.name = team_info.get("owner").get("metadata").get("team_name") if team_info.get(
-                        "owner").get("metadata").get("team_name") else team_info.get("owner").get("display_name")
 
-                    for manager in [team_info.get("owner")] + team_info.get("co_owners"):
+                    if team_info.get("owner"):
+                        base_team.name = team_info.get("owner").get("metadata").get("team_name") if team_info.get(
+                            "owner").get("metadata").get("team_name") else team_info.get("owner").get("display_name")
+                    else:
+                        base_team.name = "Team #{}".format(team_info.get("roster_id"))
+
+                    if team_info.get("owner"):
+                        for manager in [team_info.get("owner")] + team_info.get("co_owners"):
+                            base_manager = BaseManager()
+
+                            base_manager.manager_id = manager.get("user_id")
+                            base_manager.email = None
+                            base_manager.name = manager.get("display_name")
+
+                            base_team.managers.append(base_manager)
+                    else:
                         base_manager = BaseManager()
 
-                        base_manager.manager_id = manager.get("user_id")
+                        base_manager.manager_id = "N/A"
                         base_manager.email = None
-                        base_manager.name = manager.get("display_name")
+                        base_manager.name = "N/A"
 
                         base_team.managers.append(base_manager)
 
                     # base_team.manager_str = ", ".join([manager.name for manager in base_team.managers])
-                    base_team.manager_str = team_info.get("owner").get("display_name")
+                    base_team.manager_str = team_info.get("owner").get("display_name") if team_info.get("owner") else \
+                        "N/A"
                     base_team.points = round(float(team.get("points")), 2) if team.get("points") else 0
                     base_team.num_moves = sum(len(self.league_transactions_by_week.get(str(week), {}).get(
                         str(base_team.team_id), {}).get("moves", [])) for week in range(1, int(week) + 1))
@@ -412,10 +467,16 @@ class LeagueData(object):
                         ties=int(team_settings.get("ties")),
                         percentage=round(float(int(team_settings.get("wins")) / (
                                 int(team_settings.get("wins")) + int(team_settings.get("losses")) +
-                                int(team_settings.get("ties")))), 3),
-                        points_for=float(str(team_settings.get("fpts")) + "." + str(team_settings.get("fpts_decimal"))),
-                        points_against=float(str(team_settings.get("fpts_against")) + "." +
-                                             str(team_settings.get("fpts_against_decimal"))),
+                                int(team_settings.get("ties")))), 3) if int(team_settings.get("wins")) +
+                                int(team_settings.get("losses")) + int(team_settings.get("ties")) > 0 else 0.0,
+                        points_for=float(str(team_settings.get("fpts")) + "." + (
+                            str(team_settings.get("fpts_decimal")) if team_settings.get("fpts_decimal") else "0")),
+                        points_against=float(
+                            (str(team_settings.get("fpts_against")) if
+                             team_settings.get("fpts_against") else "0") + "." +
+                            (str(team_settings.get("fpts_against_decimal")) if
+                             team_settings.get("fpts_against_decimal") else "0")
+                        ),
                         streak_type=None,
                         streak_len=0,
                         team_id=base_team.team_id,

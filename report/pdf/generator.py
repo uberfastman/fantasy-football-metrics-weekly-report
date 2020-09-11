@@ -750,7 +750,7 @@ class PdfGenerator(object):
         chart_height = 150
 
         # fit y-axis of table
-        values = [weeks[1] for teams in data for weeks in teams]
+        values = [weeks[1] if weeks[1] != "DQ" else 0.0 for teams in data for weeks in teams]
         values_min = min(values)
         values_max = max(values)
 
@@ -1287,6 +1287,10 @@ class PdfGenerator(object):
                     if len(team) > 1:
                         if week[1] == 0.0:
                             del team[week_index]
+
+                    if week[1] == "DQ":
+                        week[1] = 0.0
+
                     week_index += 1
 
             # create line charts for points, coaching efficiency, and luck

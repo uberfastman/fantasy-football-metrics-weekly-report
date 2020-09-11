@@ -573,21 +573,43 @@ The following setup steps are ***required*** in order to allow the Slack integra
     
 * Click `Create App`. You should now be taken to the page for your new app, where you can configure things like the app title card color, the icon, the description, as well as a whole host of other features (see [here](https://api.slack.com/slack-apps) for more information).
 
-* Select `OAuth & Permissions` from the menu on the left.
+* Select `Basic Information` from the menu on the left.
 
-* Scroll down to the `Scopes` section, from the dropdown menu select the following:
+* Scroll down to `Display Information` and set up your Slack app with whatever display settings you want.
 
-    * `Send messages as ff-report` (`chat:write:bot`) from the `Conversations` category/section 
-    
-    * `Upload and modify files as user` (`files:write:user`) from the `Files` category/section (Only select this option if you want to be able to upload the actual report PDFs to Slack, otherwise if you are only going to upload a Google Drive link, you can disregard this scope. Slack does not currently provide a way to upload files as the app, only as the logged in user.)
-    
-* Click `Save Changes`.
+* Scroll up to `Building Apps for Slack` and click `Bots`.
 
-* Scroll back to the top of the page and click `Install App to Workspace`. You should be redirected to a confirmation page telling you what your app will be able to do. Click `Allow`.
+* You will be taken to the `App Home` section of the menu on the left.
 
-* You should be redirected back to the app management page for your app. At the top of the `OAuth & Permissions` section you should now see a field containing and `OAuth Access Token`.
+* Click the `Review Scopes to Add` button.
 
-* Copy the file `EXAMPLE-token.json` (located in the `auth/slack/` directory), and rename the file copy `token.json`, then copy and paste the above `OAuth Access Token` into the field value of `token.json` where it says `"SLACK_APP_OAUTH_ACCESS_TOKEN_STRING"`, replacing that string. Make sure you are using douple quotes (`"`) on either side of your token string. 
+* You will be taken to the `OAuth & Permissions` section of the menu on the left.
+
+* Scroll down to `Scopes`.
+
+* Under `Bot Token Scopes`, click the `Add an OAuth Scope` button.
+
+* From the dropdown menu, select the below scopes:
+
+|           OAuth Scope           |                                      Description                                     |
+| :--------------------------- | :----------------------------------------------------------------------------------- |
+| `channels:read`                 | View basic information about public channels in the workspace |
+| `chat:write` | Send messages as @ff-report |
+| `chat:write.customize` | Send messages as @ff-report with a customized username and avatar |
+| `chat:write.public`           | Send messages to channels @ff-report isn't a member of |
+| `files:write`          | Upload, edit, and delete files as ff-report | 
+| `groups:read`            | View basic information about private channels that ff-report has been added to |
+| `im:read`     | View basic information about direct messages that ff-report has been added to |
+| `incoming-webhook` | Post messages to specific channels in Slack |
+| `mpim:read`           | View basic information about group direct messages that ff-report has been added to |
+
+* Scroll back up to `OAuth Tokens & Redirect URLs`, and now you should be able to click the `Install App to Workspace` button, so click it.
+
+* You will be redirected to a screen saying your app is asking for permission to access the Slack workspace, and presenting you with a dropdown to select a channel for your app to post to. Select your desired channel, and hit `Allow`.
+
+* You will now be redirected back to the `OAuth & Permissions` section of your app settings. At the top, you will see a `Bot User OAuth Access Token` field, which will now have a value populated.
+
+* Copy the file `EXAMPLE-token.json` (located in the `auth/slack/` directory), and rename the file copy `token.json`, then copy and paste the above `Bot user OAuth Access Token` into the field value of `token.json` where it says `"SLACK_APP_OAUTH_ACCESS_TOKEN_STRING"`, replacing that string. Make sure you are using douple quotes (`"`) on either side of your token string. 
 
 * *You can now upload your reports to Slack, either by updating the following values in `config.ini`:*
 

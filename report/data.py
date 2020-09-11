@@ -39,6 +39,7 @@ class ReportData(object):
 
         self.teams_results = {
             team.team_id: add_report_team_stats(
+                config,
                 team,
                 league,
                 week_counter,
