@@ -26,9 +26,8 @@ class BadBoyStats(object):
         self.nfl_team_abbreviations = [
             "ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE",
             "DAL", "DEN", "DET", "GB", "HOU", "IND", "JAC", "KC",  # http://nflarrest.com uses JAC for JAX
-            "LAC", "LV", "MIA", "MIN", "NE", "NO", "NYG", "NYJ",  # http://nflarrest.com uses LA for LAR
-            "OAK", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS",
-            "LA", "SD"  # teams that no longer exists
+            "LA", "LAC", "LV", "MIA", "MIN", "NE", "NO", "NYG",  # http://nflarrest.com uses LA for LAR
+            "NYJ", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS"
         ]
 
         # small reference dict to convert between commonly used alternate team abbreviations
@@ -65,8 +64,8 @@ class BadBoyStats(object):
         self.unique_crime_categories_for_output = {}
 
         # preserve raw retrieved player crime data for reference and later usage
-        self.raw_bad_boy_json = {}
-        self.bad_boy_raw_data_file_path = os.path.join(data_dir, "bad_boy_raw_data.json")
+        self.raw_bad_boy_data = {}
+        self.raw_bad_boy_data_file_path = os.path.join(data_dir, "bad_boy_raw_data.json")
 
         # for collecting all retrieved bad boy data
         self.bad_boy_data = {}
@@ -149,8 +148,8 @@ class BadBoyStats(object):
                 json.dump(self.bad_boy_data, bad_boy_out, ensure_ascii=False, indent=2)
 
             # save raw player crime data locally
-            with open(self.bad_boy_raw_data_file_path, "w", encoding="utf-8") as bad_boy_raw_out:
-                json.dump(self.raw_bad_boy_json, bad_boy_raw_out, ensure_ascii=False, indent=2)
+            with open(self.raw_bad_boy_data_file_path, "w", encoding="utf-8") as bad_boy_raw_out:
+                json.dump(self.raw_bad_boy_data, bad_boy_raw_out, ensure_ascii=False, indent=2)
 
     def add_entry(self, team_abbr, arrests):
 
@@ -177,7 +176,7 @@ class BadBoyStats(object):
                 self.unique_crime_categories_for_output[offense_category] = self.crime_rankings.get(offense_category, 0)
 
                 # add raw player arrest data to raw data collection
-                self.raw_bad_boy_json[player_name] = player_arrest
+                self.raw_bad_boy_data[player_name] = player_arrest
 
                 if offense_category in self.crime_rankings.keys():
                     offense_points = self.crime_rankings.get(offense_category)
@@ -218,17 +217,17 @@ class BadBoyStats(object):
 
             self.bad_boy_data[team_abbr] = nfl_team
 
-    def get_player_bad_boy_stats(self, player_full_name, player_team, player_pos, key_str=""):
+    def get_player_bad_boy_stats(self, player_full_name, player_team_abbr, player_pos, key_str=""):
         """ Looks up given player and returns number of 'bad boy' points based on custom crime scoring.
 
         TODO: maybe limit for years and adjust defensive players rolling up to DEF team as it skews DEF scores high
         :param player_full_name: Player name to look up
-        :param player_team: Player's team (maybe later limit to only crimes while on that team...or for DEF players)
+        :param player_team_abbr: Player's team (maybe limit to only crimes while on that team...or for DEF players???)
         :param player_pos: Player's position
         :param key_str: which player information to retrieve (crime: "worst_offense" or bad boy points: "total_points")
         :return: Ether integer number of bad boy points or crime recorded (depending on key_str)
         """
-        player_team = str.upper(player_team) if player_team else "?"
+        player_team = str.upper(player_team_abbr) if player_team_abbr else "?"
         if player_team not in self.nfl_team_abbreviations:
             if player_team in self.team_abbrev_conversion_dict.keys():
                 player_team = self.team_abbrev_conversion_dict[player_team]

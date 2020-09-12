@@ -25,8 +25,8 @@ class BeefStats(object):
         self.nfl_team_abbreviations = [
             "ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE",
             "DAL", "DEN", "DET", "GB", "HOU", "IND", "JAX", "KC",
-            "LAC", "LAR", "MIA", "MIN", "NE", "NO", "NYG", "NYJ",
-            "OAK", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS"
+            "LAR", "LAC", "LV", "MIA", "MIN", "NE", "NO", "NYG",
+            "NYJ", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS"
         ]
 
         # small reference dict to convert between commonly used alternate team abbreviations
@@ -133,9 +133,9 @@ class BeefStats(object):
         self.beef_data[player_full_name] = player_beef_dict
         return player_beef_dict
 
-    def get_player_beef_stat(self, player_first_name, player_last_name, team_abbr, key_str):
-        team_abbr = team_abbr.upper() if team_abbr else "?"
+    def get_player_beef_stat(self, player_first_name, player_last_name, player_team_abbr, key_str):
 
+        team_abbr = player_team_abbr.upper() if player_team_abbr else "?"
         if player_last_name:
             player_full_name = player_first_name + " " + player_last_name
         else:

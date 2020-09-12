@@ -12,6 +12,7 @@ from urllib3 import connectionpool, poolmanager
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
+from calculate.covid_risk import CovidRisk
 from dao.base import BaseLeague, BaseTeam, BasePlayer
 from dao.espn import LeagueData as EspnLeagueData
 from dao.fleaflicker import LeagueData as FleaflickerLeagueData
@@ -161,6 +162,7 @@ def add_report_player_stats(config,
     player.bad_boy_num_offenders = int()
     player.weight = float()
     player.tabbu = float()
+    player.covid_risk = int()
 
     if player.selected_position not in bench_positions:
 
@@ -177,6 +179,11 @@ def add_report_player_stats(config,
             beef_stats = metrics.get("beef_stats")  # type: BeefStats
             player.weight = beef_stats.get_player_weight(player.first_name, player.last_name, player.nfl_team_abbr)
             player.tabbu = beef_stats.get_player_tabbu(player.first_name, player.last_name, player.nfl_team_abbr)
+
+        if config.getboolean("Report", "league_covid_risk_rankings"):
+            covid_risk = metrics.get("covid_risk")  # type: CovidRisk
+            player.covid_risk = covid_risk.get_player_covid_risk(
+                player.full_name, player.nfl_team_abbr, player.primary_position)
 
     return player
 
@@ -219,6 +226,9 @@ def add_report_team_stats(config, team: BaseTeam, league: BaseLeague, week_count
     if config.getboolean("Report", "league_beef_rankings"):
         team.total_weight = sum([p.weight for p in team.roster if p.selected_position not in bench_positions])
         team.tabbu = sum([p.tabbu for p in team.roster if p.selected_position not in bench_positions])
+
+    if config.getboolean("Report", "league_covid_risk_rankings"):
+        team.total_covid_risk = sum([p.covid_risk for p in team.roster if p.selected_position not in bench_positions])
 
     team.positions_filled_active = [p.selected_position for p in team.roster if
                                     p.selected_position not in bench_positions]

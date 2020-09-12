@@ -7,6 +7,7 @@ from collections import defaultdict
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
+from calculate.covid_risk import CovidRisk
 from calculate.playoff_probabilities import PlayoffProbabilities
 
 
@@ -230,6 +231,15 @@ class BaseLeague(FantasyFootballReportObject):
             refresh=refresh
         )
 
+    def get_covid_risk(self, save_data=False, dev_offline=False, refresh=False):
+        return CovidRisk(
+            os.path.join(self.data_dir, str(self.season), self.league_id),
+            current_week=self.week_for_report,
+            save_data=save_data,
+            dev_offline=dev_offline,
+            refresh=refresh
+        )
+
 
 class BaseMatchup(FantasyFootballReportObject):
 
@@ -283,6 +293,7 @@ class BaseTeam(FantasyFootballReportObject):
         self.worst_offense_score = 0
         self.total_weight = 0
         self.tabbu = 0
+        self.total_covid_risk = 0
         self.positions_filled_active = []
         self.coaching_efficiency = 0
         self.luck = 0
@@ -592,6 +603,7 @@ class BasePlayer(FantasyFootballReportObject):
         self.bad_boy_num_offenders = 0
         self.weight = 0
         self.tabbu = 0
+        self.covid_risk = 0
 
 
 class BaseStat(FantasyFootballReportObject):

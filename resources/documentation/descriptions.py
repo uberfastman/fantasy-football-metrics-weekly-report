@@ -50,8 +50,7 @@ weekly_highest_coaching_efficiency = "Running list of each week's team with the 
                                      "used for weekly highest coaching efficiency payouts."
 bad_boy_rankings = "The Bad Boy ranking is a \"just-for-fun\" metric that pulls NFL player arrest history from the " \
                    "<a href=\"https://www.usatoday.com/sports/nfl/arrests/\" color=blue><u>USA Today NFL player " \
-                   "arrest database</u></a> using the <a href=\"http://nflarrest.com/api/\" color=blue><u>" \
-                   "NFL Arrest API</u></a>, and then assigns points to all crimes committed by players on each " \
+                   "arrest database</u></a>, and then assigns points to all crimes committed by players on each " \
                    "team's starting lineup to give the team a total bad boy score. The points assigned to each " \
                    "crime can be found <a href=\"https://raw.githubusercontent.com/uberfastman/fantasy-football-" \
                    "metrics-weekly-report/develop/resources/files/crime-categories.json\" color=blue><u>here</u></a>."
@@ -65,3 +64,11 @@ beef_rankings = "The Beef ranking is a \"just-for-fun\" metric with a made-up un
                 "2019/athletes.json?apikey=jE7yBJVRNAwdDesMgTzTXUUSx1It41Fq\" color=blue><u>here</u></a>, and uses " \
                 "the total weight of each team's starting lineup, including the rolled-up weights of starting " \
                 "defenses, to give each team a total TABBU score."
+
+covid_19_risk = "The COVID-19 risk ranking is a \"just-for-fun\" metric that pulls NFL player transaction history " \
+                "from <a href=\"https://sportsdata.usatoday.com/football/nfl/transactions\" color=blue><u>USA Today " \
+                "Sports NFL player transactions list</u></a>, and then assigns a risk factor to every player based " \
+                "whether or not that player is currently on the Reserve/COVID-19 list, whether or not that player has " \
+                "previously been on the Reserve/COVID-19 list, how many teammates of that player have been on the " \
+                "Reserve/COVID-19 list, and how recently the last teammate of that player was on the " \
+                "Reserve/COVID-19 list."

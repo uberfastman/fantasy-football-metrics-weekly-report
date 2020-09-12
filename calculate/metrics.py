@@ -283,6 +283,19 @@ class CalculateMetrics(object):
             place += 1
         return beef_results_data
 
+    @staticmethod
+    def get_covid_risk_rank_data(covid_risk_results):
+        covid_risk_data = []
+        ndx = 0
+        for team in covid_risk_results:  # type: BaseTeam
+            ranked_team_name = team.name
+            ranked_team_manager = team.manager_str
+            ranked_covid_risk = "%d" % team.total_covid_risk
+
+            covid_risk_data.append([ndx, ranked_team_name, ranked_team_manager, ranked_covid_risk])
+            ndx += 1
+        return covid_risk_data
+
     def get_ties_count(self, results_data, tie_type, break_ties):
 
         if tie_type == "power_ranking":

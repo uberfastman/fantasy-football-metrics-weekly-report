@@ -9,6 +9,7 @@ sys.path.append(module_dir)
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
+from calculate.covid_risk import CovidRisk
 
 test_data_dir = os.path.join(module_dir, "test")
 if not os.path.exists(test_data_dir):
@@ -37,6 +38,20 @@ def test_beef_init():
     assert beef_stats.beef_data is not None
 
 
+def test_covid_init():
+    covid_risk = CovidRisk(
+        data_dir=test_data_dir,
+        current_week=1,
+        save_data=True,
+        dev_offline=False,
+        refresh=True
+    )
+    covid_risk.generate_covid_risk_json()
+
+    print("COVID-19 risk for Drew Brees:", covid_risk.get_player_covid_risk("Drew Brees", "NO", "QB"))
+    assert covid_risk.covid_data is not None
+
+
 if __name__ == '__main__':
     print("Testing features...")
 
@@ -45,3 +60,6 @@ if __name__ == '__main__':
 
     # uncomment below function to test player weight (beef) data retrieval
     # test_beef_init()
+
+    # uncomment below function to test player covid data retrieval
+    test_covid_init()

@@ -125,12 +125,13 @@ class FantasyFootballReport(object):
 
         if self.config.getboolean("Report", "league_bad_boy_rankings"):
             begin = datetime.datetime.now()
-            logger.info("Retrieving bad boy data from http://nflarrest.com {}...".format(
+            logger.info("Retrieving bad boy data from https://www.usatoday.com/sports/nfl/arrests/ {}...".format(
                 "website" if not self.dev_offline or self.refresh_web_data else "saved data"))
             self.bad_boy_stats = self.league.get_bad_boy_stats(self.save_data, self.dev_offline, self.refresh_web_data)
             delta = datetime.datetime.now() - begin
-            logger.info("...retrieved all bad boy data from http://nflarrest.com {} in {}\n".format(
-                "website" if not self.dev_offline else "saved data", str(delta)))
+            logger.info(
+                "...retrieved all bad boy data from https://www.usatoday.com/sports/nfl/arrests/ {} in {}\n".format(
+                    "website" if not self.dev_offline else "saved data", str(delta)))
         else:
             self.bad_boy_stats = None
 
@@ -144,6 +145,19 @@ class FantasyFootballReport(object):
                 "API" if not self.dev_offline else "saved data", str(delta)))
         else:
             self.beef_stats = None
+
+        if self.config.getboolean("Report", "league_covid_risk_rankings"):
+            begin = datetime.datetime.now()
+            logger.info(
+                "Retrieving COVID-19 risk data from https://sportsdata.usatoday.com/football/nfl/transactions {}..."
+                    .format("website" if not self.dev_offline or self.refresh_web_data else "saved data"))
+            self.covid_risk = self.league.get_covid_risk(self.save_data, self.dev_offline, self.refresh_web_data)
+            delta = datetime.datetime.now() - begin
+            logger.info(
+                "...retrieved all COVID-19 risk data from https://sportsdata.usatoday.com/football/nfl/transactions {} "
+                "in {}\n".format("website" if not self.dev_offline else "saved data", str(delta)))
+        else:
+            self.covid_risk = None
 
         # output league info for verification
         logger.info("...setup complete for \"{}\" ({}) week {} report.\n".format(self.league.name.upper(),
@@ -198,7 +212,8 @@ class FantasyFootballReport(object):
                     ),
                     "playoff_probs": self.playoff_probs,
                     "bad_boy_stats": self.bad_boy_stats,
-                    "beef_stats": self.beef_stats
+                    "beef_stats": self.beef_stats,
+                    "covid_risk": self.covid_risk
                 },
                 break_ties=self.break_ties,
                 dq_ce=self.dq_ce,

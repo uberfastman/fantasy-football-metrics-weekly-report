@@ -30,6 +30,7 @@ from reportlab.platypus.flowables import KeepTogether
 from dao.base import BaseLeague, BaseTeam, BasePlayer
 from report.data import ReportData
 from report.logger import get_logger
+from report.pdf.charts.bar import HorizontalBarChart3DGenerator
 from report.pdf.charts.line import LineChartGenerator
 from report.pdf.charts.pie import BreakdownPieDrawing
 from resources.documentation import descriptions
@@ -379,6 +380,7 @@ class PdfGenerator(object):
         self.data_for_z_scores = report_data.data_for_z_scores
         self.data_for_bad_boy_rankings = report_data.data_for_bad_boy_rankings
         self.data_for_beef_rankings = report_data.data_for_beef_rankings
+        self.data_for_covid_risk_rankings = report_data.data_for_covid_risk_rankings
         self.data_for_weekly_points_by_position = report_data.data_for_weekly_points_by_position
         self.data_for_season_average_team_points_by_position = report_data.data_for_season_avg_points_by_position
         self.data_for_season_weekly_top_scorers = report_data.data_for_season_weekly_top_scorers
@@ -770,6 +772,28 @@ class PdfGenerator(object):
         )
 
         return points_line_chart
+
+    def create_3d_horizontal_bar_chart(self, data, x_axis_title, x_step):
+
+        data = [[team[0], team[1], team[2], int(team[3])] for team in data]
+
+        box_width = 425
+        box_height = 425
+        chart_width = 425
+        chart_height = 425
+
+        covid_risk_bar_chart = HorizontalBarChart3DGenerator(
+            data,
+            self.font,
+            self.font_size,
+            [x_axis_title, 0, max([team[3] for team in data]) + 1, x_step],
+            box_width,
+            box_height,
+            chart_width,
+            chart_height
+        )
+
+        return covid_risk_bar_chart
 
     @staticmethod
     def get_img(path, width=1 * inch, hyperlink=None):
@@ -1274,6 +1298,37 @@ class PdfGenerator(object):
 
         if self.config.getboolean("Report", "league_bad_boy_rankings") or self.config.getboolean(
                 "Report", "league_beef_rankings"):
+            elements.append(self.add_page_break())
+
+        if self.config.getboolean("Report", "league_covid_risk_rankings"):
+            # covid risk rankings
+
+            # create bar chart for covid risk
+            title_text = "COVID-19 Risk"
+            section_anchor = str(self.toc.get_current_anchor())
+            self.appendix.add_entry(
+                title_text,
+                section_anchor,
+                getattr(descriptions, title_text.replace(" ", "_").replace("-", "_").lower())
+            )
+            appendix_anchor = self.appendix.get_last_entry_anchor()
+            title = self.create_title(
+                '''<a href = #page.html#''' + appendix_anchor + ''' color=blue>''' +
+                '''<u><b>''' + title_text + '''</b></u></a>''',
+                element_type="section",
+                anchor="<a name = page.html#" + section_anchor + "></a>",
+                subtitle_text=[
+                    "Team COVID-19 Risk is calculated based on the cumulative COVID-19 risk of all players on "
+                    "that team's starting lineup. Each player is evaluated against both their own and their teammates' "
+                    "appearances on the NFL's Reserve/COVID-19 list and how recently those appearances occurred."
+                ]
+            )
+            self.toc.add_chart_section(title_text)
+
+            elements.append(title)
+            elements.append(KeepTogether(self.create_3d_horizontal_bar_chart(self.data_for_covid_risk_rankings,
+                                                                             "Risk Factor", 5)))
+            elements.append(self.spacer_twentieth_inch)
             elements.append(self.add_page_break())
 
         if self.config.getboolean("Report", "report_time_series_charts"):
