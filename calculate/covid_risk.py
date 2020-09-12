@@ -16,7 +16,12 @@ logger = logging.getLogger(__name__)
 
 class CovidRisk(object):
 
-    def __init__(self, data_dir, current_week, save_data=False, dev_offline=False, refresh=False):
+    def __init__(self, data_dir, season, week, save_data=False, dev_offline=False, refresh=False):
+
+        self.season = int(season)
+        self.week = int(week)
+        self.selected_nfl_season_week = datetime.strptime(
+            "{} {} 1".format(str(self.season), str(self.week + 36)), "%G %V %u")
 
         self.save_data = save_data
         self.dev_offline = dev_offline
@@ -85,8 +90,9 @@ class CovidRisk(object):
         if self.refresh or not self.dev_offline:
             if not self.covid_data:
 
-                football_db_endpoint = "https://www.footballdb.com/transactions/index.html?period={}w".format(
-                    str(int(current_week) + 36)
+                football_db_endpoint = "https://www.footballdb.com/transactions/index.html?period={}&period={}".format(
+                    str(self.season + 1),
+                    str(self.season)
                 )
                 headers = {
                     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, " +
@@ -106,25 +112,26 @@ class CovidRisk(object):
                         transaction_date = row.findPrevious(attrs={"class": "stacktable-title"}).text
                         transaction_team = nfl_team_abbrev_ref.get(row.b.text)
 
-                        for transaction in str(transactions_html).split("."):
-                            if "covid" in transaction.lower():
-                                for player in BeautifulSoup(transaction, "html.parser").findAll("a"):
-                                    transaction_action = ""
-                                    if "placed" in transaction.lower():
-                                        transaction_action = "add"
-                                    elif "activated" in transaction.lower():
-                                        transaction_action = "remove"
+                        if datetime.strptime(transaction_date, "%B %d, %Y") <= self.selected_nfl_season_week:
+                            for transaction in str(transactions_html).split("."):
+                                if "covid" in transaction.lower():
+                                    for player in BeautifulSoup(transaction, "html.parser").findAll("a"):
+                                        transaction_action = ""
+                                        if "placed" in transaction.lower():
+                                            transaction_action = "add"
+                                        elif "activated" in transaction.lower():
+                                            transaction_action = "remove"
 
-                                    player_transaction = {
-                                        "date": transaction_date,
-                                        "team": transaction_team,
-                                        "action": transaction_action,
-                                        "list": "Reserve/COVID-19",
-                                        "player": player.text
-                                    }
+                                        player_transaction = {
+                                            "date": transaction_date,
+                                            "team": transaction_team,
+                                            "action": transaction_action,
+                                            "list": "Reserve/COVID-19",
+                                            "player": player.text
+                                        }
 
-                                    covid_transactions.append(player_transaction)
-                                    self.add_entry(player.text, player_transaction)
+                                        covid_transactions.append(player_transaction)
+                                        self.add_entry(player.text, player_transaction)
 
                 self.raw_covid_data = {
                     key: {
@@ -208,6 +215,7 @@ class CovidRisk(object):
                         datetime.strptime(player_transaction.get("date"), "%B %d, %Y"):
                     self.covid_data.get(player_full_name)["last_date"] = player_transaction.get("date")
 
+            # TODO: incorporate team defenses into COVID-19 risk factor metric
             # player_team_abbr = player_transaction.get("team")
             # if player_team_abbr not in self.covid_data:
             #     self.covid_data[player_team_abbr] = {
@@ -252,7 +260,10 @@ class CovidRisk(object):
             # add 1 for every other player on the same team who has been on the Reserve/COVID-19 list
             covid_risk_score += (self.raw_covid_data.get(team_abbr).get("count") - 1)
 
-            covid_recency = datetime.now() - datetime.strptime(
+            selected_nfl_season_week = datetime.strptime(
+                "{} {} 1".format(str(self.season), str(self.week + 36)), "%G %V %u")
+
+            covid_recency = selected_nfl_season_week - datetime.strptime(
                 self.raw_covid_data.get(team_abbr).get("last_date"), "%B %d, %Y")
             if covid_recency < timedelta(days=14) and not player_on_covid_list_present:
                 # add 10 if a teammate was on the Reserve/COVID-19 list within the past 14 days (COVID-19 risk window)

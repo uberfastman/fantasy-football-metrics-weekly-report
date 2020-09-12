@@ -41,7 +41,8 @@ def test_beef_init():
 def test_covid_init():
     covid_risk = CovidRisk(
         data_dir=test_data_dir,
-        current_week=1,
+        season=2020,
+        week=1,
         save_data=True,
         dev_offline=False,
         refresh=True
