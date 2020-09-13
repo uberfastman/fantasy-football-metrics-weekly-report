@@ -7,21 +7,21 @@ echo -e "====================================================================\n"
 
 echo -e "===================================================================="
 PYTHON3="$(python3 -V 2>&1)"
-if [[ "$PYTHON3" == *"Python 3"* ]]; then
-  echo -e "Python 3 version installed: ${PYTHON3}. Continuing setup...\n\n"
+if [[ "$PYTHON3" == *"Python 3.6"* || "$PYTHON3" == *"Python 3.7"* ]]; then
+  echo -e "Python 3.6/3.7 version installed: ${PYTHON3}. Continuing setup...\n\n"
 
   PYTHON="$(python -V 2>&1)"
-  if [[ "$PYTHON" == *"Python 3"* ]]; then
-    echo -e "Python 3 is set as default Python. Continuing setup...\n\n"
+  if [[ "$PYTHON" == *"Python 3.6"* || "$PYTHON3" == *"Python 3.7"* ]]; then
+    echo -e "Python 3.6/3.7 is set as default Python. Continuing setup...\n\n"
   else
-    echo -e "Python 3 is NOT set as default Python. Changing deafult Python to Python 3...\n\n"
+    echo -e "Python 3.6/3.7 is NOT set as default Python. Changing default Python to Python 3.6/3.7...\n\n"
     touch ~/.bashrc
     printf '\n' >> ~/.bashrc
     echo 'export PATH="/usr/local/opt/python/libexec/bin:$PATH"' >> ~/.bashrc
     source ~/.bashrc
   fi
 else
-  echo "Python 3 is not installed. Installing...\n\n"
+  echo "Python 3.6/3.7 is not installed. Installing...\n\n"
   which -s brew
   if [[ $? != 0 ]]; then
     # Install Homebrew
@@ -35,8 +35,8 @@ else
   else
     brew update
   fi
-  echo -e "Installing Python 3 with Homebrew...\n\n"
-  brew install python
+  echo -e "Installing Python 3.6 with Homebrew...\n\n"
+  brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/f2a764ef944b1080be64bd88dca9a1d80130c558/Formula/python.rb
 fi
 echo -e "====================================================================\n"
 

@@ -164,6 +164,7 @@ class PdfGenerator(object):
         self.spacer_tenth_inch = Spacer(1, 0.10 * inch)
         self.spacer_quarter_inch = Spacer(1, 0.25 * inch)
         self.spacer_half_inch = Spacer(1, 0.50 * inch)
+        self.spacer_three_inch = Spacer(1, 3.00 * inch)
         self.spacer_five_inch = Spacer(1, 5.00 * inch)
 
         # configure text styles
@@ -262,6 +263,11 @@ class PdfGenerator(object):
                                                    leading=10,
                                                    spaceBefore=0,
                                                    spaceAfter=0)
+        self.text_style_italics = ParagraphStyle(name="italics",
+                                                 fontSize=10,
+                                                 alignment=TA_CENTER,
+                                                 fontName=self.font_italic)
+        self.text_style_small = ParagraphStyle(name="small", fontSize=5, alignment=TA_CENTER)
         self.text_style_invisible = ParagraphStyle(name="invisible", fontSize=0, textColor=colors.white)
 
         # configure word wrap
@@ -275,6 +281,15 @@ class PdfGenerator(object):
         ]
 
         self.title_style = TableStyle(title_table_style_list)
+
+        header_table_style_list = [
+            ("TEXTCOLOR", (0, 0), (-1, -1), colors.black),
+            ("FONT", (0, 0), (-1, -1), self.font),
+            ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+            ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
+        ]
+
+        self.header_style = TableStyle(header_table_style_list)
 
         # Reportlab fonts: https://github.com/mattjmorrison/ReportLab/blob/master/src/reportlab/lib/fonts.py
         table_style_list = [
@@ -359,17 +374,69 @@ class PdfGenerator(object):
         # options: "document", "section", or None
         self.report_title = self.create_title(report_title_text, element_type="document")
 
-        footer_data = [
-            [self.spacer_five_inch],
+        footer_title = [
+            [self.spacer_three_inch],
             [Paragraph(report_footer_text, self.text_style_normal)],
+        ]
+        footer_data = [
             [
-                self.get_img(
-                    "resources/images/donate.png",
-                    hyperlink="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=VZZCNLRHH9BQS"
-                )
+                [],
+                [
+                    self.get_img(
+                        "resources/images/donate-paypal.png",
+                        hyperlink="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=VZZCNLRHH9BQS"
+                    )
+                ],
+                []
+            ],
+            [
+                [
+                    self.get_img(
+                        "resources/images/donate-bitcoin.png",
+                        hyperlink="https://share.trustwallet.com/ZoAkTpY1I9"
+                    )
+                ],
+                [
+                    self.get_img(
+                        "resources/images/donate-ethereum.png",
+                        hyperlink="https://share.trustwallet.com/MF8YBO01I9"
+                    )
+                ],
+                [
+                    self.get_img(
+                        "resources/images/donate-nano.png",
+                        hyperlink="https://share.trustwallet.com/bNXsMA11I9"
+                    )
+                ]
+            ],
+            [
+                [
+                    self.get_img(
+                        "resources/images/trust-wallet-btc.png",
+                        hyperlink="https://share.trustwallet.com/ZoAkTpY1I9"
+                    )
+                ],
+                [
+                    self.get_img(
+                        "resources/images/trust-wallet-eth.png",
+                        hyperlink="https://share.trustwallet.com/MF8YBO01I9"
+                    )
+                ],
+                [
+                    self.get_img(
+                        "resources/images/trust-wallet-nano.png",
+                        hyperlink="https://share.trustwallet.com/bNXsMA11I9"
+                    )
+                ]
+            ],
+            [
+                Paragraph("bc1qataspvklhewtswm357m0677q4raag5new2xt3e", self.text_style_small),
+                Paragraph("0x5eAa522e66a90577D49e9E72f253EC952CDB4059", self.text_style_small),
+                Paragraph("nano_3ug3o6yy983jsqdsc773izhr3jfz4dq8bz7yfhhzkkeq7s8ern1ws7dng4pq", self.text_style_small)
             ]
         ]
-        self.report_footer = Table(footer_data, colWidths=7.75 * inch, style=self.title_style)
+        self.report_footer_title = Table(footer_title, colWidths=7.75 * inch, style=self.title_style)
+        self.report_footer = Table(footer_data, colWidths=2.50 * inch, style=self.title_style)
 
         # data for report
         self.report_data = report_data
@@ -1019,6 +1086,16 @@ class PdfGenerator(object):
         # document title
         elements.append(self.report_title)
         elements.append(self.spacer_tenth_inch)
+        donate_header_data = [[
+            Paragraph(
+                "Enjoying the app? Please consider donating to support its development:", self.text_style_italics),
+            self.get_img(
+                "resources/images/donate.png",
+                hyperlink="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=VZZCNLRHH9BQS"
+            )
+        ]]
+        elements.append(Table(donate_header_data, colWidths=[4.65 * inch, 1.00 * inch], style=self.header_style))
+        elements.append(self.spacer_tenth_inch)
 
         elements.append(self.add_page_break())
 
@@ -1387,8 +1464,9 @@ class PdfGenerator(object):
         self.toc.add_appendix("Appendix I: Rankings & Metrics")
 
         # insert table of contents after report title and spacer
-        elements.insert(2, self.toc.get_toc())
+        elements.insert(4, self.toc.get_toc())
 
+        elements.append(self.report_footer_title)
         elements.append(self.report_footer)
 
         # build pdf

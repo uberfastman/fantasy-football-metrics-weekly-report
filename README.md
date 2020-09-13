@@ -2,7 +2,49 @@
 
 [![latest-release.png](resources/images/latest-release.png)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/latest)
 
+###### Latest Version: [v8.3.1-beta](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/tag/v8.3.1-beta)
+
 [![Build Status](https://travis-ci.org/uberfastman/fantasy-football-metrics-weekly-report.svg?branch=develop)](https://travis-ci.org/uberfastman/fantasy-football-metrics-weekly-report)
+
+---
+
+#### Do you like the app? Star the repository here on GitHub and please consider helping support its development:
+
+###### Donate using PayPal or Credit/Debit card:
+
+[![paypal](resources/images/donate-paypal.png)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=VZZCNLRHH9BQS)
+
+##### OR
+
+###### Donate using cryptocurrency ([Bitcoin - BTC](https://share.trustwallet.com/ZoAkTpY1I9)) with [Trust Wallet](https://trustwallet.com):
+
+[![donate-bitcoin](resources/images/donate-bitcoin.png)](https://share.trustwallet.com/ZoAkTpY1I9)
+
+[![trust-wallet-btc](resources/images/trust-wallet-btc.png)](https://share.trustwallet.com/ZoAkTpY1I9)
+
+BTC Wallet address: `bc1qataspvklhewtswm357m0677q4raag5new2xt3e`
+
+##### OR
+
+###### Donate using cryptocurrency ([Ethereum - ETH](https://share.trustwallet.com/MF8YBO01I9)) with [Trust Wallet](https://trustwallet.com):
+
+[![donate-ethereum](resources/images/donate-ethereum.png)](https://share.trustwallet.com/MF8YBO01I9)
+
+[![trust-wallet-eth](resources/images/trust-wallet-eth.png)](https://share.trustwallet.com/MF8YBO01I9)
+
+ETH Wallet address: `0x5eAa522e66a90577D49e9E72f253EC952CDB4059`
+
+##### OR
+
+###### Donate using cryptocurrency ([Nano Currency - NANO](https://share.trustwallet.com/bNXsMA11I9)) with [Trust Wallet](https://trustwallet.com):
+
+[![donate-nano](resources/images/donate-nano.png)](https://share.trustwallet.com/bNXsMA11I9)
+
+[![trust-wallet-nano](resources/images/trust-wallet-nano.png)](https://share.trustwallet.com/bNXsMA11I9)
+
+NANO Wallet address: `nano_3ug3o6yy983jsqdsc773izhr3jfz4dq8bz7yfhhzkkeq7s8ern1ws7dng4pq`
+
+---
 
 ### Table of Contents
 * [About](#about)
@@ -54,7 +96,7 @@ Currently supported fantasy football platforms:
 
 <a name="dependencies"></a>
 ### Dependencies
-The application has only been tested in macOS, but should be cross-platform compatible. The app requires Python 3 (Python 2 is no longer supported). To check if you have Python 3 installed, open up a window in Terminal (macOS), Command Prompt (Windows), or a command line shell of your choice, and run `python --version`. If the return is `Python 3.x.x`, you are good to go. If the return is `Python 2.x.x`, you will need to install Python 3. Check out the instructions [here](https://realpython.com/installing-python/) for how to install Python 3 on your system.
+The application has only been tested in macOS, but should be cross-platform compatible. The app requires Python 3.6 or later (Python 2 is no longer supported). To check if you have Python 3.6 installed, open up a window in Terminal (macOS), Command Prompt (Windows), or a command line shell of your choice, and run `python --version`. If the return is `Python 3.6.x`, you are good to go. If the return is `Python 2.x.x`, you will need to install Python 3.6. Check out the instructions [here](https://realpython.com/installing-python/) for how to install Python 3.6 on your system.
 
 Project dependencies can be viewed in the [`requirements.txt`](requirements.txt) file.
 
