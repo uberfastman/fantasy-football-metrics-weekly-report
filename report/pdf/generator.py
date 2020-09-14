@@ -871,7 +871,7 @@ class PdfGenerator(object):
         if hyperlink:
             image = HyperlinkedImage(
                 path,
-                "https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=VZZCNLRHH9BQS",
+                hyperlink=hyperlink,
                 width=width,
                 height=(width * aspect)
             )
