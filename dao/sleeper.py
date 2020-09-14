@@ -333,6 +333,9 @@ class LeagueData(object):
             pos_count = count
 
             # TODO: no differentiation in API amongst Flex (WR / RB), Flex (WR / TE), and Flex (WR / RB / TE)...?
+            if pos_name == "REC_FLEX":
+                pos_name = "FLEX_TE_WR"
+                league.flex_positions_te_wr = ["TE", "WR"]
             if pos_name == "FLEX":
                 pos_name = "FLEX_RB_TE_WR"
                 league.flex_positions_rb_te_wr = ["RB", "TE", "WR"]
