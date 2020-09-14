@@ -120,7 +120,7 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, c
                 else:
                     raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
 
-            fleaflicker_league = SleeperLeagueData(
+            sleeper_league = SleeperLeagueData(
                 week_for_report,
                 league_id,
                 season,
@@ -130,7 +130,7 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, c
                 save_data,
                 dev_offline
             )
-            return fleaflicker_league.map_data_to_base(BaseLeague)
+            return sleeper_league.map_data_to_base(BaseLeague)
 
         elif platform == "espn":
             espn_league = EspnLeagueData(
