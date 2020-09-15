@@ -280,10 +280,18 @@ class LeagueData(object):
                         k: v for k, v in ranked_team.items() if k not in ["taxi", "starters", "reserve", "players"]
                     }
 
-            team["roster"] = [
-                self.fetch_player_data(player_id, week, True) if player_id in team["starters"] else
-                self.fetch_player_data(player_id, week) for player_id in team["players"]
-            ]
+            if team["starters"] and team["players"]:
+                team["roster"] = [
+                    self.fetch_player_data(player_id, week, True) if player_id in team["starters"] else
+                    self.fetch_player_data(player_id, week) for player_id in team["players"]
+                ]
+            elif not team["starters"] and team["players"]:
+                team["roster"] = [
+                    self.fetch_player_data(player_id, week) for player_id in team["players"]
+                ]
+            else:
+                team["roster"] = []
+
         return matchup
 
     def get_player_points(self, stats, projected_stats):
@@ -539,8 +547,10 @@ class LeagueData(object):
                         )
 
                         base_player.season_points, base_player.season_projected_points = self.get_player_points(
-                            stats=self.player_season_stats[str(base_player.player_id)],
+                            stats=self.player_season_stats[str(base_player.player_id)]
+                                if str(base_player.player_id) in self.player_season_stats.keys() else [],
                             projected_stats=self.player_season_projected_stats[str(base_player.player_id)]
+                                if str(base_player.player_id) in self.player_season_projected_stats.keys() else []
                         )
 
                         base_player.position_type = "O" if base_player.display_position in self.offensive_positions \
