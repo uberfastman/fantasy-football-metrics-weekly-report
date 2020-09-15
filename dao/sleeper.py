@@ -386,10 +386,12 @@ class LeagueData(object):
                         elif int(roster.get("roster_id")) == int(matchup[opposite_key].get("roster_id")):
                             opposite_team_standings_info = roster
 
-                    team_division = team_standings_info.get("settings").get("division")
-                    opponent_division = opposite_team_standings_info.get("settings").get("division")
-                    if team_division and opponent_division and team_division == opponent_division:
-                        base_matchup.division_matchup = True
+                    team_division = None
+                    if league.has_divisions:
+                        team_division = team_standings_info.get("settings").get("division")
+                        opponent_division = opposite_team_standings_info.get("settings").get("division")
+                        if team_division and opponent_division and team_division == opponent_division:
+                            base_matchup.division_matchup = True
 
                     base_team.week = int(matchups_week)
 
@@ -451,12 +453,15 @@ class LeagueData(object):
                         streak_len=0,
                         team_id=base_team.team_id,
                         team_name=base_team.name,
-                        rank=team_rank,
-                        division=base_team.division
+                        rank=team_rank
                     )
+                    if league.has_divisions:
+                        base_team.current_record.division = base_team.division
+
                     base_team.streak_str = base_team.current_record.get_streak_str()
-                    if base_matchup.division_matchup:
-                        base_team.division_streak_str = base_team.current_record.get_division_streak_str()
+                    if league.has_divisions:
+                        if base_matchup.division_matchup:
+                            base_team.division_streak_str = base_team.current_record.get_division_streak_str()
 
                     # add team to matchup teams
                     base_matchup.teams.append(base_team)
