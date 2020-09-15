@@ -302,14 +302,14 @@ class BaseTeam(FantasyFootballReportObject):
         self.record = BaseRecord()
         self.current_record = BaseRecord()
 
-    def __setattr__(self, key, value):
-        if key == "manager_str":
-            value_tokens = str(value).split()
-            self.name_str = value_tokens[0]
-            for token in value_tokens[1:]:
-                self.name_str += " " + token[0] + "."
-            value = self.name_str
-        super().__setattr__(key, value)
+    # def __setattr__(self, key, value):
+    #     if key == "manager_str":
+    #         value_tokens = str(value).split()
+    #         self.name_str = value_tokens[0]
+    #         for token in value_tokens[1:]:
+    #             self.name_str += " " + token[0] + "."
+    #         value = self.name_str
+    #     super().__setattr__(key, value)
 
 
 class BaseRecord(FantasyFootballReportObject):

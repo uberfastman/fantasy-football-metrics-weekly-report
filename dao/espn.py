@@ -50,12 +50,29 @@ class LeagueData(object):
         with open(espn_auth_file, "r") as auth:
             espn_auth_json = json.load(auth)
 
-        self.league = LeagueWrapper(
-            league_id=self.league_id,
-            year=int(self.season),
-            espn_s2=espn_auth_json.get("espn_s2"),
-            swid=espn_auth_json.get("swid")
-        )  # type: LeagueWrapper
+        if self.dev_offline:
+            self.league = self.save_and_load_data(
+                os.path.join(self.data_dir, str(self.season), str(self.league_id)),
+                str(self.league_id) + "-league_info.json"
+            )
+        else:
+            # TODO: GET SAVE/LOAD WORKING FOR ESPN!
+            # self.league = self.save_and_load_data(
+            #     os.path.join(self.data_dir, str(self.season), str(self.league_id)),
+            #     str(self.league_id) + "-league_info.json",
+            #     data=LeagueWrapper(
+            #         league_id=self.league_id,
+            #         year=int(self.season),
+            #         espn_s2=espn_auth_json.get("espn_s2"),
+            #         swid=espn_auth_json.get("swid")
+            #     )  # type: LeagueWrapper
+            # )
+            self.league = LeagueWrapper(
+                league_id=self.league_id,
+                year=int(self.season),
+                espn_s2=espn_auth_json.get("espn_s2"),
+                swid=espn_auth_json.get("swid")
+            )  # type: LeagueWrapper
 
         self.league_settings = self.league.settings
         self.league_settings_json = self.league.settings_json
@@ -225,7 +242,7 @@ class LeagueData(object):
 
                         base_team.managers.append(base_manager)
 
-                    base_team.manager_str = ", ".join([manager.name for manager in base_team.managers])
+                    base_team.manager_str = ", ".join([manager.name_str for manager in base_team.managers])
                     base_team.team_id = str(matchup_team.team_id)
 
                     team_is_home = False
@@ -450,16 +467,28 @@ class LeagueWrapper(League):
         self.teams_json = {}
         for team in teams:
             self.teams_json[str(team["id"])] = team
-            manager = None
+            managers = None
+
+            owners = team['owners']
+            if len(owners) > 1:
+                managers = []
+
             for member in members:
                 # For league that is not full the team will not have a owner field
                 if 'owners' not in team or not team['owners']:
                     break
-                elif member['id'] == team['owners'][0]:
-                    manager = member
-                    break
+                elif member['id'] in owners:
+                    if len(owners) > 1:
+                        managers.append(member)
+                    else:
+                        managers = [member]
+                        break
             roster = team_roster[team['id']]
-            self.teams.append(Team(team, roster, manager, schedule))
+
+            team = Team(team, roster, None, schedule)
+            team.owner = sorted(["%s %s" % (owner['firstName'], owner['lastName']) for owner in managers])
+
+            self.teams.append(team)
 
         # replace opponentIds in schedule with team instances
         for team in self.teams:

@@ -361,7 +361,7 @@ class LeagueData(object):
 
                         base_team.managers.append(base_manager)
 
-                    base_team.manager_str = ", ".join([manager.name for manager in base_team.managers])
+                    base_team.manager_str = ", ".join([manager.name_str for manager in base_team.managers])
 
                     base_team.team_id = str(team_data.get("id"))
                     base_team.points = float(matchup.get(key + "Score", {}).get("score", {}).get("value", 0))
