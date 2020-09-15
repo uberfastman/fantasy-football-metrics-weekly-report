@@ -38,7 +38,7 @@ class SlackMessenger(object):
         """Required Slack app scopes: channels:read, groups:read, mpim:read, im:read
         """
         try:
-            return self.sc.conversations_list()
+            return self.sc.conversations_list(types="public_channel,private_channel")
         except SlackApiError as e:
             logger.error("Slack client error: %s", e)
 
@@ -62,6 +62,21 @@ class SlackMessenger(object):
         except SlackApiError as e:
             logger.error("Slack client error: %s", e)
 
+    def test_post_to_private_slack(self, message):
+        try:
+            logger.info(self.sc.conversations_info(channel=self.get_channel_id("apitest-private")))
+
+            self.sc.chat_postMessage(
+                channel=self.get_channel_id("apitest-private"),
+                text="<!here|here>:\n" + message,
+                username="ff-report",
+                # uncomment the icon_emoji parameter if you wish to choose an icon emoji to be your app icon, otherwise
+                # it will default to whatever icon you have set for the app
+                # icon_emoji=":football:"
+            )
+        except SlackApiError as e:
+            logger.error("Slack client error: %s", e)
+
     def test_file_upload_to_slack(self, upload_file):
         try:
             logger.info(self.sc.conversations_info(channel=self.get_channel_id("apitest")))
@@ -71,6 +86,25 @@ class SlackMessenger(object):
 
                 response = self.sc.files_upload(
                     channels=self.get_channel_id("apitest"),
+                    username="ff-report",
+                    icon_emoji=":football:",
+                    filename=upload_file,
+                    filetype="pdf",
+                    file=file_to_upload
+                )
+            return response
+        except SlackApiError as e:
+            logger.error("Slack client error: %s", e)
+
+    def test_file_upload_to_private_slack(self, upload_file):
+        try:
+            logger.info(self.sc.conversations_info(channel=self.get_channel_id("apitest-private")))
+
+            with open(upload_file, "rb") as uf:
+                file_to_upload = uf.read()
+
+                response = self.sc.files_upload(
+                    channels=self.get_channel_id("apitest-private"),
                     username="ff-report",
                     icon_emoji=":football:",
                     filename=upload_file,
@@ -132,9 +166,19 @@ if __name__ == '__main__':
 
     post_to_slack = SlackMessenger(local_config)
 
-    # print(post_to_slack.api_test())
-    # print(post_to_slack.list_channels().get("channels"))
-    # print(post_to_slack.test_post_to_slack("test"))
-    # print(post_to_slack.test_file_upload_to_slack(repost_file))
-    # print(post_to_slack.post_to_selected_slack_channel("test"))
-    print(post_to_slack.upload_file_to_selected_slack_channel(repost_file))
+    # general slack integration testing
+    print(json.dumps(post_to_slack.api_test().data, indent=2))
+    # print(json.dumps(post_to_slack.list_channels().data, indent=2))
+    # print(json.dumps(post_to_slack.list_channels().get("channels"), indent=2))
+
+    # public channel integration testing
+    # print(json.dumps(post_to_slack.test_post_to_slack("test"), indent=2))
+    # print(json.dumps(post_to_slack.test_file_upload_to_slack(repost_file).data, indent=2))
+
+    # private channel integration testing
+    # print(json.dumps(post_to_slack.test_post_to_private_slack("test"), indent=2))
+    # print(json.dumps(post_to_slack.test_file_upload_to_private_slack(repost_file).data, indent=2))
+
+    # selected channel integration testing
+    # print(json.dumps(post_to_slack.post_to_selected_slack_channel("test").data, indent=2))
+    # print(json.dumps(post_to_slack.upload_file_to_selected_slack_channel(repost_file).data, indent=2))
