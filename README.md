@@ -2,7 +2,7 @@
 
 [![latest-release.png](resources/images/latest-release.png)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/latest)
 
-###### Latest Version: [v8.3.1-beta](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/tag/v8.3.1-beta)
+###### Latest Version: [v8.3.3-beta](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/tag/v8.3.3-beta)
 
 [![Build Status](https://travis-ci.org/uberfastman/fantasy-football-metrics-weekly-report.svg?branch=develop)](https://travis-ci.org/uberfastman/fantasy-football-metrics-weekly-report)
 
