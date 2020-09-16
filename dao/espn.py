@@ -341,11 +341,18 @@ class LeagueData(object):
                     base_player.bye_week = None
                     base_player.display_position = player.position
                     base_player.nfl_team_id = player_json["proTeamId"]
-                    base_player.nfl_team_abbr = player.proTeam
+                    # TODO: change back once ESPN fixes their API to not use "WSH"" instead of "WAS" for the
+                    #  Washington Football Team
+                    # base_player.nfl_team_abbr = player.proTeam
+                    base_player.nfl_team_abbr = player.proTeam if player.proTeam != "WSH" else "WAS"
                     base_player.nfl_team_name = player.proTeam
 
                     if base_player.display_position == "D/ST":
-                        base_player.first_name = player_json["firstName"]
+                        # TODO: change back once ESPN fixes their API to not use "WSH"" instead of "WAS" for the
+                        #  Washington Football Team
+                        # base_player.first_name = player_json["firstName"]
+                        base_player.first_name = player_json["firstName"] if player_json["firstName"] != "Washington" \
+                            else "Football Team"
                         base_player.full_name = base_player.first_name
                         base_player.nfl_team_name = base_player.first_name
                         base_player.headshot_url = \
