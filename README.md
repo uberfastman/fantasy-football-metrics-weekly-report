@@ -629,7 +629,9 @@ The following setup steps are ***required*** in order to allow the Slack integra
 
 * You will now be redirected back to the `OAuth & Permissions` section of your app settings. At the top, you will see a `Bot User OAuth Access Token` field, which will now have a value populated.
 
-* Copy the file `EXAMPLE-token.json` (located in the `auth/slack/` directory), and rename the file copy `token.json`, then copy and paste the above `Bot user OAuth Access Token` into the field value of `token.json` where it says `"SLACK_APP_OAUTH_ACCESS_TOKEN_STRING"`, replacing that string. Make sure you are using douple quotes (`"`) on either side of your token string. 
+* Copy the file `EXAMPLE-token.json` (located in the `auth/slack/` directory), and rename the file copy `token.json`, then copy and paste the above `Bot user OAuth Access Token` into the field value of `token.json` where it says `"SLACK_APP_OAUTH_ACCESS_TOKEN_STRING"`, replacing that string. Make sure you are using douple quotes (`"`) on either side of your token string.
+
+* If you are posting to a *private channel*, you will need to invite the bot to the channel before it can make posts there. Just go to the Slack channel and type `@ff-report`, and then hit enter. Slack will ask if you wish to invite the bot to the channel, so confirm that you wish to add the bot to the channel and now it should be able to post to the *private channel*. 
 
 * *You can now upload your reports to Slack, either by updating the following values in `config.ini`:*
 
