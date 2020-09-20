@@ -14,7 +14,7 @@ from yfpy.query import YahooFantasySportsQuery
 from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
 
 # Suppress YahooFantasyFootballQuery debug logging
-logging.getLogger("yfpy.query").setLevel(level=logging.INFO)
+logging.getLogger("yfpy.query").setLevel(level=logging.DEBUG)
 
 
 class LeagueData(object):
@@ -74,7 +74,7 @@ class LeagueData(object):
         self.roster_positions = self.league_info.settings.roster_positions
 
         # validate user selection of week for which to generate report
-        self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week)
+        self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week, self.season)
 
         # # YAHOO API QUERY: run yahoo queries for season team roster stats
         # self.rosters = {

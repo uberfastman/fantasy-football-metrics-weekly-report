@@ -123,4 +123,4 @@ class CoachingEfficiency(object):
             if efficiency_disqualification:
                 coaching_efficiency = "DQ"
 
-        return coaching_efficiency
+        return coaching_efficiency, optimal_score

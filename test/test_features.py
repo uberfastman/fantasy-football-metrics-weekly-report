@@ -3,6 +3,7 @@ __email__ = "wrenjr@yahoo.com"
 
 import os
 import sys
+from configparser import ConfigParser
 
 module_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(module_dir)
@@ -14,6 +15,9 @@ from calculate.covid_risk import CovidRisk
 test_data_dir = os.path.join(module_dir, "test")
 if not os.path.exists(test_data_dir):
     os.makedirs(test_data_dir)
+
+config = ConfigParser()
+config.read("config.ini")
 
 
 def test_bad_boy_init():
@@ -40,6 +44,7 @@ def test_beef_init():
 
 def test_covid_init():
     covid_risk = CovidRisk(
+        config=config,
         data_dir=test_data_dir,
         season=2020,
         week=1,

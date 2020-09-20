@@ -90,8 +90,9 @@ class LeagueData(object):
                 self.num_regular_season_weeks = config.get("Configuration", "num_regular_season_weeks")
 
         # validate user selection of week for which to generate report
-        self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week)
+        self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week, self.season)
 
+        # TODO: how to get LAST YEAR'S league rules from Fleaflicker API
         self.league_rules = self.query(
             "https://www.fleaflicker.com/api/FetchLeagueRules?leagueId=" + str(self.league_id),
             os.path.join(self.data_dir, str(self.season), str(self.league_id)),
@@ -152,6 +153,7 @@ class LeagueData(object):
                 str(team.get("id")): self.query(
                     "https://www.fleaflicker.com/api/FetchRoster?leagueId=" + str(self.league_id) +
                     "&teamId=" + str(team.get("id")) +
+                    ("&season=" + str(self.season) if self.season else "") +
                     ("&scoringPeriod=" + str(wk)),
                     os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk), "rosters"),
                     str(team.get("id")) + "-" + str(team.get("name")).replace(" ", "_") + "-roster.json"
@@ -160,6 +162,7 @@ class LeagueData(object):
 
         self.roster_positions = self.league_rules.get("rosterPositions")
 
+        # TODO: how to get LAST YEAR'S transactions from Fleaflicker API...?
         self.league_activity = self.query(
             "https://www.fleaflicker.com/api/FetchLeagueActivity?leagueId=" + str(self.league_id),
             os.path.join(self.data_dir, str(self.season), str(self.league_id)),
@@ -469,9 +472,11 @@ class LeagueData(object):
                         base_player.owner_team_name = flea_league_player.get("owner", {}).get("name")
                         base_player.percent_owned = 0
                         base_player.points = float(flea_league_player.get("viewingActualPoints", {}).get("value", 0))
-                        base_player.season_points = float(flea_league_player.get("seasonTotal", {}).get("value", 0))
-                        base_player.season_average_points = round(float(
-                            flea_league_player.get("seasonAverage", {}).get("value", 0)), 2)
+                        # TODO: get season total points via summation, since this gives the end of season total, not
+                        #  the total as of the selected week
+                        # base_player.season_points = float(flea_league_player.get("seasonTotal", {}).get("value", 0))
+                        # base_player.season_average_points = round(float(
+                        #     flea_league_player.get("seasonAverage", {}).get("value", 0)), 2)
                         base_player.projected_points = None
 
                         base_player.position_type = "O" if flea_pro_player.get(

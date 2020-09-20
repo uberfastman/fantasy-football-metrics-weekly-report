@@ -173,7 +173,7 @@ class CalculateMetrics(object):
 
             playoff_probs_data.append(
                 team_playoffs_data
-                # FOR LEAGUES WITH CUSTOM PLAYOFFS NOT SUPPORTED BY YAHOO
+                # FOR LEAGUES WITH CUSTOM PLAYOFFS NOT SUPPORTED BY CHOSEN PLATFORM
                 # TODO: FIX/REFACTOR
                 # [
                 #     team_playoffs_data[int(team["team_id"])][2][x] for x in range(self.config.getint(
@@ -252,6 +252,22 @@ class CalculateMetrics(object):
 
             place += 1
         return luck_results_data
+
+    @staticmethod
+    def get_optimal_score_data(score_results):
+        optimal_score_results_data = []
+        place = 1
+        for team in score_results:  # type: BaseTeam
+            ranked_team_name = team.name
+            ranked_team_manager = team.manager_str
+            ranked_weekly_optimal_score = "%.2f" % float(team.optimal_points)
+
+            optimal_score_results_data.append(
+                [place, ranked_team_name, ranked_team_manager, ranked_weekly_optimal_score])
+
+            place += 1
+
+        return optimal_score_results_data
 
     @staticmethod
     def get_bad_boy_data(bad_boy_results):

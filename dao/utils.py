@@ -9,6 +9,7 @@ import time
 import requests
 from bs4 import BeautifulSoup
 from urllib3 import connectionpool, poolmanager
+from datetime import datetime
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
@@ -26,44 +27,52 @@ logger.propagate = False
 logger.setLevel(level=logging.INFO)
 
 
-def user_week_input_validation(config, week, retrieved_current_week):
+def user_week_input_validation(config, week, retrieved_current_week, season):
+
+    current_date = datetime.today()
+    current_year = current_date.year
+    current_month = current_date.month
+
     # user input validation
     if week:
         week_for_report = week
     else:
         week_for_report = config.get("Configuration", "week_for_report")
-    try:
-        current_week = retrieved_current_week
-        if week_for_report == "default":
-            if (int(current_week) - 1) > 0:
-                week_for_report = str(int(current_week) - 1)
-            else:
-                first_week_incomplete = input(
-                    "The first week of the season is not yet complete. "
-                    "Are you sure you want to generate a report for an incomplete week? (y/n) -> ")
-                if first_week_incomplete == "y":
-                    week_for_report = current_week
-                elif first_week_incomplete == "n":
-                    raise ValueError("It is recommended that you NOT generate a report for an incomplete week.")
-                else:
-                    raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
 
-        elif 0 < int(week_for_report) < 18:
-            if 0 < int(week_for_report) <= int(current_week) - 1:
-                week_for_report = week_for_report
-            else:
-                incomplete_week = input(
-                    "Are you sure you want to generate a report for an incomplete week? (y/n) -> ")
-                if incomplete_week == "y":
-                    week_for_report = week_for_report
-                elif incomplete_week == "n":
-                    raise ValueError("It is recommended that you NOT generate a report for an incomplete week.")
+    # only validate user week if report is being run for current season
+    if current_year == int(season) or (current_year == (int(season) + 1) and current_month < 9):
+        try:
+            current_week = retrieved_current_week
+            if week_for_report == "default":
+                if (int(current_week) - 1) > 0:
+                    week_for_report = str(int(current_week) - 1)
                 else:
-                    raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
-        else:
+                    first_week_incomplete = input(
+                        "The first week of the season is not yet complete. "
+                        "Are you sure you want to generate a report for an incomplete week? (y/n) -> ")
+                    if first_week_incomplete == "y":
+                        week_for_report = current_week
+                    elif first_week_incomplete == "n":
+                        raise ValueError("It is recommended that you NOT generate a report for an incomplete week.")
+                    else:
+                        raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
+
+            elif 0 < int(week_for_report) < 18:
+                if 0 < int(week_for_report) <= int(current_week) - 1:
+                    week_for_report = week_for_report
+                else:
+                    incomplete_week = input(
+                        "Are you sure you want to generate a report for an incomplete week? (y/n) -> ")
+                    if incomplete_week == "y":
+                        week_for_report = week_for_report
+                    elif incomplete_week == "n":
+                        raise ValueError("It is recommended that you NOT generate a report for an incomplete week.")
+                    else:
+                        raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
+            else:
+                raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
+        except ValueError:
             raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
-    except ValueError:
-        raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
 
     return int(week_for_report)
 
@@ -154,9 +163,10 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, c
 
 
 def add_report_player_stats(config,
+                            season,
+                            metrics,
                             player,  # type: BasePlayer
-                            bench_positions,
-                            metrics):
+                            bench_positions):
     player.bad_boy_crime = str()
     player.bad_boy_points = int()
     player.bad_boy_num_offenders = int()
@@ -180,7 +190,7 @@ def add_report_player_stats(config,
             player.weight = beef_stats.get_player_weight(player.first_name, player.last_name, player.nfl_team_abbr)
             player.tabbu = beef_stats.get_player_tabbu(player.first_name, player.last_name, player.nfl_team_abbr)
 
-        if config.getboolean("Report", "league_covid_risk_rankings"):
+        if config.getboolean("Report", "league_covid_risk_rankings") and int(season) >= 2020:
             covid_risk = metrics.get("covid_risk")  # type: CovidRisk
             player.covid_risk = covid_risk.get_player_covid_risk(
                 player.full_name, player.nfl_team_abbr, player.primary_position)
@@ -188,13 +198,13 @@ def add_report_player_stats(config,
     return player
 
 
-def add_report_team_stats(config, team: BaseTeam, league: BaseLeague, week_counter, metrics_calculator, metrics, dq_ce,
+def add_report_team_stats(config, team: BaseTeam, league: BaseLeague, week_counter, season, metrics_calculator, metrics, dq_ce,
                           inactive_players) -> BaseTeam:
     team.name = metrics_calculator.decode_byte_string(team.name)
     bench_positions = league.bench_positions
 
     for player in team.roster:
-        add_report_player_stats(config, player, bench_positions, metrics)
+        add_report_player_stats(config, season, metrics, player, bench_positions)
 
     starting_lineup_points = round(
         sum([p.points for p in team.roster if p.selected_position not in bench_positions]), 2)
@@ -227,14 +237,14 @@ def add_report_team_stats(config, team: BaseTeam, league: BaseLeague, week_count
         team.total_weight = sum([p.weight for p in team.roster if p.selected_position not in bench_positions])
         team.tabbu = sum([p.tabbu for p in team.roster if p.selected_position not in bench_positions])
 
-    if config.getboolean("Report", "league_covid_risk_rankings"):
+    if config.getboolean("Report", "league_covid_risk_rankings") and int(season) >= 2020:
         team.total_covid_risk = sum([p.covid_risk for p in team.roster if p.selected_position not in bench_positions])
 
     team.positions_filled_active = [p.selected_position for p in team.roster if
                                     p.selected_position not in bench_positions]
 
-    # calculate coaching efficiency
-    team.coaching_efficiency = metrics.get("coaching_efficiency").execute_coaching_efficiency(
+    # calculate coaching efficiency and optimal score
+    team.coaching_efficiency, team.optimal_points = metrics.get("coaching_efficiency").execute_coaching_efficiency(
         team.name,
         team.roster,
         team.points,

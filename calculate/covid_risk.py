@@ -7,6 +7,7 @@ import logging
 import os
 from collections import OrderedDict
 from datetime import datetime, timedelta
+from configparser import ConfigParser
 
 import requests
 from bs4 import BeautifulSoup
@@ -16,7 +17,9 @@ logger = logging.getLogger(__name__)
 
 class CovidRisk(object):
 
-    def __init__(self, data_dir, season, week, save_data=False, dev_offline=False, refresh=False):
+    def __init__(self, config, data_dir, season, week, save_data=False, dev_offline=False, refresh=False):
+
+        self.config = config  # type: ConfigParser
 
         self.season = int(season)
         self.week = int(week)
@@ -88,7 +91,7 @@ class CovidRisk(object):
 
         # fetch NFL player transactions from the web if not running in offline mode or refresh=True
         if self.refresh or not self.dev_offline:
-            if not self.covid_data:
+            if not self.covid_data and self.season >= 2020:
 
                 football_db_endpoint = "https://www.footballdb.com/transactions/index.html?period={}&period={}".format(
                     str(self.season + 1),
@@ -167,16 +170,18 @@ class CovidRisk(object):
 
         # if offline mode, load pre-fetched covid data (only works if you've previously run application with -s flag)
         else:
-            if not self.covid_data:
+            if not self.covid_data and self.season >= 2020:
                 raise FileNotFoundError(
                     "FILE {} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                         self.covid_data_file_path))
 
-        if len(self.covid_data) == 0:
+        if len(self.covid_data) == 0 and self.season >= 2020:
             logger.warning(
                 "NO COVID-19 data was loaded, please check your internet connection or the availability of "
                 "'https://site.web.api.espn.com/apis/site/v2/sports/football/nfl/transactions?region=us&lang=en"
                 "&contentorigin=espn' and try generating a new report.")
+        elif self.season < 2020:
+            logger.warning("COVID-19 was not a factor during NFL seasons prior to 2020, so metric is being ignored.")
         else:
             logger.info("{} players at risk of COVID-19 were loaded".format(len(self.covid_data)))
 

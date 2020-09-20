@@ -96,7 +96,7 @@ class LeagueData(object):
         }
 
         # validate user selection of week for which to generate report
-        self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week)
+        self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week, self.season)
 
         self.matchups_by_week = {}
         self.matchups_json_by_week = {}

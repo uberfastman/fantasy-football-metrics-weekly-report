@@ -233,6 +233,7 @@ class BaseLeague(FantasyFootballReportObject):
 
     def get_covid_risk(self, save_data=False, dev_offline=False, refresh=False):
         return CovidRisk(
+            self.config,
             os.path.join(self.data_dir, str(self.season), self.league_id),
             season=self.season,
             week=self.week_for_report,
@@ -298,6 +299,7 @@ class BaseTeam(FantasyFootballReportObject):
         self.positions_filled_active = []
         self.coaching_efficiency = 0
         self.luck = 0
+        self.optimal_points = 0
         self.weekly_overall_record = BaseRecord()
         self.record = BaseRecord()
         self.current_record = BaseRecord()

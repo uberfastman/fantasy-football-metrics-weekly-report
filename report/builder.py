@@ -146,7 +146,7 @@ class FantasyFootballReport(object):
         else:
             self.beef_stats = None
 
-        if self.config.getboolean("Report", "league_covid_risk_rankings"):
+        if self.config.getboolean("Report", "league_covid_risk_rankings") and int(self.season) >= 2020:
             begin = datetime.datetime.now()
             logger.info(
                 "Retrieving COVID-19 risk data from https://sportsdata.usatoday.com/football/nfl/transactions {}..."
@@ -177,6 +177,8 @@ class FantasyFootballReport(object):
         time_series_power_rank_data = []
         time_series_zscore_data = []
 
+        season_total_optimal_points_data = {}
+
         season_avg_points_by_position = defaultdict(list)
         season_weekly_top_scorers = []
         season_weekly_highest_ce = []
@@ -197,6 +199,7 @@ class FantasyFootballReport(object):
                 season_weekly_teams_results=season_weekly_teams_results,
                 week_counter=str(week_counter),
                 week_for_report=week_for_report,
+                season=self.season,
                 metrics_calculator=metrics_calculator,
                 metrics={
                     "coaching_efficiency": CoachingEfficiency(self.config, self.league),
@@ -248,6 +251,7 @@ class FantasyFootballReport(object):
             weekly_points_data = []
             weekly_coaching_efficiency_data = []
             weekly_luck_data = []
+            weekly_optimal_points_data = []
             weekly_z_score_data = []
             weekly_power_rank_data = []
 
@@ -257,8 +261,9 @@ class FantasyFootballReport(object):
                 weekly_points_data.append([int(week_counter), float(team[3])])
                 weekly_coaching_efficiency_data.append([int(week_counter), team[4]])
                 weekly_luck_data.append([int(week_counter), float(team[5])])
-                weekly_z_score_data.append([int(week_counter), team[6]])
-                weekly_power_rank_data.append([int(week_counter), team[7]])
+                weekly_optimal_points_data.append([int(week_counter), team[1], float(team[6])])
+                weekly_z_score_data.append([int(week_counter), team[7]])
+                weekly_power_rank_data.append([int(week_counter), team[8]])
 
             week_for_report_ordered_team_names = ordered_team_names
             week_for_report_ordered_managers = ordered_team_managers
@@ -270,6 +275,8 @@ class FantasyFootballReport(object):
                     time_series_efficiency_data.append([team_efficiency])
                 for team_luck in weekly_luck_data:
                     time_series_luck_data.append([team_luck])
+                for team_optimal_points in weekly_optimal_points_data:
+                    season_total_optimal_points_data[team_optimal_points[1]] = team_optimal_points[2]
                 for team_zscore in weekly_z_score_data:
                     time_series_zscore_data.append([team_zscore])
                 for team_power_rank in weekly_power_rank_data:
@@ -282,6 +289,8 @@ class FantasyFootballReport(object):
                         time_series_efficiency_data[index].append(team_efficiency)
                 for index, team_luck in enumerate(weekly_luck_data):
                     time_series_luck_data[index].append(team_luck)
+                for index, team_optimal_points in enumerate(weekly_optimal_points_data):
+                    season_total_optimal_points_data[team_optimal_points[1]] += team_optimal_points[2]
                 for index, team_zscore in enumerate(weekly_z_score_data):
                     time_series_zscore_data[index].append(team_zscore)
                 for index, team_power_rank in enumerate(weekly_power_rank_data):
@@ -322,6 +331,12 @@ class FantasyFootballReport(object):
             for team in self.league.teams_by_week[str(self.league.week_for_report)].values():  # type: BaseTeam
                 if team_luck_data_entry[1] == team.name:
                     team_luck_data_entry.append(team.weekly_overall_record.get_record_str())
+
+        # add season total optimal points to optimal points data
+        for team_optimal_points_data_entry in report_data.data_for_optimal_scores:
+            for team_name, season_total_optimal_points in season_total_optimal_points_data.items():
+                if team_optimal_points_data_entry[1] == team_name:
+                    team_optimal_points_data_entry.append("{:.2f}".format(round(season_total_optimal_points, 2)))
 
         report_data.data_for_power_rankings = season_average_calculator.get_average(
             time_series_power_rank_data,
@@ -378,6 +393,7 @@ class FantasyFootballReport(object):
         # instantiate pdf generator
         pdf_generator = PdfGenerator(
             config=self.config,
+            season=self.season,
             league=self.league,
             playoff_prob_sims=self.playoff_prob_sims,
             report_title_text=report_title_text,

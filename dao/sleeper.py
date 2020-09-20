@@ -65,7 +65,7 @@ class LeagueData(object):
         self.current_week = self.config.getint("Configuration", "current_week")
 
         # validate user selection of week for which to generate report
-        self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week)
+        self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week, self.season)
 
         self.num_playoff_slots = self.league_settings.get("playoff_teams")
         self.num_regular_season_weeks = int(self.league_settings.get("playoff_week_start")) - 1
@@ -223,8 +223,12 @@ class LeagueData(object):
             else:
                 file_modified_timestamp = datetime.fromtimestamp(os.path.getmtime(file_path))
                 if file_modified_timestamp < (datetime.today() - timedelta(days=refresh_days_delay)):
-                    logger.info("Data in {} over {} day{} old... refreshing.".format(
-                        filename, refresh_days_delay, "s" if refresh_days_delay > 1 else ""))
+                    if not self.dev_offline:
+                        logger.info("Data in {} over {} day{} old... refreshing.".format(
+                            filename, refresh_days_delay, "s" if refresh_days_delay > 1 else ""))
+                    else:
+                        logger.info("Data in {} over {} day{} old but dev_offline=True... skipping refresh.".format(
+                            filename, refresh_days_delay, "s" if refresh_days_delay > 1 else ""))
                 else:
                     logger.debug("Data in {} still recent... skipping refresh.".format(filename))
                     run_query = False
@@ -265,6 +269,9 @@ class LeagueData(object):
         return response_json
 
     def fetch_player_data(self, player_id, week, starter=False):
+        # handle the Raiders' move from Oakland (OAK) to Las Vegas (LV) between the 2019 and 2020 seasons
+        if player_id == "OAK":
+            player_id = "LV"
         player = deepcopy(self.player_data.get(str(player_id)))
         if int(week) <= int(self.week_for_report):
             player["stats"] = deepcopy(self.player_stats_data_by_week.get(str(week)).get(str(player_id)))

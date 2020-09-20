@@ -126,11 +126,12 @@ class HyperlinkedImage(ReportLabImage, object):
 
 
 class PdfGenerator(object):
-    def __init__(self, config: ConfigParser,  league: BaseLeague, playoff_prob_sims, report_title_text,
+    def __init__(self, config: ConfigParser, season, league: BaseLeague, playoff_prob_sims, report_title_text,
                  report_footer_text, report_data: ReportData):
 
         # report configuration
         self.config = config
+        self.season = season
         self.league_id = league.league_id
         self.playoff_slots = int(league.num_playoff_slots)
         self.num_regular_season_weeks = int(league.num_regular_season_weeks)
@@ -361,14 +362,15 @@ class PdfGenerator(object):
             ["Team", "Manager", "Record", "Playoffs", "Needed"] + ordinal_list
         ]
         self.power_ranking_headers = [["Power Rank", "Team", "Manager", "Season Avg. (Place)"]]
+        self.zscores_headers = [["Place", "Team", "Manager", "Z-Score"]]
         self.scores_headers = [["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]]
-        self.weekly_top_scorer_headers = [["Week", "Team", "Manager", "Score"]]
-        self.weekly_highest_ce_headers = [["Week", "Team", "Manager", "Coaching Efficiency (%)"]]
         self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
         self.luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)", "Weekly Record (W-L-T)"]]
+        self.optimal_scores_headers = [["Place", "Team", "Manager", "Optimal Points", "Season Total"]]
         self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]]
         self.beef_headers = [["Place", "Team", "Manager", "TABBU(s)"]]
-        self.zscores_headers = [["Place", "Team", "Manager", "Z-Score"]]
+        self.weekly_top_scorer_headers = [["Week", "Team", "Manager", "Score"]]
+        self.weekly_highest_ce_headers = [["Week", "Team", "Manager", "Coaching Efficiency (%)"]]
         self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
 
         # options: "document", "section", or None
@@ -443,6 +445,7 @@ class PdfGenerator(object):
         self.data_for_scores = report_data.data_for_scores
         self.data_for_coaching_efficiency = report_data.data_for_coaching_efficiency
         self.data_for_luck = report_data.data_for_luck
+        self.data_for_optimal_scores = report_data.data_for_optimal_scores
         self.data_for_power_rankings = report_data.data_for_power_rankings
         self.data_for_z_scores = report_data.data_for_z_scores
         self.data_for_bad_boy_rankings = report_data.data_for_bad_boy_rankings
@@ -564,7 +567,7 @@ class PdfGenerator(object):
 
     def create_section(self, title_text, headers, data, table_style, table_style_ties, col_widths,
                        subtitle_text=None, header_text=None, footer_text=None, row_heights=None, tied_metric=False,
-                       metric_type=None):
+                       metric_type=None, section_title_function=None):
 
         title = None
         if title_text:
@@ -582,7 +585,10 @@ class PdfGenerator(object):
                 anchor="<a name = page.html#" + section_anchor + "></a>",
                 subtitle_text=subtitle_text
             )
-            self.toc.add_metric_section(title_text)
+            if section_title_function:
+                section_title_function(title_text)
+            else:
+                self.toc.add_metric_section(title_text)
 
         if metric_type == "standings":
             font_reduction = 0
@@ -1309,35 +1315,19 @@ class PdfGenerator(object):
                                                                                            "league_luck_rankings"):
             elements.append(self.add_page_break())
 
-        if self.config.getboolean("Report", "league_weekly_top_scorers"):
-            # weekly top scorers
+        if self.config.getboolean("Report", "league_optimal_score_rankings"):
+            # optimal scores
             elements.append(self.create_section(
-                "Weekly Top Scorers",
-                self.weekly_top_scorer_headers,
-                self.data_for_season_weekly_top_scorers,
-                self.style_no_highlight,
-                self.style_no_highlight,
-                self.widths_4_cols_2,
-                tied_metric=self.report_data.ties_for_scores > 0,
-                metric_type="top_scorers"
+                "Team Optimal Score Rankings",
+                self.optimal_scores_headers,
+                self.data_for_optimal_scores,
+                self.style,
+                self.style,
+                self.widths_5_cols_1
             ))
             elements.append(self.spacer_twentieth_inch)
 
-        if self.config.getboolean("Report", "league_weekly_highest_ce"):
-            # weekly highest coaching efficiency
-            elements.append(self.create_section(
-                "Weekly Highest Coaching Efficiency",
-                self.weekly_highest_ce_headers,
-                self.data_for_season_weekly_highest_ce,
-                self.style_no_highlight,
-                self.style_no_highlight,
-                self.widths_4_cols_2,
-                tied_metric=self.report_data.ties_for_coaching_efficiency > 0,
-                metric_type="highest_ce"
-            ))
-
-        if self.config.getboolean("Report", "league_weekly_top_scorers") or self.config.getboolean(
-                "Report", "league_weekly_highest_ce"):
+        if self.config.getboolean("Report", "league_optimal_score_rankings"):
             elements.append(self.add_page_break())
 
         if self.config.getboolean("Report", "league_bad_boy_rankings"):
@@ -1377,21 +1367,68 @@ class PdfGenerator(object):
                 "Report", "league_beef_rankings"):
             elements.append(self.add_page_break())
 
-        if self.config.getboolean("Report", "league_covid_risk_rankings"):
+        if self.config.getboolean("Report", "league_weekly_top_scorers"):
+
+            weekly_top_scorers_title_str = "Weekly Top Scorers"
+            weekly_top_scorers_page_title = self.create_title(
+                "<i>" + weekly_top_scorers_title_str + "</i>", element_type="chart",
+                anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>")
+            elements.append(weekly_top_scorers_page_title)
+
+            # weekly top scorers
+            elements.append(self.create_section(
+                "Weekly Top Scorers",
+                self.weekly_top_scorer_headers,
+                self.data_for_season_weekly_top_scorers,
+                self.style_no_highlight,
+                self.style_no_highlight,
+                self.widths_4_cols_2,
+                tied_metric=self.report_data.ties_for_scores > 0,
+                metric_type="top_scorers",
+                section_title_function=self.toc.add_top_performers_section
+            ))
+            elements.append(self.spacer_twentieth_inch)
+
+        if self.config.getboolean("Report", "league_weekly_highest_ce"):
+
+            weekly_highest_ce_title_str = "Weekly Highest Coaching Efficiency"
+            weekly_highest_ce_page_title = self.create_title(
+                "<i>" + weekly_highest_ce_title_str + "</i>", element_type="chart",
+                anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>")
+            elements.append(weekly_highest_ce_page_title)
+
+            # weekly highest coaching efficiency
+            elements.append(self.create_section(
+                "Weekly Highest Coaching Efficiency",
+                self.weekly_highest_ce_headers,
+                self.data_for_season_weekly_highest_ce,
+                self.style_no_highlight,
+                self.style_no_highlight,
+                self.widths_4_cols_2,
+                tied_metric=self.report_data.ties_for_coaching_efficiency > 0,
+                metric_type="highest_ce",
+                section_title_function=self.toc.add_top_performers_section
+            ))
+
+        if self.config.getboolean("Report", "league_weekly_top_scorers") or self.config.getboolean(
+                "Report", "league_weekly_highest_ce"):
+            elements.append(self.add_page_break())
+
+        if self.config.getboolean("Report", "league_covid_risk_rankings") and int(self.season) >= 2020:
             # covid risk rankings
 
             # create bar chart for covid risk
-            title_text = "COVID-19 Risk"
+            charts_covid_page_title_str = "COVID-19 Risk"
             section_anchor = str(self.toc.get_current_anchor())
             self.appendix.add_entry(
-                title_text,
+                charts_covid_page_title_str,
                 section_anchor,
-                getattr(descriptions, title_text.replace(" ", "_").replace("-", "_").lower())
+                getattr(descriptions, charts_covid_page_title_str.replace(" ", "_").replace("-", "_").lower())
             )
             appendix_anchor = self.appendix.get_last_entry_anchor()
             title = self.create_title(
                 '''<a href = #page.html#''' + appendix_anchor + ''' color=blue>''' +
-                '''<u><b>''' + title_text + '''</b></u></a>''',
+                '''<u><b>''' + charts_covid_page_title_str + '''</b></u></a>''',
                 element_type="section",
                 anchor="<a name = page.html#" + section_anchor + "></a>",
                 subtitle_text=[
@@ -1400,7 +1437,7 @@ class PdfGenerator(object):
                     "appearances on the NFL's Reserve/COVID-19 list and how recently those appearances occurred."
                 ]
             )
-            self.toc.add_chart_section(title_text)
+            self.toc.add_chart_section(charts_covid_page_title_str)
 
             elements.append(title)
             elements.append(KeepTogether(self.create_3d_horizontal_bar_chart(self.data_for_covid_risk_rankings,
@@ -1428,12 +1465,12 @@ class PdfGenerator(object):
                     week_index += 1
 
             # create line charts for points, coaching efficiency, and luck
-            charts_page_title_str = "Time Series Charts"
-            charts_page_title = self.create_title(
-                "<i>" + charts_page_title_str + "</i>", element_type="chart",
+            charts_time_series_page_title_str = "Time Series Charts"
+            charts_time_series_page_title = self.create_title(
+                "<i>" + charts_time_series_page_title_str + "</i>", element_type="chart",
                 anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>")
-            self.toc.add_chart_section(charts_page_title_str)
-            elements.append(charts_page_title)
+            self.toc.add_chart_section(charts_time_series_page_title_str)
+            elements.append(charts_time_series_page_title)
             elements.append(KeepTogether(
                 self.create_line_chart(points_data, len(points_data[0]), series_names, "Weekly Points", "Weeks",
                                        "Fantasy Points", 10.00)))
@@ -1484,12 +1521,12 @@ class TableOfContents(object):
         self.config = config  # type: ConfigParser
         self.break_ties = break_ties
 
-        self.toc_style_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=font_size, fontName=font)
-        self.toc_style_center = ParagraphStyle(name="tocc", alignment=TA_CENTER, fontSize=font_size, fontName=font)
-        self.toc_style_left = ParagraphStyle(name="tocl", alignment=TA_LEFT, fontSize=font_size, fontName=font)
-        self.toc_style_title_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=font_size + 2,
+        self.toc_style_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=font_size - 2, fontName=font)
+        self.toc_style_center = ParagraphStyle(name="tocc", alignment=TA_CENTER, fontSize=font_size - 2, fontName=font)
+        self.toc_style_left = ParagraphStyle(name="tocl", alignment=TA_LEFT, fontSize=font_size - 2, fontName=font)
+        self.toc_style_title_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=font_size + 1,
                                                     fontName=font)
-        self.toc_style_title_left = ParagraphStyle(name="tocl", alignment=TA_LEFT, fontSize=font_size + 2,
+        self.toc_style_title_left = ParagraphStyle(name="tocl", alignment=TA_LEFT, fontSize=font_size + 1,
                                                    fontName=font)
 
         self.toc_anchor = 0
@@ -1498,6 +1535,7 @@ class TableOfContents(object):
         self.toc_page = 1
 
         self.toc_metric_section_data = None
+        self.toc_top_performers_section_data = None
         self.toc_chart_section_data = None
         self.toc_team_section_data = None
         self.toc_appendix_data = None
@@ -1509,8 +1547,7 @@ class TableOfContents(object):
                 "Report", "league_score_rankings") or self.config.getboolean(
                 "Report", "league_coaching_efficiency_rankings") or self.config.getboolean(
                 "Report", "league_luck_rankings") or self.config.getboolean(
-                "Report", "league_weekly_top_scorers") or self.config.getboolean(
-                "Report", "league_weekly_highest_ce") or self.config.getboolean(
+                "Report", "league_optimal_score_rankings") or self.config.getboolean(
                 "Report", "league_bad_boy_rankings") or self.config.getboolean(
                 "Report", "league_beef_rankings"):
             self.toc_metric_section_data = [
@@ -1524,7 +1561,16 @@ class TableOfContents(object):
                  Paragraph("<b><i>Page</i></b>", self.toc_style_title_left)]
             ]
 
-        if self.config.getboolean("Report", "report_time_series_charts"):
+        if self.config.getboolean("Report", "league_weekly_top_scorers") or self.config.getboolean(
+                "Report", "league_weekly_highest_ce"):
+            self.toc_top_performers_section_data = [
+                [Paragraph("<b><i>Top Performers</i></b>", self.toc_style_title_right),
+                 "",
+                 Paragraph("<b><i>Page</i></b>", self.toc_style_title_left)]
+            ]
+
+        if self.config.getboolean("Report", "report_time_series_charts") or self.config.getboolean(
+                "Report", "league_covid_risk_rankings"):
             self.toc_chart_section_data = [
                 [Paragraph("<b><i>Charts</i></b>", self.toc_style_title_right),
                  "",
@@ -1567,14 +1613,19 @@ class TableOfContents(object):
         self.toc_metric_section_data.append(metric_section)
         self.toc_anchor += 1
 
-    def add_team_section(self, team_name):
-        team_section = self.format_toc_section(team_name)
-        self.toc_team_section_data.append(team_section)
+    def add_top_performers_section(self, title):
+        top_performers_section = self.format_toc_section(title)
+        self.toc_top_performers_section_data.append(top_performers_section)
         self.toc_anchor += 1
 
     def add_chart_section(self, title):
         chart_section = self.format_toc_section(title)
         self.toc_chart_section_data.append(chart_section)
+        self.toc_anchor += 1
+
+    def add_team_section(self, team_name):
+        team_section = self.format_toc_section(team_name)
+        self.toc_team_section_data.append(team_section)
         self.toc_anchor += 1
 
     def add_appendix(self, title):
@@ -1588,14 +1639,16 @@ class TableOfContents(object):
     def get_toc(self):
         return Table(
             (self.toc_metric_section_data + [["", "", ""]] if self.toc_metric_section_data else []) +
+            (self.toc_top_performers_section_data + [["", "", ""]] if self.toc_top_performers_section_data else []) +
             (self.toc_chart_section_data + [["", "", ""]] if self.toc_chart_section_data else []) +
             (self.toc_team_section_data + [["", "", ""]] if self.toc_team_section_data else []) +
             (self.toc_appendix_data if self.toc_appendix_data else []),
             colWidths=[3.25 * inch, 2 * inch, 2.50 * inch],
-            rowHeights=[0.30 * inch] * len(self.toc_metric_section_data) + [0.10 * inch] +
-                       [0.30 * inch] * len(self.toc_chart_section_data) + [0.10 * inch] +
-                       [0.30 * inch] * len(self.toc_team_section_data) + [0.10 * inch] +
-                       [0.30 * inch] * len(self.toc_appendix_data)
+            rowHeights=[0.25 * inch] * len(self.toc_metric_section_data) + [0.05 * inch] +
+                       [0.25 * inch] * len(self.toc_top_performers_section_data) + [0.05 * inch] +
+                       [0.25 * inch] * len(self.toc_chart_section_data) + [0.05 * inch] +
+                       [0.25 * inch] * len(self.toc_team_section_data) + [0.05 * inch] +
+                       [0.25 * inch] * len(self.toc_appendix_data)
         )
 
 
@@ -1625,7 +1678,7 @@ class Appendix(object):
             title +
             '''</u></b></a><br/></para><para>&nbsp;&nbsp;&nbsp;&nbsp;''' +
             text +
-            '''<br/><br/></para>''',
+            '''<br/></para>''',
             body_style
         )
         self.entry_anchor_num += 1

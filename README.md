@@ -2,9 +2,9 @@
 
 [![latest-release.png](resources/images/latest-release.png)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/latest)
 
-###### Latest Version: [v8.3.3-beta](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/tag/v8.3.3-beta)
+###### Latest Version: [v9.0.0-beta](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/tag/v9.0.0-beta)
 
-[![Build Status](https://travis-ci.org/uberfastman/fantasy-football-metrics-weekly-report.svg?branch=develop)](https://travis-ci.org/uberfastman/fantasy-football-metrics-weekly-report)
+[![Build Status](https://travis-ci.com/uberfastman/fantasy-football-metrics-weekly-report.svg?branch=develop)](https://travis-ci.com/uberfastman/fantasy-football-metrics-weekly-report)
 
 ---
 
@@ -395,10 +395,12 @@ For those of you who wish to configure the report to include a custom subset of 
     league_score_rankings = True
     league_coaching_efficiency_rankings = True
     league_luck_rankings = True
-    league_weekly_top_scorers = True
-    league_weekly_highest_ce = True
+    league_optimal_score_rankings = True
     league_bad_boy_rankings = True
     league_beef_rankings = True
+    league_covid_risk_rankings = True
+    league_weekly_top_scorers = True
+    league_weekly_highest_ce = True
     report_time_series_charts = True
     report_team_stats = True
     team_points_by_position_charts = True

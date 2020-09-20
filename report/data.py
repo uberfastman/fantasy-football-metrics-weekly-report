@@ -14,9 +14,8 @@ logger = get_logger(__name__, propagate=False)
 
 class ReportData(object):
 
-    def __init__(self,
-                 config, league: BaseLeague, season_weekly_teams_results, week_counter, week_for_report,
-                 metrics_calculator: CalculateMetrics, metrics, break_ties=False, dq_ce=False, testing=False):
+    def __init__(self, config, league: BaseLeague, season_weekly_teams_results, week_counter, week_for_report,
+                 season, metrics_calculator: CalculateMetrics, metrics, break_ties=False, dq_ce=False, testing=False):
 
         self.league = league
         self.break_ties = break_ties
@@ -43,6 +42,7 @@ class ReportData(object):
                 team,
                 league,
                 week_counter,
+                season,
                 metrics_calculator,
                 metrics,
                 dq_ce,
@@ -168,6 +168,7 @@ class ReportData(object):
                 team_result.points,
                 team_result.coaching_efficiency,
                 team_result.luck,
+                team_result.optimal_points,
                 z_score_results[team_result.team_id]
             ])
 
@@ -187,6 +188,10 @@ class ReportData(object):
         # luck data
         self.data_for_luck = metrics_calculator.get_luck_data(
             sorted(self.teams_results.values(), key=lambda x: float(x.luck), reverse=True))
+
+        # optimal score data
+        self.data_for_optimal_scores = metrics_calculator.get_optimal_score_data(
+            sorted(self.teams_results.values(), key=lambda x: float(x.optimal_points), reverse=True))
 
         # bad boy data
         self.data_for_bad_boy_rankings = metrics_calculator.get_bad_boy_data(
