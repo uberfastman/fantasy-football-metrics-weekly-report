@@ -59,36 +59,55 @@ class GoogleDriveUploader(object):
         google_drive_root_folder_name = self.config.get("Drive", "google_drive_root_folder_name")
         google_drive_root_folder_id = self.make_root_folder(
             drive,
-            self.check_file_existence(google_drive_root_folder_name, root_folders),
-            google_drive_root_folder_name)
+            self.check_file_existence(google_drive_root_folder_name, root_folders, "root"),
+            google_drive_root_folder_name
+        )
 
         if not test:
             # Check for season folder and create it if it does not exist
             # noinspection PyTypeChecker
             season_folder_name = self.filename.split(os.sep)[-3]
-            season_folder_id = self.make_parent_folder(drive,
-                                                       self.check_file_existence(season_folder_name, all_folders),
-                                                       season_folder_name, google_drive_root_folder_id)
+
+            season_folder_id = self.make_parent_folder(
+                drive,
+                self.check_file_existence(
+                    season_folder_name,
+                    all_folders,
+                    google_drive_root_folder_id
+                ),
+                season_folder_name,
+                google_drive_root_folder_id
+            )
 
             # Check for league folder and create it if it does not exist
             # noinspection PyTypeChecker
             league_folder_name = self.filename.split(os.sep)[-2].replace("-", "_")
             league_folder_id = self.make_parent_folder(drive,
-                                                       self.check_file_existence(league_folder_name, all_folders),
+                                                       self.check_file_existence(league_folder_name, all_folders, season_folder_id),
                                                        league_folder_name, season_folder_id)
 
             # Check for league report and create if if it does not exist
             report_file_name = self.filename.split(os.sep)[-1]
-            report_file = self.check_file_existence(report_file_name, all_pdfs)
+            report_file = self.check_file_existence(report_file_name, all_pdfs, league_folder_id)
         else:
             report_file_name = self.filename
-            report_file = self.check_file_existence(report_file_name, all_pdfs)
+            report_file = self.check_file_existence(report_file_name, all_pdfs, "root")
             league_folder_id = "root"
 
         if report_file:
             report_file.Delete()
-        upload_file = drive.CreateFile({'title': report_file_name, 'mimeType': 'application/pdf',
-                                        "parents": [{"kind": "drive#fileLink", "id": league_folder_id}]})
+        upload_file = drive.CreateFile(
+            {
+                "title": report_file_name,
+                "mimeType": "application/pdf",
+                "parents": [
+                    {
+                        "kind": "drive#fileLink",
+                        "id": league_folder_id
+                    }
+                ]
+            }
+        )
         upload_file.SetContentFile(self.filename)
 
         # Upload the file.
@@ -96,9 +115,9 @@ class GoogleDriveUploader(object):
 
         upload_file.InsertPermission(
             {
-                'type': 'anyone',
-                'role': 'reader',
-                'withLink': True
+                "type": "anyone",
+                "role": "reader",
+                "withLink": True
             }
         )
 
@@ -106,13 +125,15 @@ class GoogleDriveUploader(object):
             "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), upload_file['title'], upload_file["alternateLink"])
 
     @staticmethod
-    def check_file_existence(file_name, file_list):
+    def check_file_existence(file_name, file_list, parent_id):
         drive_file_name = file_name
         google_drive_file = None
 
         for drive_file in file_list:
             if drive_file["title"] == drive_file_name:
-                google_drive_file = drive_file
+                for parent_folder in drive_file["parents"]:
+                    if parent_folder["id"] == parent_id or parent_folder["isRoot"]:
+                        google_drive_file = drive_file
 
         return google_drive_file
 
@@ -120,8 +141,18 @@ class GoogleDriveUploader(object):
     def make_root_folder(drive, folder, folder_name):
         if not folder:
             new_root_folder = drive.CreateFile(
-                {"title": folder_name, "parents": [{"kind": "drive#fileLink", "isRoot": True}],
-                 "mimeType": "application/vnd.google-apps.folder"})
+                {
+                    "title": folder_name,
+                    "parents": [
+                        {
+                            "kind": "drive#fileLink",
+                            "isRoot": True,
+                            "id": "root"
+                        }
+                    ],
+                    "mimeType": "application/vnd.google-apps.folder"
+                }
+            )
             new_root_folder.Upload()
             root_folder_id = new_root_folder["id"]
         else:
@@ -130,11 +161,20 @@ class GoogleDriveUploader(object):
         return root_folder_id
 
     @staticmethod
-    def make_parent_folder(drive, folder, folder_name, root_folder_id):
+    def make_parent_folder(drive, folder, folder_name, parent_folder_id):
         if not folder:
             new_parent_folder = drive.CreateFile(
-                {"title": folder_name, "parents": [{"kind": "drive#fileLink", "id": root_folder_id}],
-                 "mimeType": "application/vnd.google-apps.folder"})
+                {
+                    "title": folder_name,
+                    "parents": [
+                        {
+                            "kind": "drive#fileLink",
+                            "id": parent_folder_id
+                        }
+                    ],
+                    "mimeType": "application/vnd.google-apps.folder"
+                }
+            )
             new_parent_folder.Upload()
             parent_folder_id = new_parent_folder["id"]
         else:
