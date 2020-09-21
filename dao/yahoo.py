@@ -14,7 +14,7 @@ from yfpy.query import YahooFantasySportsQuery
 from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
 
 # Suppress YahooFantasyFootballQuery debug logging
-logging.getLogger("yfpy.query").setLevel(level=logging.DEBUG)
+logging.getLogger("yfpy.query").setLevel(level=logging.INFO)
 
 
 class LeagueData(object):
