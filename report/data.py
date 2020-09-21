@@ -23,6 +23,7 @@ class ReportData(object):
         self.week = league.week
         self.bench_positions = league.bench_positions
         self.has_divisions = league.has_divisions
+        self.has_waiver_priorities = league.has_waiver_priorities
         self.is_faab = league.is_faab
 
         inactive_players = []

@@ -32,19 +32,26 @@ class CalculateMetrics(object):
     def get_standings_data(league: BaseLeague):
         current_standings_data = []
         for team in league.standings:  # type: BaseTeam
-            current_standings_data.append([
+
+            team_current_standings_data = [
                 team.record.rank,
                 team.name,
                 team.manager_str,
                 str(team.record.get_wins()) + "-" + str(team.record.get_losses()) + "-" + str(team.record.get_ties()) +
-                " (" + str(team.record.get_percentage()) + ")",
+                    " (" + str(team.record.get_percentage()) + ")",
                 round(float(team.record.get_points_for()), 2),
                 round(float(team.record.get_points_against()), 2),
                 team.record.get_streak_str(),
                 team.waiver_priority if not league.is_faab else "$%d" % team.faab,
                 team.num_moves,
                 team.num_trades
-            ])
+            ]
+            # TODO: show waiver priority even if league has FAAB
+            # if league.is_faab:
+            #     team_current_standings_data.insert(7, team.waiver_priority)
+
+            current_standings_data.append(team_current_standings_data)
+
         return current_standings_data
 
     @staticmethod
@@ -106,24 +113,30 @@ class CalculateMetrics(object):
                     modified_team_names[team.team_id] = "†"
                 else:
                     modified_team_names[team.team_id] = ""
-                division_standings_data.append([
+
+                team_division_standings_data = [
                     team_ranks_by_id[team.team_id],
                     team.name + modified_team_names[team.team_id],
                     team.manager_str,
                     str(team.record.get_wins()) + "-" + str(team.record.get_losses()) + "-" + str(
                         team.record.get_ties()) +
-                    " (" + str(team.record.get_percentage()) + ")",
+                        " (" + str(team.record.get_percentage()) + ")",
                     str(team.record.get_division_wins()) + "-" + str(team.record.get_division_losses()) + "-" + str(
                         team.record.get_division_ties()) +
-                    " (" + str(team.record.get_division_percentage()) + ")",
-                    round(float(team.record.get_points_for()), 2),
-                    round(float(team.record.get_points_against()), 2),
+                        " (" + str(team.record.get_division_percentage()) + ")",
+                        round(float(team.record.get_points_for()), 2),
+                        round(float(team.record.get_points_against()), 2),
                     team.record.get_streak_str(),
                     team.waiver_priority if not league.is_faab else "$%d" % team.faab,
                     team.num_moves,
                     team.num_trades,
                     str(team.division)  # stored here temporarily to pass team divisions to report generator
-                ])
+                ]
+                if league.is_faab and team.waiver_priority != 0:
+                    team_division_standings_data.insert(8, team.waiver_priority)
+
+                division_standings_data.append(team_division_standings_data)
+
             current_division_standings_data.append(division_standings_data)
         return current_division_standings_data
 

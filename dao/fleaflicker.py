@@ -376,7 +376,8 @@ class LeagueData(object):
                     base_team.num_trades = str(
                         self.league_transactions_by_team[str(base_team.team_id)].get("trades", 0)) + "*"
 
-                    base_team.waiver_priority = team_data.get("waiverAcquisitionBudget", {}).get("value")
+                    base_team.waiver_priority = team_data.get("waiverPosition", 0)
+                    league.has_waiver_priorities = base_team.waiver_priority > 0
                     base_team.faab = team_data.get("waiverAcquisitionBudget", {}).get("value", 0)
                     base_team.url = "https://www.fleaflicker.com/nfl/leagues/" + self.league_id + "/teams/" + \
                                     str(team_data.get("id"))

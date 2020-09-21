@@ -159,9 +159,9 @@ class LeagueData(object):
         if league.num_divisions > 0:
             league.has_divisions = True
         # use hijacked raw json since acquisition settings are not exposed in the API wrapper
-        league.faab_budget = int(self.league_settings_json.get("acquisitionSettings", {}).get("acquisitionBudget", 0))
-        if league.faab_budget > 0:
-            league.is_faab = True
+        league.is_faab = bool(self.league_settings_json.get("acquisitionSettings").get("isUsingAcquisitionBudget"))
+        if league.is_faab:
+            league.faab_budget = int(self.league_settings_json.get("acquisitionSettings").get("acquisitionBudget", 0))
         # league.url = self.league.ENDPOINT
         league.url = "https://fantasy.espn.com/football/league?leagueId={}".format(self.league_id)
 
@@ -254,6 +254,7 @@ class LeagueData(object):
 
                     base_team.projected_points = None
                     base_team.waiver_priority = team_json["waiverRank"]
+                    league.has_waiver_priorities = base_team.waiver_priority > 0
                     if league.is_faab:
                         base_team.faab = int(league.faab_budget) - int(
                             team_json["transactionCounter"].get("acquisitionBudgetSpent", 0))

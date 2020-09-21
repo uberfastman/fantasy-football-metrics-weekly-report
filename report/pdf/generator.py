@@ -156,6 +156,8 @@ class PdfGenerator(object):
                                  0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]
         self.widths_11_cols_1 = [0.40 * inch, 1.65 * inch, 1.00 * inch, 0.85 * inch, 0.85 * inch, 0.75 * inch,
                                  1.00 * inch, 0.45 * inch, 0.45 * inch, 0.45 * inch, 0.45 * inch]
+        self.widths_12_cols_1 = [0.40 * inch, 1.65 * inch, 1.00 * inch, 0.85 * inch, 0.85 * inch, 0.55 * inch,
+                                 0.75 * inch, 0.45 * inch, 0.45 * inch, 0.45 * inch, 0.45 * inch, 0.45 * inch]
         self.widths_n_cols_1 = [1.55 * inch, 1.00 * inch, 0.90 * inch, 0.65 * inch, 0.65 * inch] + \
                                [round(3.4 / self.playoff_slots, 2) * inch] * self.playoff_slots
 
@@ -596,7 +598,12 @@ class PdfGenerator(object):
                 font_reduction += 1
             table_style.add("FONTSIZE", (0, 0), (-1, -1), (self.font_size - 2) - font_reduction)
             if self.report_data.is_faab:
-                headers[0][7] = "FAAB"
+                if "FAAB" not in headers[0]:
+                    if self.report_data.has_waiver_priorities:
+                        headers[0].insert(8, "FAAB")
+                        col_widths = self.widths_12_cols_1
+                    else:
+                        headers[0][8] = "FAAB"
 
         if metric_type == "playoffs":
             font_reduction = 0
@@ -937,148 +944,151 @@ class PdfGenerator(object):
 
             if self.config.getboolean("Report", "league_bad_boy_rankings") and \
                     self.config.getboolean("Report", "team_bad_boy_stats"):
-                offending_players = []
-                for player in player_info:
-                    if player.bad_boy_points > 0:
-                        offending_players.append(player)
+                if player_info:
+                    offending_players = []
+                    for player in player_info:
+                        if player.bad_boy_points > 0:
+                            offending_players.append(player)
 
-                offending_players = sorted(offending_players, key=lambda x: x.bad_boy_points, reverse=True)
-                offending_players_data = []
-                for player in offending_players:
-                    offending_players_data.append([player.full_name, player.bad_boy_points, player.bad_boy_crime])
-                # if there are no offending players, skip table
-                if offending_players_data:
-                    doc_elements.append(self.create_title("Whodunnit?", 8.5, "section"))
-                    doc_elements.append(self.spacer_tenth_inch)
-                    bad_boys_table = self.create_data_table(
-                        [["Starting Player", "Bad Boy Points", "Worst Offense"]],
-                        offending_players_data,
-                        self.style_red_highlight,
-                        self.style_tied_bad_boy,
-                        [2.50 * inch, 2.50 * inch, 2.75 * inch])
-                    doc_elements.append(KeepTogether(bad_boys_table))
-                    doc_elements.append(self.spacer_tenth_inch)
+                    offending_players = sorted(offending_players, key=lambda x: x.bad_boy_points, reverse=True)
+                    offending_players_data = []
+                    for player in offending_players:
+                        offending_players_data.append([player.full_name, player.bad_boy_points, player.bad_boy_crime])
+                    # if there are no offending players, skip table
+                    if offending_players_data:
+                        doc_elements.append(self.create_title("Whodunnit?", 8.5, "section"))
+                        doc_elements.append(self.spacer_tenth_inch)
+                        bad_boys_table = self.create_data_table(
+                            [["Starting Player", "Bad Boy Points", "Worst Offense"]],
+                            offending_players_data,
+                            self.style_red_highlight,
+                            self.style_tied_bad_boy,
+                            [2.50 * inch, 2.50 * inch, 2.75 * inch])
+                        doc_elements.append(KeepTogether(bad_boys_table))
+                        doc_elements.append(self.spacer_tenth_inch)
 
             if self.config.getboolean("Report", "league_beef_rankings") and \
                     self.config.getboolean("Report", "team_beef_stats"):
-                doc_elements.append(self.create_title("Beefiest Bois", 8.5, "section"))
-                doc_elements.append(self.spacer_tenth_inch)
-                beefy_players = sorted(player_info, key=lambda x: x.tabbu, reverse=True)
-                beefy_players_data = []
-                num_beefy_bois = 3
-                ndx = 0
-                count = 0
-                while count < num_beefy_bois:
-                    player = beefy_players[ndx]  # type: BasePlayer
-                    if player.last_name:
-                        beefy_players_data.append([player.full_name, player.tabbu, player.weight])
-                        count += 1
-                    ndx += 1
-                beefy_boi_table = self.create_data_table([["Starting Player", "TABBU(s)", "Weight (lbs.)"]],
-                                                         beefy_players_data,
-                                                         self.style_red_highlight,
-                                                         self.style_tied_bad_boy,
-                                                         [2.50 * inch, 2.50 * inch, 2.75 * inch])
-                doc_elements.append(KeepTogether(beefy_boi_table))
-                doc_elements.append(self.spacer_tenth_inch)
+                if player_info:
+                    doc_elements.append(self.create_title("Beefiest Bois", 8.5, "section"))
+                    doc_elements.append(self.spacer_tenth_inch)
+                    beefy_players = sorted(player_info, key=lambda x: x.tabbu, reverse=True)
+                    beefy_players_data = []
+                    num_beefy_bois = 3
+                    ndx = 0
+                    count = 0
+                    while count < num_beefy_bois:
+                        player = beefy_players[ndx]  # type: BasePlayer
+                        if player.last_name:
+                            beefy_players_data.append([player.full_name, player.tabbu, player.weight])
+                            count += 1
+                        ndx += 1
+                    beefy_boi_table = self.create_data_table([["Starting Player", "TABBU(s)", "Weight (lbs.)"]],
+                                                             beefy_players_data,
+                                                             self.style_red_highlight,
+                                                             self.style_tied_bad_boy,
+                                                             [2.50 * inch, 2.50 * inch, 2.75 * inch])
+                    doc_elements.append(KeepTogether(beefy_boi_table))
+                    doc_elements.append(self.spacer_tenth_inch)
 
             if self.config.getboolean("Report", "team_boom_or_bust"):
-                starting_players = []
-                for player in player_info:  # type: BasePlayer
-                    if player.selected_position not in self.report_data.bench_positions:
-                        if player.season_points and player.week_for_report > 1:
-                            player.season_average_points = round(
-                                (player.season_points - player.points) / (player.week_for_report - 1), 2)
-                            player.season_average_points = round(
-                                (player.season_points - player.points -
-                                 ((self.report_data.week - player.week_for_report - 1) *
-                                  player.season_average_points)) / (player.week_for_report - 1), 2)
-                        else:
-                            player.season_points = 0
-                            player.season_average_points = 0
-                        starting_players.append(player)
+                if player_info:
+                    starting_players = []
+                    for player in player_info:  # type: BasePlayer
+                        if player.selected_position not in self.report_data.bench_positions:
+                            if player.season_points and player.week_for_report > 1:
+                                player.season_average_points = round(
+                                    (player.season_points - player.points) / (player.week_for_report - 1), 2)
+                                player.season_average_points = round(
+                                    (player.season_points - player.points -
+                                     ((self.report_data.week - player.week_for_report - 1) *
+                                      player.season_average_points)) / (player.week_for_report - 1), 2)
+                            else:
+                                player.season_points = 0
+                                player.season_average_points = 0
+                            starting_players.append(player)
 
-                if any(player.season_points for player in starting_players) and starting_players[0].week_for_report > 1:
-                    starting_players = sorted(
-                        starting_players,
-                        key=lambda x:
-                            round(((x.points - x.season_average_points) / x.season_average_points) * 100, 2)
-                            if x.season_average_points > 0
-                            else 100
-                            if x.points > 0
-                            else 0
-                            if x.points == 0
-                            else round(((x.points - x.season_average_points) / x.season_average_points) * -100, 2),
-                        reverse=True
+                    if any(player.season_points for player in starting_players) and starting_players[0].week_for_report > 1:
+                        starting_players = sorted(
+                            starting_players,
+                            key=lambda x:
+                                round(((x.points - x.season_average_points) / x.season_average_points) * 100, 2)
+                                if x.season_average_points > 0
+                                else 100
+                                if x.points > 0
+                                else 0
+                                if x.points == 0
+                                else round(((x.points - x.season_average_points) / x.season_average_points) * -100, 2),
+                            reverse=True
+                        )
+                    else:
+                        starting_players = sorted(starting_players, key=lambda x: x.points, reverse=True)
+
+                    best_weekly_player = starting_players[0]
+                    worst_weekly_player = starting_players[-1]
+
+                    best_player_headshot = get_player_image(
+                        best_weekly_player.headshot_url, self.data_dir, self.week_for_report,
+                        self.config.getint("Report", "image_quality"), 1.5 * inch, best_weekly_player.full_name,
+                        self.report_data.league.dev_offline
                     )
-                else:
-                    starting_players = sorted(starting_players, key=lambda x: x.points, reverse=True)
-
-                best_weekly_player = starting_players[0]
-                worst_weekly_player = starting_players[-1]
-
-                best_player_headshot = get_player_image(
-                    best_weekly_player.headshot_url, self.data_dir, self.week_for_report,
-                    self.config.getint("Report", "image_quality"), 1.5 * inch, best_weekly_player.full_name,
-                    self.report_data.league.dev_offline
-                )
-                worst_player_headshot = get_player_image(
-                    worst_weekly_player.headshot_url, self.data_dir, self.week_for_report,
-                    self.config.getint("Report", "image_quality"), 1.5 * inch, worst_weekly_player.full_name,
-                    self.report_data.league.dev_offline
-                )
-
-                data = [
-                    ["BOOOOOOOOM", "...b... U... s... T"],
-                    [best_weekly_player.full_name + " -- " + (best_weekly_player.nfl_team_name if
-                                                              best_weekly_player.nfl_team_name else "N/A"),
-                     worst_weekly_player.full_name + " -- " + (worst_weekly_player.nfl_team_name if
-                                                               worst_weekly_player.nfl_team_name else "N/A")],
-                    [best_player_headshot, worst_player_headshot]
-                ]
-                if any(player.season_points for player in starting_players) and starting_players[0].week_for_report > 1:
-                    data.append(
-                        [
-                            "{} ({} avg: +{}%)".format(
-                                round(best_weekly_player.points, 2),
-                                best_weekly_player.season_average_points,
-                                round(((best_weekly_player.points - best_weekly_player.season_average_points) /
-                                       best_weekly_player.season_average_points) * 100, 2)
-                                if best_weekly_player.season_average_points > 0
-                                else "∞"
-                                if best_weekly_player.season_average_points == 0
-                                else round(((best_weekly_player.season_average_points - best_weekly_player.points) /
-                                            best_weekly_player.season_average_points) * -100, 2)
-                            ),
-                            "{} ({} avg: -{}%)".format(
-                                round(worst_weekly_player.points, 2),
-                                worst_weekly_player.season_average_points,
-                                round(((worst_weekly_player.season_average_points - worst_weekly_player.points) /
-                                       worst_weekly_player.season_average_points) * 100, 2)
-                                if worst_weekly_player.season_average_points > 0
-                                else "∞"
-                                if worst_weekly_player.season_average_points == 0
-                                else round(((worst_weekly_player.season_average_points - worst_weekly_player.points) /
-                                            worst_weekly_player.season_average_points) * -100, 2)
-                            )
-                        ]
+                    worst_player_headshot = get_player_image(
+                        worst_weekly_player.headshot_url, self.data_dir, self.week_for_report,
+                        self.config.getint("Report", "image_quality"), 1.5 * inch, worst_weekly_player.full_name,
+                        self.report_data.league.dev_offline
                     )
-                else:
-                    data.append([round(best_weekly_player.points, 2), round(worst_weekly_player.points, 2)])
 
-                table = Table(data, colWidths=4.0 * inch)
-                table.setStyle(self.boom_bust_table_style)
-                doc_elements.append(self.spacer_half_inch)
-                doc_elements.append(self.create_title("Boom... or Bust", 8.5, "section"))
-                doc_elements.append(self.spacer_tenth_inch)
-                doc_elements.append(KeepTogether(table))
+                    data = [
+                        ["BOOOOOOOOM", "...b... U... s... T"],
+                        [best_weekly_player.full_name + " -- " + (best_weekly_player.nfl_team_name if
+                                                                  best_weekly_player.nfl_team_name else "N/A"),
+                         worst_weekly_player.full_name + " -- " + (worst_weekly_player.nfl_team_name if
+                                                                   worst_weekly_player.nfl_team_name else "N/A")],
+                        [best_player_headshot, worst_player_headshot]
+                    ]
+                    if any(player.season_points for player in starting_players) and starting_players[0].week_for_report > 1:
+                        data.append(
+                            [
+                                "{} ({} avg: +{}%)".format(
+                                    round(best_weekly_player.points, 2),
+                                    best_weekly_player.season_average_points,
+                                    round(((best_weekly_player.points - best_weekly_player.season_average_points) /
+                                           best_weekly_player.season_average_points) * 100, 2)
+                                    if best_weekly_player.season_average_points > 0
+                                    else "∞"
+                                    if best_weekly_player.season_average_points == 0
+                                    else round(((best_weekly_player.season_average_points - best_weekly_player.points) /
+                                                best_weekly_player.season_average_points) * -100, 2)
+                                ),
+                                "{} ({} avg: -{}%)".format(
+                                    round(worst_weekly_player.points, 2),
+                                    worst_weekly_player.season_average_points,
+                                    round(((worst_weekly_player.season_average_points - worst_weekly_player.points) /
+                                           worst_weekly_player.season_average_points) * 100, 2)
+                                    if worst_weekly_player.season_average_points > 0
+                                    else "∞"
+                                    if worst_weekly_player.season_average_points == 0
+                                    else round(((worst_weekly_player.season_average_points - worst_weekly_player.points) /
+                                                worst_weekly_player.season_average_points) * -100, 2)
+                                )
+                            ]
+                        )
+                    else:
+                        data.append([round(best_weekly_player.points, 2), round(worst_weekly_player.points, 2)])
 
-            if self.config.getboolean(
-                    "Report", "team_points_by_position_charts") or self.config.getboolean(
-                    "Report", "team_bad_boy_stats") or self.config.getboolean(
-                    "Report", "team_beef_stats") or self.config.getboolean(
-                    "Report", "team_boom_or_bust"):
-                doc_elements.append(self.add_page_break())
+                    table = Table(data, colWidths=4.0 * inch)
+                    table.setStyle(self.boom_bust_table_style)
+                    doc_elements.append(self.spacer_half_inch)
+                    doc_elements.append(self.create_title("Boom... or Bust", 8.5, "section"))
+                    doc_elements.append(self.spacer_tenth_inch)
+                    doc_elements.append(KeepTogether(table))
+
+                if self.config.getboolean(
+                        "Report", "team_points_by_position_charts") or self.config.getboolean(
+                        "Report", "team_bad_boy_stats") or self.config.getboolean(
+                        "Report", "team_beef_stats") or self.config.getboolean(
+                        "Report", "team_boom_or_bust"):
+                    doc_elements.append(self.add_page_break())
 
     def generate_pdf(self, filename_with_path, line_chart_data_list):
 

@@ -101,6 +101,7 @@ class BaseLeague(FantasyFootballReportObject):
         self.has_divisions = False
         self.num_divisions = 0
         self.divisions = None
+        self.has_waiver_priorities = False
         self.is_faab = False
         self.faab_budget = 0
         self.url = None
