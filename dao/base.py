@@ -175,11 +175,18 @@ class BaseLeague(FantasyFootballReportObject):
         matchup_list = []
         for matchup in self.matchups_by_week.get(str(week_for_report)):  # type: BaseMatchup
             if matchup.complete:
-                winning_team = matchup.winner.team_id
-                is_tied = matchup.tied
+                if matchup.teams[0].points == matchup.teams[1].points:
+                    is_tied = matchup.tied
+                else:
+                    is_tied = False
+
+                if not is_tied:
+                    winning_team = matchup.winner.team_id
+                else:
+                    winning_team = ""
             else:
-                winning_team = ""
                 is_tied = True
+                winning_team = ""
 
             teams = {}
             for team in matchup.teams:  # type: BaseTeam
@@ -285,6 +292,7 @@ class BaseTeam(FantasyFootballReportObject):
         self.division = None
         self.points = 0
         self.projected_points = 0
+        self.home_field_advantage = 0
         self.waiver_priority = 0
         self.faab = 0
         self.url = None

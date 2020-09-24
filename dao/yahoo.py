@@ -73,7 +73,7 @@ class LeagueData(object):
             division in self.league_info.settings.divisions
         }
         self.roster_positions = self.league_info.settings.roster_positions
-        # TODO: Yahoo does not currently offer a build-in median game
+        # TODO: Yahoo does not currently offer a built-in median game
         self.has_median_matchup = False
         self.median_score_by_week = {}
 

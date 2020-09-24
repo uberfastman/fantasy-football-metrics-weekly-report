@@ -89,6 +89,11 @@ class LeagueData(object):
             for division in self.league_settings_json.get("scheduleSettings").get("divisions")
         }
         self.num_divisions = len(self.divisions) if len(self.divisions) > 1 else 0
+        # only ESPN (out of the supported Yahoo, Sleeper, Fleaflicker, and ESPN platforms) offers home field advantage
+        if self.league_settings_json.get("scoringSettings").get("homeTeamBonus"):
+            self.home_field_advantage = self.league.settings_json.get("scoringSettings").get("homeTeamBonus")
+        else:
+            self.home_field_advantage = 0
 
         # use hijacked raw json since roster settings are not exposed in the API wrapper
         self.roster_positions = {
@@ -96,7 +101,7 @@ class LeagueData(object):
             self.league_settings_json.get("rosterSettings").get("lineupSlotCounts").items()
             if pos_count > 0
         }
-        # TODO: ESPN does not currently offer a build-in median game
+        # TODO: ESPN does not currently offer a built-in median game
         self.has_median_matchup = False
         self.median_score_by_week = {}
 
@@ -134,10 +139,10 @@ class LeagueData(object):
             self.rosters_by_week[str(week_for_rosters)] = team_rosters
 
             team_rosters_json = {}
-            for matchup in self.matchups_json_by_week[str(week_for_rosters)]:
-                team_rosters_json[matchup["home"]["teamId"]] = matchup[
+            for matchup_json in self.matchups_json_by_week[str(week_for_rosters)]:
+                team_rosters_json[matchup_json["home"]["teamId"]] = matchup_json[
                     "home"]["rosterForCurrentScoringPeriod"]["entries"]
-                team_rosters_json[matchup["away"]["teamId"]] = matchup[
+                team_rosters_json[matchup_json["away"]["teamId"]] = matchup_json[
                     "away"]["rosterForCurrentScoringPeriod"]["entries"]
             self.rosters_json_by_week[str(week_for_rosters)] = team_rosters_json
 
@@ -271,7 +276,8 @@ class LeagueData(object):
                     team_is_home = False
                     if int(base_team.team_id) == int(matchup.home_team.team_id):
                         team_is_home = True
-                        base_team.points = float(matchup.home_score)
+                        base_team.home_field_advantage = self.home_field_advantage
+                        base_team.points = float(matchup.home_score + base_team.home_field_advantage)
                     else:
                         base_team.points = float(matchup.away_score)
 
@@ -360,14 +366,14 @@ class LeagueData(object):
 
                     # no winner/loser if matchup is tied
                     if team_is_home:
-                        if matchup.home_score > matchup.away_score:
+                        if (matchup.home_score + self.home_field_advantage) > matchup.away_score:
                             base_matchup.winner = base_team
-                        elif matchup.home_score < matchup.away_score:
+                        elif (matchup.home_score + self.home_field_advantage) < matchup.away_score:
                             base_matchup.loser = base_team
                     else:
-                        if matchup.home_score > matchup.away_score:
+                        if (matchup.home_score + self.home_field_advantage) > matchup.away_score:
                             base_matchup.loser = base_team
-                        elif matchup.home_score < matchup.away_score:
+                        elif (matchup.home_score + self.home_field_advantage) < matchup.away_score:
                             base_matchup.winner = base_team
 
                 # add matchup to league matchups by week
