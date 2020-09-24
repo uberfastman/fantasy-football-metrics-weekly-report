@@ -6,6 +6,14 @@ league_standings = "Overall standings for the chosen week. Dynamically adjusts i
                    "asterisk (\"<b>*</b>\") means that due to limitations of whichever fantasy platform API is being " \
                    "used, the available information is incomplete in some way."
 
+league_median_matchup_standings = "Overall \"against the median\" league standings. Every week the median score is " \
+                                  "calculated across all teams, and every team plays an extra matchup versus the " \
+                                  "league median score. Teams earn an additional win/loss/tie based on how " \
+                                  "their score matches up against the league median. Median standings are ranked by " \
+                                  "\"Combined Record\" (most wins, then fewest losses, then most ties), and use " \
+                                  " \"Season +/- Median\" (how many total points over/under the median teams have " \
+                                  "scored on the season) as the tie-breaker."
+
 playoff_probabilities = "Predicts each team's likelihood of making the playoffs, as well as of finishing in any " \
                         "given place. These predictions are created using Monte Carlo simulations to simulate the " \
                         "rest of the season over and over, and then averaging out each team's performance across all " \

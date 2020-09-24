@@ -111,6 +111,9 @@ class ReportData(object):
             self.divisions = league.divisions
             self.data_for_current_division_standings = metrics_calculator.get_division_standings_data(league)
 
+        # current median standings data
+        self.data_for_current_median_standings = metrics_calculator.get_median_standings_data(league)
+
         # playoff probabilities data
         self.data_for_playoff_probs = metrics.get("playoff_probs").calculate(week_counter, week_for_report,
                                                                              league.standings,

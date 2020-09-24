@@ -2,7 +2,7 @@
 
 [![latest-release.png](resources/images/latest-release.png)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/latest)
 
-###### Latest Version: [v9.1.1-beta](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/tag/v9.1.1-beta)
+###### Latest Version: [v9.2.0-beta](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/tag/v9.2.0-beta)
 
 [![Build Status](https://travis-ci.com/uberfastman/fantasy-football-metrics-weekly-report.svg?branch=develop)](https://travis-ci.com/uberfastman/fantasy-football-metrics-weekly-report)
 
@@ -390,6 +390,7 @@ For those of you who wish to configure the report to include a custom subset of 
 
     league_standings = True
     league_playoff_probs = True
+    league_median_standings = True
     league_power_rankings = True
     league_z_score_rankings = True
     league_score_rankings = True

@@ -9,6 +9,7 @@ import re
 import sys
 from collections import defaultdict
 from copy import deepcopy
+from statistics import median
 
 import requests
 from bs4 import BeautifulSoup
@@ -126,6 +127,10 @@ class LeagueData(object):
             key=lambda x: x.get("recordOverall").get("rank") if x.get("recordOverall").get("rank") else 0
         )
 
+        # TODO: FIGURE OUT WHERE FLEAFLICKER EXPOSES THIS! Fleaflicker supports both MEDIAN and MEAN games
+        self.has_median_matchup = False
+        self.median_score_by_week = {}
+
         self.matchups_by_week = {}
         for wk in range(1, int(self.num_regular_season_weeks) + 1):
             self.matchups_by_week[str(wk)] = self.query(
@@ -135,6 +140,21 @@ class LeagueData(object):
                 os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk)),
                 "week_" + str(wk) + "-scoreboard.json"
             )
+
+            if int(wk) <= int(self.week_for_report):
+                scores = []
+                for matchup in self.matchups_by_week[str(wk)].get("games"):
+                    for key in ["home", "away"]:
+                        team_score = matchup.get(key + "Score").get("score").get("value")
+                        if team_score:
+                            scores.append(team_score)
+
+                weekly_median = round(median(scores), 2) if scores else None
+
+                if weekly_median:
+                    self.median_score_by_week[str(wk)] = weekly_median
+                else:
+                    self.median_score_by_week[str(wk)] = 0
 
         # self.matchups_by_week = {}
         # for wk in range(1, int(self.week_for_report) + 1):
@@ -286,6 +306,8 @@ class LeagueData(object):
         league.divisions = self.divisions
         if league.num_divisions > 0:
             league.has_divisions = True
+        league.has_median_matchup = self.has_median_matchup
+        league.median_score = 0
         league.faab_budget = int(self.league_info.get("defaultWaiverBudget", 0))
         if league.faab_budget > 0:
             league.is_faab = True
@@ -327,8 +349,8 @@ class LeagueData(object):
             league.roster_positions.append(pos_name)
             league.roster_position_counts[pos_name] = pos_count
 
+        league_median_records_by_team = {}
         for week, matchups in self.matchups_by_week.items():
-
             matchups_week = matchups.get("schedulePeriod").get("value")
             matchups = matchups.get("games")
 
@@ -414,10 +436,38 @@ class LeagueData(object):
                             "winPercentage", {}).get("value", 0)), 3),
                         division_rank=int(team_data.get("recordDivision", {}).get("rank", 0))
                     )
-
                     base_team.streak_str = base_team.current_record.get_streak_str()
                     if base_matchup.division_matchup:
                         base_team.division_streak_str = base_team.current_record.get_division_streak_str()
+
+                    # get median for week
+                    week_median = self.median_score_by_week.get(str(week))
+
+                    median_record = league_median_records_by_team.get(str(base_team.team_id))  # type: BaseRecord
+                    if not median_record:
+                        median_record = BaseRecord(
+                            team_id=base_team.team_id,
+                            team_name=base_team.name,
+                            points_for=(base_team.points - week_median),
+                            points_against=week_median
+                        )
+                        league_median_records_by_team[str(base_team.team_id)] = median_record
+
+                    if week_median:
+                        # use this if you want the tie-break to be season total points over/under median score
+                        median_record.add_points_for(base_team.points - week_median)
+                        # use this if you want the tie-break to be current week points over/under median score
+                        # median_record.add_points_for(
+                        #     (median_record.get_points_for() * -1) + (base_team.points - week_median))
+                        median_record.add_points_against((median_record.get_points_against() * -1) + week_median)
+                        if base_team.points > week_median:
+                            median_record.add_win()
+                        elif base_team.points < week_median:
+                            median_record.add_loss()
+                        else:
+                            median_record.add_tie()
+
+                        base_team.current_median_record = median_record
 
                     # add team to matchup teams
                     base_matchup.teams.append(base_team)
@@ -532,5 +582,16 @@ class LeagueData(object):
 
         league.current_standings = sorted(
             league.teams_by_week.get(str(self.week_for_report)).values(), key=lambda x: x.current_record.rank)
+
+        league.current_median_standings = sorted(
+            league.teams_by_week.get(str(self.week_for_report)).values(),
+            key=lambda x: (
+                x.current_median_record.get_wins(),
+                -x.current_median_record.get_losses(),
+                x.current_median_record.get_ties(),
+                x.current_median_record.get_points_for()
+            ),
+            reverse=True
+        )
 
         return league

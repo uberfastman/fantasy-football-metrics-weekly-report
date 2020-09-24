@@ -141,6 +141,39 @@ class CalculateMetrics(object):
         return current_division_standings_data
 
     @staticmethod
+    def get_median_standings_data(league: BaseLeague):
+        current_median_standings_data = []
+        rank = 1
+        for team in sorted(
+            league.current_median_standings,
+            key=lambda x: (
+                x.get_combined_record().get_wins(),
+                -x.get_combined_record().get_losses(),
+                x.get_combined_record().get_ties(),
+                x.get_combined_record().get_points_for()
+            ),
+            reverse=True
+        ):  # type: BaseTeam
+            combined_record = team.get_combined_record()
+            team_current_median_standings_data = [
+                rank,
+                team.name,
+                team.manager_str,
+                str(combined_record.get_wins()) + "-" + str(combined_record.get_losses()) + "-" + str(combined_record.get_ties()) +
+                    " (" + str(combined_record.get_percentage()) + ")",
+                str(team.current_median_record.get_wins()) + "-" + str(team.current_median_record.get_losses()) + "-" + str(team.current_median_record.get_ties()) +
+                    " (" + str(team.current_median_record.get_percentage()) + ")",
+                "{:.2f}".format(round(float(team.current_median_record.get_points_for()), 2)),
+                team.current_median_record.get_streak_str(),
+                "{:.2f}".format(team.current_median_record.get_points_against())
+            ]
+
+            current_median_standings_data.append(team_current_median_standings_data)
+            rank += 1
+
+        return current_median_standings_data
+
+    @staticmethod
     def get_playoff_probs_data(league_standings, data_for_playoff_probs):
 
         has_divisions = False
@@ -383,6 +416,14 @@ class CalculateMetrics(object):
 
                         team_index += 1
                     place += 1
+
+        if tie_type == "bad_boy":
+            groups = [list(group) for key, group in itertools.groupby(results_data, lambda x: x[3])]
+            num_ties = 0
+            for group in groups:
+                if len(group) > 1 and int(group[0][3]) > 0:
+                    num_ties += sum(range(len(group)))
+
         return num_ties
 
     @staticmethod

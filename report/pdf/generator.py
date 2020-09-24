@@ -152,6 +152,8 @@ class PdfGenerator(object):
         self.widths_6_cols_3 = [0.45 * inch, 1.80 * inch, 1.70 * inch, 0.75 * inch, 1.45 * inch, 1.60 * inch]
         self.widths_7_cols_1 = [0.50 * inch, 1.75 * inch, 1.50 * inch, 0.75 * inch, 1.50 * inch, 0.75 * inch,
                                 1.00 * inch]
+        self.widths_7_cols_2 = [0.50 * inch, 1.75 * inch, 1.50 * inch, 1.10 * inch, 1.00 * inch, 1.05 * inch,
+                                0.85 * inch]
         self.widths_10_cols_1 = [0.45 * inch, 1.80 * inch, 1.05 * inch, 1.00 * inch, 0.80 * inch, 1.05 * inch,
                                  0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]
         self.widths_11_cols_1 = [0.40 * inch, 1.65 * inch, 1.00 * inch, 0.85 * inch, 0.85 * inch, 0.75 * inch,
@@ -266,6 +268,15 @@ class PdfGenerator(object):
                                                    leading=10,
                                                    spaceBefore=0,
                                                    spaceAfter=0)
+        self.text_style_subsubtitles = ParagraphStyle(name="subsubtitles",
+                                                      parent=self.text_style_normal,
+                                                      # fontName=tt2ps(bfn, 1, 1),
+                                                      fontName=self.font_bold,
+                                                      fontSize=self.font_size - 2,
+                                                      textColor=colors.orangered,
+                                                      leading=10,
+                                                      spaceBefore=0,
+                                                      spaceAfter=0)
         self.text_style_italics = ParagraphStyle(name="italics",
                                                  fontSize=10,
                                                  alignment=TA_CENTER,
@@ -347,6 +358,8 @@ class PdfGenerator(object):
         self.standings_headers = [
             ["Place", "Team", "Manager", "Record", "Points For", "Points Against", "Streak", "Waiver", "Moves",
              "Trades"]]
+        self.median_standings_headers = [
+            ["Place", "Team", "Manager", "Combined Record", "Median Record", "Season +/- Median", "Median Streak"]]
 
         ordinal_dict = {
             1: "1st", 2: "2nd", 3: "3rd", 4: "4th",
@@ -444,6 +457,7 @@ class PdfGenerator(object):
 
         # data for report
         self.report_data = report_data
+        self.data_for_median_standings = report_data.data_for_current_median_standings
         self.data_for_scores = report_data.data_for_scores
         self.data_for_coaching_efficiency = report_data.data_for_coaching_efficiency
         self.data_for_luck = report_data.data_for_luck
@@ -568,8 +582,8 @@ class PdfGenerator(object):
         return TableStyle(tied_values_table_style_list)
 
     def create_section(self, title_text, headers, data, table_style, table_style_ties, col_widths,
-                       subtitle_text=None, header_text=None, footer_text=None, row_heights=None, tied_metric=False,
-                       metric_type=None, section_title_function=None):
+                       subtitle_text=None, subsubtitle_text=None, header_text=None, footer_text=None, row_heights=None,
+                       tied_metric=False, metric_type=None, section_title_function=None):
 
         title = None
         if title_text:
@@ -585,7 +599,8 @@ class PdfGenerator(object):
                 '''<u><b>''' + title_text + '''</b></u></a>''',
                 element_type="section",
                 anchor="<a name = page.html#" + section_anchor + "></a>",
-                subtitle_text=subtitle_text
+                subtitle_text=subtitle_text,
+                subsubtitle_text=subsubtitle_text
             )
             if section_title_function:
                 section_title_function(title_text)
@@ -598,10 +613,12 @@ class PdfGenerator(object):
                 font_reduction += 1
             table_style.add("FONTSIZE", (0, 0), (-1, -1), (self.font_size - 2) - font_reduction)
             if self.report_data.is_faab:
+                if self.report_data.has_waiver_priorities:
+                    col_widths = self.widths_12_cols_1
+
                 if "FAAB" not in headers[0]:
                     if self.report_data.has_waiver_priorities:
-                        headers[0].insert(8, "FAAB")
-                        col_widths = self.widths_12_cols_1
+                        headers[0].insert(9, "FAAB")
                     else:
                         headers[0][8] = "FAAB"
 
@@ -736,7 +753,8 @@ class PdfGenerator(object):
         else:
             return Paragraph(self.tie_for_first_footer, self.text_style_normal)
 
-    def create_title(self, title_text, title_width=8.5, element_type=None, anchor="", subtitle_text=None):
+    def create_title(self, title_text, title_width=8.5, element_type=None, anchor="", subtitle_text=None,
+                     subsubtitle_text=None):
 
         if element_type == "document":
             title_text_style = self.text_style_h1
@@ -755,9 +773,19 @@ class PdfGenerator(object):
             if not isinstance(subtitle_text, list):
                 subtitle_text = [subtitle_text]
 
-            text = "<br/>".join(subtitle_text)
-            subtitle = Paragraph('''<para align=center>''' + text + '''</para>''', self.text_style_subtitles)
+            subtitle_text_str = "<br/>".join(subtitle_text)
+            subtitle = Paragraph(
+                '''<para align=center>''' + subtitle_text_str + '''</para>''', self.text_style_subtitles)
             rows.append([subtitle])
+
+        if subsubtitle_text:
+            if not isinstance(subsubtitle_text, list):
+                subsubtitle_text = [subsubtitle_text]
+
+            subsubtitle_text_str = "<br/>".join(subsubtitle_text)
+            subsubtitle = Paragraph(
+                '''<para align=center>''' + subsubtitle_text_str + '''</para>''', self.text_style_subsubtitles)
+            rows.append([subsubtitle])
 
         title_table = Table(rows, colWidths=[title_width * inch] * 1)
         title_table.setStyle(self.title_style)
@@ -1008,7 +1036,8 @@ class PdfGenerator(object):
                                 player.season_average_points = 0
                             starting_players.append(player)
 
-                    if any(player.season_points for player in starting_players) and starting_players[0].week_for_report > 1:
+                    if any(player.season_points for player in starting_players) and \
+                            starting_players[0].week_for_report > 1:
                         starting_players = sorted(
                             starting_players,
                             key=lambda x:
@@ -1046,7 +1075,8 @@ class PdfGenerator(object):
                                                                    worst_weekly_player.nfl_team_name else "N/A")],
                         [best_player_headshot, worst_player_headshot]
                     ]
-                    if any(player.season_points for player in starting_players) and starting_players[0].week_for_report > 1:
+                    if any(player.season_points for player in starting_players) and \
+                            starting_players[0].week_for_report > 1:
                         data.append(
                             [
                                 "{} ({} avg: +{}%)".format(
@@ -1068,8 +1098,9 @@ class PdfGenerator(object):
                                     if worst_weekly_player.season_average_points > 0
                                     else "∞"
                                     if worst_weekly_player.season_average_points == 0
-                                    else round(((worst_weekly_player.season_average_points - worst_weekly_player.points) /
-                                                worst_weekly_player.season_average_points) * -100, 2)
+                                    else round(
+                                        ((worst_weekly_player.season_average_points - worst_weekly_player.points) /
+                                         worst_weekly_player.season_average_points) * -100, 2)
                                 )
                             ]
                         )
@@ -1235,8 +1266,32 @@ class PdfGenerator(object):
                     if self.report_data.has_divisions else None
                 ))
 
-        if self.config.getboolean("Report", "league_standings") or self.config.getboolean("Report",
-                                                                                          "league_playoff_probs"):
+        if self.config.getboolean("Report", "league_standings") or \
+                self.config.getboolean("Report", "league_playoff_probs"):
+            elements.append(self.add_page_break())
+
+        if self.config.getboolean("Report", "league_median_standings"):
+            # update median standings style to italicize ranking column
+            median_standings_style = deepcopy(self.style)
+            median_standings_style.add("FONT", (3, 1), (3, -1), self.font_italic)
+            median_standings_style.add("FONTSIZE", (0, 0), (-1, -1), self.font_size - 4)
+
+            # median standings
+            elements.append(self.create_section(
+                "League Median Matchup Standings",
+                self.median_standings_headers,
+                [team[:-1] for team in self.data_for_median_standings],
+                median_standings_style,
+                None,
+                self.widths_7_cols_2,
+                metric_type="median_standings",
+                subtitle_text="League standings when every team plays against the league median score each week.<br/>",
+                subsubtitle_text="WEEK {} LEAGUE MEDIAN SCORE: {}".format(
+                    self.week_for_report, self.data_for_median_standings[0][-1])
+            ))
+            elements.append(self.spacer_twentieth_inch)
+
+        if self.config.getboolean("Report", "league_median_standings"):
             elements.append(self.add_page_break())
 
         if self.config.getboolean("Report", "league_power_rankings"):
@@ -1393,7 +1448,6 @@ class PdfGenerator(object):
                 self.style_no_highlight,
                 self.style_no_highlight,
                 self.widths_4_cols_2,
-                tied_metric=self.report_data.ties_for_scores > 0,
                 metric_type="top_scorers",
                 section_title_function=self.toc.add_top_performers_section
             ))
@@ -1415,7 +1469,6 @@ class PdfGenerator(object):
                 self.style_no_highlight,
                 self.style_no_highlight,
                 self.widths_4_cols_2,
-                tied_metric=self.report_data.ties_for_coaching_efficiency > 0,
                 metric_type="highest_ce",
                 section_title_function=self.toc.add_top_performers_section
             ))
@@ -1552,6 +1605,7 @@ class TableOfContents(object):
         if self.config.getboolean(
                 "Report", "league_standings") or self.config.getboolean(
                 "Report", "league_playoff_probs") or self.config.getboolean(
+                "Report", "league_median_standings") or self.config.getboolean(
                 "Report", "league_power_rankings") or self.config.getboolean(
                 "Report", "league_z_score_rankings") or self.config.getboolean(
                 "Report", "league_score_rankings") or self.config.getboolean(

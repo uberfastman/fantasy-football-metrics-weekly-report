@@ -4,6 +4,7 @@ __email__ = "wrenjr@yahoo.com"
 import json
 import os
 from collections import defaultdict
+from copy import deepcopy
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
@@ -101,6 +102,8 @@ class BaseLeague(FantasyFootballReportObject):
         self.has_divisions = False
         self.num_divisions = 0
         self.divisions = None
+        self.has_median_matchup = False
+        self.median_score = 0
         self.has_waiver_priorities = False
         self.is_faab = False
         self.faab_budget = 0
@@ -124,6 +127,8 @@ class BaseLeague(FantasyFootballReportObject):
 
         self.standings = []
         self.current_standings = []
+        self.median_standings = []
+        self.current_median_standings = []
 
         self.player_data_by_week_function = None
         self.player_data_by_week_key = None
@@ -304,6 +309,9 @@ class BaseTeam(FantasyFootballReportObject):
         self.weekly_overall_record = BaseRecord()
         self.record = BaseRecord()
         self.current_record = BaseRecord()
+        self.median_record = BaseRecord()
+        self.current_median_record = BaseRecord()
+        self._combined_record = BaseRecord()
 
     # def __setattr__(self, key, value):
     #     if key == "manager_str":
@@ -313,6 +321,17 @@ class BaseTeam(FantasyFootballReportObject):
     #             self.name_str += " " + token[0] + "."
     #         value = self.name_str
     #     super().__setattr__(key, value)
+
+    def get_combined_record(self):
+        self._combined_record = BaseRecord(
+            team_id=self.team_id,
+            team_name=self.name,
+            wins=self.record.get_wins() + self.current_median_record.get_wins(),
+            losses=self.record.get_losses() + self.current_median_record.get_losses(),
+            ties=self.record.get_ties() + self.current_median_record.get_ties()
+        )
+
+        return self._combined_record
 
 
 class BaseRecord(FantasyFootballReportObject):
@@ -414,8 +433,8 @@ class BaseRecord(FantasyFootballReportObject):
     def get_wins(self):
         return self._wins
 
-    def add_win(self):
-        self._wins += 1
+    def add_win(self, wins=1):
+        self._wins += wins
         self._percentage = self._calculate_percentage(self._wins, self._ties, self._losses)
         self._record_str = self._format_record(self._wins, self._ties, self._losses)
         self._record_and_pf_str = self._format_record(self._wins, self._ties, self._losses, self._points_for)
@@ -424,8 +443,8 @@ class BaseRecord(FantasyFootballReportObject):
     def get_losses(self):
         return self._losses
 
-    def add_loss(self):
-        self._losses += 1
+    def add_loss(self, losses=1):
+        self._losses += losses
         self._percentage = self._calculate_percentage(self._wins, self._ties, self._losses)
         self._record_str = self._format_record(self._wins, self._ties, self._losses)
         self._record_and_pf_str = self._format_record(self._wins, self._ties, self._losses, self._points_for)
@@ -434,8 +453,8 @@ class BaseRecord(FantasyFootballReportObject):
     def get_ties(self):
         return self._ties
 
-    def add_tie(self):
-        self._ties += 1
+    def add_tie(self, ties=1):
+        self._ties += ties
         self._percentage = self._calculate_percentage(self._wins, self._ties, self._losses)
         self._record_str = self._format_record(self._wins, self._ties, self._losses)
         self._record_and_pf_str = self._format_record(self._wins, self._ties, self._losses, self._points_for)
