@@ -60,7 +60,8 @@ class LeagueData(object):
 
         self.league_settings = self.league_info.get("settings")
         self.league_scoring = self.league_info.get("scoring_settings")
-        self.current_season = self.league_info.get("season")
+        # TODO: don't need this!
+        # self.current_season = self.league_info.get("season")
 
         # TODO: current week
         self.current_week = self.config.getint("Configuration", "current_week")
@@ -400,7 +401,17 @@ class LeagueData(object):
                 base_matchup = BaseMatchup()
 
                 base_matchup.week = int(matchups_week)
-                base_matchup.complete = True if int(week) <= int(self.current_week) else False
+                # TODO: because Sleeper doesn't tell current week of selected season, check current vs. previous season
+                #  and use month to determine if it's first or second year within same season and mark matchups from
+                #  previous years complete by default for the sake of this functionality working
+                # base_matchup.complete = True if int(week) <= int(self.current_week) else False
+                current_date = datetime.today()
+                if current_date.month < 9 and int(league.season) < (current_date.year - 1):
+                    base_matchup.complete = True
+                elif int(league.season) < current_date.year:
+                    base_matchup.complete = True
+                else:
+                    base_matchup.complete = True if int(week) <= int(self.current_week) else False
                 base_matchup.tied = True if matchup[0].get("points") and matchup[1].get("points") and float(
                     matchup[0].get("points")) == float(matchup[1].get("points")) else False
 
