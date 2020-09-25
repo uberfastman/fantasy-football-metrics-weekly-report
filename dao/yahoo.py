@@ -266,6 +266,7 @@ class LeagueData(object):
                 pos_name = "FLEX_RB_WR"
             if pos_name == "W/T":
                 league.flex_positions_te_wr = ["TE", "WR"]
+                pos_name = "FLEX_TE_WR"
             if pos_name == "W/R/T":
                 league.flex_positions_rb_te_wr = ["RB", "TE", "WR"]
                 pos_name = "FLEX_RB_TE_WR"

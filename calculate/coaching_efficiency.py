@@ -2,7 +2,7 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
 import math
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter, OrderedDict
 
 
 class CoachingEfficiency(object):
@@ -42,7 +42,12 @@ class CoachingEfficiency(object):
 
         optimal_flex_players = []
         allocated_flex_players = set()
-        for flex_position, base_positions in self.flex_positions_dict.items():
+
+        ordered_flex_positions_dict = {
+            k: v for k, v in sorted(self.flex_positions_dict.items(), key=lambda item: len(item[1]))
+        }
+
+        for flex_position, base_positions in ordered_flex_positions_dict.items():
             candidates = {player for player in eligible_flex_players[flex_position]}
 
             # subtract already allocated players from candidates
