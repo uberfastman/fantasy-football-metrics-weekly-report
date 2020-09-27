@@ -1047,7 +1047,9 @@ class PdfGenerator(object):
                                 if x.points > 0
                                 else 0
                                 if x.points == 0
-                                else round(((x.points - x.season_average_points) / x.season_average_points) * -100, 2),
+                                else round(((x.points - x.season_average_points) / x.season_average_points) * -100, 2)
+                                if x.season_average_points > 0
+                                else -100,
                             reverse=True
                         )
                     else:
