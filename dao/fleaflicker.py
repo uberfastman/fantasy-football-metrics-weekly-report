@@ -85,11 +85,12 @@ class LeagueData(object):
                                 if "-" in txt:
                                     self.num_regular_season_weeks = int(txt.split("-")[0]) - 1
                 else:
-                    self.num_regular_season_weeks = config.get("Configuration", "num_regular_season_weeks")
+                    self.num_regular_season_weeks = config.getint(
+                        "Configuration", "num_regular_season_weeks", fallback=13)
                 break
             else:
-                self.num_playoff_slots = config.get("Configuration", "num_playoff_slots")
-                self.num_regular_season_weeks = config.get("Configuration", "num_regular_season_weeks")
+                self.num_playoff_slots = config.getint("Configuration", "num_playoff_slots", fallback=6)
+                self.num_regular_season_weeks = config.getint("Configuration", "num_regular_season_weeks", fallback=13)
 
         # validate user selection of week for which to generate report
         self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week, self.season)

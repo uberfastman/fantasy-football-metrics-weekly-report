@@ -5,7 +5,7 @@ import logging
 import os
 import sys
 import urllib.request
-from configparser import ConfigParser
+from utils.app_config_parser import AppConfigParser
 from copy import deepcopy
 from urllib.error import URLError
 
@@ -126,7 +126,7 @@ class HyperlinkedImage(ReportLabImage, object):
 
 
 class PdfGenerator(object):
-    def __init__(self, config: ConfigParser, season, league: BaseLeague, playoff_prob_sims, report_title_text,
+    def __init__(self, config: AppConfigParser, season, league: BaseLeague, playoff_prob_sims, report_title_text,
                  report_footer_text, report_data: ReportData):
 
         # report configuration
@@ -173,8 +173,8 @@ class PdfGenerator(object):
         self.spacer_five_inch = Spacer(1, 5.00 * inch)
 
         # configure text styles
-        self.font_size = config.getint("Report", "font_size")
-        font_key = config.get("Report", "font")
+        self.font_size = config.getint("Report", "font_size", fallback=12)
+        font_key = config.get("Report", "font", fallback="helvetica")
         supported_fonts = [font.strip() for font in self.config.get("Report", "supported_fonts").split(",")]
         if font_key not in supported_fonts:
             logger.warning("The {} font is not supported at this time. Report formatting has defaulted to Helvetica. "
@@ -1257,14 +1257,15 @@ class PdfGenerator(object):
                                   "team performances through the end of the regular fantasy season." %
                                   "{0:,}".format(
                                       int(self.playoff_prob_sims) if self.playoff_prob_sims is not None else
-                                      self.config.getint("Configuration", "num_playoff_simulations")) + (
+                                      self.config.getint("Configuration", "num_playoff_simulations",
+                                                         fallback=100000)) + (
                                       "\nProbabilities account for division winners in addition to overall "
                                       "win/loss/tie record." if self.report_data.has_divisions else ""),
                     metric_type="playoffs",
                     footer_text="† Predicted Division Leaders{}".format(
                         "<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
                         "‡ Predicted Division Qualifiers" if self.config.getint(
-                            "Configuration", "num_playoff_slots_per_division") > 1 else "")
+                            "Configuration", "num_playoff_slots_per_division", fallback=1) > 1 else "")
                     if self.report_data.has_divisions else None
                 ))
 
@@ -1583,7 +1584,7 @@ class TableOfContents(object):
 
     def __init__(self, font, font_size, config, break_ties):
 
-        self.config = config  # type: ConfigParser
+        self.config = config  # type: AppConfigParser
         self.break_ties = break_ties
 
         self.toc_style_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=font_size - 2, fontName=font)

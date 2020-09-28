@@ -247,7 +247,7 @@ class LeagueData(object):
         league.median_score = 0
         league.is_faab = True if int(self.league_info.settings.uses_faab) == 1 else False
         if league.is_faab:
-            league.faab_budget = self.config.getint("Configuration", "initial_faab_budget")
+            league.faab_budget = self.config.getint("Configuration", "initial_faab_budget", fallback=100)
         league.url = self.league_info.url
 
         league.player_data_by_week_function = self.get_player_data

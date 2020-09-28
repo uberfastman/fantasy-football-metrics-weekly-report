@@ -6,7 +6,7 @@ import itertools
 from calculate.metrics import CalculateMetrics
 from calculate.points_by_position import PointsByPosition
 from dao.base import BaseLeague, BaseMatchup, BaseTeam
-from dao.utils import add_report_team_stats, get_player_game_time_statuses
+from utils.report_tools import add_report_team_stats, get_player_game_time_statuses
 from report.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)

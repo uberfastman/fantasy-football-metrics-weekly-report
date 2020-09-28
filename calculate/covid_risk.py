@@ -7,7 +7,7 @@ import logging
 import os
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from configparser import ConfigParser
+from utils.app_config_parser import AppConfigParser
 
 import requests
 from bs4 import BeautifulSoup
@@ -19,7 +19,7 @@ class CovidRisk(object):
 
     def __init__(self, config, data_dir, season, week, save_data=False, dev_offline=False, refresh=False):
 
-        self.config = config  # type: ConfigParser
+        self.config = config  # type: AppConfigParser
 
         self.season = int(season)
         self.week = int(week)

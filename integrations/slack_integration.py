@@ -5,7 +5,7 @@ import datetime
 import json
 import logging
 import os
-from configparser import ConfigParser
+from utils.app_config_parser import AppConfigParser
 
 from slack import WebClient
 from slack.errors import SlackApiError
@@ -18,7 +18,7 @@ class SlackMessenger(object):
 
         self.project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-        self.config = config  # type: ConfigParser
+        self.config = config  # type: AppConfigParser
 
         auth_token = os.path.join(self.project_dir, self.config.get("Slack", "slack_auth_token"))
 
@@ -159,7 +159,7 @@ class SlackMessenger(object):
 
 
 if __name__ == '__main__':
-    local_config = ConfigParser()
+    local_config = AppConfigParser()
     local_config.read(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.ini"))
     repost_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                local_config.get("Slack", "repost_file"))
