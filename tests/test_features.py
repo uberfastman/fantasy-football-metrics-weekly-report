@@ -3,7 +3,7 @@ __email__ = "wrenjr@yahoo.com"
 
 import os
 import sys
-from utils.app_config_parser import AppConfigParser
+from ..utils.app_config_parser import AppConfigParser
 
 module_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(module_dir)
