@@ -10,7 +10,7 @@ from calculate.metrics import CalculateMetrics
 from calculate.points_by_position import PointsByPosition
 from calculate.season_averages import SeasonAverageCalculator
 from dao.base import BaseLeague, BaseTeam
-from dao.utils import league_data_factory, patch_http_connection_pool
+from utils.report_tools import league_data_factory, patch_http_connection_pool
 from report.data import ReportData
 from report.logger import get_logger
 from report.pdf.generator import PdfGenerator

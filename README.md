@@ -2,7 +2,7 @@
 
 [![latest-release.png](resources/images/latest-release.png)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/latest)
 
-###### Latest Version: [v9.2.4-beta](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/tag/v9.2.4-beta)
+###### Latest Version: [v9.2.5-beta](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/tag/v9.2.5-beta)
 
 [![Build Status](https://travis-ci.com/uberfastman/fantasy-football-metrics-weekly-report.svg?branch=develop)](https://travis-ci.com/uberfastman/fantasy-football-metrics-weekly-report)
 
@@ -452,9 +452,9 @@ In addition to turning on/off the features of the report PDF itself, there are a
 | `coaching_efficiency_disqualified_teams` | Teams manually DQed from coaching efficiency rankings (if any). |
 | `yahoo_auth_dir`                         | Directory where Yahoo OAuth accesses and stores credentials and refresh tokens. |
 | `google_drive_upload`                    | Turn on (`True`) or off (`False`) the Google Drive upload functionality. |
-| `google_auth_token`                      | Google OAuth refresh token. |
+| `google_drive_auth_token`                | Google OAuth refresh token. |
 | `google_drive_root_folder_name`          | Online folder in Google Drive where reports are uploaded. |
-| `reupload_file`                          | File path of selected report that you wish to re-upload to Google Drive by running `upload_to_google_drive.py` as a standalone script. |
+| `google_drive_reupload_file`             | File path of selected report that you wish to re-upload to Google Drive by running `upload_to_google_drive.py` as a standalone script. |
 | `post_to_slack`                          | Turn on (`True`) or off (`False`) the Slack upload functionality. |
 | `slack_auth_token`                       | Slack authentication token. |
 | `post_or_file`                           | Choose whether you post a link to the generated report on Slack (set to `post`), or upload the report PDF itself to Slack (set to `file`).
@@ -573,7 +573,7 @@ The following setup steps are ***required*** in order to allow the Google Drive 
 
 * Go back to your terminal window where you ran `python resources/google_quickstart.py`. It should have printed "Authentication successful.", as well as a list of 10 files in your Google Drive to confirm it can access your drive. It will also have automatically generated a `token.json` file in `auth/google/`, which you should just leave where it is and do ***NOT*** edit or modify in any way!
 
-* *You can now upload your reports to Google Drive, either by changing the value of `google_drive_upload` to `True` in `config.ini`, or by setting the value of `reupload_file` in `config.ini` to the filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/drive.py`*.
+* *You can now upload your reports to Google Drive, either by changing the value of `google_drive_upload` to `True` in `config.ini`, or by setting the value of `google_drive_reupload_file` in `config.ini` to the filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/drive.py`*.
 
 ---
 

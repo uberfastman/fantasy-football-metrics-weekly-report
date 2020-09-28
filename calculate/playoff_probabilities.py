@@ -22,7 +22,7 @@ class PlayoffProbabilities(object):
                  recalculate=False, dev_offline=False):
         self.config = config
         self.simulations = int(simulations) if simulations is not None else self.config.getint(
-            "Configuration", "num_playoff_simulations")
+            "Configuration", "num_playoff_simulations", fallback=100000)
         self.num_weeks = int(num_weeks)
         self.num_playoff_slots = int(num_playoff_slots)
         self.data_dir = data_dir
@@ -90,7 +90,7 @@ class PlayoffProbabilities(object):
                             sorted_divisions = self.group_by_division(teams_for_playoff_probs)
 
                             num_playoff_slots_per_division_without_leader = self.config.getint(
-                                "Configuration", "num_playoff_slots_per_division") - 1
+                                "Configuration", "num_playoff_slots_per_division", fallback=1) - 1
 
                             # pick the teams making the playoffs
                             division_winners = []
@@ -185,7 +185,7 @@ class PlayoffProbabilities(object):
                         sorted_divisions = self.group_by_division(teams_for_playoff_probs)
 
                         num_playoff_slots_per_division_without_leader = self.config.getint(
-                            "Configuration", "num_playoff_slots_per_division") - 1
+                            "Configuration", "num_playoff_slots_per_division", fallback=1) - 1
 
                         for division in sorted_divisions.values():
                             ranked_division = sorted(

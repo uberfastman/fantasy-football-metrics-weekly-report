@@ -5,7 +5,7 @@ __email__ = "wrenjr@yahoo.com"
 import datetime
 import logging
 import os
-from configparser import ConfigParser
+from utils.app_config_parser import AppConfigParser
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -28,7 +28,7 @@ class GoogleDriveUploader(object):
         self.config = config
         self.gauth = GoogleAuth()
 
-        auth_token = os.path.join(project_dir, self.config.get("Drive", "google_auth_token"))
+        auth_token = os.path.join(project_dir, self.config.get("Drive", "google_drive_auth_token"))
 
         # Try to load saved client credentials
         self.gauth.LoadCredentialsFile(auth_token)
@@ -56,7 +56,8 @@ class GoogleDriveUploader(object):
         all_pdfs = drive.ListFile({"q": "mimeType='application/pdf' and trashed=false"}).GetList()
 
         # Check for "Fantasy_Football" root folder and create it if it does not exist
-        google_drive_root_folder_name = self.config.get("Drive", "google_drive_root_folder_name")
+        google_drive_root_folder_name = self.config.get(
+            "Drive", "google_drive_root_folder_name", fallback="Fantasy_Football")
         google_drive_root_folder_id = self.make_root_folder(
             drive,
             self.check_file_existence(google_drive_root_folder_name, root_folders, "root"),
@@ -184,9 +185,9 @@ class GoogleDriveUploader(object):
 
 
 if __name__ == '__main__':
-    local_config = ConfigParser()
+    local_config = AppConfigParser()
     local_config.read(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.ini"))
-    reupload_file = local_config.get("Drive", "reupload_file")
+    reupload_file = local_config.get("Drive", "google_drive_reupload_file")
 
     google_drive_uploader = GoogleDriveUploader(reupload_file, local_config)
     upload_message = google_drive_uploader.upload_file()

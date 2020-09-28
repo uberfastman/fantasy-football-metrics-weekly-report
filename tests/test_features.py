@@ -3,7 +3,7 @@ __email__ = "wrenjr@yahoo.com"
 
 import os
 import sys
-from configparser import ConfigParser
+from utils.app_config_parser import AppConfigParser
 
 module_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(module_dir)
@@ -16,7 +16,7 @@ test_data_dir = os.path.join(module_dir, "test")
 if not os.path.exists(test_data_dir):
     os.makedirs(test_data_dir)
 
-config = ConfigParser()
+config = AppConfigParser()
 config.read("config.ini")
 
 

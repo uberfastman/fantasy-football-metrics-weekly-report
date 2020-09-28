@@ -6,7 +6,7 @@ import os
 import re
 import sys
 import traceback
-from configparser import ConfigParser
+from utils.app_config_parser import AppConfigParser
 
 import pkg_resources
 from pkg_resources import DistributionNotFound, VersionConflict
@@ -32,7 +32,7 @@ else:
         "Configuration file \"config.ini\" not found. Please make sure that it exists in project root directory.")
     sys.exit("...run aborted.")
 
-config = ConfigParser()
+config = AppConfigParser()
 config.read("config.ini")
 
 

@@ -1,5 +1,6 @@
 .idea/
 *.pyc
+*.pytest_cache
 private*.json
 token*.json
 credentials*.json
@@ -7,8 +8,8 @@ config*.ini
 crime-categories-output.json
 logs
 output/
-test/*.json
-test/*.txt
-test/*.html
-test/*.png
-test/local.py
+tests/*.json
+tests/*.txt
+tests/*.html
+tests/*.png
+tests/local.py
