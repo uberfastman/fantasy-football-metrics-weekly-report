@@ -34,6 +34,32 @@ def query(url, file_dir, filename):
 
         get_cbs_api_key_ruby_script_path = os.path.join(base_dir, "resources", "get_cbs_api_key.rb")
 
+        # login_url = "https://www.cbssports.com/login"
+        # headers = {
+        #     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, " +
+        #                   "like Gecko) Version/13.0 Safari/605.1.15",
+        #     "Content-Type": "application/json"
+        # }
+        # body = {
+        #     "userid": cbs_auth_json.get("user_id"),
+        #     "password": cbs_auth_json.get("password"),
+        #     "xurl": "https://{}.football.cbssports.com/".format(cbs_auth_json.get("league_id"))
+        # }
+        #
+        # session = HTMLSession()
+        #
+        # r = session.post(
+        #     login_url,
+        #     json=json.dumps(body),
+        #     headers=headers
+        # )
+        #
+        # r.html.render(timeout=60)
+        #
+        # from pprint import pprint
+        # print("result:")
+        # pprint(r.html.html, indent=2)
+
         cbs_access_token = subprocess.check_output([
             "ruby", "{}".format(get_cbs_api_key_ruby_script_path),
             cbs_auth_json.get("league_id"),
