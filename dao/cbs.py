@@ -8,6 +8,7 @@ import subprocess
 import sys
 from configparser import ConfigParser
 
+# from requests_html import HTMLSession
 import requests
 from requests.exceptions import HTTPError
 
@@ -54,10 +55,11 @@ def query(url, file_dir, filename):
         #     headers=headers
         # )
         #
+        # # noinspection PyUnresolvedReferences
         # r.html.render(timeout=60)
         #
         # from pprint import pprint
-        # print("result:")
+        # # noinspection PyUnresolvedReferences
         # pprint(r.html.html, indent=2)
 
         cbs_access_token = subprocess.check_output([
