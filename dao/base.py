@@ -4,7 +4,6 @@ __email__ = "wrenjr@yahoo.com"
 import json
 import os
 from collections import defaultdict
-from copy import deepcopy
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
