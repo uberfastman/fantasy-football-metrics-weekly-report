@@ -276,11 +276,9 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
     docker-compose up -d
     ```
 
-    * The ***FIRST*** time you run the above command, Docker will build your docker image from the included `Dockerfile`. You will need to wait until this output is complete before moving to the next step. You should see output similar to the following (the Image ID after `Successfully built` will be different):
+    * Wait until you see the below output:
     
         ```bash
-        Successfully built 9e5d615ff504
-        Successfully tagged fantasy-football-metrics-weekly-report_app:latest
         Creating fantasy-football-metrics-weekly-report_app_1 ... done
         ```
 
