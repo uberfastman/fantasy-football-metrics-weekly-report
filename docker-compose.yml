@@ -3,7 +3,8 @@ version: "3.8"
 services:
 
   app:
-    build: https://github.com/uberfastman/fantasy-football-metrics-weekly-report.git
+    build: https://github.com/uberfastman/fantasy-football-metrics-weekly-report.git:latest
+#    build: .
     ports:
       - "5000:5000"
     volumes:
