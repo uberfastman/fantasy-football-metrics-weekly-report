@@ -209,10 +209,10 @@ def add_report_team_stats(config, team: BaseTeam, league: BaseLeague, week_count
     starting_lineup_points = round(
         sum([p.points for p in team.roster if p.selected_position not in bench_positions]), 2)
     # confirm total starting lineup points is the same as team points
-    if team.points != (starting_lineup_points + team.home_field_advantage):
+    if round(team.points, 2) != (starting_lineup_points + team.home_field_advantage):
         logger.warning(
             "Team {} points ({}) are not equal to sum of team starting lineup points ({}). Check data!".format(
-                team.name, team.points, starting_lineup_points))
+                team.name, round(team.points, 2), starting_lineup_points))
 
     team.bench_points = round(sum([p.points for p in team.roster if p.selected_position in bench_positions]), 2)
 

@@ -532,9 +532,7 @@ class CalculateMetrics(object):
                         group,
                         key=lambda x: (x[-2] if x[-2] != "DQ" else 0, x[-1]),
                         reverse=True):
-                    if groups.index(group) != 0:
-                        team[0] = place
-                    else:
+                    if groups.index(group) == 0:
                         if break_ties:
                             team[0] = place
                     resolved_coaching_efficiency_results_data.append(team)
