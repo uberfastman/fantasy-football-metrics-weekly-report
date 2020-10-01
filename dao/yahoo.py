@@ -40,7 +40,9 @@ class LeagueData(object):
 
         self.yahoo_data = Data(self.data_dir, save_data=save_data, dev_offline=dev_offline)
         yahoo_auth_dir = os.path.join(base_dir, config.get("Yahoo", "yahoo_auth_dir"))
-        self.yahoo_query = YahooFantasySportsQuery(yahoo_auth_dir, self.league_id, self.game_id, offline=dev_offline)
+        self.yahoo_query = YahooFantasySportsQuery(
+            yahoo_auth_dir, self.league_id, self.game_id, offline=dev_offline, browser_callback=False
+        )
 
         if self.game_id and self.game_id != "nfl":
             yahoo_fantasy_game = self.yahoo_data.retrieve(str(self.game_id) + "-game-metadata",
