@@ -17,6 +17,9 @@ from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager,
 # Suppress YahooFantasyFootballQuery debug logging
 logging.getLogger("yfpy.query").setLevel(level=logging.INFO)
 
+oauth_logger = logging.getLogger("yahoo_oauth")
+oauth_logger.setLevel("DEBUG")
+
 
 class LeagueData(object):
 

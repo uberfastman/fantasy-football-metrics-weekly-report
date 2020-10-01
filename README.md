@@ -2,7 +2,7 @@
 
 [![latest-release.png](resources/images/latest-release.png)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/latest)
 
-###### Latest Version: [v9.2.5-beta](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/tag/v9.2.5-beta)
+###### Latest Version: [v10.0.0-beta](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/tag/v10.0.0-beta)
 
 [![Build Status](https://travis-ci.com/uberfastman/fantasy-football-metrics-weekly-report.svg?branch=develop)](https://travis-ci.com/uberfastman/fantasy-football-metrics-weekly-report)
 
@@ -24,25 +24,30 @@
 
 ---
 
+## [<ins>***NEW (AND EASIER) SETUP PROCESS USING DOCKER!***</ins>](#docker)
+
+---
+
+##### Interested in helping out with development? You can get started with the local development setup [HERE](resources/documentation/README.md)!
+
+---
+
 ### Table of Contents
 * [About](#about)
     * [Example Report](#example-report)
 * [Dependencies](#dependencies)
 * [Setup](#setup)
-    * [Automated Setup](#automated-setup)
-    * [Manual Setup](#manual-setup)
+    * [Docker](#docker)
     * [Yahoo Setup](#yahoo-setup)
     * [Fleaflicker Setup](#fleaflicker-setup)
     * [Sleeper Setup](#sleeper-setup)
     * [ESPN Setup](#espn-setup)
 * [Running the Report Application](#running-the-report-application)
-    * [macOS Launch Script](#macos-launch-script)
 * [Configuration](#configuration)
    * [Report Features](#report-features)
    * [Report Formatting](#report-formatting)
    * [Report Settings](#report-settings)
 * [Usage](#usage)
-    * [Virtual Environment](#virtual-environment)
 * [Additional Integrations](#additional-integrations)
     * [Google Drive](#google-drive-setup)
     * [Slack](#slack-setup)
@@ -66,15 +71,21 @@ Currently supported fantasy football platforms:
 
 * **ESPN**
 
+*Platforms in development:*
+
+* ***CBS***
+
+* ***MyFantasyLeague***
+
 <a name="example-report"></a>
 #### Example Report
-***You can see an example of what a report looks like [here](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/blob/develop/resources/files/EXAMPLE-report.pdf)!***
+***You can see an example of what a report looks like [here](resources/files/EXAMPLE-report.pdf)!***
 
 ---
 
 <a name="dependencies"></a>
 ### Dependencies
-The application has only been tested in macOS, but should be cross-platform compatible. The app requires Python 3.6 or later (Python 2 is no longer supported). To check if you have Python 3.6 installed, open up a window in Terminal (macOS), Command Prompt (Windows), or a command line shell of your choice, and run `python --version`. If the return is `Python 3.6.x`, you are good to go. If the return is `Python 2.x.x`, you will need to install Python 3.6. Check out the instructions [here](https://realpython.com/installing-python/) for how to install Python 3.6 on your system.
+The application is actively developed in macOS, but is cross-platform compatible. The app requires Python 3.6 or later (Python 2 is no longer supported). To check if you have Python 3.6 installed, open up a window in Terminal (macOS), Command Prompt (Windows), or a command line shell of your choice, and run `python --version`. If the return is `Python 3.6.x`, you are good to go. If the return is `Python 2.x.x`, you will need to install Python 3.6. Check out the instructions [here](https://realpython.com/installing-python/) for how to install Python 3.6 on your system.
 
 Project dependencies can be viewed in the [`requirements.txt`](requirements.txt) file.
 
@@ -83,114 +94,53 @@ Project dependencies can be viewed in the [`requirements.txt`](requirements.txt)
 <a name="setup"></a>
 ### Setup*
 
-The Fantasy Football Metrics Weekly Report requires several different sets of setup steps, depending on how you wish to run it. To get the application running locally, you will first need to go through the following steps.
+The Fantasy Football Metrics Weekly Report requires several different sets of setup steps, depending on which platform(s) for which you will be running it. To get the application running locally, you will first need to complete the below setup.
 
-_\* General setup excludes Google Drive and Slack integrations. See [Additional Integrations](#additional-integrations) for details on including those add-ons._
+_\* General setup **excludes** Google Drive and Slack integrations. See [Additional Integrations](#additional-integrations) for details on including those add-ons._
 
-<a name="automated-setup"></a>
-#### Automated Setup
+---
 
-##### ***FOR USERS RUNNING macOS ONLY***
-There is a pre-made setup bash script in the top level of this repository called `setup.sh`. In lieu of doing the manual setup steps, you can simply do the following:
+<a name="docker"></a>
+#### Docker
+<ins>***NEW (AND EASIER) APPLICATION SETUP BELOW!***</ins>
 
-* ***Note***: This script has not been extensively tested. It was added in order to simplify the required setup steps, but please still do your best to verify that things worked properly after running it before moving on to running the application.
- 
-* Download the script by right-clicking [https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/develop/setup.sh](https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/develop/setup.sh) and selecting "Download Linked File". A file download should start to your local downloads folder (default is `~/Downloads/` on macOS).
+* **NOTE: This application requires you to have administrative (admin) for the computer on which you are installing it.**
+
+* Install [Docker](https://docs.docker.com/get-docker/) for your operating system:
+    
+    * macOS: [Docker Desktop for Mac](https://docs.docker.com/docker-for-mac/install/)
+    
+    * Windows: [Docker Desktop for Windows](https://docs.docker.com/docker-for-windows/install/)
+    
+    * Linux: [Docker for Linux](https://docs.docker.com/engine/install/)
 
 * Open a command line prompt
+
     * ***macOS***: type `Cmd + Space` (`⌘ + Space`) to bring up Spotlight, and search for "Terminal" and hit enter).
     
-* Navigate to wherever you wish to have the Fantasy Football Metrics Weekly Report application set up:
-    
-    Example (use whatever directory in which you wish to store the app):
-    
-    ```
-    cd ~/projects
-    ```
-
-* Move the the `setup.sh` script to the above location:
-    
-    Example (move the file from your downloads folder):
-    
-    ```
-    mv ~/Downloads/setup.sh .
-    ```
-  
-* Run `./setup.sh`
-
-    * If you get an error when running `./setup.sh`, the script might not be executable. You can run `chmod +x setup.sh` to make it executable. You may need to execute the `chmod` command as an administrator, depending on your system permissions, in which case you can run `sudo chmod +x setup.sh` and then enter your password.
-
-* You can now skip ahead to [Running the Report Application](#running-the-report-application).
-  
---- 
- 
-<a name="manual-setup"></a>
-#### Manual Setup
-
-* Make sure your operating system (OS) has Python 3 installed. See the above section on [dependencies](#dependencies) for instructions.
-
-* After you've finished installing Python 3, check that it has been successfully installed by running `python3 --version` (or `py -0p` (or `py -3` to see if you can launch Python 3 if `py -0p` fails) if using the [Python launcher for Windows](https://docs.python.org/3/using/windows.html#python-launcher-for-windows) in Windows to list installed Python version with their paths) in the command line again, and confirming that it outputs `Python 3.x.x`. If it *does **not***, double check that you followed all Python 3 installation steps correctly.
-
-* Open a command line prompt
-    * ***macOS***: type `Cmd + Space` (`⌘ + Space`) to bring up Spotlight, and search for "Terminal" and hit enter).
     * ***Windows***: type `Windows + R` to open the "Run" box, then type `cmd` and then click "OK" to open a regular Command Prompt (or type `cmd` and then press `Ctrl + Shift + Enter` to open an administrator Command Prompt)
-    * ***Linux***: type `Ctrl+Alt+T` (in Ubuntu).
+    
+    * ***Linux (Ubuntu)***: type `Ctrl+Alt+T`.
     
 * Install `git` (if you do not already have it installed). You can see instructions for installation on your OS [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git). If you are comfortable using the command line, feel free to just install `git` for the command line. *However*, if using the command line is not something you have much experience with and would prefer to do less in a command line shell, you should install [Git for Desktop](https://desktop.github.com).
 
-* Clone this project to whichever directory you wish:
+* Clone this project to whichever directory you wish to use for this app:
 
     * If you already have an account on [GitHub](https://github.com), then I recommend using [SSH to connect with GitHub](https://help.github.com/en/articles/connecting-to-github-with-ssh).
     
     * If using SSH (as described in the link above), run:
-    ```bash
-    git clone git@github.com:uberfastman/fantasy-football-metrics-weekly-report.git
-    ```
+    
+        ```bash
+        git clone git@github.com:uberfastman/fantasy-football-metrics-weekly-report.git
+        ```
   
     * If ***not*** using SSH, then use HTTPS by running:
-    ```bash
-    git clone https://github.com/uberfastman/fantasy-football-metrics-weekly-report.git
-    ```
+    
+        ```bash
+        git clone https://github.com/uberfastman/fantasy-football-metrics-weekly-report.git
+        ```
   
 * Run `cd fantasy-football-metrics-weekly-report` to enter the project directory.
-
-* Set up a virtual environment:
-
-    * **macOS/Linux**:
-
-        * Run `pip3 install virtualenv virtualenvwrapper` (if not already installed).
-
-        * Run `touch ~/.bashrc`.
-
-        * Run 
-            ```bash
-            echo 'export WORKON_HOME=$HOME/.virtualenvs' >> ~/.bashrc
-            echo 'source /usr/local/bin/virtualenvwrapper.sh' >> ~/.bashrc
-            ```
-  
-        * Run `source ~/.bashrc`
-
-        * Run `which python3`. This should output something like `/usr/local/bin/python3`. Copy that path for the next step.
-        
-    * **Windows**:
-   
-        * Run `pip3 install virtualenv virtualenvwrapper-win`
-            
-        * ***Details for using `virtualenvwrapper-win` can be found [here](https://pypi.org/project/virtualenvwrapper-win/).***
-
-    
-* Run `mkvirtualenv -p /usr/local/bin/python3 fantasy-football-metrics-weekly-report`.
-
-* When the previous command is finished running, your command line prompt should now look something like this:
-
-    ```
-    (fantasy-football-metrics-weekly-report) [username@Computer 02:52:01 PM] ~/fantasy-football-metrics-weekly-report $
-    ```
-        
-    Congratulations, you have successfully created a Python 3 virtual environment for the project to run in!
-            
-        
-* Finally, run `pip install -r requirements.txt`
 
 ---
 
@@ -318,61 +268,63 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
 <a name="running-the-report-application"></a>
 ### Running the Report Application
 
-* If you are running on macOS, see [below](#macos-launch-script)!
-
-* *If you followed the setup instructions and set up the application to run in a virtual environment, once you have navigated to the project directory, you **MUST** run*
-
-    ```
-    workon fantasy-football-metrics-weekly-report
-    ```
-  *before running the report **EVERY TIME** you open a new command line prompt to run the application!*
-
 * Make sure you have updated the default league ID (`league_id` value) in the `config.ini` file to your own league id. Please see the respective setup instructions for your chosen platform for directions on how to find your league ID.
 
-* Run `python main.py`. You should see the following prompts: 
-    * `Generate report for default league? (y/n) -> `. 
+* From within the application directory (you should already be inside the `fantasy-football-metrics-weekly-report` directory) , run:
+
+    ```bash
+    docker-compose up -d
+    ```
+
+    * The ***FIRST*** time you run the above command, Docker will build your docker image from the included `Dockerfile`. You will need to wait until this output is complete before moving to the next step. You should see output similar to the following (the Image ID after `Successfully built` will be different):
     
-        Type `y` and hit enter. 
-    * `Generate report for default week? (y/n) ->`. 
+        ```bash
+        Successfully built 9e5d615ff504
+        Successfully tagged fantasy-football-metrics-weekly-report_app:latest
+        Creating fantasy-football-metrics-weekly-report_app_1 ... done
+        ```
+
+* Run the report:
+
+    ```bash
+    docker exec -it fantasy-football-metrics-weekly-report_app_1 python main.py
+    ```
+
+    * You should see the following prompts: 
+
+        * `Generate report for default league? (y/n) -> `. 
+    
+            Type `y` and hit enter. 
         
-        Type `y` and hit enter.
-    * The ***FIRST*** time you run the app, a browser window will automatically open, and if you correctly followed the instructions in the [Report Setup](#setup) section, you should see a verifier code (something like `w6nwjvz`).
-    * Copy the above verifier code and return to the command line window, where you should now see the following prompt:
-      ```
-      Enter verifier :
-      ```
-      Paste the verifier code there and hit enter.
-    * Assuming the above went as expected, the application should now generate a report for your fantasy league for the selected NFL week.
+        * `Generate report for default week? (y/n) ->`. 
+        
+            Type `y` and hit enter.
+        
+        * <ins>**NOTE FOR YAHOO USERS ONLY**</ins>: The ***FIRST*** time you run the app, you will see an `AUTHORIZATION URL` (if you followed the instructions in the [Yahoo Setup](#yahoo-setup) section).
+        
+            * Click the link (or copy and paste it into your web browser).
+        
+            * The browser window should display a message asking for access to Yahoo Fantasy Sports on your account. Click `Accept`.  
+        
+            * You should then see a verifier code (something like `w6nwjvz`). Copy the verifier code and return to the command line window, where you should now see the following prompt:
+        
+              ```bash
+              Enter verifier :
+              ```
+          
+              Paste the verifier code there and hit enter.
+          
+            * Assuming the above went as expected, the application should now generate a report for your Yahoo fantasy league for the selected NFL week.
+            
+* When you are *done* using the report app, it is recommended that you *shut down* the Docker container in which it is running. You can do so by running:
+
+    ```bash
+    docker-compose down
+    ```
+  
+  The next time you run the app, you can simply re-run `docker-compose up -d` to restart the container. 
     
 ***NOTE***: You can also specify a large number of configuration options directly in the command line. Please see the [usage section](#usage) for more information.
-
-<a name="macos-launch-script"></a>
-##### macOS Launch Script
-If you are running on macOS, there is an additional bash script available in the project, [run_in_virtualenv.command](run_in_virtualenv.command). This script allows you to double-click it and run the app in a new Terminal window. It ***REQUIRES*** you to have completed all steps in [Setup](#setup), and also the above steps in [Running the Report Application](#running-the-report-application), with the exception of running the `workon` command or the `python main.py` command. Instead, do the following:
-
-* Right click on [run_in_virtualenv.command](run_in_virtualenv.command) and select `Open With`, then select `TextEdit`.
-
-* Modify the path you find in the script after `cd` to point to wherever you cloned the application. You can either use the absolute path (something like `/Users/username/Projects/fantasy-football-metrics-weekly-report`), or a shortcut to your home directory (`~`), like `~/Documents/fantasy-football-metrics-weekly-report`).
-
-* Move [run_in_virtualenv.command](run_in_virtualenv.command) wherever you wish it to be for easy access.
-
-* **You can now double-click [run_in_virtualenv.command](run_in_virtualenv.command) and it will open a new Terminal window and run the application!** *If that fails, you may need to change the permissions on [run_in_virtualenv.command](run_in_virtualenv.command)*. You can do that as follows:
-    
-    * Open a Terminal window.
-    
-    * Run `cd path/to/wherever/you/put/run_in_virtualenv.command`
-    
-    * Run `chmod +x run_in_virtualenv.command`
-    
-    * If you get a permissions error after running the `chmod` command, you may need to run it as an administrator:
-    
-        ```
-        sudo chmod +x run_in_virtualenv.command
-        ```
-     
-        And then put in your password to allow the operating system to modify the permissions on [run_in_virtualenv.command](run_in_virtualenv.command).
-        
-    * ***NOW*** you should be able to double-click [run_in_virtualenv.command](run_in_virtualenv.command) to launch the application!
 
 ---
 
@@ -381,7 +333,7 @@ If you are running on macOS, there is an additional bash script available in the
 
 The Fantasy Football Metrics Weekly Report application allows certain aspects of the generated report to be configured with a `.ini` file. Included in the repository is `EXAMPLE-config.ini`, containing default values, as well as league settings that point to a public Yahoo league as a "demo" of the app.
 
-The app ***REQUIRES*** that `config.ini` be present, so you will need to rename `EXAMPLE-config.ini` to just `config.ini`. Then update the values to reflect the league for which you wish to generate a report, as well as any other settings you wish to change from the default values.
+The app ***REQUIRES*** that `config.ini` be present, so you should *make a copy* of the `EXAMPLE-config.ini` where it is already located, and then *rename the copy* to just `config.ini`. Then update the values to reflect the league for which you wish to generate a report, as well as any other settings you wish to change from the default values.
 
 <a name="report-features"></a>
 #### Report Features
@@ -467,7 +419,7 @@ In addition to turning on/off the features of the report PDF itself, there are a
 <a name="usage"></a>
 ### Usage
 
-After completing the above setup and configuration steps, you should now be able to simply run `python main.py` to regenerate a report. The report generator script (`main.py`) also supports several command line options that allow you to specify the following:
+After completing the above setup and configuration steps, you should now be able to simply run `docker exec -it fantasy-football-metrics-weekly-report_app_1 python main.py` to regenerate a report. The report generator script (`main.py`) also supports several command line options/arguments that allow you to specify the following:
 
 |             Flag             |                                      Description                                     |
 | :--------------------------- | :----------------------------------------------------------------------------------- |
@@ -485,23 +437,29 @@ After completing the above setup and configuration steps, you should now be able
 | `-d, --dev-offline`          | Run ***OFFLINE*** (for development). Must have previously run report with -s option. |
 | `-t, --test`                 | Generate TEST report (for development) |
 
----
+#### NOTE: all command line arguments <ins>***OVERRIDE***</ins> any settings configured in the local config.ini file!
 
-<a name="virtual-environment"></a>
-#### Virtual Environment
+##### Example:
 
-When you are done working within the `virtualenv`, you can run `deactivate` within the environment to exit:
+```bash
+docker exec -it fantasy-football-metrics-weekly-report_app_1 python main.py -l 140941 -f fleaflicker -y 2020 -w 3 -p 1000 -s -r
 ```
-(fantasy-football-metrics) host-machine: fantasy-football-metrics-weekly-report $ deactivate
-```
+    
+The above command runs the report with the following configuration options (which override anything set in `config.ini`):
 
-When you wish to work within the `virtualenv` once more, do the following:
- 
- * Run `source ~/.bashrc`
- 
- * View `virtualenvs` that you have available: `lsvirtualenv`
- 
- * Run `workon fantasy-football-metrics-weekly-report` (or whatever you named your virtual environment for the application).
+* Platform: `fleaflicker` 
+
+* League id: `140941`
+    
+* NFL season: `2020`
+
+* NFL week: `3`
+
+* Number of Monte Carlo simulations for playoff probabilities: `1000`
+
+* Saves the data locally (`-s`)
+
+* Refreshes any previously saved local data (`-r`) 
 
 ---
 
@@ -561,17 +519,23 @@ The following setup steps are ***required*** in order to allow the Google Drive 
 
 * Your credentials JSON file will download. Rename it `credentials.json`, and put it in the `auth/google/` directory where `EXAMPLE-credentials.json` is located.
 
-* Open a terminal window and run `python resources/google_quickstart.py`.
+* Open a terminal window (makes sure you are inside the `fantasy-football-metrics-weekly-report` directory), and run:
 
-* A browser window will open asking you to either select a Google account to log into (if you have multiple) or log in. Select your account/login.
+    ```bash
+    docker exec -it fantasy-football-metrics-weekly-report_app_1 python resources/google_quickstart.py --noauth_local_webserver
+    ```
+
+* You will see a message that says `Go to the following link in your browser:`, followed by a link. Copy the URL and paste it into a web browser, and hit enter. The open window will ask you to either select a Google account to log into (if you have multiple) or log in. Select your account/login.
 
 * A warning screen will appear saying "This app isn't verified". Click "Advanced" and then "Go to yff-report-drive-uploader (unsafe)" (this screen may vary depending on your web browser, but the point is you need to proceed past the warning).
 
 * On the next screen, a popup saying "Grant yff-report-drive-uploader permission" will appear. Click "Allow", then "Allow" again on the following "Confirm your choices" screen.
 
-* You will see a screen that says only "The authentication flow has completed.", which you can close.
+* Next you will see a screen that says only "Please copy this code, switch to your application and paste it there:". Copy the code, and return to your open terminal window (you can close the browser window once you've copied the verification code).
 
-* Go back to your terminal window where you ran `python resources/google_quickstart.py`. It should have printed "Authentication successful.", as well as a list of 10 files in your Google Drive to confirm it can access your drive. It will also have automatically generated a `token.json` file in `auth/google/`, which you should just leave where it is and do ***NOT*** edit or modify in any way!
+* Paste the verification code where it says `Enter verification code:`, and hit enter.
+
+* You should then see the command line output "Authentication successful.", as well as a list of 10 files in your Google Drive to confirm it can access your drive. It will also have automatically generated a `token.json` file in `auth/google/`, which you should just leave where it is and do ***NOT*** edit or modify in any way!
 
 * *You can now upload your reports to Google Drive, either by changing the value of `google_drive_upload` to `True` in `config.ini`, or by setting the value of `google_drive_reupload_file` in `config.ini` to the filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/drive.py`*.
 
@@ -652,19 +616,18 @@ The following setup steps are ***required*** in order to allow the Slack integra
 <a name="logs"></a>
 #### Logs
 
-In addition to printing output from the application to the commadn line, the Fantasy Football Metrics Weekly Report also logs all of the same output to [out.log](logs/out.log), which you can view at any time to see output from past runs of the application.
+In addition to printing output from the application to the command line, the Fantasy Football Metrics Weekly Report also logs all of the same output to [out.log](logs/out.log), which you can view at any time to see output from past runs of the application.
 
 <a name="yahoo"></a>
 #### Yahoo
 
 Occasionally when you use the Yahoo fantasy football API, there are hangups on the other end that can cause data not to transmit, and you might encounter an error similar to this:
-```
-Traceback (most recent call last):
-  File "yfpy-app.py", line 114, in <module>
-    var = app.run()
-  File "/Users/your_username/PATH/T0/LOCAL/PROJECT/yfpy-app.py", line 429, in run
-    for team in team_standings:
-IndexError: list index out of range
-```
+
+    Traceback (most recent call last):
+      File "yfpy-app.py", line 114, in <module>
+        var = app.run()
+      File "/Users/your_username/PATH/T0/LOCAL/PROJECT/yfpy-app.py", line 429, in run
+        for team in team_standings:
+    IndexError: list index out of range
 
 Typically when the above error (or a similar error) occurs, it simply means that one of the Yahoo Fantasy Football API calls failed and so no data was retrieved. This can be fixed by simply re-running data query.

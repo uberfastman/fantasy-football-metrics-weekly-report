@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+
+  app:
+    build: https://github.com/uberfastman/fantasy-football-metrics-weekly-report.git
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./config.ini:/app/config.ini
+      - ./auth:/app/auth
+      - ./output:/app/output
+

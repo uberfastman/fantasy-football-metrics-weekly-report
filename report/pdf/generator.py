@@ -256,6 +256,7 @@ class PdfGenerator(object):
         self.text_style_normal = self.stylesheet["Normal"]
         self.text_style_h1 = self.stylesheet["Heading1"]
         self.text_style_h1.fontName = self.font
+        self.text_style_h1.fontSize = self.font_size + 2
         self.text_style_h2 = self.stylesheet["Heading2"]
         self.text_style_h2.fontName = self.font
         self.text_style_h3 = self.stylesheet["Heading3"]
@@ -1590,9 +1591,9 @@ class TableOfContents(object):
         self.toc_style_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=font_size - 2, fontName=font)
         self.toc_style_center = ParagraphStyle(name="tocc", alignment=TA_CENTER, fontSize=font_size - 2, fontName=font)
         self.toc_style_left = ParagraphStyle(name="tocl", alignment=TA_LEFT, fontSize=font_size - 2, fontName=font)
-        self.toc_style_title_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=font_size + 1,
+        self.toc_style_title_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=font_size,
                                                     fontName=font)
-        self.toc_style_title_left = ParagraphStyle(name="tocl", alignment=TA_LEFT, fontSize=font_size + 1,
+        self.toc_style_title_left = ParagraphStyle(name="tocl", alignment=TA_LEFT, fontSize=font_size,
                                                    fontName=font)
 
         self.toc_anchor = 0
