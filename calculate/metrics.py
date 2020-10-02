@@ -46,9 +46,8 @@ class CalculateMetrics(object):
                 team.num_moves,
                 team.num_trades
             ]
-            # TODO: show waiver priority even if league has FAAB
-            # if league.is_faab:
-            #     team_current_standings_data.insert(7, team.waiver_priority)
+            if league.is_faab:
+                team_current_standings_data.insert(7, team.waiver_priority)
 
             current_standings_data.append(team_current_standings_data)
 
