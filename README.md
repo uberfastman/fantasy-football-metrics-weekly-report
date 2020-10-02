@@ -1,10 +1,18 @@
 # Fantasy Football Metrics Weekly Report
 
-[![latest-release.png](resources/images/latest-release.png)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/latest)
+[![Release](https://img.shields.io/github/v/release/uberfastman/fantasy-football-metrics-weekly-report.svg)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/latest)
+[![Last Release Date](https://img.shields.io/github/release-date/uberfastman/fantasy-football-metrics-weekly-report.svg)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/latest)
+[![Version](https://img.shields.io/github/v/tag/uberfastman/fantasy-football-metrics-weekly-report.svg)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/tags)
+[![Last Commmit](https://img.shields.io/github/last-commit/uberfastman/fantasy-football-metrics-weekly-report.svg)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/commits/develop)
 
-###### Latest Version: [v10.0.0-beta.1](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/tag/v10.0.0-beta.1)
+---
 
 [![Build Status](https://travis-ci.com/uberfastman/fantasy-football-metrics-weekly-report.svg?branch=develop)](https://travis-ci.com/uberfastman/fantasy-football-metrics-weekly-report)
+[![Issues](https://img.shields.io/github/issues/uberfastman/fantasy-football-metrics-weekly-report.svg)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/issues)
+[![Pull Requests](https://img.shields.io/github/issues-pr/uberfastman/fantasy-football-metrics-weekly-report.svg)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/pulls)
+[![Forks](https://img.shields.io/github/forks/uberfastman/fantasy-football-metrics-weekly-report.svg)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/network/members)
+[![Stars](https://img.shields.io/github/stars/uberfastman/fantasy-football-metrics-weekly-report.svg)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/stargazers)
+[![License](https://img.shields.io/github/license/uberfastman/fantasy-football-metrics-weekly-report.svg)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/blob/develop/LICENSE)
 
 ---
 
