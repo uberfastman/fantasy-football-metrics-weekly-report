@@ -6,9 +6,21 @@
 [![Last Commmit](https://img.shields.io/github/last-commit/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/commits/develop)
 
 [![Build Status](https://travis-ci.com/uberfastman/fantasy-football-metrics-weekly-report.svg?branch=develop)](https://travis-ci.com/uberfastman/fantasy-football-metrics-weekly-report)
+[![License](https://img.shields.io/github/license/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/blob/develop/LICENSE)
+
+---
+
 [![Issues](https://img.shields.io/github/issues/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/issues)
 [![Pull Requests](https://img.shields.io/github/issues-pr/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/pulls)
-[![License](https://img.shields.io/github/license/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/blob/develop/LICENSE)
+
+[![Active Milestones](https://img.shields.io/github/milestones/open/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/milestones)
+<sup>➡️</sup>[![Web App](https://img.shields.io/github/milestones/progress-percent/uberfastman/fantasy-football-metrics-weekly-report/3)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/milestone/3)
+[![Multi-Platform Support](https://img.shields.io/github/milestones/progress-percent/uberfastman/fantasy-football-metrics-weekly-report/2)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/milestone/2)
+[![Metrics](https://img.shields.io/github/milestones/progress-percent/uberfastman/fantasy-football-metrics-weekly-report/4)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/milestone/4) 
+[![Maintenance](https://img.shields.io/github/milestones/progress-percent/uberfastman/fantasy-football-metrics-weekly-report/5)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/milestone/5)
+
+[![Completed Milestones](https://img.shields.io/github/milestones/closed/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/milestones?state=closed)
+<sup>➡️</sup>[![Yahoo FF Report](https://img.shields.io/github/milestones/progress-percent/uberfastman/fantasy-football-metrics-weekly-report/1?color=green)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/milestone/1)
 
 ---
 
