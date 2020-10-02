@@ -3,12 +3,15 @@ version: "3.8"
 services:
 
   app:
-    build: https://github.com/uberfastman/fantasy-football-metrics-weekly-report.git:latest
-#    build: .
+    # TODO: only build from the web once GitHub Container Registry is working with docker-compose
+#    build: https://github.com/uberfastman/fantasy-football-metrics-weekly-report.git
+    build: .
     ports:
       - "5000:5000"
     volumes:
-      - ./config.ini:/app/config.ini
-      - ./auth:/app/auth
-      - ./output:/app/output
+      # TODO: swap ".:/app" with commented out volumes once GitHub Container Registry is working with docker-compose
+      - .:/app
+#      - ./config.ini:/app/config.ini
+#      - ./auth:/app/auth
+#      - ./output:/app/output
 

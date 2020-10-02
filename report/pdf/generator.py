@@ -41,7 +41,7 @@ logger = get_logger(__name__, propagate=False)
 logging.getLogger("PIL.PngImagePlugin").setLevel(level=logging.INFO)
 
 
-def get_player_image(url, data_dir, week, image_quality, width=1.0 * inch, player_name=None, dev_offline=False):
+def get_player_image(url, data_dir, week, image_quality, width=1.0*inch, player_name=None, dev_offline=False):
     headshots_dir = os.path.join(data_dir, "week_" + str(week), "player_headshots")
 
     if not os.path.exists(headshots_dir):
@@ -142,35 +142,53 @@ class PdfGenerator(object):
         self.num_coaching_efficiency_dqs = report_data.num_coaching_efficiency_dqs
 
         # table column widths
-        self.widths_4_cols_2 = [1.00 * inch, 2.25 * inch, 2.25 * inch, 2.25 * inch]
-        self.widths_4_cols_2 = [1.00 * inch, 2.50 * inch, 2.50 * inch, 1.75 * inch]
-        self.widths_4_cols_3 = [1.00 * inch, 2.50 * inch, 2.00 * inch, 2.25 * inch]
-        self.widths_4_cols_4 = [0.50 * inch, 2.25 * inch, 1.75 * inch, 3.25 * inch]
-        self.widths_5_cols_1 = [0.45 * inch, 1.95 * inch, 1.85 * inch, 1.75 * inch, 1.75 * inch]
-        self.widths_6_cols_1 = [0.75 * inch, 1.75 * inch, 1.75 * inch, 1.00 * inch, 1.50 * inch, 1.00 * inch]
-        self.widths_6_cols_2 = [0.75 * inch, 1.75 * inch, 1.25 * inch, 1.00 * inch, 2.00 * inch, 1.00 * inch]
-        self.widths_6_cols_3 = [0.45 * inch, 1.80 * inch, 1.70 * inch, 0.75 * inch, 1.45 * inch, 1.60 * inch]
-        self.widths_7_cols_1 = [0.50 * inch, 1.75 * inch, 1.50 * inch, 0.75 * inch, 1.50 * inch, 0.75 * inch,
-                                1.00 * inch]
-        self.widths_7_cols_2 = [0.50 * inch, 1.75 * inch, 1.50 * inch, 1.10 * inch, 1.00 * inch, 1.05 * inch,
-                                0.85 * inch]
-        self.widths_10_cols_1 = [0.45 * inch, 1.80 * inch, 1.05 * inch, 1.00 * inch, 0.80 * inch, 1.05 * inch,
-                                 0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]
-        self.widths_11_cols_1 = [0.40 * inch, 1.65 * inch, 1.00 * inch, 0.85 * inch, 0.85 * inch, 0.75 * inch,
-                                 1.00 * inch, 0.45 * inch, 0.45 * inch, 0.45 * inch, 0.45 * inch]
-        self.widths_12_cols_1 = [0.40 * inch, 1.65 * inch, 1.00 * inch, 0.85 * inch, 0.85 * inch, 0.55 * inch,
-                                 0.75 * inch, 0.45 * inch, 0.45 * inch, 0.45 * inch, 0.45 * inch, 0.45 * inch]
-        self.widths_n_cols_1 = [1.55 * inch, 1.00 * inch, 0.90 * inch, 0.65 * inch, 0.65 * inch] + \
-                               [round(3.4 / self.playoff_slots, 2) * inch] * self.playoff_slots
+        # .........................Place/Rank..Team.......Manager....Col 4.....
+        self.widths_04_cols_no_1 = [1.00*inch, 2.50*inch, 2.50*inch, 1.75*inch]  # 7.75
+
+        # .........................Place.......Team.......Manager....Col 4.....
+        self.widths_04_cols_no_2 = [0.45*inch, 2.30*inch, 1.75*inch, 3.25*inch]  # 7.75
+
+        # .........................Place.......Team.......Manager....Metric.....Avg.......
+        self.widths_05_cols_no_1 = [0.45*inch, 1.95*inch, 1.85*inch, 1.75*inch, 1.75*inch]  # 7.75
+
+        # .........................Place.......Team.......Manager....Col 4......Col 5......Col 6.....
+        self.widths_06_cols_no_1 = [0.45*inch, 1.95*inch, 1.85*inch, 1.00*inch, 1.50*inch, 1.00*inch]  # 7.75
+
+        # .........................Place.......Team.......Manager....Col 4......Col 5......Col 6.....
+        self.widths_06_cols_no_2 = [0.45*inch, 1.95*inch, 1.35*inch, 1.00*inch, 2.00*inch, 1.00*inch]  # 7.75
+
+        # .........................Place.......Team.......Manager....Col 4......Col 5......Col 6.....
+        self.widths_06_cols_no_3 = [0.45*inch, 1.95*inch, 1.85*inch, 0.60*inch, 1.45*inch, 1.45*inch]  # 7.75
+
+        # .........................Place.......Team.......Manager....Col 4......Col 5......Col 6......Col 7.....
+        self.widths_07_cols_no_1 = [0.45*inch, 1.80*inch, 1.50*inch, 0.75*inch, 1.50*inch, 0.75*inch, 1.00*inch]  # 7.75
+
+        # .........................Place.......Team.......Manager....Col 4......Col 5......Col 6......Col 7.....
+        self.widths_07_cols_no_2 = [0.45*inch, 1.80*inch, 1.50*inch, 1.10*inch, 1.00*inch, 1.05*inch, 0.85*inch]  # 7.75
+
+        # .........................Place.......Team.......Manager....Record.....Pts For....Pts Agnst..Streak.....Waiver.....Moves......Trades....
+        self.widths_10_cols_no_1 = [0.45*inch, 1.80*inch, 1.10*inch, 1.00*inch, 0.80*inch, 1.05*inch, 0.50*inch, 0.50*inch, 0.50*inch, 0.50*inch]  # 8.20
+
+        # .........................Place.......Team.......Manager....Record.....Div Rec....Pts For....Pts Agnst..Streak.....Waiver.....Moves......Trades....
+        self.widths_11_cols_no_1 = [0.40*inch, 1.65*inch, 0.95*inch, 0.85*inch, 0.85*inch, 0.80*inch, 0.90*inch, 0.45*inch, 0.45*inch, 0.45*inch, 0.45*inch]  # 8.20
+
+        # .........................Place.......Team.......Manager....Record.....Pts For....Pts Agnst..Streak.....Waiver.....FAAB.......Moves......Trades....
+        self.widths_11_cols_no_2 = [0.40*inch, 1.65*inch, 1.05*inch, 1.00*inch, 0.80*inch, 1.05*inch, 0.45*inch, 0.45*inch, 0.45*inch, 0.45*inch, 0.45*inch]  # 8.20
+
+        # .........................Place.......Team.......Manager....Record.....Div Rec....Pts For....Pts Agnst..Streak.....Waiver.....FAAB.......Moves......Trades....
+        self.widths_12_cols_no_1 = [0.40*inch, 1.55*inch, 1.00*inch, 0.85*inch, 0.85*inch, 0.65*inch, 0.65*inch, 0.45*inch, 0.45*inch, 0.45*inch, 0.45*inch, 0.45*inch]  # 8.20
+
+        # .........................Team.......Manager....Record.....Pts For....Pts Agnst....Finish Positions..............................................
+        self.widths_n_cols_no_1 = [1.55*inch, 1.00*inch, 0.95*inch, 0.65*inch, 0.65*inch] + [round(3.4 / self.playoff_slots, 2)*inch] * self.playoff_slots  # 8.20
 
         self.line_separator = Drawing(100, 1)
         self.line_separator.add(Line(0, -65, 550, -65, strokeColor=colors.black, strokeWidth=1))
-        self.spacer_twentieth_inch = Spacer(1, 0.05 * inch)
-        self.spacer_tenth_inch = Spacer(1, 0.10 * inch)
-        self.spacer_quarter_inch = Spacer(1, 0.25 * inch)
-        self.spacer_half_inch = Spacer(1, 0.50 * inch)
-        self.spacer_three_inch = Spacer(1, 3.00 * inch)
-        self.spacer_five_inch = Spacer(1, 5.00 * inch)
+        self.spacer_twentieth_inch = Spacer(1, 0.05*inch)
+        self.spacer_tenth_inch = Spacer(1, 0.10*inch)
+        self.spacer_quarter_inch = Spacer(1, 0.25*inch)
+        self.spacer_half_inch = Spacer(1, 0.50*inch)
+        self.spacer_three_inch = Spacer(1, 3.00*inch)
+        self.spacer_five_inch = Spacer(1, 5.00*inch)
 
         # configure text styles
         self.font_size = config.getint("Report", "font_size", fallback=12)
@@ -453,8 +471,8 @@ class PdfGenerator(object):
                 Paragraph("nano_3ug3o6yy983jsqdsc773izhr3jfz4dq8bz7yfhhzkkeq7s8ern1ws7dng4pq", self.text_style_small)
             ]
         ]
-        self.report_footer_title = Table(footer_title, colWidths=7.75 * inch, style=self.title_style)
-        self.report_footer = Table(footer_data, colWidths=2.50 * inch, style=self.title_style)
+        self.report_footer_title = Table(footer_title, colWidths=7.75*inch, style=self.title_style)
+        self.report_footer = Table(footer_data, colWidths=2.50*inch, style=self.title_style)
 
         # data for report
         self.report_data = report_data
@@ -507,7 +525,7 @@ class PdfGenerator(object):
         page_num = canvas.getPageNumber()
         text = "Page %s" % page_num
         canvas.setFont(self.font, self.font_size - 4)
-        canvas.drawRightString(4.45 * inch, 0.25 * inch, text)
+        canvas.drawRightString(4.45*inch, 0.25*inch, text)
 
     def add_page_break(self):
         self.toc.add_toc_page()
@@ -615,13 +633,22 @@ class PdfGenerator(object):
             table_style.add("FONTSIZE", (0, 0), (-1, -1), (self.font_size - 2) - font_reduction)
             if self.report_data.is_faab:
                 if self.report_data.has_waiver_priorities:
-                    col_widths = self.widths_12_cols_1
+                    if self.report_data.has_divisions:
+                        col_widths = self.widths_12_cols_no_1
+                    else:
+                        col_widths = self.widths_11_cols_no_2
 
                 if "FAAB" not in headers[0]:
                     if self.report_data.has_waiver_priorities:
-                        headers[0].insert(9, "FAAB")
+                        if self.report_data.has_divisions:
+                            headers[0].insert(9, "FAAB")
+                        else:
+                            headers[0].insert(8, "FAAB")
                     else:
-                        headers[0][8] = "FAAB"
+                        if self.report_data.has_divisions:
+                            headers[0][8] = "FAAB"
+                        else:
+                            headers[0][7] = "FAAB"
 
         if metric_type == "playoffs":
             font_reduction = 0
@@ -670,9 +697,9 @@ class PdfGenerator(object):
                 data = temp_data
 
         if metric_type == "beef":
-            cow_icon = self.get_img(os.path.join("resources", "images", "cow.png"), width=0.20 * inch)
-            beef_icon = self.get_img(os.path.join("resources", "images", "beef.png"), width=0.20 * inch)
-            half_beef_icon = self.get_img(os.path.join("resources", "images", "beef-half.png"), width=0.10 * inch)
+            cow_icon = self.get_img(os.path.join("resources", "images", "cow.png"), width=0.20*inch)
+            beef_icon = self.get_img(os.path.join("resources", "images", "beef.png"), width=0.20*inch)
+            half_beef_icon = self.get_img(os.path.join("resources", "images", "beef-half.png"), width=0.10*inch)
 
             for team in data:
                 num_cows = int(float(team[3]) // 5)
@@ -693,9 +720,9 @@ class PdfGenerator(object):
                 # noinspection PyTypeChecker
                 beefs.insert(0, team[-1] + " ")
                 beefs = [beefs]
-                beefs_col_widths = [0.20 * inch] * (num_beefs if num_beefs > 0 else num_cows)
-                beefs_col_widths.insert(0, 0.50 * inch)
-                tabbu_column_table = Table(beefs, colWidths=beefs_col_widths, rowHeights=0.25 * inch)
+                beefs_col_widths = [0.20*inch] * (num_beefs if num_beefs > 0 else num_cows)
+                beefs_col_widths.insert(0, 0.50*inch)
+                tabbu_column_table = Table(beefs, colWidths=beefs_col_widths, rowHeights=0.25*inch)
 
                 tabbu_column_table_style_list = [
                     ("FONT", (0, 0), (-1, -1), self.font),
@@ -788,7 +815,7 @@ class PdfGenerator(object):
                 '''<para align=center>''' + subsubtitle_text_str + '''</para>''', self.text_style_subsubtitles)
             rows.append([subsubtitle])
 
-        title_table = Table(rows, colWidths=[title_width * inch] * 1)
+        title_table = Table(rows, colWidths=[title_width*inch] * 1)
         title_table.setStyle(self.title_style)
         return title_table
 
@@ -802,7 +829,7 @@ class PdfGenerator(object):
             title_text_style = self.text_style_h3
 
         title = Paragraph('''<para align=center><b>''' + anchor + title_text + '''</b></para>''', title_text_style)
-        title_table = Table([[title]], colWidths=[title_width * inch] * 1)
+        title_table = Table([[title]], colWidths=[title_width*inch] * 1)
         title_table.setStyle(self.title_style)
         return title_table
 
@@ -814,9 +841,9 @@ class PdfGenerator(object):
 
         if tied_metric:
             if table_data[0][-1] == "Bench Points":
-                table = Table(table_data, colWidths=self.widths_6_cols_1)
+                table = Table(table_data, colWidths=self.widths_06_cols_no_1)
             elif table_data[0][-1] == "Sum % > Avg.":
-                table = Table(table_data, colWidths=self.widths_7_cols_1)
+                table = Table(table_data, colWidths=self.widths_07_cols_no_1)
             else:
                 table = Table(table_data, colWidths=col_widths, rowHeights=row_heights)
             table.setStyle(table_style_for_ties)
@@ -905,7 +932,7 @@ class PdfGenerator(object):
         return covid_risk_bar_chart
 
     @staticmethod
-    def get_img(path, width=1 * inch, hyperlink=None):
+    def get_img(path, width=1*inch, hyperlink=None):
         img = ImageReader(path)
         iw, ih = img.getSize()
         aspect = ih / float(iw)
@@ -961,7 +988,7 @@ class PdfGenerator(object):
                       self.create_title("Season Average Points by Position", title_width=2.00)],
                      [BreakdownPieDrawing(labels, weekly_data, font=self.font),
                       BreakdownPieDrawing(labels, season_data, font=self.font)]],
-                    colWidths=[4.25 * inch, 4.25 * inch],
+                    colWidths=[4.25*inch, 4.25*inch],
                     style=TableStyle([
                         ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.white),
                         ("BOX", (0, 0), (-1, -1), 0.25, colors.white),
@@ -992,7 +1019,7 @@ class PdfGenerator(object):
                             offending_players_data,
                             self.style_red_highlight,
                             self.style_tied_bad_boy,
-                            [2.50 * inch, 2.50 * inch, 2.75 * inch])
+                            [2.50*inch, 2.50*inch, 2.75*inch])
                         doc_elements.append(KeepTogether(bad_boys_table))
                         doc_elements.append(self.spacer_tenth_inch)
 
@@ -1016,7 +1043,7 @@ class PdfGenerator(object):
                                                              beefy_players_data,
                                                              self.style_red_highlight,
                                                              self.style_tied_bad_boy,
-                                                             [2.50 * inch, 2.50 * inch, 2.75 * inch])
+                                                             [2.50*inch, 2.50*inch, 2.75*inch])
                     doc_elements.append(KeepTogether(beefy_boi_table))
                     doc_elements.append(self.spacer_tenth_inch)
 
@@ -1061,12 +1088,12 @@ class PdfGenerator(object):
 
                     best_player_headshot = get_player_image(
                         best_weekly_player.headshot_url, self.data_dir, self.week_for_report,
-                        self.config.getint("Report", "image_quality"), 1.5 * inch, best_weekly_player.full_name,
+                        self.config.getint("Report", "image_quality"), 1.5*inch, best_weekly_player.full_name,
                         self.report_data.league.dev_offline
                     )
                     worst_player_headshot = get_player_image(
                         worst_weekly_player.headshot_url, self.data_dir, self.week_for_report,
-                        self.config.getint("Report", "image_quality"), 1.5 * inch, worst_weekly_player.full_name,
+                        self.config.getint("Report", "image_quality"), 1.5*inch, worst_weekly_player.full_name,
                         self.report_data.league.dev_offline
                     )
 
@@ -1110,7 +1137,7 @@ class PdfGenerator(object):
                     else:
                         data.append([round(best_weekly_player.points, 2), round(worst_weekly_player.points, 2)])
 
-                    table = Table(data, colWidths=4.0 * inch)
+                    table = Table(data, colWidths=4.0*inch)
                     table.setStyle(self.boom_bust_table_style)
                     doc_elements.append(self.spacer_half_inch)
                     doc_elements.append(self.create_title("Boom... or Bust", 8.5, "section"))
@@ -1144,7 +1171,7 @@ class PdfGenerator(object):
                 hyperlink="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=VZZCNLRHH9BQS"
             )
         ]]
-        elements.append(Table(donate_header_data, colWidths=[4.65 * inch, 1.00 * inch], style=self.header_style))
+        elements.append(Table(donate_header_data, colWidths=[4.65*inch, 1.00*inch], style=self.header_style))
         elements.append(self.spacer_tenth_inch)
 
         elements.append(self.add_page_break())
@@ -1184,7 +1211,7 @@ class PdfGenerator(object):
                         [team[:-1] for team in division],
                         standings_style,
                         standings_style,
-                        self.widths_11_cols_1,
+                        self.widths_11_cols_no_1,
                         header_text=table_header,
                         footer_text=table_footer,
                         metric_type="standings"
@@ -1204,7 +1231,7 @@ class PdfGenerator(object):
                     self.report_data.data_for_current_standings,
                     standings_style,
                     standings_style,
-                    self.widths_10_cols_1,
+                    self.widths_10_cols_no_1,
                     metric_type="standings"
                 )
             elements.append(standings)
@@ -1218,8 +1245,9 @@ class PdfGenerator(object):
             if self.report_data.has_divisions:
                 self.playoff_probs_headers[0].insert(3, "Division")
                 playoff_probs_style.add("FONTSIZE", (0, 0), (-1, -1), self.font_size - 4)
-                self.widths_n_cols_1 = [1.35 * inch, 0.90 * inch, 0.75 * inch, 0.75 * inch, 0.50 * inch, 0.50 * inch] \
-                    + [round(3.4 / self.playoff_slots, 2) * inch] * self.playoff_slots
+                self.widths_n_cols_no_1 = \
+                    [1.35*inch, 0.90*inch, 0.75*inch, 0.75*inch, 0.50*inch, 0.50*inch] + \
+                    [round(3.4 / self.playoff_slots, 2)*inch] * self.playoff_slots
 
             data_for_playoff_probs = self.report_data.data_for_playoff_probs
             team_num = 1
@@ -1253,7 +1281,7 @@ class PdfGenerator(object):
                     data_for_playoff_probs,
                     playoff_probs_style,
                     playoff_probs_style,
-                    self.widths_n_cols_1,
+                    self.widths_n_cols_no_1,
                     subtitle_text="Playoff probabilities were calculated using %s Monte Carlo simulations to predict "
                                   "team performances through the end of the regular fantasy season." %
                                   "{0:,}".format(
@@ -1287,7 +1315,7 @@ class PdfGenerator(object):
                 [team[:-1] for team in self.data_for_median_standings],
                 median_standings_style,
                 None,
-                self.widths_7_cols_2,
+                self.widths_07_cols_no_2,
                 metric_type="median_standings",
                 subtitle_text="League standings when every team plays against the league median score each week.<br/>",
                 subsubtitle_text="WEEK {} LEAGUE MEDIAN SCORE: {}".format(
@@ -1306,7 +1334,7 @@ class PdfGenerator(object):
                 self.data_for_power_rankings,
                 self.style,
                 self.style_tied_power_rankings,
-                self.widths_4_cols_2,
+                self.widths_04_cols_no_1,
                 tied_metric=self.report_data.ties_for_power_rankings > 0,
                 metric_type="power_ranking",
                 subtitle_text="Average of weekly score, coaching efficiency and luck ranks."
@@ -1322,7 +1350,7 @@ class PdfGenerator(object):
                     self.data_for_z_scores,
                     self.style,
                     None,
-                    self.widths_4_cols_2,
+                    self.widths_04_cols_no_1,
                     tied_metric=False,
                     metric_type="z_score",
                     subtitle_text=[
@@ -1344,7 +1372,7 @@ class PdfGenerator(object):
                 self.data_for_scores,
                 self.style,
                 self.style_tied_scores,
-                self.widths_5_cols_1,
+                self.widths_05_cols_no_1,
                 tied_metric=self.report_data.ties_for_scores > 0,
                 metric_type="scores"
             ))
@@ -1358,7 +1386,7 @@ class PdfGenerator(object):
                 self.data_for_coaching_efficiency,
                 self.style,
                 self.style_tied_efficiencies,
-                self.widths_5_cols_1,
+                self.widths_05_cols_no_1,
                 tied_metric=((self.report_data.ties_for_coaching_efficiency > 0) and
                              (self.report_data.league.player_data_by_week_function is not None)),
                 metric_type="coaching_efficiency"
@@ -1374,7 +1402,7 @@ class PdfGenerator(object):
                 self.style,
                 self.style_tied_luck,
                 # self.widths_5_cols_1,
-                self.widths_6_cols_3,
+                self.widths_06_cols_no_3,
                 tied_metric=self.report_data.ties_for_luck > 0,
                 metric_type="luck"
             ))
@@ -1392,7 +1420,7 @@ class PdfGenerator(object):
                 self.data_for_optimal_scores,
                 self.style,
                 self.style,
-                self.widths_5_cols_1
+                self.widths_05_cols_no_1
             ))
             elements.append(self.spacer_twentieth_inch)
 
@@ -1407,7 +1435,7 @@ class PdfGenerator(object):
                 self.data_for_bad_boy_rankings,
                 self.style,
                 self.style_tied_bad_boy,
-                self.widths_6_cols_2,
+                self.widths_06_cols_no_2,
                 tied_metric=self.report_data.ties_for_bad_boy_rankings > 0,
                 metric_type="bad_boy"
             ))
@@ -1421,7 +1449,7 @@ class PdfGenerator(object):
                 self.data_for_beef_rankings,
                 self.style_left_align_right_col,
                 self.style_tied_beef,
-                self.widths_4_cols_4,
+                self.widths_04_cols_no_2,
                 tied_metric=self.report_data.ties_for_beef_rankings > 0,
                 metric_type="beef",
                 subtitle_text=[
@@ -1451,7 +1479,7 @@ class PdfGenerator(object):
                 self.data_for_season_weekly_top_scorers,
                 self.style_no_highlight,
                 self.style_no_highlight,
-                self.widths_4_cols_2,
+                self.widths_04_cols_no_1,
                 metric_type="top_scorers",
                 section_title_function=self.toc.add_top_performers_section
             ))
@@ -1472,7 +1500,7 @@ class PdfGenerator(object):
                 self.data_for_season_weekly_highest_ce,
                 self.style_no_highlight,
                 self.style_no_highlight,
-                self.widths_4_cols_2,
+                self.widths_04_cols_no_1,
                 metric_type="highest_ce",
                 section_title_function=self.toc.add_top_performers_section
             ))
@@ -1711,12 +1739,12 @@ class TableOfContents(object):
             (self.toc_chart_section_data + [["", "", ""]] if self.toc_chart_section_data else []) +
             (self.toc_team_section_data + [["", "", ""]] if self.toc_team_section_data else []) +
             (self.toc_appendix_data if self.toc_appendix_data else []),
-            colWidths=[3.25 * inch, 2 * inch, 2.50 * inch],
-            rowHeights=[0.25 * inch] * len(self.toc_metric_section_data) + [0.05 * inch] +
-                       [0.25 * inch] * len(self.toc_top_performers_section_data) + [0.05 * inch] +
-                       [0.25 * inch] * len(self.toc_chart_section_data) + [0.05 * inch] +
-                       [0.25 * inch] * len(self.toc_team_section_data) + [0.05 * inch] +
-                       [0.25 * inch] * len(self.toc_appendix_data)
+            colWidths=[3.25*inch, 2*inch, 2.50*inch],
+            rowHeights=[0.25*inch] * len(self.toc_metric_section_data) + [0.05*inch] +
+                       [0.25*inch] * len(self.toc_top_performers_section_data) + [0.05*inch] +
+                       [0.25*inch] * len(self.toc_chart_section_data) + [0.05*inch] +
+                       [0.25*inch] * len(self.toc_team_section_data) + [0.05*inch] +
+                       [0.25*inch] * len(self.toc_appendix_data)
         )
 
 
@@ -1762,5 +1790,5 @@ class Appendix(object):
         self.entries.insert(0, [title])
         return Table(
             self.entries,
-            colWidths=[7.75 * inch]
+            colWidths=[7.75*inch]
         )

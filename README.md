@@ -2,7 +2,7 @@
 
 [![latest-release.png](resources/images/latest-release.png)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/latest)
 
-###### Latest Version: [v10.0.0-beta](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/tag/v10.0.0-beta)
+###### Latest Version: [v10.0.0-beta.1](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/tag/v10.0.0-beta.1)
 
 [![Build Status](https://travis-ci.com/uberfastman/fantasy-football-metrics-weekly-report.svg?branch=develop)](https://travis-ci.com/uberfastman/fantasy-football-metrics-weekly-report)
 
@@ -276,12 +276,23 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
     docker-compose up -d
     ```
 
-    * Wait until you see the below output:
+    * *FIRST TIME RUNNING*: The first time you run the above command, you must wait for the Docker image to build. You will output containing numbered steps (such as `Step 1/8 : FROM python:3.8-slim`). Wait until the process completes, and you see the below output:
     
         ```bash
+        Successfully built ae1d93516452
+        Successfully tagged fantasy-football-metrics-weekly-report_app:latest
+        WARNING: Image for service app was built because it did not already exist. To rebuild this image you must use `docker-compose build` or `docker-compose up --build`.
         Creating fantasy-football-metrics-weekly-report_app_1 ... done
         ```
 
+    * *ALL SUBSEQUENT RUNS*: After the initial build of the Docker container, you will not see all the same build output as you did the first time. Instead, simply wait until you see the below output: 
+        
+        ```bash
+        Creating fantasy-football-metrics-weekly-report_app_1 ... done
+        ```
+      
+    * The docker image is now running, and ready for use!
+     
 * Run the report:
 
     ```bash
