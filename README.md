@@ -5,12 +5,14 @@
 [![Version](https://img.shields.io/github/v/tag/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/tags)
 [![Last Commmit](https://img.shields.io/github/last-commit/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/commits/develop)
 
----
-
 [![Build Status](https://travis-ci.com/uberfastman/fantasy-football-metrics-weekly-report.svg?branch=develop)](https://travis-ci.com/uberfastman/fantasy-football-metrics-weekly-report)
 [![Issues](https://img.shields.io/github/issues/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/issues)
 [![Pull Requests](https://img.shields.io/github/issues-pr/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/pulls)
 [![License](https://img.shields.io/github/license/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/blob/develop/LICENSE)
+
+---
+
+#### Fantasy Football Platform Support: [Yahoo](#yahoo-setup), [ESPN](#espn-setup), [Sleeper](#sleeper-setup), [Fleaflicker](#fleaflicker-setup)
 
 ---
 
