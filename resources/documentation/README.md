@@ -1,6 +1,6 @@
 # Development Setup
 
-<sup>Open issues for development:</sup> [![Help Wanted](https://img.shields.io/github/labels/uberfastman/fantasy-football-metrics-weekly-report/help%20wanted)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/labels/help%20wanted)
+##### <sup>Open issues for development:</sup> [![Help Wanted](https://img.shields.io/github/labels/uberfastman/fantasy-football-metrics-weekly-report/help%20wanted)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/labels/help%20wanted)
 
 ### Table of Contents
 * [Note to Users](#note-to-users)

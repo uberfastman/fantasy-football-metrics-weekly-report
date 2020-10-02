@@ -28,8 +28,7 @@
 
 ---
 
-###### Interested in contributing? 
-[![Help Wanted](https://img.shields.io/github/labels/uberfastman/fantasy-football-metrics-weekly-report/help%20wanted)](resources/documentation/README.md)
+###### Interested in contributing? <sub>[![Help Wanted](https://img.shields.io/github/labels/uberfastman/fantasy-football-metrics-weekly-report/help%20wanted)](resources/documentation/README.md)</sub>
 
 ___
 
