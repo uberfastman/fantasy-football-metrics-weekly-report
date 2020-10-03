@@ -1,11 +1,11 @@
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
+import json
 import logging
 import os
 import sys
 import urllib.request
-from utils.app_config_parser import AppConfigParser
 from copy import deepcopy
 from urllib.error import URLError
 
@@ -34,6 +34,7 @@ from report.pdf.charts.bar import HorizontalBarChart3DGenerator
 from report.pdf.charts.line import LineChartGenerator
 from report.pdf.charts.pie import BreakdownPieDrawing
 from resources.documentation import descriptions
+from utils.app_config_parser import AppConfigParser
 
 logger = get_logger(__name__, propagate=False)
 
@@ -55,15 +56,16 @@ def get_player_image(url, data_dir, week, image_quality, width=1.0*inch, player_
         if not os.path.exists(local_img_jpg_path):
             if not os.path.exists(local_img_path):
                 if not dev_offline:
+                    logger.debug("Retrieving player headshot for \"{0}\"".format(player_name))
                     try:
                         urllib.request.urlretrieve(url, local_img_path)
                     except URLError:
-                        logger.error("Unable to retrieve player headshot{} at url {}".format(
+                        logger.error("Unable to retrieve player headshot{0} at url {1}".format(
                             (" for player " + player_name) if player_name else "", url))
                         local_img_path = os.path.join("resources", "images", "photo-not-available.jpg")
                 else:
                     logger.error(
-                        "FILE {} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
+                        "FILE {0} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                             local_img_path))
                     sys.exit("...run aborted.")
 
@@ -82,7 +84,7 @@ def get_player_image(url, data_dir, week, image_quality, width=1.0*inch, player_
             local_img_path = local_img_jpg_path
 
     else:
-        logger.error("No available URL for player{}.".format(" " + player_name if player_name else ""))
+        logger.error("No available URL for player{0}.".format(" " + player_name if player_name else ""))
         img_name = "photo-not-available.jpg"
         local_img_path = os.path.join("resources", "images", img_name)
 
@@ -126,8 +128,10 @@ class HyperlinkedImage(ReportLabImage, object):
 
 
 class PdfGenerator(object):
+
     def __init__(self, config: AppConfigParser, season, league: BaseLeague, playoff_prob_sims, report_title_text,
                  report_footer_text, report_data: ReportData):
+        logger.debug("Instantiating PDF generator.")
 
         # report configuration
         self.config = config
@@ -195,9 +199,9 @@ class PdfGenerator(object):
         font_key = config.get("Report", "font", fallback="helvetica")
         supported_fonts = [font.strip() for font in self.config.get("Report", "supported_fonts").split(",")]
         if font_key not in supported_fonts:
-            logger.warning("The {} font is not supported at this time. Report formatting has defaulted to Helvetica. "
+            logger.warning("The {0} font is not supported at this time. Report formatting has defaulted to Helvetica. "
                            "Please try again with one of the following supported font keys:"
-                           "{}".format(font_key, supported_fonts))
+                           "{1}".format(font_key, supported_fonts))
         font_dict = {
             "helvetica": 1,
             "times": 2,
@@ -603,6 +607,9 @@ class PdfGenerator(object):
     def create_section(self, title_text, headers, data, table_style, table_style_ties, col_widths,
                        subtitle_text=None, subsubtitle_text=None, header_text=None, footer_text=None, row_heights=None,
                        tied_metric=False, metric_type=None, section_title_function=None):
+        logger.debug(
+            "Creating report section: \"{0}\" with data:\n{1}\n".format(
+                title_text if title_text else metric_type, json.dumps(data, indent=2)))
 
         title = None
         if title_text:
@@ -950,6 +957,7 @@ class PdfGenerator(object):
         return image
 
     def create_team_stats_pages(self, doc_elements, weekly_team_data_by_position, season_average_team_data_by_position):
+        logger.debug("Creating team stats pages.")
 
         # reorganize weekly_team_data_by_position to alphabetical order by team name
         alphabetical_teams = []
@@ -1109,7 +1117,7 @@ class PdfGenerator(object):
                             starting_players[0].week_for_report > 1:
                         data.append(
                             [
-                                "{} ({} avg: +{}%)".format(
+                                "{0} ({1} avg: +{2}%)".format(
                                     round(best_weekly_player.points, 2),
                                     best_weekly_player.season_average_points,
                                     round(((best_weekly_player.points - best_weekly_player.season_average_points) /
@@ -1120,7 +1128,7 @@ class PdfGenerator(object):
                                     else round(((best_weekly_player.season_average_points - best_weekly_player.points) /
                                                 best_weekly_player.season_average_points) * -100, 2)
                                 ),
-                                "{} ({} avg: -{}%)".format(
+                                "{0} ({1} avg: -{2}%)".format(
                                     round(worst_weekly_player.points, 2),
                                     worst_weekly_player.season_average_points,
                                     round(((worst_weekly_player.season_average_points - worst_weekly_player.points) /
@@ -1152,6 +1160,7 @@ class PdfGenerator(object):
                     doc_elements.append(self.add_page_break())
 
     def generate_pdf(self, filename_with_path, line_chart_data_list):
+        logger.debug("Generating report PDF.")
 
         elements = []
         # doc = SimpleDocTemplate(filename_with_path, pagesize=LETTER, rightMargin=25, leftMargin=25, topMargin=10,
@@ -1203,7 +1212,7 @@ class PdfGenerator(object):
                         table_footer = None
 
                     table_header = self.report_data.divisions[
-                        division[0][-1]] if self.report_data.divisions else "Division {}".format(division_count)
+                        division[0][-1]] if self.report_data.divisions else "Division {0}".format(division_count)
 
                     division_table = self.create_section(
                         table_title,
@@ -1291,7 +1300,7 @@ class PdfGenerator(object):
                                       "\nProbabilities account for division winners in addition to overall "
                                       "win/loss/tie record." if self.report_data.has_divisions else ""),
                     metric_type="playoffs",
-                    footer_text="† Predicted Division Leaders{}".format(
+                    footer_text="† Predicted Division Leaders{0}".format(
                         "<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
                         "‡ Predicted Division Qualifiers" if self.config.getint(
                             "Configuration", "num_playoff_slots_per_division", fallback=1) > 1 else "")
@@ -1318,7 +1327,7 @@ class PdfGenerator(object):
                 self.widths_07_cols_no_2,
                 metric_type="median_standings",
                 subtitle_text="League standings when every team plays against the league median score each week.<br/>",
-                subsubtitle_text="WEEK {} LEAGUE MEDIAN SCORE: {}".format(
+                subsubtitle_text="WEEK {0} LEAGUE MEDIAN SCORE: {1}".format(
                     self.week_for_report, self.data_for_median_standings[0][-1])
             ))
             elements.append(self.spacer_twentieth_inch)
@@ -1602,7 +1611,7 @@ class PdfGenerator(object):
         elements.append(self.report_footer)
 
         # build pdf
-        logger.info("generating PDF ({})...".format(filename_with_path.split("/")[-1]))
+        logger.info("generating PDF ({0})...".format(filename_with_path.split("/")[-1]))
         # doc.build(elements, onFirstPage=self.add_page_number, onLaterPages=self.add_page_number)
         doc.build(elements, onLaterPages=self.add_page_number)
 

@@ -6,11 +6,12 @@ import copy
 from dao.base import BaseLeague, BaseTeam, BasePlayer
 from report.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, propagate=False)
 
 
 class PointsByPosition(object):
     def __init__(self, league: BaseLeague, week_for_report):
+        logger.debug("Initializing points by position.")
 
         self.week_for_report = week_for_report
         self.roster_slot_counts = league.roster_position_counts
@@ -28,6 +29,7 @@ class PointsByPosition(object):
 
     @staticmethod
     def calculate_points_by_position_season_averages(season_average_points_by_position_dict):
+        logger.debug("Calculating points by position season averages.")
 
         for team in list(season_average_points_by_position_dict.keys()):
             points_by_position = season_average_points_by_position_dict.get(team)
@@ -48,7 +50,8 @@ class PointsByPosition(object):
 
         return season_average_points_by_position_dict
 
-    def execute_points_by_position(self, roster):
+    def execute_points_by_position(self, team_name, roster):
+        logger.debug("Calculating points by position for team \"{0}\".".format(team_name))
 
         player_points_by_position = []
         starting_players = [p for p in roster if p.selected_position not in self.bench_positions]
@@ -60,6 +63,7 @@ class PointsByPosition(object):
         return player_points_by_position
 
     def get_weekly_points_by_position(self, teams_results):
+        logger.debug("Retrieving weekly points by position.")
 
         weekly_points_by_position_data = []
         for team_result in teams_results.values():  # type: BaseTeam
@@ -68,7 +72,7 @@ class PointsByPosition(object):
                 if self.roster_slot_counts.get(slot) == 0:
                     del self.roster_slot_counts[slot]
 
-            player_points_by_position = self.execute_points_by_position(team_result.roster)
+            player_points_by_position = self.execute_points_by_position(team_result.name, team_result.roster)
             weekly_points_by_position_data.append([team_result.team_id, player_points_by_position])
 
         return weekly_points_by_position_data

@@ -5,7 +5,6 @@ __email__ = "wrenjr@yahoo.com"
 import datetime
 import itertools
 import json
-import logging
 import os
 import random
 import traceback
@@ -13,13 +12,17 @@ from copy import deepcopy
 
 import numpy as np
 
-logger = logging.getLogger(__name__)
+from report.logger import get_logger
+
+logger = get_logger(__name__, propagate=False)
 
 
 class PlayoffProbabilities(object):
 
     def __init__(self, config, simulations, num_weeks, num_playoff_slots, data_dir, num_divisions=0, save_data=False,
                  recalculate=False, dev_offline=False):
+        logger.debug("Initializing playoff probabilities.")
+
         self.config = config
         self.simulations = int(simulations) if simulations is not None else self.config.getint(
             "Configuration", "num_playoff_simulations", fallback=100000)
@@ -33,6 +36,7 @@ class PlayoffProbabilities(object):
         self.playoff_probs_data = {}
 
     def calculate(self, week, week_for_report, standings, remaining_matchups):
+        logger.debug("Calculating playoff probabilities.")
 
         teams_for_playoff_probs = {}
         for team in standings:
@@ -141,8 +145,8 @@ class PlayoffProbabilities(object):
                                                 remaining_playoff_count - 1].team_id].add_division_qualifier_tally()
                                         remaining_playoff_count += 1
                                 else:
-                                    raise ValueError("Specified number of playoff qualifiers per division ({}) exceeds "
-                                                     "available league playoff spots. Please correct the value of "
+                                    raise ValueError("Specified number of playoff qualifiers per division ({0}) exceeds"
+                                                     " available league playoff spots. Please correct the value of "
                                                      "\"num_playoff_slots_per_division\" in \"config.ini\".".format(
                                                         num_playoff_slots_per_division_without_leader + 1))
 
@@ -248,16 +252,17 @@ class PlayoffProbabilities(object):
                             self.playoff_probs_data = json.load(pp_in)
                     else:
                         raise FileNotFoundError(
-                            "FILE {} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
+                            "FILE {0} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                                 playoff_probs_data_file_path))
 
                 return self.playoff_probs_data
             else:
-                logger.debug("No predicted playoff standings calculated. The Fantasy Football Metrics Weekly Report "
-                             "application currently only supports playoff predictions when run for the current week.")
+                logger.debug("No predicted playoff standings calculated for week {0}. The Fantasy Football Metrics "
+                             "Weekly Report application currently only supports playoff predictions when run for the "
+                             "current week.".format(week))
                 return None
         except Exception as e:
-            logger.error("COULDN'T CALCULATE PLAYOFF PROBS WITH EXCEPTION: {}\n{}".format(e, traceback.format_exc()))
+            logger.error("COULDN'T CALCULATE PLAYOFF PROBS WITH EXCEPTION: {0}\n{1}".format(e, traceback.format_exc()))
             return None
 
     def group_by_division(self, teams_for_playoff_probs):

@@ -3,14 +3,15 @@ __email__ = "wrenjr@yahoo.com"
 
 import itertools
 import json
-import logging
 import os
 from collections import OrderedDict
 
 import requests
 from bs4 import BeautifulSoup
 
-logger = logging.getLogger(__name__)
+from report.logger import get_logger
+
+logger = get_logger(__name__, propagate=False)
 
 
 class BadBoyStats(object):
@@ -18,6 +19,8 @@ class BadBoyStats(object):
     def __init__(self, data_dir, save_data=False, dev_offline=False, refresh=False):
         """ Initialize class, load data from USA Today NFL Arrest DB. Combine defensive player data
         """
+        logger.debug("Initializing bad boy stats.")
+
         self.save_data = save_data
         self.dev_offline = dev_offline
         self.refresh = refresh
@@ -59,6 +62,7 @@ class BadBoyStats(object):
         with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "resources", "files",
                                "crime-categories.json"), mode="r", encoding="utf-8") as crimes:
             self.crime_rankings = json.load(crimes)
+            logger.debug("Crime categories loaded.")
 
         # for outputting all unique crime categories found in the USA Today NFL arrests data
         self.unique_crime_categories_for_output = {}
@@ -78,6 +82,7 @@ class BadBoyStats(object):
         # fetch crimes of players from the web if not running in offline mode or if refresh=True
         if self.refresh or not self.dev_offline:
             if not self.bad_boy_data:
+                logger.debug("Retrieving bad boy data from the web.")
 
                 # Scrape USA Today NFL crime database site
                 usa_today_nfl_arrest_url = "https://www.usatoday.com/sports/nfl/arrests/"
@@ -114,7 +119,7 @@ class BadBoyStats(object):
 
                 for team_abbr in self.nfl_team_abbreviations:
                     # response = requests.get(nfl_arrest_api_team_base_url + team_abbr, headers=headers)
-                    # logger.debug("Response {} for {} nflarrest query.".format(response.status_code, team_abbr))
+                    # logger.debug("Response {0} for {1} nflarrest query.".format(response.status_code, team_abbr))
                     # self.add_entry(team_abbr, response)
                     self.add_entry(team_abbr, arrests_by_team.get(team_abbr))
 
@@ -124,25 +129,25 @@ class BadBoyStats(object):
         else:
             if not self.bad_boy_data:
                 raise FileNotFoundError(
-                    "FILE {} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
+                    "FILE {0} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                         self.bad_boy_data_file_path))
 
         if len(self.bad_boy_data) == 0:
             logger.warning(
                 "NO bad boy records were loaded, please check your internet connection or the availability of "
-                "'https://nflarrest.com/' and 'https://www.usatoday.com/sports/nfl/arrests/' and try generating a new "
-                "report.")
+                "'https://www.usatoday.com/sports/nfl/arrests/' and try generating a new report.")
         else:
-            # print("{} bad boy records loaded".format(len(self.bad_boy_data)))
-            logger.info("{} bad boy records loaded".format(len(self.bad_boy_data)))
+            logger.info("{0} bad boy records loaded".format(len(self.bad_boy_data)))
 
     def open_bad_boy_data(self):
+        logger.debug("Loading saved bay boy data.")
         if os.path.exists(self.bad_boy_data_file_path):
             with open(self.bad_boy_data_file_path, "r", encoding="utf-8") as bad_boy_in:
                 self.bad_boy_data = dict(json.load(bad_boy_in))
 
     def save_bad_boy_data(self):
         if self.save_data:
+            logger.debug("Saving bad boy data and raw player crime data.")
             # save report bad boy data locally
             with open(self.bad_boy_data_file_path, "w", encoding="utf-8") as bad_boy_out:
                 json.dump(self.bad_boy_data, bad_boy_out, ensure_ascii=False, indent=2)
@@ -240,7 +245,7 @@ class BadBoyStats(object):
             return self.bad_boy_data[player_full_name][key_str] if key_str else self.bad_boy_data[player_full_name]
         else:
             logger.debug(
-                "Player not found: {}. Setting crime category and bad boy points to 0. Run report with the -r flag "
+                "Player not found: {0}. Setting crime category and bad boy points to 0. Run report with the -r flag "
                 "(--refresh-web-data) to refresh all external web data and try again.".format(player_full_name))
 
             self.bad_boy_data[player_full_name] = {

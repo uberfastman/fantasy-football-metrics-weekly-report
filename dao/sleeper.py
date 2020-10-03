@@ -4,20 +4,21 @@ __email__ = "wrenjr@yahoo.com"
 import datetime
 import json
 import logging
-from statistics import median
 import os
 import sys
 from collections import defaultdict, Counter
 from copy import deepcopy
 from datetime import datetime, timedelta
 from itertools import groupby
+from statistics import median
 
 import requests
 from requests.exceptions import HTTPError
 
 from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
+from report.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Suppress Fleaflicker API debug logging
 logger.setLevel(level=logging.INFO)
@@ -34,6 +35,8 @@ class LeagueData(object):
                  week_validation_function,
                  save_data=True,
                  dev_offline=False):
+
+        logger.debug("Initiating Sleeper league.")
 
         self.league_id = league_id
         self.season = season
@@ -70,7 +73,9 @@ class LeagueData(object):
         self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week, self.season)
 
         self.num_playoff_slots = self.league_settings.get("playoff_teams")
-        self.num_regular_season_weeks = int(self.league_settings.get("playoff_week_start")) - 1
+        self.num_regular_season_weeks = (int(self.league_settings.get("playoff_week_start")) - 1) \
+            if self.league_settings.get("playoff_week_start") > 0 \
+            else self.config.get("Configuration", "num_regular_season_weeks")
         self.roster_positions = dict(Counter(self.league_info.get("roster_positions")))
         self.has_median_matchup = bool(self.league_settings.get("league_average_match"))
         self.median_score_by_week = {}
@@ -238,47 +243,50 @@ class LeagueData(object):
         run_query = True
         if check_for_saved_data:
             if not os.path.exists(file_path):
-                logger.info("File {} does not exist... attempting data retrieval.".format(filename))
+                logger.debug("File {0} does not exist... attempting data retrieval.".format(filename))
             else:
                 file_modified_timestamp = datetime.fromtimestamp(os.path.getmtime(file_path))
                 if file_modified_timestamp < (datetime.today() - timedelta(days=refresh_days_delay)):
                     if not self.dev_offline:
-                        logger.info("Data in {} over {} day{} old... refreshing.".format(
+                        logger.debug("Data in {0} over {1} day{2} old... refreshing.".format(
                             filename, refresh_days_delay, "s" if refresh_days_delay > 1 else ""))
                     else:
-                        logger.info("Data in {} over {} day{} old but dev_offline=True... skipping refresh.".format(
+                        logger.debug("Data in {0} over {1} day{2} old but dev_offline=True... skipping refresh.".format(
                             filename, refresh_days_delay, "s" if refresh_days_delay > 1 else ""))
                 else:
-                    logger.debug("Data in {} still recent... skipping refresh.".format(filename))
+                    logger.debug("Data in {0} still recent... skipping refresh.".format(filename))
                     run_query = False
                     with open(file_path, "r") as saved_data:
                         response_json = json.load(saved_data)
 
         if not self.dev_offline:
             if run_query:
+                logger.debug("Retrieving Sleeper data from endpoint: {0}".format(url))
                 response = requests.get(url)
 
                 try:
                     response.raise_for_status()
                 except HTTPError as e:
                     # log error and terminate query if status code is not 200
-                    logger.error("REQUEST FAILED WITH STATUS CODE: {} - {}".format(response.status_code, e))
+                    logger.error("REQUEST FAILED WITH STATUS CODE: {0} - {1}".format(response.status_code, e))
                     sys.exit("...run aborted.")
 
                 response_json = response.json()
-                logger.debug("Response (JSON): {}".format(response_json))
+                logger.debug("Response (JSON): {0}".format(response_json))
         else:
             try:
+                logger.debug("Loading saved Sleeper data for endpoint: {0}".format(url))
                 with open(file_path, "r", encoding="utf-8") as data_in:
                     response_json = json.load(data_in)
             except FileNotFoundError:
                 logger.error(
-                    "FILE {} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
+                    "FILE {0} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                         file_path))
                 sys.exit("...run aborted.")
 
         if self.save_data or check_for_saved_data:
             if run_query:
+                logger.debug("Saving Sleeper data retrieved from endpoint: {0}".format(url))
                 if not os.path.exists(file_dir):
                     os.makedirs(file_dir)
 
@@ -336,6 +344,8 @@ class LeagueData(object):
         return round(points, 2), round(projected_points, 2)
 
     def map_data_to_base(self, base_league_class):
+        logger.debug("Mapping Sleeper data to base objects.")
+
         league = base_league_class(self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data,
                                    self.dev_offline)  # type: BaseLeague
 
@@ -446,7 +456,7 @@ class LeagueData(object):
                         base_team.name = team_info.get("owner").get("metadata").get("team_name") if team_info.get(
                             "owner").get("metadata").get("team_name") else team_info.get("owner").get("display_name")
                     else:
-                        base_team.name = "Team #{}".format(team_info.get("roster_id"))
+                        base_team.name = "Team #{0}".format(team_info.get("roster_id"))
 
                     if team_info.get("owner"):
                         for manager in [team_info.get("owner")] + team_info.get("co_owners"):

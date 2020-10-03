@@ -44,7 +44,7 @@ class AppConfigParser(ConfigParser):
                          str(option).startswith("report") or
                          str(option).startswith("team")):
                     logger.warning(
-                        "MISSING CONFIGURATION VALUE: \"{}: {}\"! Setting to default value of \"False\". To include "
+                        "MISSING CONFIGURATION VALUE: \"{0}: {1}\"! Setting to default value of \"False\". To include "
                         "this section, update \"config.ini\" and try again.".format(section, option))
                     return "False"
                 else:
