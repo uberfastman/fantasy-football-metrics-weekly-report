@@ -3,6 +3,7 @@ import logging.handlers as handlers
 import os
 import sys
 import time
+from configparser import NoSectionError
 # from logging.handlers import RotatingFileHandler
 from logging.handlers import TimedRotatingFileHandler
 
@@ -57,14 +58,9 @@ def get_logger(module_name=None, propagate=True):
         "critical": logging.CRITICAL
     }
 
-    print(os.path.dirname(__file__))
-    print(os.path.dirname(os.path.dirname(__file__)))
-    print(os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.ini"))
-    print(config)
-
     try:
         log_level = log_level_mapping[config.get("Configuration", "log_level")]
-    except KeyError:
+    except (KeyError, NoSectionError):
         log_level = logging.INFO
 
     log_file_dir = "logs"
