@@ -76,6 +76,7 @@ ___
 * [Troubleshooting](#troubleshooting)
     * [Logs](#logs)
     * [Yahoo](#yahoo)
+    * [Docker on Windows](#docker-on-windows)
 
 ---
 
@@ -307,6 +308,8 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
         WARNING: Image for service app was built because it did not already exist. To rebuild this image you must use `docker-compose build` or `docker-compose up --build`.
         Creating fantasy-football-metrics-weekly-report_app_1 ... done
         ```
+       
+       **NOTE**: If you are running *Docker for Windows* and you see errors when trying to build the Docker container and/or run `docker-compose up -d`, please go to the [Docker on Windows](#docker-on-windows) section in [Troubleshooting](#troubleshooting) for workarounds!
 
     2. *ALL SUBSEQUENT RUNS*: After the initial build of the Docker container, you will not see all the same build output as you did the first time. Instead, simply wait until you see the below output: 
         
@@ -663,3 +666,32 @@ Occasionally when you use the Yahoo fantasy football API, there are hangups on t
     IndexError: list index out of range
 
 Typically when the above error (or a similar error) occurs, it simply means that one of the Yahoo Fantasy Football API calls failed and so no data was retrieved. This can be fixed by simply re-running data query.
+
+<a name="docker-on-windows"></a>
+#### Docker on Windows
+
+If you are running Docker on Windows, you might encounter errors when trying to build the Docker image and/or run `docker-compose up -d`. Typically these errors revolve around the way Windows strictly enforces file access permissions. There are two known permissions issues (and workarounds) currently for running the FFMWR app.
+
+1. If you are running on <ins>***Windows 10 Enterprise, Pro, or Education***</ins> (all of which support the Hyper-V feature), then the latest version of Docker for Windows requires you to specifically give Docker permission to access any files and directories you need it to be able to see.
+
+    1. In order to do so, open up Docker for Windows, and go to settings:
+
+        ![docker-settings.png](resources/images/docker-settings.png)
+
+    2. Then click the following items in order (stop between 3 and 4):
+    
+        ![docker-file-sharing.png](resources/images/docker-file-sharing.png)
+
+    3. After clicking the `+` button to add a directory, select the FFMWR app directory (which will be wherever you cloned it), or any parent directory of the app directory, and add it. Then click `Apply & Restart`.
+    
+    4. Now go back to your command line shell, make sure you are in the FFMWR app directory, and re-run `docker-compose up -d`. This time things should build and startup as expected without any errors, and you can pick up where you left of with [Running the Report Application](#running-the-report-application)!
+    
+2. If you are running on <ins>***Windows 10 Home***</ins> (which does **not** support the Hyper-V feature), then Docker for Windows does not have the File Sharing option discussed above for Windows 10 Enterprise, Pro, and Education users. However, you might still run into similar permissions issues. The below steps should provide a workaround to just sharing the files in Docker Desktop for Windows:
+
+    1. Type `Windows + X`. You will see a small pop-up list containing various administrator tasks.
+    
+    2. Select `Command Prompt (Admin)`.
+    
+    3. Use `cd` commands to navigate to whichever directory you cloned the FFMWR app into (e.g. `cd ~\Documents\fantasy-football-metrics-weekly-report\`).
+    
+    4. Now from within that command prompt shell (which has privileged admin access), you should be able to re-run `docker-compose up -d`, wait for everything to build and start running, and then pick up where you left of with [Running the Report Application](#running-the-report-application). Remember to stay in the admin command prompt shell to give your command the right file access!
