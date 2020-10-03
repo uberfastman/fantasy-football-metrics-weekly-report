@@ -2,19 +2,21 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
 import itertools
-import logging
 from collections import defaultdict, OrderedDict
 from statistics import mean
 
 import numpy as np
 
 from dao.base import BaseLeague, BaseTeam, BaseRecord, BasePlayer
+from report.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, propagate=False)
 
 
 class CalculateMetrics(object):
     def __init__(self, config, league_id, playoff_slots, playoff_simulations):
+        logger.debug("Initializing metrics calculator.")
+
         self.config = config
         self.league_id = league_id
         self.playoff_slots = playoff_slots
@@ -30,6 +32,8 @@ class CalculateMetrics(object):
 
     @staticmethod
     def get_standings_data(league: BaseLeague):
+        logger.debug("Creating league standings data.")
+
         current_standings_data = []
         for team in league.standings:  # type: BaseTeam
 
@@ -55,6 +59,8 @@ class CalculateMetrics(object):
 
     @staticmethod
     def get_division_standings_data(league: BaseLeague):
+        logger.debug("Creating league division standings data.")
+
         # group teams into divisions
         division_groups = [
             list(group) for key, group in itertools.groupby(
@@ -141,6 +147,8 @@ class CalculateMetrics(object):
 
     @staticmethod
     def get_median_standings_data(league: BaseLeague):
+        logger.debug("Creating league median standings data.")
+
         current_median_standings_data = []
         rank = 1
         for team in sorted(
@@ -174,6 +182,7 @@ class CalculateMetrics(object):
 
     @staticmethod
     def get_playoff_probs_data(league_standings, data_for_playoff_probs):
+        logger.debug("Creating league playoff probabilities data.")
 
         has_divisions = False
         playoff_probs_data = []
@@ -248,6 +257,8 @@ class CalculateMetrics(object):
 
     @staticmethod
     def get_score_data(score_results):
+        logger.debug("Creating league score data.")
+
         score_results_data = []
         place = 1
         for team in score_results:  # type: BaseTeam
@@ -264,6 +275,8 @@ class CalculateMetrics(object):
         return score_results_data
 
     def get_coaching_efficiency_data(self, coaching_efficiency_results):
+        logger.debug("Creating league coaching efficiency data.")
+
         coaching_efficiency_results_data = []
         place = 1
         for team in coaching_efficiency_results:  # type: BaseTeam
@@ -285,6 +298,8 @@ class CalculateMetrics(object):
 
     @staticmethod
     def get_luck_data(luck_results):
+        logger.debug("Creating league luck data.")
+
         luck_results_data = []
         place = 1
         for team in luck_results:  # type: BaseTeam
@@ -300,6 +315,8 @@ class CalculateMetrics(object):
 
     @staticmethod
     def get_optimal_score_data(score_results):
+        logger.debug("Creating league optimal score data.")
+
         optimal_score_results_data = []
         place = 1
         for team in score_results:  # type: BaseTeam
@@ -316,6 +333,8 @@ class CalculateMetrics(object):
 
     @staticmethod
     def get_bad_boy_data(bad_boy_results):
+        logger.debug("Creating league bad boys data.")
+
         bad_boy_results_data = []
         place = 1
         for team in bad_boy_results:  # type: BaseTeam
@@ -333,6 +352,8 @@ class CalculateMetrics(object):
 
     @staticmethod
     def get_beef_rank_data(beef_results):
+        logger.debug("Creating league beef data.")
+
         beef_results_data = []
         place = 1
         for team in beef_results:  # type: BaseTeam
@@ -346,6 +367,8 @@ class CalculateMetrics(object):
 
     @staticmethod
     def get_covid_risk_rank_data(covid_risk_results):
+        logger.debug("Creating league COVID-19 risk data.")
+
         covid_risk_data = []
         ndx = 0
         for team in covid_risk_results:  # type: BaseTeam
@@ -461,6 +484,8 @@ class CalculateMetrics(object):
                                          week,
                                          week_for_report,
                                          break_ties):
+
+        logger.debug("Resolving coaching efficiency ties.")
 
         if league.player_data_by_week_function:
             coaching_efficiency_results_data_with_tiebreakers = []
@@ -638,6 +663,8 @@ class CalculateMetrics(object):
 
     @staticmethod
     def calculate_records(week, league: BaseLeague, custom_weekly_matchups):
+        logger.debug("Calculating league records for week \"{0}\".".format(week))
+
         standings = league.standings if league.standings else league.current_standings
 
         records = defaultdict(BaseRecord)
@@ -708,6 +735,8 @@ class CalculateMetrics(object):
 
     @staticmethod
     def calculate_luck(week, league: BaseLeague, custom_weekly_matchups):
+        logger.debug("Calculating luck for week \"{0}\".".format(week))
+
         luck_results = defaultdict(defaultdict)
 
         teams = league.teams_by_week.get(str(week))
@@ -765,6 +794,8 @@ class CalculateMetrics(object):
     def calculate_power_rankings(self, teams_results, data_for_scores, data_for_coaching_efficiency, data_for_luck):
         """ avg of (weekly score rank + weekly coaching efficiency rank + weekly luck rank)
         """
+        logger.debug("Calculating power rankings.")
+
         power_ranked_teams = {
             team_result.team_id: {
                 "name": team_result.name,
@@ -784,6 +815,7 @@ class CalculateMetrics(object):
 
     @staticmethod
     def calculate_z_scores(weekly_teams_results):
+        logger.debug("Calculating z-scores.")
 
         results = {}
 

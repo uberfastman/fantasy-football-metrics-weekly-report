@@ -3,11 +3,17 @@ __email__ = "wrenjr@yahoo.com"
 
 # code snippets: http://www.reportlab.com/chartgallery/
 
+import json
+
 from reportlab.graphics.charts.barcharts import HorizontalBarChart3D
 from reportlab.graphics.charts.textlabels import Label
 # noinspection PyProtectedMember
 from reportlab.graphics.shapes import Drawing, _DrawingEditorMixin
 from reportlab.lib.colors import PCMYKColor
+
+from report.logger import get_logger
+
+logger = get_logger(__name__, propagate=False)
 
 
 # noinspection PyUnresolvedReferences,PyPep8Naming
@@ -15,6 +21,7 @@ class HorizontalBarChart3DGenerator(_DrawingEditorMixin, Drawing):
 
     def __init__(self, data: list, font, font_size, x_axis_params, box_width, box_height, chart_width, chart_height,
                  width=550, height=215, *args, **kw):
+        logger.debug("Generating 3D horizontal bar chart with data:\n{0}\n".format(json.dumps(data, indent=2)))
 
         num_teams = len(data)
         sorted_data = sorted(data, key=lambda x: x[3])

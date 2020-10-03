@@ -37,6 +37,8 @@ config.read("config.ini")
 
 
 def main(argv):
+    logger.debug("Running fantasy football metrics weekly report app with arguments:\n{0}".format(argv))
+
     dependencies = []
     with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "requirements.txt"), "r") as reqs:
         for line in reqs.readlines():
@@ -49,20 +51,20 @@ def main(argv):
             pkg_resources.require(dependency)
         except DistributionNotFound as dnfe:
             missing_dependency_count += 1
-            logger.error("Error: {}\n{}".format(dnfe, traceback.format_exc()))
+            logger.error("Error: {0}\n{1}".format(dnfe, traceback.format_exc()))
             logger.error(
-                "MISSING DEPENDENCY: {}. Please run `pip install {}` and retry the report generation.".format(
+                "MISSING DEPENDENCY: {0}. Please run `pip install {1}` and retry the report generation.".format(
                     dependency, re.split("\W+", dependency)[0]))
         except VersionConflict as vce:
             missing_dependency_count += 1
-            logger.error("Error: {}\n{}".format(vce, traceback.format_exc()))
+            logger.error("Error: {0}\n{1}".format(vce, traceback.format_exc()))
             logger.error(
-                "MISSING DEPENDENCY: {}. Please run `pip install {}` and retry the report generation.".format(
+                "MISSING DEPENDENCY: {0}. Please run `pip install {1}` and retry the report generation.".format(
                     dependency, dependency))
 
     if missing_dependency_count > 0:
         logger.error(
-            "MISSING {} ".format(str(missing_dependency_count)) + (
+            "MISSING {0} ".format(str(missing_dependency_count)) + (
                 "DEPENDENCY" if missing_dependency_count == 1 else "DEPENDENCIES"))
         sys.exit("...run aborted.")
 
@@ -238,6 +240,8 @@ if __name__ == '__main__':
 
     options = main(sys.argv[1:])
 
+    logger.debug("Fantasy football metrics weekly report app run configuration options:\n{0}".format(options))
+
     report = select_league(
         options.get("week", None),
         options.get("platform", None),
@@ -279,13 +283,13 @@ if __name__ == '__main__':
                 slack_response = slack_messenger.upload_file_to_selected_slack_channel(report_pdf)
             else:
                 logger.warning(
-                    "You have configured \"config.ini\" with unsupported Slack setting: post_or_file = {}. "
+                    "You have configured \"config.ini\" with unsupported Slack setting: post_or_file = {0}. "
                     "Please choose \"post\" or \"file\" and try again.".format(post_or_file))
                 sys.exit("...run aborted.")
             if slack_response.get("ok"):
-                logger.info("Report {} successfully posted to Slack!".format(report_pdf))
+                logger.info("Report {0} successfully posted to Slack!".format(report_pdf))
             else:
-                logger.error("Report {} was NOT posted to Slack with error: {}".format(
+                logger.error("Report {0} was NOT posted to Slack with error: {1}".format(
                     report_pdf, slack_response.get("error")))
         else:
             logger.info("Test report NOT posted to Slack.")

@@ -113,7 +113,7 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, c
             current_nfl_week = config.getint("Configuration", "current_week")
             if not week_for_report:
                 input_str = "Sleeper does not provide the current NFL week in the API. Are you trying to generate a " \
-                            "report for week {} (current NFL week {})? (y/n) -> ".format(
+                            "report for week {0} (current NFL week {1})? (y/n) -> ".format(
                                 current_nfl_week - 1, current_nfl_week)
                 time.sleep(1)
                 is_current_week_correct = input(input_str)
@@ -157,7 +157,7 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, c
 
     else:
         logger.error(
-            "Generating fantasy football reports for the \"{}\" fantasy football platform is not currently supported. "
+            "Generating fantasy football reports for the \"{0}\" fantasy football platform is not currently supported. "
             "Please change your settings in config.ini and try again.".format(platform))
         sys.exit("...run aborted.")
 
@@ -211,7 +211,7 @@ def add_report_team_stats(config, team: BaseTeam, league: BaseLeague, week_count
     # confirm total starting lineup points is the same as team points
     if round(team.points, 2) != (starting_lineup_points + team.home_field_advantage):
         logger.warning(
-            "Team {} points ({}) are not equal to sum of team starting lineup points ({}). Check data!".format(
+            "Team {0} points ({1}) are not equal to sum of team starting lineup points ({2}). Check data!".format(
                 team.name, round(team.points, 2), starting_lineup_points))
 
     team.bench_points = round(sum([p.points for p in team.roster if p.selected_position in bench_positions]), 2)
@@ -283,15 +283,15 @@ def get_player_game_time_statuses(week, league: BaseLeague):
         response = requests.get("https://www.footballdb.com/transactions/injuries.html", headers=headers, params=params)
 
         html_soup = BeautifulSoup(response.text, "html.parser")
-        logger.debug("Response URL: {}".format(response.url))
-        logger.debug("Response (HTML): {}".format(html_soup))
+        logger.debug("Response URL: {0}".format(response.url))
+        logger.debug("Response (HTML): {0}".format(html_soup))
     else:
         try:
             with open(file_path, "r", encoding="utf-8") as data_in:
                 html_soup = BeautifulSoup(data_in.read(), "html.parser")
         except FileNotFoundError:
             logger.error(
-                "FILE {} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
+                "FILE {0} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                     file_path))
             sys.exit("...run aborted.")
 

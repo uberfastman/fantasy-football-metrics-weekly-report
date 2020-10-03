@@ -3,22 +3,26 @@ __email__ = "wrenjr@yahoo.com"
 
 import datetime
 import json
-import logging
 import os
-from utils.app_config_parser import AppConfigParser
 
 from slack import WebClient
 from slack.errors import SlackApiError
 
-logger = logging.getLogger(__name__)
+from report.logger import get_logger
+from utils.app_config_parser import AppConfigParser
+
+logger = get_logger(__name__, propagate=False)
 
 
 class SlackMessenger(object):
     def __init__(self, config):
+        logger.debug("Initializing Slack messenger.")
 
         self.project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
         self.config = config  # type: AppConfigParser
+
+        logger.debug("Authenticating with Slack.")
 
         auth_token = os.path.join(self.project_dir, self.config.get("Slack", "slack_auth_token"))
 
@@ -29,6 +33,7 @@ class SlackMessenger(object):
             self.sc = WebClient(token=slack_api_access_token)
 
     def api_test(self):
+        logger.debug("Testing Slack API.")
         try:
             return self.sc.api_test()
         except SlackApiError as e:
@@ -37,6 +42,7 @@ class SlackMessenger(object):
     def list_channels(self):
         """Required Slack app scopes: channels:read, groups:read, mpim:read, im:read
         """
+        logger.debug("Listing Slack channels.")
         try:
             return self.sc.conversations_list(types="public_channel,private_channel")
         except SlackApiError as e:
@@ -48,6 +54,8 @@ class SlackMessenger(object):
                 return channel.get("id")
 
     def test_post_to_slack(self, message):
+        logger.debug("Testing message posting to Slack.")
+
         try:
             logger.info(self.sc.conversations_info(channel=self.get_channel_id("apitest")))
 
@@ -63,6 +71,8 @@ class SlackMessenger(object):
             logger.error("Slack client error: %s", e)
 
     def test_post_to_private_slack(self, message):
+        logger.debug("Testing message posting to private Slack channels.")
+
         try:
             logger.info(self.sc.conversations_info(channel=self.get_channel_id("apitest-private")))
 
@@ -78,12 +88,15 @@ class SlackMessenger(object):
             logger.error("Slack client error: %s", e)
 
     def test_file_upload_to_slack(self, upload_file):
+        logger.debug("Testing file uploads to Slack.")
+
         try:
             logger.info(self.sc.conversations_info(channel=self.get_channel_id("apitest")))
 
             with open(upload_file, "rb") as uf:
                 file_to_upload = uf.read()
 
+                # noinspection PyTypeChecker
                 response = self.sc.files_upload(
                     channels=self.get_channel_id("apitest"),
                     username="ff-report",
@@ -97,6 +110,8 @@ class SlackMessenger(object):
             logger.error("Slack client error: %s", e)
 
     def test_file_upload_to_private_slack(self, upload_file):
+        logger.debug("Testing file uploads to private Slack channels.")
+
         try:
             logger.info(self.sc.conversations_info(channel=self.get_channel_id("apitest-private")))
 
@@ -116,6 +131,8 @@ class SlackMessenger(object):
             logger.error("Slack client error: %s", e)
 
     def post_to_selected_slack_channel(self, message):
+        logger.debug("Posting message to Slack: \n{0}".format(message))
+
         try:
             return self.sc.chat_postMessage(
                 channel=self.get_channel_id(self.config.get("Slack", "slack_channel")),
@@ -127,6 +144,7 @@ class SlackMessenger(object):
             logger.error("Slack client error: %s", e)
 
     def upload_file_to_selected_slack_channel(self, upload_file):
+        logger.debug("Uploading file to Slack: \n{0}".format(upload_file))
 
         try:
             report_file_info = upload_file.split(os.sep)
@@ -145,6 +163,7 @@ class SlackMessenger(object):
                     self.post_to_selected_slack_channel("")
 
                 file_to_upload = uf.read()
+                # noinspection PyTypeChecker
                 response = self.sc.files_upload(
                     channels=self.get_channel_id(self.config.get("Slack", "slack_channel")),
                     filename=file_name,

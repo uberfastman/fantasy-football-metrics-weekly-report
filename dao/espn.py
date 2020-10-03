@@ -7,8 +7,8 @@ import os
 import re
 import sys
 from copy import deepcopy
-from typing import List
 from statistics import median
+from typing import List
 
 import requests
 from ff_espn_api import League, Settings, Team
@@ -18,8 +18,9 @@ from ff_espn_api.constant import POSITION_MAP
 from ff_espn_api.league import checkRequestStatus
 
 from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
+from report.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Suppress ESPN API debug logging
 logger.setLevel(level=logging.INFO)
@@ -37,6 +38,8 @@ class LeagueData(object):
                  week_validation_function,
                  save_data=True,
                  dev_offline=False):
+
+        logger.debug("Initiating ESPN league.")
 
         self.league_id = league_id
         self.season = season
@@ -69,6 +72,7 @@ class LeagueData(object):
             #         swid=espn_auth_json.get("swid")
             #     )  # type: LeagueWrapper
             # )
+            logger.debug("Retrieving ESPN league data.")
             self.league = LeagueWrapper(
                 league_id=self.league_id,
                 year=int(self.season),
@@ -108,6 +112,7 @@ class LeagueData(object):
         # validate user selection of week for which to generate report
         self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week, self.season)
 
+        logger.debug("Getting ESPN matchups by week data.")
         self.matchups_by_week = {}
         self.matchups_json_by_week = {}
         for week_for_matchups in range(1, self.num_regular_season_weeks + 1):
@@ -129,6 +134,7 @@ class LeagueData(object):
                 else:
                     self.median_score_by_week[str(week_for_matchups)] = 0
 
+        logger.debug("Getting ESPN rosters by week data.")
         self.rosters_by_week = {}
         self.rosters_json_by_week = {}
         for week_for_rosters in range(1, int(self.week_for_report) + 1):
@@ -152,16 +158,18 @@ class LeagueData(object):
         file_path = os.path.join(file_dir, filename)
 
         if self.dev_offline:
+            logger.debug("Loading saved ESPN league data.")
             try:
                 with open(file_path, "r", encoding="utf-8") as data_in:
                     data = json.load(data_in)
             except FileNotFoundError:
                 logger.error(
-                    "FILE {} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
+                    "FILE {0} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                         file_path))
                 sys.exit("...run aborted.")
 
         if self.save_data:
+            logger.debug("Saving ESPN league data.")
             if not os.path.exists(file_dir):
                 os.makedirs(file_dir)
 
@@ -171,6 +179,8 @@ class LeagueData(object):
         return data
 
     def map_data_to_base(self, base_league_class):
+        logger.debug("Mapping ESPN data to base objects.")
+
         league = base_league_class(self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data,
                                    self.dev_offline)  # type: BaseLeague
 
@@ -190,7 +200,7 @@ class LeagueData(object):
         if league.is_faab:
             league.faab_budget = int(self.league_settings_json.get("acquisitionSettings").get("acquisitionBudget", 0))
         # league.url = self.league.ENDPOINT
-        league.url = "https://fantasy.espn.com/football/league?leagueId={}".format(self.league_id)
+        league.url = "https://fantasy.espn.com/football/league?leagueId={0}".format(self.league_id)
 
         # TODO: set up with ESPN player endpoint
         # league.player_data_by_week_function = self.league.player_map
@@ -287,7 +297,7 @@ class LeagueData(object):
                     if league.is_faab:
                         base_team.faab = int(league.faab_budget) - int(
                             team_json["transactionCounter"].get("acquisitionBudgetSpent", 0))
-                    base_team.url = "https://fantasy.espn.com/football/team?leagueId=48153503&teamId={}".format(
+                    base_team.url = "https://fantasy.espn.com/football/team?leagueId=48153503&teamId={0}".format(
                         base_team.team_id)
 
                     if matchup_team.streak_type == "WIN":
@@ -415,13 +425,13 @@ class LeagueData(object):
                         base_player.full_name = base_player.first_name
                         base_player.nfl_team_name = base_player.first_name
                         base_player.headshot_url = \
-                            "https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/{}.png".format(
+                            "https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/{0}.png".format(
                                 base_player.nfl_team_abbr)
                     else:
                         base_player.first_name = player_json["firstName"]
                         base_player.last_name = player_json["lastName"]
                         base_player.full_name = player.name
-                        base_player.headshot_url = "https://a.espncdn.com/i/headshots/nfl/players/full/{}.png".format(
+                        base_player.headshot_url = "https://a.espncdn.com/i/headshots/nfl/players/full/{0}.png".format(
                             player.playerId)
                     base_player.owner_team_id = None
                     base_player.owner_team_name = league_team.manager_str
@@ -510,7 +520,8 @@ class LeagueWrapper(League):
         }
         r = requests.get(self.ENDPOINT, params=params, cookies=self.cookies)
         self.status = r.status_code
-        self.logger.debug(f'ESPN API Request: url: {self.ENDPOINT} params: {params} \nESPN API Response: {r.json()}\n')
+        self.logger.debug(
+            'ESPN API Request: url: {0} params: {1} \nESPN API Response: {2}\n'.format(self.ENDPOINT, params, r.json()))
         checkRequestStatus(self.status)
 
         data = r.json() if self.year > 2017 else r.json()[0]
@@ -522,7 +533,8 @@ class LeagueWrapper(League):
         }
         r = requests.get(self.ENDPOINT, params=params, cookies=self.cookies)
         self.status = r.status_code
-        self.logger.debug(f'ESPN API Request: url: {self.ENDPOINT} params: {params} \nESPN API Response: {r.json()}\n')
+        self.logger.debug(
+            'ESPN API Request: url: {0} params: {1} \nESPN API Response: {2}\n'.format(self.ENDPOINT, params, r.json()))
         checkRequestStatus(self.status)
 
         data = r.json() if self.year > 2017 else r.json()[0]
@@ -533,7 +545,8 @@ class LeagueWrapper(League):
         }
         r = requests.get(self.ENDPOINT, params=params, cookies=self.cookies)
         self.status = r.status_code
-        self.logger.debug(f'ESPN API Request: url: {self.ENDPOINT} params: {params} \nESPN API Response: {r.json()}\n')
+        self.logger.debug(
+            'ESPN API Request: url: {0} params: {1} \nESPN API Response: {2}\n'.format(self.ENDPOINT, params, r.json()))
         checkRequestStatus(self.status)
 
         data = r.json() if self.year > 2017 else r.json()[0]
@@ -590,7 +603,8 @@ class LeagueWrapper(League):
 
         r = requests.get(self.ENDPOINT, params=params, cookies=self.cookies)
         self.status = r.status_code
-        self.logger.debug(f'ESPN API Request: url: {self.ENDPOINT} params: {params} \nESPN API Response: {r.json()}\n')
+        self.logger.debug(
+            'ESPN API Request: url: {0} params: {1} \nESPN API Response: {2}\n'.format(self.ENDPOINT, params, r.json()))
         checkRequestStatus(self.status)
 
         data = r.json() if self.year > 2017 else r.json()[0]
@@ -617,8 +631,8 @@ class LeagueWrapper(League):
         r = requests.get(self.ENDPOINT + '?view=mMatchup', params=params, cookies=self.cookies, headers=headers)
         self.status = r.status_code
         self.logger.debug(
-            f'ESPN API Request: url: {self.ENDPOINT}?view=mMatchup params: {params} headers: {headers} \n'
-            f'ESPN API Response: {r.json()}\n')
+            'ESPN API Request: url: {0}?view=mMatchup params: {1} headers: {2} \nESPN API Response: {3}\n'.format(
+                self.ENDPOINT, params, headers, r.json()))
         checkRequestStatus(self.status)
 
         data = r.json()

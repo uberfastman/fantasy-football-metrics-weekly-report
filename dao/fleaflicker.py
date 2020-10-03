@@ -16,8 +16,9 @@ from bs4 import BeautifulSoup
 from requests.exceptions import HTTPError
 
 from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
+from report.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Suppress Fleaflicker API debug logging
 logger.setLevel(level=logging.INFO)
@@ -35,6 +36,8 @@ class LeagueData(object):
                  save_data=True,
                  dev_offline=False):
 
+        logger.debug("Initiating Fleaflicker league.")
+
         self.league_id = league_id
         self.season = season
         self.config = config
@@ -48,6 +51,8 @@ class LeagueData(object):
         # create full directory path if any directories in it do not already exist
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
+
+        logger.debug("Getting Fleaflicker league data.")
 
         self.league_url = "https://www.fleaflicker.com/nfl/leagues/" + str(self.league_id)
         scraped_league_info = self.scrape(self.league_url, os.path.join(
@@ -233,28 +238,31 @@ class LeagueData(object):
         file_path = os.path.join(file_dir, filename)
 
         if not self.dev_offline:
+            logger.debug("Retrieving Fleaflicker data from endpoint: {0}".format(url))
             response = requests.get(url)
 
             try:
                 response.raise_for_status()
             except HTTPError as e:
                 # log error and terminate query if status code is not 200
-                logger.error("REQUEST FAILED WITH STATUS CODE: {} - {}".format(response.status_code, e))
+                logger.error("REQUEST FAILED WITH STATUS CODE: {0} - {1}".format(response.status_code, e))
                 sys.exit("...run aborted.")
 
             response_json = response.json()
-            logger.debug("Response (JSON): {}".format(response_json))
+            logger.debug("Response (JSON): {0}".format(response_json))
         else:
             try:
+                logger.debug("Loading saved Fleaflicker data for endpoint: {0}".format(url))
                 with open(file_path, "r", encoding="utf-8") as data_in:
                     response_json = json.load(data_in)
             except FileNotFoundError:
                 logger.error(
-                    "FILE {} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
+                    "FILE {0} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                         file_path))
                 sys.exit("...run aborted.")
 
         if self.save_data:
+            logger.debug("Saving Fleaflicker data retrieved from endpoint: {0}".format(url))
             if not os.path.exists(file_dir):
                 os.makedirs(file_dir)
 
@@ -268,24 +276,27 @@ class LeagueData(object):
         file_path = os.path.join(file_dir, filename)
 
         if not self.dev_offline:
+            logger.debug("Scraping Fleaflicker data from endpoint: {0}".format(url))
+
             user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 " \
                          "(KHTML, like Gecko) Version/13.0 Safari/605.1.15"
             headers = {"user-agent": user_agent}
             response = requests.get(url, headers)
 
             html_soup = BeautifulSoup(response.text, "html.parser")
-            logger.debug("Response (HTML): {}".format(html_soup))
+            logger.debug("Response (HTML): {0}".format(html_soup))
         else:
             try:
                 with open(file_path, "r", encoding="utf-8") as data_in:
                     html_soup = BeautifulSoup(data_in.read(), "html.parser")
             except FileNotFoundError:
                 logger.error(
-                    "FILE {} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
+                    "FILE {0} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                         file_path))
                 sys.exit("...run aborted.")
 
         if self.save_data:
+            logger.debug("Saving Fleaflicker data scraped from endpoint: {0}".format(url))
             if not os.path.exists(file_dir):
                 os.makedirs(file_dir)
 
@@ -295,6 +306,8 @@ class LeagueData(object):
         return html_soup
 
     def map_data_to_base(self, base_league_class):
+        logger.debug("Mapping Fleaflicker data to base objects.")
+
         league = base_league_class(self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data,
                                    self.dev_offline)  # type: BaseLeague
 
@@ -517,7 +530,7 @@ class LeagueData(object):
                         if flea_player_position.get("label") == "D/ST":
                             # use ESPN D/ST team logo (higher resolution) because Fleaflicker does not provide them
                             base_player.headshot_url = \
-                                "https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/{}.png".format(
+                                "https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/{0}.png".format(
                                     base_player.nfl_team_abbr)
                         else:
                             base_player.headshot_url = flea_pro_player.get("headshotUrl")

@@ -417,17 +417,17 @@ class BaseRecord(FantasyFootballReportObject):
     @staticmethod
     def _format_record_with_points_for(wins, ties, losses, points_for):
         if ties > 0:
-            record_str = "{}-{}-{} ({})".format(wins, losses, ties, round(points_for, 2))
+            record_str = "{0}-{1}-{2} ({3})".format(wins, losses, ties, round(points_for, 2))
         else:
-            record_str = "{}-{} ({})".format(wins, losses, round(points_for, 2))
+            record_str = "{0}-{1} ({2})".format(wins, losses, round(points_for, 2))
         return record_str
 
     @staticmethod
     def _format_record_without_points_for(wins, ties, losses):
         if ties > 0:
-            record_str = "{}-{}-{}".format(wins, losses, ties)
+            record_str = "{0}-{1}-{2}".format(wins, losses, ties)
         else:
-            record_str = "{}-{}".format(wins, losses)
+            record_str = "{0}-{1}".format(wins, losses)
         return record_str
 
     def _update_streak(self, streak_type):
@@ -497,7 +497,7 @@ class BaseRecord(FantasyFootballReportObject):
         return self._streak_len
 
     def get_streak_str(self):
-        return "{}-{}".format(self._streak_type, self._streak_len)
+        return "{0}-{1}".format(self._streak_type, self._streak_len)
 
     def _update_division_streak(self, streak_type):
         if self._division_streak_type == streak_type:
@@ -572,7 +572,7 @@ class BaseRecord(FantasyFootballReportObject):
         return self._division_streak_len
 
     def get_division_streak_str(self):
-        return "{}-{}".format(self._division_streak_type, self._division_streak_len)
+        return "{0}-{1}".format(self._division_streak_type, self._division_streak_len)
 
 
 class BaseManager(FantasyFootballReportObject):

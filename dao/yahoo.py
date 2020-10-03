@@ -3,16 +3,19 @@ __email__ = "wrenjr@yahoo.com"
 
 import logging
 import os
+from copy import deepcopy
 # from collections import defaultdict
 # from concurrent.futures import ThreadPoolExecutor
 from statistics import median
-from copy import deepcopy
 
 from yfpy.data import Data
 from yfpy.models import Game, League, Matchup, Team, Manager, Player, RosterPosition, Stat
 from yfpy.query import YahooFantasySportsQuery
 
 from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
+from report.logger import get_logger
+
+logger = get_logger(__name__)
 
 # Suppress YahooFantasyFootballQuery debug logging
 logging.getLogger("yfpy.query").setLevel(level=logging.INFO)
@@ -31,6 +34,8 @@ class LeagueData(object):
                  save_data=True,
                  dev_offline=False):
 
+        logger.debug("Initiating Yahoo league.")
+
         self.league_id = league_id
         self.game_id = game_id
         self.config = config
@@ -38,6 +43,7 @@ class LeagueData(object):
         self.save_data = save_data
         self.dev_offline = dev_offline
 
+        logger.debug("Retrieving Yahoo league data.")
         self.yahoo_data = Data(self.data_dir, save_data=save_data, dev_offline=dev_offline)
         yahoo_auth_dir = os.path.join(base_dir, config.get("Yahoo", "yahoo_auth_dir"))
         self.yahoo_query = YahooFantasySportsQuery(
@@ -146,6 +152,7 @@ class LeagueData(object):
         #             self.rosters_by_week[response["week"]][response["team"].get("team").team_id] = response["result"]
         # else:
 
+        logger.debug("Getting Yahoo matchups by week data.")
         # TODO: figure out how to write to json files (json.dump) in a thread-safe manner
         # YAHOO API QUERY: run yahoo queries to retrieve matchups by week for the entire season
         self.matchups_by_week = {}
@@ -174,6 +181,7 @@ class LeagueData(object):
                 else:
                     self.median_score_by_week[str(wk)] = 0
 
+        logger.debug("Getting Yahoo rosters by week data.")
         # YAHOO API QUERY: run yahoo queries to retrieve team rosters by week for the season up to the current week
         self.rosters_by_week = {}
         for wk in range(1, int(self.week_for_report) + 1):
@@ -232,6 +240,8 @@ class LeagueData(object):
 
     # noinspection PyTypeChecker
     def map_data_to_base(self, base_league_class):
+        logger.debug("Mapping Yahoo data to base objects.")
+
         league = base_league_class(self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data,
                                    self.dev_offline)  # type: BaseLeague
 
@@ -456,7 +466,7 @@ class LeagueData(object):
                     else:
                         # use ESPN D/ST team logo (higher resolution)
                         base_player.headshot_url = \
-                            "https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/{}.png".format(
+                            "https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/{0}.png".format(
                                 base_player.nfl_team_abbr)
                         # base_player.headshot_url = y_player_for_week.headshot_url
                     base_player.owner_team_id = y_player_for_week.ownership.owner_team_key

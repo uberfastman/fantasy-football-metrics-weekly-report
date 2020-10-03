@@ -34,6 +34,8 @@ class FantasyFootballReport(object):
                  dev_offline=False,
                  test=False):
 
+        logger.debug("Instantiating fantasy football report.")
+
         patch_http_connection_pool(maxsize=100)
 
         # config vars
@@ -99,7 +101,7 @@ class FantasyFootballReport(object):
         )
 
         begin = datetime.datetime.now()
-        logger.info("Retrieving fantasy football data from {}...".format(
+        logger.info("Retrieving fantasy football data from {0}...".format(
             self.platform_str + (" API" if not self.dev_offline else " saved data")))
 
         # retrieve all league data from respective platform API
@@ -117,7 +119,7 @@ class FantasyFootballReport(object):
         )  # type: BaseLeague
 
         delta = datetime.datetime.now() - begin
-        logger.info("...retrieved all fantasy football data from {} in {}\n".format(
+        logger.info("...retrieved all fantasy football data from {0} in {1}\n".format(
             self.platform_str + (" API" if not self.dev_offline else " saved data"), str(delta)))
 
         self.playoff_probs = self.league.get_playoff_probs(self.save_data, self.playoff_prob_sims,
@@ -125,23 +127,23 @@ class FantasyFootballReport(object):
 
         if self.config.getboolean("Report", "league_bad_boy_rankings"):
             begin = datetime.datetime.now()
-            logger.info("Retrieving bad boy data from https://www.usatoday.com/sports/nfl/arrests/ {}...".format(
+            logger.info("Retrieving bad boy data from https://www.usatoday.com/sports/nfl/arrests/ {0}...".format(
                 "website" if not self.dev_offline or self.refresh_web_data else "saved data"))
             self.bad_boy_stats = self.league.get_bad_boy_stats(self.save_data, self.dev_offline, self.refresh_web_data)
             delta = datetime.datetime.now() - begin
             logger.info(
-                "...retrieved all bad boy data from https://www.usatoday.com/sports/nfl/arrests/ {} in {}\n".format(
+                "...retrieved all bad boy data from https://www.usatoday.com/sports/nfl/arrests/ {0} in {1}\n".format(
                     "website" if not self.dev_offline else "saved data", str(delta)))
         else:
             self.bad_boy_stats = None
 
         if self.config.getboolean("Report", "league_beef_rankings"):
             begin = datetime.datetime.now()
-            logger.info("Retrieving beef data from Fox Sports {}...".format(
+            logger.info("Retrieving beef data from Fox Sports {0}...".format(
                 "API" if not self.dev_offline or self.refresh_web_data else "saved data"))
             self.beef_stats = self.league.get_beef_stats(self.save_data, self.dev_offline, self.refresh_web_data)
             delta = datetime.datetime.now() - begin
-            logger.info("...retrieved all beef data from Fox Sports {} in {}\n".format(
+            logger.info("...retrieved all beef data from Fox Sports {0} in {1}\n".format(
                 "API" if not self.dev_offline else "saved data", str(delta)))
         else:
             self.beef_stats = None
@@ -149,22 +151,23 @@ class FantasyFootballReport(object):
         if self.config.getboolean("Report", "league_covid_risk_rankings") and int(self.season) >= 2020:
             begin = datetime.datetime.now()
             logger.info(
-                "Retrieving COVID-19 risk data from https://sportsdata.usatoday.com/football/nfl/transactions {}..."
+                "Retrieving COVID-19 risk data from https://sportsdata.usatoday.com/football/nfl/transactions {0}..."
                     .format("website" if not self.dev_offline or self.refresh_web_data else "saved data"))
             self.covid_risk = self.league.get_covid_risk(self.save_data, self.dev_offline, self.refresh_web_data)
             delta = datetime.datetime.now() - begin
             logger.info(
-                "...retrieved all COVID-19 risk data from https://sportsdata.usatoday.com/football/nfl/transactions {} "
-                "in {}\n".format("website" if not self.dev_offline else "saved data", str(delta)))
+                "...retrieved all COVID-19 risk data from https://sportsdata.usatoday.com/football/nfl/transactions {0}"
+                " in {1}\n".format("website" if not self.dev_offline else "saved data", str(delta)))
         else:
             self.covid_risk = None
 
         # output league info for verification
-        logger.info("...setup complete for \"{}\" ({}) week {} report.\n".format(self.league.name.upper(),
-                                                                                 self.league_id,
-                                                                                 self.league.week_for_report))
+        logger.info("...setup complete for \"{0}\" ({1}) week {2} report.\n".format(self.league.name.upper(),
+                                                                                    self.league_id,
+                                                                                    self.league.week_for_report))
 
     def create_pdf_report(self):
+        logger.debug("Creating fantasy football report PDF.")
 
         report_data = None
 
@@ -368,8 +371,8 @@ class FantasyFootballReport(object):
             str(self.league.week_for_report) + " Report"
         report_footer_text = \
             "<para alignment='center'>" \
-            "Report generated {} for {} Fantasy Football league '{}' with id {} " \
-            "(<a href=\"{}\" color=blue><u>{}</u></a>)." \
+            "Report generated {0} for {1} Fantasy Football league '{2}' with id {3} " \
+            "(<a href=\"{4}\" color=blue><u>{5}</u></a>)." \
             "<br></br><br></br><br></br>" \
             "If you enjoy using the Fantasy Football Metrics Weekly Report app, please feel free help support its " \
             "development below:" \
@@ -404,6 +407,6 @@ class FantasyFootballReport(object):
         # generate pdf of report
         file_for_upload = pdf_generator.generate_pdf(filename_with_path, line_chart_data_list)
 
-        logger.info("...SUCCESS! Generated PDF: {}\n".format(file_for_upload))
+        logger.info("...SUCCESS! Generated PDF: {0}\n".format(file_for_upload))
 
         return file_for_upload
