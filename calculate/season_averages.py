@@ -5,15 +5,21 @@ import numpy as np
 
 from calculate.metrics import CalculateMetrics
 from report.data import ReportData
+from report.logger import get_logger
+
+logger = get_logger(__name__, propagate=False)
 
 
 class SeasonAverageCalculator(object):
     def __init__(self, team_names, report_data: ReportData, break_ties):
+        logger.debug("Initializing season averages.")
+
         self.team_names = team_names
         self.report_data = report_data
         self.break_ties = break_ties
 
     def get_average(self, data, key, with_percent=False, first_ties=False, reverse=True):
+        logger.debug("Calculating season average from \"{0}\".".format(key))
 
         season_average_list = []
         team_index = 0

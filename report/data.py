@@ -16,6 +16,7 @@ class ReportData(object):
 
     def __init__(self, config, league: BaseLeague, season_weekly_teams_results, week_counter, week_for_report,
                  season, metrics_calculator: CalculateMetrics, metrics, break_ties=False, dq_ce=False, testing=False):
+        logger.debug("Instantiating report data.")
 
         self.league = league
         self.break_ties = break_ties
@@ -95,6 +96,7 @@ class ReportData(object):
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ REPORT DATA ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+        logger.debug("Creating report data.")
 
         # create attributes for later updating
         self.data_for_season_avg_points_by_position = None
@@ -212,6 +214,7 @@ class ReportData(object):
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ COUNT METRIC TIES ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+        logger.debug("Counting metric ties.")
 
         # get number of scores ties and ties for first
         self.ties_for_scores = metrics_calculator.get_ties_count(self.data_for_scores, "score", self.break_ties)
@@ -260,6 +263,7 @@ class ReportData(object):
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ CALCULATE POWER RANKING ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+        logger.debug("Calculating power rankings.")
 
         # calculate power ranking last to account for metric rankings that have been reordered due to tiebreakers
         power_ranking_results = metrics_calculator.calculate_power_rankings(
@@ -294,9 +298,9 @@ class ReportData(object):
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 
         weekly_metrics_output_string = \
-            "\n~~~~~ WEEK {} METRICS INFO ~~~~~\n" \
-            "              SCORE tie(s): {}\n" \
-            "COACHING EFFICIENCY tie(s): {}\n".format(
+            "\n~~~~~ WEEK {0} METRICS INFO ~~~~~\n" \
+            "              SCORE tie(s): {1}\n" \
+            "COACHING EFFICIENCY tie(s): {2}\n".format(
                 week_counter,
                 self.ties_for_scores,
                 self.ties_for_coaching_efficiency
@@ -307,15 +311,15 @@ class ReportData(object):
             ce_dq_str = ""
             for team_name, ineligible_players_count in self.coaching_efficiency_dqs.items():
                 if ineligible_players_count == -1:
-                    ce_dq_str += "{} (incomplete active squad), ".format(team_name)
+                    ce_dq_str += "{0} (incomplete active squad), ".format(team_name)
                 elif ineligible_players_count == -2:
-                    ce_dq_str += "{} (manually disqualified), ".format(team_name)
+                    ce_dq_str += "{0} (manually disqualified), ".format(team_name)
                 else:
-                    ce_dq_str += "{} (ineligible bench players: {}/{}), ".format(
+                    ce_dq_str += "{0} (ineligible bench players: {1}/{2}), ".format(
                         team_name,
                         ineligible_players_count,
                         league.roster_position_counts.get("BN"))  # exclude IR
-            weekly_metrics_output_string += "   COACHING EFFICIENCY DQs: {}\n".format(ce_dq_str[:-2])
+            weekly_metrics_output_string += "   COACHING EFFICIENCY DQs: {0}\n".format(ce_dq_str[:-2])
 
         # output weekly metrics info
         logger.info(weekly_metrics_output_string)

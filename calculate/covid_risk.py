@@ -3,28 +3,30 @@ __email__ = "wrenjr@yahoo.com"
 
 import itertools
 import json
-import logging
 import os
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from utils.app_config_parser import AppConfigParser
 
 import requests
 from bs4 import BeautifulSoup
 
-logger = logging.getLogger(__name__)
+from report.logger import get_logger
+from utils.app_config_parser import AppConfigParser
+
+logger = get_logger(__name__, propagate=False)
 
 
 class CovidRisk(object):
 
     def __init__(self, config, data_dir, season, week, save_data=False, dev_offline=False, refresh=False):
+        logger.debug("Initializing COVID-19 risk.")
 
         self.config = config  # type: AppConfigParser
 
         self.season = int(season)
         self.week = int(week)
         self.selected_nfl_season_week = datetime.strptime(
-            "{} {} 1".format(str(self.season), str(self.week + 36)), "%G %V %u")
+            "{0} {1} 1".format(str(self.season), str(self.week + 36)), "%G %V %u")
 
         self.save_data = save_data
         self.dev_offline = dev_offline
@@ -92,8 +94,9 @@ class CovidRisk(object):
         # fetch NFL player transactions from the web if not running in offline mode or refresh=True
         if self.refresh or not self.dev_offline:
             if not self.covid_data and self.season >= 2020:
+                logger.debug("Retrieving COVID-19 data from the web.")
 
-                football_db_endpoint = "https://www.footballdb.com/transactions/index.html?period={}&period={}".format(
+                football_db_endpoint = "https://www.footballdb.com/transactions/index.html?period={0}&period={1}".format(
                     str(self.season + 1),
                     str(self.season)
                 )
@@ -172,7 +175,7 @@ class CovidRisk(object):
         else:
             if not self.covid_data and self.season >= 2020:
                 raise FileNotFoundError(
-                    "FILE {} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
+                    "FILE {0} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                         self.covid_data_file_path))
 
         if len(self.covid_data) == 0 and self.season >= 2020:
@@ -183,9 +186,10 @@ class CovidRisk(object):
         elif self.season < 2020:
             logger.warning("COVID-19 was not a factor during NFL seasons prior to 2020, so metric is being ignored.")
         else:
-            logger.info("{} players at risk of COVID-19 were loaded".format(len(self.covid_data)))
+            logger.info("{0} players at risk of COVID-19 were loaded".format(len(self.covid_data)))
 
     def open_covid_data(self):
+        logger.debug("Loading saved COVID-19 risk data.")
         if os.path.exists(self.covid_data_file_path):
             with open(self.covid_data_file_path, "r", encoding="utf-8") as covid_in:
                 self.covid_data = dict(json.load(covid_in))
@@ -196,6 +200,7 @@ class CovidRisk(object):
 
     def save_covid_data(self):
         if self.save_data:
+            logger.debug("Saving COVID-19 risk data.")
             # save report covid data locally
             with open(self.covid_data_file_path, "w", encoding="utf-8") as covid_out:
                 json.dump(self.covid_data, covid_out, ensure_ascii=False, indent=2)
@@ -266,7 +271,7 @@ class CovidRisk(object):
             covid_risk_score += (self.raw_covid_data.get(team_abbr).get("count") - 1)
 
             selected_nfl_season_week = datetime.strptime(
-                "{} {} 1".format(str(self.season), str(self.week + 36)), "%G %V %u")
+                "{0} {1} 1".format(str(self.season), str(self.week + 36)), "%G %V %u")
 
             covid_recency = selected_nfl_season_week - datetime.strptime(
                 self.raw_covid_data.get(team_abbr).get("last_date"), "%B %d, %Y")
@@ -280,7 +285,7 @@ class CovidRisk(object):
 
         else:
             logger.debug(
-                "Team {} has no Reserve/COVID-19 transactions. Setting player COVID-19 risk to 0. Run report with the "
+                "Team {0} has no Reserve/COVID-19 transactions. Setting player COVID-19 risk to 0. Run report with the "
                 "-r flag (--refresh-web-data) to refresh all external web data and try again.".format(
                     team_abbr, player_full_name))
 

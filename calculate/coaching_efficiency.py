@@ -2,12 +2,18 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
 import math
-from collections import defaultdict, Counter, OrderedDict
+from collections import defaultdict, Counter
+
+from report.logger import get_logger
+
+logger = get_logger(__name__, propagate=False)
 
 
 class CoachingEfficiency(object):
 
     def __init__(self, config, league):
+        logger.debug("Initializing coaching efficiency.")
+
         self.config = config
 
         self.inactive_statuses = [
@@ -70,6 +76,7 @@ class CoachingEfficiency(object):
 
     def execute_coaching_efficiency(self, team_name, team_roster, team_points, positions_filled_active, week,
                                     inactive_players, dq_eligible=False):
+        logger.debug("Calculating coaching efficiency for team \"{0}\".".format(team_name))
 
         eligible_position_players = defaultdict(list)
         for player in team_roster:

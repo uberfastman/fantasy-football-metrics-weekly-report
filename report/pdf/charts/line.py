@@ -2,6 +2,8 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 # code snippets: http://www.reportlab.com/chartgallery/
 
+import json
+
 from reportlab.graphics.charts.axes import XValueAxis
 from reportlab.graphics.charts.legends import LineLegend
 from reportlab.graphics.charts.lineplots import LinePlot
@@ -11,6 +13,10 @@ from reportlab.graphics.shapes import Drawing, _DrawingEditorMixin, Rect
 from reportlab.graphics.widgets.markers import makeMarker
 from reportlab.lib.colors import PCMYKColor, black
 from reportlab.lib.validators import Auto
+
+from report.logger import get_logger
+
+logger = get_logger(__name__, propagate=False)
 
 
 # noinspection PyUnresolvedReferences
@@ -28,6 +34,8 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
     # noinspection PyPep8Naming
     def __init__(self, data, font, font_bold, title, x_axis_params, y_axis_params, series_names, series_colors_cmyk,
                  box_width, box_height, chart_width, chart_height, width=550, height=215, *args, **kw):
+        logger.debug("Generating line chart with data:\n{0}\n".format(json.dumps(data, indent=2)))
+
         Drawing.__init__(self, width, height, *args, **kw)
         Drawing.hAlign = "CENTER"
 

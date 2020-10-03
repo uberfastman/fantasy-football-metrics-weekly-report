@@ -2,16 +2,25 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 # code snippets: https://www.reportlab.com/snippets/4/
 
+import json
+
 from reportlab.graphics.charts.legends import Legend
 from reportlab.graphics.charts.piecharts import Pie
 from reportlab.graphics.shapes import Drawing, _DrawingEditorMixin
 from reportlab.lib.colors import HexColor, black
 from reportlab.lib.colors import white
 
+from report.logger import get_logger
+
+logger = get_logger(__name__, propagate=False)
+
 
 # noinspection PyUnresolvedReferences
 class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
+
     def __init__(self, labels, data, width=400, height=200, font="Helvetica", *args, **kw):
+        logger.debug("Generating pie chart with data:\n{0}\n".format(json.dumps(data, indent=2)))
+
         # see https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/ for colors
         pdf_chart_colors = [
             HexColor("#e6194b"),  # red

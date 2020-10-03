@@ -5,12 +5,14 @@ __email__ = "wrenjr@yahoo.com"
 import datetime
 import logging
 import os
-from utils.app_config_parser import AppConfigParser
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
-logger = logging.getLogger(__name__)
+from report.logger import get_logger
+from utils.app_config_parser import AppConfigParser
+
+logger = get_logger(__name__, propagate=False)
 
 # Suppress verbose googleapiclient info/warning logging
 logging.getLogger("googleapiclient").setLevel(level=logging.ERROR)
@@ -21,8 +23,11 @@ logging.getLogger("googleapiclient.discovery_cache.file_cache").setLevel(level=l
 
 class GoogleDriveUploader(object):
     def __init__(self, filename, config):
+        logger.debug("Initializing Google Drive uploader.")
 
         project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+        logger.debug("Authenticating with Google Drive.")
 
         self.filename = os.path.join(project_dir, filename)
         self.config = config
@@ -45,6 +50,7 @@ class GoogleDriveUploader(object):
         self.gauth.SaveCredentialsFile(auth_token)
 
     def upload_file(self, test=False):
+        logger.debug("Uploading file to Google Drive.")
 
         # Create GoogleDrive instance with authenticated GoogleAuth instance.
         drive = GoogleDrive(self.gauth)
@@ -184,7 +190,7 @@ class GoogleDriveUploader(object):
         return parent_folder_id
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     local_config = AppConfigParser()
     local_config.read(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.ini"))
     reupload_file = local_config.get("Drive", "google_drive_reupload_file")

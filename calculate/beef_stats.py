@@ -2,13 +2,14 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
 import json
-import logging
 import os
 from collections import OrderedDict
 
 import requests
 
-logger = logging.getLogger(__name__)
+from report.logger import get_logger
+
+logger = get_logger(__name__, propagate=False)
 
 
 class BeefStats(object):
@@ -17,6 +18,8 @@ class BeefStats(object):
         """
         Initialize class, load data from FOX Sports, and combine defensive player data
         """
+        logger.debug("Initializing beef stats.")
+
         self.save_data = save_data
         self.dev_offline = dev_offline
         self.refresh = refresh
@@ -50,6 +53,8 @@ class BeefStats(object):
         # fetch weights of players from the web if not running in offline mode or refresh=True
         if self.refresh or not self.dev_offline:
             if not self.beef_data:
+                logger.debug("Retrieving beef data from the web.")
+
                 fox_sports_nfl_teams_data = requests.get(self.teams_url, params=self.fox_sports_public_api_key).json()
 
                 for team in fox_sports_nfl_teams_data.get("page"):
@@ -65,7 +70,7 @@ class BeefStats(object):
         else:
             if not self.beef_data:
                 raise FileNotFoundError(
-                    "FILE {} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
+                    "FILE {0} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
                         self.beef_data_file_path))
 
         if len(self.beef_data) == 0:
@@ -74,15 +79,17 @@ class BeefStats(object):
                 "'https://api.foxsports.com/sportsdata/v1/football/nfl.json?apikey=jE7yBJVRNAwdDesMgTzTXUUSx1It41Fq' "
                 "and try generating a new report.")
         else:
-            logger.info("{} player weights/TABBUs were loaded".format(len(self.beef_data)))
+            logger.info("{0} player weights/TABBUs were loaded".format(len(self.beef_data)))
 
     def open_beef_data(self):
+        logger.debug("Loading saved beef data.")
         if os.path.exists(self.beef_data_file_path):
             with open(self.beef_data_file_path, "r", encoding="utf-8") as beef_in:
                 self.beef_data = dict(json.load(beef_in))
 
     def save_beef_data(self):
         if self.save_data:
+            logger.debug("Saving beef data.")
             with open(self.beef_data_file_path, "w", encoding="utf-8") as beef_out:
                 json.dump(self.beef_data, beef_out, ensure_ascii=False, indent=2)
 
@@ -148,7 +155,7 @@ class BeefStats(object):
             return self.beef_data[player_full_name][key_str]
         else:
             logger.debug(
-                "Player not found: {}. Setting weight and TABBU to 0. Run report with the -r flag "
+                "Player not found: {0}. Setting weight and TABBU to 0. Run report with the -r flag "
                 "(--refresh-web-data) to refresh all external web data and try again.".format(player_full_name))
 
             self.beef_data[player_full_name] = {
