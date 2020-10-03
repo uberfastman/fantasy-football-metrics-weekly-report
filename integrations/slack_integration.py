@@ -177,7 +177,7 @@ class SlackMessenger(object):
             logger.error("Slack client error: %s", e)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     local_config = AppConfigParser()
     local_config.read(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.ini"))
     repost_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),

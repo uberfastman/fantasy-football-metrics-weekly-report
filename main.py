@@ -236,7 +236,7 @@ def select_week():
 
 
 # RUN FANTASY FOOTBALL REPORT PROGRAM
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     options = main(sys.argv[1:])
 

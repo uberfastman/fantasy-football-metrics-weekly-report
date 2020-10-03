@@ -9,7 +9,7 @@ from logging.handlers import TimedRotatingFileHandler
 from utils.app_config_parser import AppConfigParser
 
 config = AppConfigParser()
-config.read(os.path.join("config.ini"))
+config.read(os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.ini"))
 
 
 # class taken from stackoverflow: https://stackoverflow.com/a/8468041
@@ -114,13 +114,17 @@ def get_logger(module_name=None, propagate=True):
     return logger
 
 
-if __name__ == '__main__':
-    log_filename = "../logs/out.log"
+if __name__ == "__main__":
+
+    log_filename = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs", "out.log")
     test_logger = logging.getLogger(__name__)
     test_logger.setLevel(logging.DEBUG)
     handler = SizedTimedRotatingFileHandler(
-        log_filename, maxBytes=100, backupCount=5,
-        when='s', interval=3,
+        log_filename,
+        when="s",  # s = seconds, m = minutes, h = hours, midnight = at midnight, etc.
+        interval=3,  # how many increments of the "when" configuration to wait before creating next log file
+        maxBytes=100,
+        backupCount=5,
         # encoding='bz2',  # uncomment for bz2 compression
     )
     test_logger.addHandler(handler)

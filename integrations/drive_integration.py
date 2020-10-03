@@ -190,7 +190,7 @@ class GoogleDriveUploader(object):
         return parent_folder_id
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     local_config = AppConfigParser()
     local_config.read(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.ini"))
     reupload_file = local_config.get("Drive", "google_drive_reupload_file")
