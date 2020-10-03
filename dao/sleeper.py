@@ -70,7 +70,9 @@ class LeagueData(object):
         self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week, self.season)
 
         self.num_playoff_slots = self.league_settings.get("playoff_teams")
-        self.num_regular_season_weeks = int(self.league_settings.get("playoff_week_start")) - 1
+        self.num_regular_season_weeks = (int(self.league_settings.get("playoff_week_start")) - 1) \
+            if self.league_settings.get("playoff_week_start") > 0 \
+            else self.config.get("Configuration", "num_regular_season_weeks")
         self.roster_positions = dict(Counter(self.league_info.get("roster_positions")))
         self.has_median_matchup = bool(self.league_settings.get("league_average_match"))
         self.median_score_by_week = {}
