@@ -202,7 +202,7 @@ _\* General setup **excludes** Google Drive and Slack integrations. See [Additio
     
 **NOTE**: *If your Yahoo league uses FAAB (Free Agent Acquisition Budget) for player waivers, you must set the `initial_faab_budget` value in the `config.ini` file to reflect your league's starting budget, since this information does not seem to be available in the Yahoo API.
 
-##### You are now ready to [generate a report!](#running-the-report-application)
+#### You are now ready to [generate a report!](#running-the-report-application)
 
 ---
 
@@ -223,7 +223,7 @@ Fleaflicker recently implemented a public API, but at the present time it is und
 
 5. Fleaflicker does not require any authentication to access their API at this time, so no additional steps are necessary.
 
-##### You are now ready to [generate a report!](#running-the-report-application)
+#### You are now ready to [generate a report!](#running-the-report-application)
 
 ---
 
@@ -242,7 +242,7 @@ Sleeper has a public API, the documentation for which is available [here](https:
 
 4. Sleeper does not require any authentication to access their API at this time, so no additional steps are necessary.
 
-##### You are now ready to [generate a report!](#running-the-report-application)
+#### You are now ready to [generate a report!](#running-the-report-application)
 
 ---
 
@@ -285,7 +285,7 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
     
 **NOTE**: *Because ESPN made the change to their API between 2018 and 2019, ESPN support in the Fantasy Football Metrics Weekly Report application is currently limited to the 2019 season and later. Support for historical seasons will be implemented at a later time.
 
-##### You are now ready to [generate a report!](#running-the-report-application)
+#### You are now ready to [generate a report!](#running-the-report-application)
 
 ---
 
