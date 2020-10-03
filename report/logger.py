@@ -21,10 +21,8 @@ class SizedTimedRotatingFileHandler(TimedRotatingFileHandler):
     timed intervals
     """
 
-    def __init__(self, filename, maxBytes=0, backupCount=0, encoding=None,
-                 delay=0, when='h', interval=1, utc=False):
-        handlers.TimedRotatingFileHandler.__init__(
-            self, filename, when, interval, backupCount, encoding, delay, utc)
+    def __init__(self, filename, maxBytes=0, backupCount=0, encoding=None, delay=0, when='h', interval=1, utc=False):
+        handlers.TimedRotatingFileHandler.__init__(self, filename, when, interval, backupCount, encoding, delay, utc)
         self.maxBytes = maxBytes
         self.stream = None
 
@@ -58,6 +56,11 @@ def get_logger(module_name=None, propagate=True):
         "error": logging.ERROR,
         "critical": logging.CRITICAL
     }
+
+    print(os.path.dirname(__file__))
+    print(os.path.dirname(os.path.dirname(__file__)))
+    print(os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.ini"))
+    print(config)
 
     try:
         log_level = log_level_mapping[config.get("Configuration", "log_level")]
@@ -117,7 +120,7 @@ def get_logger(module_name=None, propagate=True):
 if __name__ == "__main__":
 
     log_filename = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs", "out.log")
-    test_logger = logging.getLogger(__name__)
+    test_logger = get_logger(__name__)
     test_logger.setLevel(logging.DEBUG)
     handler = SizedTimedRotatingFileHandler(
         log_filename,
