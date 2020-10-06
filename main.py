@@ -19,8 +19,10 @@ from report.logger import get_logger
 logger = get_logger()
 
 # set local config file (check for existence and access, stop app if does not exist or cannot access)
-if os.path.isfile("config.ini"):
-    if os.access("config.ini", mode=os.R_OK):
+config_file_path = os.path.join(os.path.dirname(__file__), "config.ini")
+
+if os.path.isfile(config_file_path):
+    if os.access(config_file_path, mode=os.R_OK):
         logger.debug(
             "Configuration file \"config.ini\" available. Running Fantasy Football Metrics Weekly Report app...")
     else:
@@ -33,7 +35,7 @@ else:
     sys.exit("...run aborted.")
 
 config = AppConfigParser()
-config.read("config.ini")
+config.read(config_file_path)
 
 
 def main(argv):
@@ -96,7 +98,7 @@ def main(argv):
         print(usage_str)
         sys.exit(2)
 
-    options_dict = {}
+    options = {}
     for opt, arg in opts:
         # help/manual
         if opt in ("-h", "--help"):
@@ -105,39 +107,93 @@ def main(argv):
 
         # generate report
         elif opt in ("-f", "--fantasy-platform"):
-            options_dict["platform"] = arg
+            options["platform"] = arg
         elif opt in ("-l", "--league-id"):
-            options_dict["league_id"] = arg
+            options["league_id"] = arg
         elif opt in ("-w", "--week"):
             if int(arg) < 1 or int(arg) > 17:
                 print("\nPlease select a valid week number from 1 to 17.")
-                options_dict["week"] = select_week()
+                options["week"] = select_week()
             else:
-                options_dict["week"] = arg
+                options["week"] = arg
         elif opt in ("-g", "--game-id"):
-            options_dict["game_id"] = arg
+            options["game_id"] = arg
         elif opt in ("-y", "--year"):
-            options_dict["year"] = arg
+            options["year"] = arg
 
         # report configuration
         elif opt in ("-s", "--save-data"):
-            options_dict["save_data"] = True
+            options["save_data"] = True
         elif opt in ("-r", "--refresh-web-data"):
-            options_dict["refresh_web_data"] = True
+            options["refresh_web_data"] = True
         elif opt in ("-p", "--playoff-prob-sims"):
-            options_dict["playoff_prob_sims"] = arg
+            options["playoff_prob_sims"] = arg
         elif opt in ("-b", "--break-ties"):
-            options_dict["break_ties"] = True
+            options["break_ties"] = True
         elif opt in ("-q", "--disqualify-ce"):
-            options_dict["dq_ce"] = True
+            options["dq_ce"] = True
 
         # for developers
         elif opt in ("-t", "--test"):
-            options_dict["test"] = True
+            options["test"] = True
         elif opt in ("-d", "--dev-offline"):
-            options_dict["dev_offline"] = True
+            options["dev_offline"] = True
 
-    return options_dict
+    logger.debug("Fantasy football metrics weekly report app run configuration options:\n{0}".format(options))
+
+    report = select_league(
+        options.get("week", None),
+        options.get("platform", None),
+        options.get("league_id", None),
+        options.get("game_id", None),
+        options.get("year", None),
+        options.get("refresh_web_data", False),
+        options.get("playoff_prob_sims", None),
+        options.get("break_ties", False),
+        options.get("dq_ce", False),
+        options.get("save_data", False),
+        options.get("dev_offline", False),
+        options.get("test", False))
+    report_pdf = report.create_pdf_report()
+
+    upload_file_to_google_drive = config.getboolean("Drive", "google_drive_upload")
+    upload_message = ""
+    if upload_file_to_google_drive:
+        if not options.get("test", False):
+            # upload pdf to google drive
+            google_drive_uploader = GoogleDriveUploader(report_pdf, config)
+            upload_message = google_drive_uploader.upload_file()
+            logger.info(upload_message)
+        else:
+            logger.info("Test report NOT uploaded to Google Drive.")
+
+    post_to_slack = config.getboolean("Slack", "post_to_slack")
+    if post_to_slack:
+        if not options.get("test", False):
+            # post pdf or link to pdf to slack
+            slack_messenger = SlackMessenger(config)
+            post_or_file = config.get("Slack", "post_or_file")
+
+            if post_or_file == "post":
+                # post shareable link to uploaded google drive pdf on slack
+                slack_response = slack_messenger.post_to_selected_slack_channel(upload_message)
+            elif post_or_file == "file":
+                # upload pdf report directly to slack
+                slack_response = slack_messenger.upload_file_to_selected_slack_channel(report_pdf)
+            else:
+                logger.warning(
+                    "You have configured \"config.ini\" with unsupported Slack setting: post_or_file = {0}. "
+                    "Please choose \"post\" or \"file\" and try again.".format(post_or_file))
+                sys.exit("...run aborted.")
+            if slack_response.get("ok"):
+                logger.info("Report {0} successfully posted to Slack!".format(report_pdf))
+            else:
+                logger.error("Report {0} was NOT posted to Slack with error: {1}".format(
+                    report_pdf, slack_response.get("error")))
+        else:
+            logger.info("Test report NOT posted to Slack.")
+
+    return report_pdf
 
 
 def select_league(week, platform, league_id, game_id, season, refresh_web_data, playoff_prob_sims, break_ties, dq_ce,
@@ -237,59 +293,4 @@ def select_week():
 
 # RUN FANTASY FOOTBALL REPORT PROGRAM
 if __name__ == "__main__":
-
-    options = main(sys.argv[1:])
-
-    logger.debug("Fantasy football metrics weekly report app run configuration options:\n{0}".format(options))
-
-    report = select_league(
-        options.get("week", None),
-        options.get("platform", None),
-        options.get("league_id", None),
-        options.get("game_id", None),
-        options.get("year", None),
-        options.get("refresh_web_data", False),
-        options.get("playoff_prob_sims", None),
-        options.get("break_ties", False),
-        options.get("dq_ce", False),
-        options.get("save_data", False),
-        options.get("dev_offline", False),
-        options.get("test", False))
-    report_pdf = report.create_pdf_report()
-
-    upload_file_to_google_drive = config.getboolean("Drive", "google_drive_upload")
-    upload_message = ""
-    if upload_file_to_google_drive:
-        if not options.get("test", False):
-            # upload pdf to google drive
-            google_drive_uploader = GoogleDriveUploader(report_pdf, config)
-            upload_message = google_drive_uploader.upload_file()
-            logger.info(upload_message)
-        else:
-            logger.info("Test report NOT uploaded to Google Drive.")
-
-    post_to_slack = config.getboolean("Slack", "post_to_slack")
-    if post_to_slack:
-        if not options.get("test", False):
-            # post pdf or link to pdf to slack
-            slack_messenger = SlackMessenger(config)
-            post_or_file = config.get("Slack", "post_or_file")
-
-            if post_or_file == "post":
-                # post shareable link to uploaded google drive pdf on slack
-                slack_response = slack_messenger.post_to_selected_slack_channel(upload_message)
-            elif post_or_file == "file":
-                # upload pdf report directly to slack
-                slack_response = slack_messenger.upload_file_to_selected_slack_channel(report_pdf)
-            else:
-                logger.warning(
-                    "You have configured \"config.ini\" with unsupported Slack setting: post_or_file = {0}. "
-                    "Please choose \"post\" or \"file\" and try again.".format(post_or_file))
-                sys.exit("...run aborted.")
-            if slack_response.get("ok"):
-                logger.info("Report {0} successfully posted to Slack!".format(report_pdf))
-            else:
-                logger.error("Report {0} was NOT posted to Slack with error: {1}".format(
-                    report_pdf, slack_response.get("error")))
-        else:
-            logger.info("Test report NOT posted to Slack.")
+    main(sys.argv[1:])

@@ -40,8 +40,8 @@ class FantasyFootballReport(object):
 
         # config vars
         self.config = config
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.data_dir = os.path.join(base_dir, self.config.get("Configuration", "data_dir"))
+        self.base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.data_dir = os.path.join(self.base_dir, self.config.get("Configuration", "data_dir"))
         if platform:
             self.platform = platform
             self.platform_str = str.capitalize(platform)
@@ -112,7 +112,7 @@ class FantasyFootballReport(object):
             game_id=self.game_id,
             season=self.season,
             config=self.config,
-            base_dir=base_dir,
+            base_dir=self.base_dir,
             data_dir=self.data_dir,
             save_data=self.save_data,
             dev_offline=self.dev_offline
@@ -360,12 +360,17 @@ class FantasyFootballReport(object):
             PointsByPosition.calculate_points_by_position_season_averages(
                 report_data.data_for_season_avg_points_by_position)
 
-        filename = self.league.name.replace(" ", "-") + "(" + str(self.league_id) + ")_week-" + str(
-            self.league.week_for_report) + "_report.pdf"
+        output_dir = os.path.join(self.base_dir, self.config.get("Configuration", "output_dir"))
+
+        # league_file_identifier = "{0}({1})".format(self.league.name.replace(" ", "-"), str(self.league_id))
+        league_file_identifier = "{0}_league({1})".format(str(self.platform).lower(), self.league_id)
+
+        filename = "{0}_week-{1}_report.pdf".format(league_file_identifier, self.league.week_for_report)
         report_save_dir = os.path.join(
-            self.config.get("Configuration", "output_dir"),
+            output_dir,
             str(self.league.season),
-            self.league.name.replace(" ", "-") + "(" + self.league_id + ")")
+            league_file_identifier
+        )
         report_title_text = \
             self.league.name + " (" + str(self.league_id) + ") Week " + \
             str(self.league.week_for_report) + " Report"
@@ -391,7 +396,7 @@ class FantasyFootballReport(object):
         if not self.test:
             filename_with_path = os.path.join(report_save_dir, filename)
         else:
-            filename_with_path = os.path.join(self.config.get("Configuration", "output_dir"), "test_report.pdf")
+            filename_with_path = os.path.join(output_dir, "test_report.pdf")
 
         # instantiate pdf generator
         pdf_generator = PdfGenerator(

@@ -7,11 +7,21 @@ services:
 #    build: https://github.com/uberfastman/fantasy-football-metrics-weekly-report.git
     build: .
     ports:
-      - "5000:5000"
+      - "4000:4000"
+    environment:
+      - FLASK_APP=api.py
     volumes:
       # TODO: swap ".:/app" with commented out volumes once GitHub Container Registry is working with docker-compose
       - .:/app
-#      - ./config.ini:/app/config.ini
-#      - ./auth:/app/auth
-#      - ./output:/app/output
+#      - api:/app/api
+#      - ./api:/api
+#      - ./config.ini:/api/config.ini
+    depends_on:
+      - redis_db
+    entrypoint: ["flask", "run", "-p", "4000", "--host", "0.0.0.0"]
 
+  redis_db:
+    image: redis
+
+#volumes:
+#  api:

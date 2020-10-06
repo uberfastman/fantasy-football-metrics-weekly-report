@@ -42,6 +42,10 @@ logger = get_logger(__name__, propagate=False)
 logging.getLogger("PIL.PngImagePlugin").setLevel(level=logging.INFO)
 
 
+def get_in_resource_dir(*args):
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "resources", *[str(arg) for arg in args])
+
+
 def get_player_image(url, data_dir, week, image_quality, width=1.0*inch, player_name=None, dev_offline=False):
     headshots_dir = os.path.join(data_dir, "week_" + str(week), "player_headshots")
 
@@ -62,7 +66,7 @@ def get_player_image(url, data_dir, week, image_quality, width=1.0*inch, player_
                     except URLError:
                         logger.error("Unable to retrieve player headshot{0} at url {1}".format(
                             (" for player " + player_name) if player_name else "", url))
-                        local_img_path = os.path.join("resources", "images", "photo-not-available.jpg")
+                        local_img_path = get_in_resource_dir("images", "photo-not-available.jpg")
                 else:
                     logger.error(
                         "FILE {0} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
@@ -86,7 +90,7 @@ def get_player_image(url, data_dir, week, image_quality, width=1.0*inch, player_
     else:
         logger.error("No available URL for player{0}.".format(" " + player_name if player_name else ""))
         img_name = "photo-not-available.jpg"
-        local_img_path = os.path.join("resources", "images", img_name)
+        local_img_path = get_in_resource_dir("images", img_name)
 
     img_reader = ImageReader(local_img_path)
     iw, ih = img_reader.getSize()
@@ -255,10 +259,10 @@ class PdfGenerator(object):
             self.font_bold_italic = "Helvetica-BoldOblique"
 
         if use_custom_font:
-            pdfmetrics.registerFont(TTFont(self.font, "resources/fonts/" + self.font + ".ttf"))
-            pdfmetrics.registerFont(TTFont(self.font_bold, "resources/fonts/" + self.font + ".ttf"))
-            pdfmetrics.registerFont(TTFont(self.font_italic, "resources/fonts/" + self.font + ".ttf"))
-            pdfmetrics.registerFont(TTFont(self.font_bold_italic, "resources/fonts/" + self.font + ".ttf"))
+            pdfmetrics.registerFont(TTFont(self.font, get_in_resource_dir("fonts", self.font + ".ttf")))
+            pdfmetrics.registerFont(TTFont(self.font_bold, get_in_resource_dir("fonts", self.font + ".ttf")))
+            pdfmetrics.registerFont(TTFont(self.font_italic, get_in_resource_dir("fonts", self.font + ".ttf")))
+            pdfmetrics.registerFont(TTFont(self.font_bold_italic, get_in_resource_dir("fonts", self.font + ".ttf")))
 
         styles._baseFontName = self.font
         self.stylesheet = styles.getSampleStyleSheet()
@@ -423,7 +427,7 @@ class PdfGenerator(object):
                 [],
                 [
                     self.get_img(
-                        "resources/images/donate-paypal.png",
+                        get_in_resource_dir("images", "donate-paypal.png"),
                         hyperlink="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=VZZCNLRHH9BQS"
                     )
                 ],
@@ -432,19 +436,19 @@ class PdfGenerator(object):
             [
                 [
                     self.get_img(
-                        "resources/images/donate-bitcoin.png",
+                        get_in_resource_dir("images", "donate-bitcoin.png"),
                         hyperlink="https://share.trustwallet.com/ZoAkTpY1I9"
                     )
                 ],
                 [
                     self.get_img(
-                        "resources/images/donate-ethereum.png",
+                        get_in_resource_dir("images", "donate-ethereum.png"),
                         hyperlink="https://share.trustwallet.com/MF8YBO01I9"
                     )
                 ],
                 [
                     self.get_img(
-                        "resources/images/donate-nano.png",
+                        get_in_resource_dir("images", "donate-nano.png"),
                         hyperlink="https://share.trustwallet.com/bNXsMA11I9"
                     )
                 ]
@@ -452,19 +456,19 @@ class PdfGenerator(object):
             [
                 [
                     self.get_img(
-                        "resources/images/trust-wallet-btc.png",
+                        get_in_resource_dir("images", "trust-wallet-btc.png"),
                         hyperlink="https://share.trustwallet.com/ZoAkTpY1I9"
                     )
                 ],
                 [
                     self.get_img(
-                        "resources/images/trust-wallet-eth.png",
+                        get_in_resource_dir("images", "trust-wallet-eth.png"),
                         hyperlink="https://share.trustwallet.com/MF8YBO01I9"
                     )
                 ],
                 [
                     self.get_img(
-                        "resources/images/trust-wallet-nano.png",
+                        get_in_resource_dir("images", "trust-wallet-nano.png"),
                         hyperlink="https://share.trustwallet.com/bNXsMA11I9"
                     )
                 ]
@@ -704,9 +708,9 @@ class PdfGenerator(object):
                 data = temp_data
 
         if metric_type == "beef":
-            cow_icon = self.get_img(os.path.join("resources", "images", "cow.png"), width=0.20*inch)
-            beef_icon = self.get_img(os.path.join("resources", "images", "beef.png"), width=0.20*inch)
-            half_beef_icon = self.get_img(os.path.join("resources", "images", "beef-half.png"), width=0.10*inch)
+            cow_icon = self.get_img(get_in_resource_dir("images", "cow.png"), width=0.20*inch)
+            beef_icon = self.get_img(get_in_resource_dir("images", "beef.png"), width=0.20*inch)
+            half_beef_icon = self.get_img(get_in_resource_dir("images", "beef-half.png"), width=0.10*inch)
 
             for team in data:
                 num_cows = int(float(team[3]) // 5)
@@ -1176,7 +1180,7 @@ class PdfGenerator(object):
             Paragraph(
                 "Enjoying the app? Please consider donating to support its development:", self.text_style_italics),
             self.get_img(
-                "resources/images/donate.png",
+                get_in_resource_dir("images", "donate.png"),
                 hyperlink="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=VZZCNLRHH9BQS"
             )
         ]]

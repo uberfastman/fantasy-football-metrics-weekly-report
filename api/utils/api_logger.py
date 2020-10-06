@@ -3,14 +3,8 @@ import logging.handlers as handlers
 import os
 import sys
 import time
-from configparser import NoSectionError
 # from logging.handlers import RotatingFileHandler
 from logging.handlers import TimedRotatingFileHandler
-
-from utils.app_config_parser import AppConfigParser
-
-config = AppConfigParser()
-config.read(os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.ini"))
 
 
 # class taken from stackoverflow: https://stackoverflow.com/a/8468041
@@ -50,21 +44,9 @@ class SizedTimedRotatingFileHandler(TimedRotatingFileHandler):
 
 def get_logger(module_name=None, propagate=True):
 
-    log_level_mapping = {
-        "info": logging.INFO,
-        "debug": logging.DEBUG,
-        "warning": logging.WARNING,
-        "error": logging.ERROR,
-        "critical": logging.CRITICAL
-    }
-
-    try:
-        log_level = log_level_mapping[config.get("Configuration", "log_level")]
-    except (KeyError, NoSectionError):
-        log_level = logging.INFO
-
     log_file_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
-    log_file_name = "out.log"
+
+    log_file_name = "webapp_out.log"
     log_file = os.path.join(log_file_dir, log_file_name)
 
     if not os.path.exists(log_file_dir):
@@ -73,7 +55,7 @@ def get_logger(module_name=None, propagate=True):
     log_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     sh = logging.StreamHandler(stream=sys.stderr)
-    sh.setLevel(log_level)
+    sh.setLevel(logging.INFO)
     sh.setFormatter(log_formatter)
 
     # 10*1024*1024 = 10mb
@@ -111,22 +93,3 @@ def get_logger(module_name=None, propagate=True):
         logger.propagate = False
 
     return logger
-
-
-if __name__ == "__main__":
-
-    log_filename = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs", "out.log")
-    test_logger = get_logger(__name__)
-    test_logger.setLevel(logging.DEBUG)
-    handler = SizedTimedRotatingFileHandler(
-        log_filename,
-        when="s",  # s = seconds, m = minutes, h = hours, midnight = at midnight, etc.
-        interval=3,  # how many increments of the "when" configuration to wait before creating next log file
-        maxBytes=100,
-        backupCount=5,
-        # encoding='bz2',  # uncomment for bz2 compression
-    )
-    test_logger.addHandler(handler)
-    for i in range(50):
-        time.sleep(0.1)
-        test_logger.debug('i=%d' % i)
