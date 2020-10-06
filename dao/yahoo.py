@@ -405,9 +405,7 @@ class LeagueData(object):
                     if not median_record:
                         median_record = BaseRecord(
                             team_id=base_team.team_id,
-                            team_name=base_team.name,
-                            points_for=(base_team.points - week_median),
-                            points_against=week_median
+                            team_name=base_team.name
                         )
                         league_median_records_by_team[str(base_team.team_id)] = median_record
 
