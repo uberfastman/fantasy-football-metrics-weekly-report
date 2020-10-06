@@ -403,7 +403,7 @@ class PdfGenerator(object):
         self.zscores_headers = [["Place", "Team", "Manager", "Z-Score"]]
         self.scores_headers = [["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]]
         self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
-        self.luck_headers = [["Place", "Team", "Manager", "Luck (%)", "Season Avg. (Place)", "Weekly Record (W-L-T)"]]
+        self.luck_headers = [["Place", "Team", "Manager", "Luck", "Season Avg. (Place)", "Weekly Record (W-L)"]]
         self.optimal_scores_headers = [["Place", "Team", "Manager", "Optimal Points", "Season Total"]]
         self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]]
         self.beef_headers = [["Place", "Team", "Manager", "TABBU(s)"]]
