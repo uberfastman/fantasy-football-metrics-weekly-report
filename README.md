@@ -127,7 +127,7 @@ _\* General setup **excludes** Google Drive and Slack integrations. See [Additio
 #### Docker
 <ins>***NEW (AND EASIER) APPLICATION SETUP BELOW!***</ins>
 
-* **NOTE: This application requires you to have administrative (admin) for the computer on which you are installing it.**
+* **NOTE: This application requires you to have administrative (admin) access for the computer on which you are installing it.**
 
 1. Install [Docker](https://docs.docker.com/get-docker/) for your operating system:
     
@@ -196,9 +196,15 @@ _\* General setup **excludes** Google Drive and Slack integrations. See [Additio
     
     8. Once the app is created, it should redirect you to a page for your app, which will show both a `Client ID` and a `Client Secret`.
     
-    9. Copy the file `EXAMPLE-private.json` (located in the `auth/yahoo/` directory), and rename the file copy `private.json`, then copy and paste the `Client ID` and `Client Secret` values from your above created Yahoo app to their respective fields (make sure the strings are wrapped regular quotes (`""`), NOT formatted quotes (`“”`)). The path to this file will be needed to point the YFPY API wrapper responsible for data retrieval to your credentials.
+    9. Copy the file `EXAMPLE-private.json` (located in the `auth/yahoo/` directory), and rename the file copy `private.json` by running the below command in your commmand line shell:
     
-    10. The first time you run the app, it will initialize the OAuth connection between the report generator and your Yahoo account.
+        * **macOS**/**Linux**: `cp auth/yahoo/EXAMPLE-private.json private.json auth/yahoo/private.json`
+        
+        * **Windows**: `copy auth\yahoo\EXAMPLE-private.json auth\yahoo\private.json`
+    
+    10. Open your new `private.json` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then copy and paste the `Client ID` and `Client Secret` values from your above created Yahoo app to their respective fields (make sure the strings are wrapped regular quotes (`""`), NOT formatted quotes (`“”`)). The path to this file will be needed to point the YFPY API wrapper responsible for data retrieval to your credentials.
+    
+    11. The first time you run the app, it will initialize the OAuth connection between the report generator and your Yahoo account.
     
 **NOTE**: *If your Yahoo league uses FAAB (Free Agent Acquisition Budget) for player waivers, you must set the `initial_faab_budget` value in the `config.ini` file to reflect your league's starting budget, since this information does not seem to be available in the Yahoo API.
 
@@ -281,7 +287,13 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
     
     3. Depending on what web browser (Firefox, Chrome, Edge, Brave, etc.) you are using, the process for viewing your session cookies in the web inspector will be different. I recommend Googling *"how to inspect element in [browser]"* (for your specific browser) to learn how to use that browser's web inspector.
            
-    4. Copy the file `EXAMPLE-private.json` (located in the `auth/espn/` directory), and rename the file copy `private.json`, then copy and paste the above cookies into their respective fields. Please note, the `swid` will be surrounded by curly braces (`{...}`), which must be included.
+    4. Copy the file `EXAMPLE-private.json` (located in the `auth/espn/` directory), and rename the file copy `private.json` by running the below command in your commmand line shell:
+    
+        * **macOS**/**Linux**: `cp auth/espn/EXAMPLE-private.json private.json auth/espn/private.json`
+        
+        * **Windows**: `copy auth\espn\EXAMPLE-private.json auth\espn\private.json`
+        
+    5. Open your new `private.json` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then copy and paste the above cookies into their respective fields. Please note, the `swid` will be surrounded by curly braces (`{...}`), which must be included.
     
 **NOTE**: *Because ESPN made the change to their API between 2018 and 2019, ESPN support in the Fantasy Football Metrics Weekly Report application is currently limited to the 2019 season and later. Support for historical seasons will be implemented at a later time.
 
