@@ -7,6 +7,7 @@ import re
 import sys
 import traceback
 from utils.app_config_parser import AppConfigParser
+from git import Repo, TagReference, Commit
 
 import pkg_resources
 from pkg_resources import DistributionNotFound, VersionConflict
@@ -15,25 +16,15 @@ from integrations.drive_integration import GoogleDriveUploader
 from integrations.slack_integration import SlackMessenger
 from report.builder import FantasyFootballReport
 from report.logger import get_logger
+from utils.report_tools import check_for_updates, update_app, get_valid_config
 
 logger = get_logger()
 
-# set local config file (check for existence and access, stop app if does not exist or cannot access)
-if os.path.isfile("config.ini"):
-    if os.access("config.ini", mode=os.R_OK):
-        logger.debug(
-            "Configuration file \"config.ini\" available. Running Fantasy Football Metrics Weekly Report app...")
-    else:
-        logger.error(
-            "Unable to access configuration file \"config.ini\". Please check that file permissions are properly set.")
-        sys.exit("...run aborted.")
-else:
-    logger.error(
-        "Configuration file \"config.ini\" not found. Please make sure that it exists in project root directory.")
-    sys.exit("...run aborted.")
+# set local config file (check for existence and access, create config.ini if does not exist or stop app if unable to access)
+config = get_valid_config()
 
-config = AppConfigParser()
-config.read("config.ini")
+# check to see if the current app is behind any commits, and provide option to update and re-run if behind
+up_to_date = check_for_updates()
 
 
 def main(argv):

@@ -1,15 +1,18 @@
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
-import logging
 import os
+import re
+import shutil
+import socket
 import sys
 import time
+from datetime import datetime
 
 import requests
 from bs4 import BeautifulSoup
+from git import Repo, TagReference, cmd
 from urllib3 import connectionpool, poolmanager
-from datetime import datetime
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
@@ -19,20 +22,224 @@ from dao.espn import LeagueData as EspnLeagueData
 from dao.fleaflicker import LeagueData as FleaflickerLeagueData
 from dao.sleeper import LeagueData as SleeperLeagueData
 from dao.yahoo import LeagueData as YahooLeagueData
+from report.logger import get_logger
+from utils.app_config_parser import AppConfigParser
 
-logger = logging.getLogger(__name__)
-logger.propagate = False
+logger = get_logger(__name__, propagate=False)
 
-# Suppress webscraping debug logging
-logger.setLevel(level=logging.INFO)
+current_date = datetime.today()
+current_year = current_date.year
+current_month = current_date.month
+
+
+# function taken from https://stackoverflow.com/a/33117579 (written by 7h3rAm)
+def active_network_connection(host="8.8.8.8", port=53, timeout=3):
+    """
+    Host: 8.8.8.8 (google-public-dns-a.google.com)
+    OpenPort: 53/tcp
+    Service: domain (DNS/TCP)
+    """
+    try:
+        socket.setdefaulttimeout(timeout)
+        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+        return True
+    except socket.error as ex:
+        print(ex)
+        return False
+
+
+def get_valid_config():
+    config = AppConfigParser()
+
+    root_directory = os.path.dirname(os.path.dirname(__file__))
+
+    config_file_path = os.path.join(root_directory, "config.ini")
+
+    # set local config file (check for existence and access, stop app if does not exist or cannot access)
+    if os.path.isfile(config_file_path):
+        if os.access(config_file_path, mode=os.R_OK):
+            logger.debug(
+                "Configuration file \"config.ini\" available. Running Fantasy Football Metrics Weekly Report app...")
+            config.read(config_file_path)
+            return config
+        else:
+            logger.error(
+                "Unable to access configuration file \"config.ini\". Please check that file permissions are properly set.")
+            sys.exit("...run aborted.")
+    else:
+        logger.debug("Configuration file \"config.ini\" not found.")
+        create_config = input("Configuration file \"config.ini\" not found. Do you wish to create one? (y/n) -> ")
+        if create_config == "y":
+            return create_config_from_template(config, root_directory, config_file_path)
+        if create_config == "n":
+            logger.error(
+                "Configuration file \"config.ini\" not found. Please make sure that it exists in project root directory.")
+            sys.exit("...run aborted.")
+        else:
+            logger.warning("Please only select \"y\" or \"n\".")
+            time.sleep(0.25)
+            get_valid_config()
+
+
+def create_config_from_template(config: AppConfigParser, root_directory, config_file_path, platform=None,
+                                league_id=None, season=None, current_week=None):
+    config_template_file = os.path.join(root_directory, "EXAMPLE-config.ini")
+
+    config_file_path = shutil.copyfile(config_template_file, config_file_path)
+
+    config.read(config_file_path)
+
+    if not platform:
+        supported_platforms = config.get("Configuration", "supported_platforms").split(",")
+        platform = input("For which fantasy football platform are you generating a report? ({0}) -> ".format(
+            "/".join(supported_platforms)
+        ))
+        if platform not in supported_platforms:
+            logger.warning("Please only select one of the following platforms: {0}".format(
+                ", or ".join([", ".join(supported_platforms[:-1]), supported_platforms[-1]])))
+            time.sleep(0.25)
+            config = create_config_from_template(config, root_directory, config_file_path)
+
+    config.set("Configuration", "platform", platform)
+
+    if not league_id:
+        league_id = input("What is your league ID? -> ")
+
+    config.set("Configuration", "league_id", league_id)
+
+    if not season:
+        season = input("For which NFL season (starting year of season) are you generating reports? -> ")
+        try:
+            if int(season) > current_year:
+                logger.warning("This report cannot predict the future. Please only input a current or past NFL season.")
+                time.sleep(0.25)
+                config = create_config_from_template(config, root_directory, config_file_path, platform=platform,
+                                                     league_id=league_id)
+            elif int(season) < 2019 and platform == "espn":
+                logger.warning("ESPN leagues prior to 2019 are not supported. Please select a later NFL season.")
+                time.sleep(0.25)
+                config = create_config_from_template(config, root_directory, config_file_path, platform=platform,
+                                                     league_id=league_id)
+
+        except ValueError:
+            logger.warning("You must input a valid year in the format YYYY.")
+            time.sleep(0.25)
+            config = create_config_from_template(config, root_directory, config_file_path, platform=platform,
+                                                 league_id=league_id)
+
+    config.set("Configuration", "season", season)
+
+    if not current_week:
+        current_week = input("What is the current week of the NFL season? (week following the last complete week) -> ")
+        try:
+            if int(current_week) < 0 or int(current_week) > 17:
+                logger.warning(
+                    "Week {0} is not a valid NFL week. Please select a week from 1 to 17.".format(current_week))
+                time.sleep(0.25)
+                config = create_config_from_template(config, root_directory, config_file_path, platform=platform,
+                                                     league_id=league_id, season=season)
+        except ValueError:
+            logger.warning("You must input a valid integer to represent the current NFL week.")
+            time.sleep(0.25)
+            config = create_config_from_template(config, root_directory, config_file_path, platform=platform,
+                                                 league_id=league_id, season=season)
+
+    config.set("Configuration", "current_week", current_week)
+
+    with open(config_file_path, "w") as cf:
+        config.write(cf, space_around_delimiters=True)
+
+    return config
+
+
+# function taken from https://stackoverflow.com/a/35585837 (written by morxa)
+def git_ls_remote(url):
+    remote_refs = {}
+    g = cmd.Git()
+    for ref in g.ls_remote(url).split('\n'):
+        hash_ref_list = ref.split('\t')
+        remote_refs[hash_ref_list[1]] = hash_ref_list[0]
+    return remote_refs
+
+
+def check_for_updates():
+    project_repo = Repo(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+    if not active_network_connection():
+        logger.info("No active network connection found. Unable to check for updates for the Fantasy Football Metrics "
+                    "Weekly Report app.")
+    else:
+        version_tags = sorted(
+            [tag_ref for tag_ref in project_repo.tags if hasattr(tag_ref.tag, "tagged_date")],
+            key=lambda x: x.tag.tagged_date,
+            reverse=True
+        )
+
+        last_local_version = None
+        tag_ndx = 0
+        while not last_local_version:
+            next_tag = version_tags[tag_ndx]  # type: TagReference
+            for commit in project_repo.iter_commits():
+                if next_tag.commit == commit:
+                    last_local_version = next_tag
+            if not last_local_version:
+                tag_ndx += 1
+
+        ls_remote = git_ls_remote(project_repo.remotes.origin.url)
+
+        regex = re.compile("[^0-9.]")
+        remote_tags = sorted(
+            set([(regex.sub("", ref), ref.replace("^{}", "").replace("refs/tags/", ""))
+                 for ref in ls_remote.keys() if "tags" in ref]),
+            key=lambda x: list(map(int, x[0].split("."))),
+            reverse=True
+        )
+        last_remote_version = remote_tags[0][1]
+
+        num_commits_behind_develop = len(list(project_repo.iter_commits("develop..origin/develop")))
+
+        if num_commits_behind_develop > 0:
+            up_to_date_status_msg = "\n" \
+                "The Fantasy Football Metrics Weekly Report app is OUT OF DATE:\n\n" \
+                "  Locally installed version: {0}\n" \
+                "  Latest version on develop: {1}\n" \
+                "     Commits behind develop: {2}\n\n" \
+                "Please update the app and re-run to generate a report.".format(
+                    last_local_version, last_remote_version, num_commits_behind_develop)
+            logger.debug(up_to_date_status_msg)
+            confirm_update = input(up_to_date_status_msg + " Do you wish to update the app? (y/n) -> ")
+
+            not_up_to_date_status_message = "\n" \
+                "Running {0} of app. Please update to {1} for the latest features, improvements, and fixes.".format(
+                        last_local_version, last_remote_version)
+
+            if confirm_update == "y":
+                up_to_date = update_app(project_repo)
+                if up_to_date:
+                    logger.info("The Fantasy Football Metrics Weekly Report app has been successfully updated!")
+                else:
+                    logger.warning(not_up_to_date_status_message)
+                return up_to_date
+
+            if confirm_update == "n":
+                logger.warning(not_up_to_date_status_message)
+                return False
+            else:
+                logger.warning("Please only select \"y\" or \"n\".")
+                time.sleep(0.25)
+                check_for_updates()
+        else:
+            logger.debug("The Fantasy Football Metrics Weekly Report app is up to date.")
+            return True
+
+
+def update_app(repository: Repo):
+    response = repository.git.pull()
+    logger.debug(response)
+    return True
 
 
 def user_week_input_validation(config, week, retrieved_current_week, season):
-
-    current_date = datetime.today()
-    current_year = current_date.year
-    current_month = current_date.month
-
     # user input validation
     if week:
         week_for_report = week
@@ -55,7 +262,7 @@ def user_week_input_validation(config, week, retrieved_current_week, season):
                     elif first_week_incomplete == "n":
                         raise ValueError("It is recommended that you NOT generate a report for an incomplete week.")
                     else:
-                        raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
+                        raise ValueError("Please only select \"y\" or \"n\". Try running the report generator again.")
 
             elif 0 < int(week_for_report) < 18:
                 if 0 < int(week_for_report) <= int(current_week) - 1:
@@ -68,7 +275,7 @@ def user_week_input_validation(config, week, retrieved_current_week, season):
                     elif incomplete_week == "n":
                         raise ValueError("It is recommended that you NOT generate a report for an incomplete week.")
                     else:
-                        raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
+                        raise ValueError("Please only select \"y\" or \"n\". Try running the report generator again.")
             else:
                 raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
         except ValueError:
@@ -114,7 +321,7 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, c
             if not week_for_report:
                 input_str = "Sleeper does not provide the current NFL week in the API. Are you trying to generate a " \
                             "report for week {0} (current NFL week {1})? (y/n) -> ".format(
-                                current_nfl_week - 1, current_nfl_week)
+                    current_nfl_week - 1, current_nfl_week)
                 time.sleep(1)
                 is_current_week_correct = input(input_str)
                 if is_current_week_correct == "n":
@@ -127,7 +334,7 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, c
                 elif is_current_week_correct == "y":
                     pass
                 else:
-                    raise ValueError("Please only select 'y' or 'n'. Try running the report generator again.")
+                    raise ValueError("Please only select \"y\" or \"n\". Try running the report generator again.")
 
             sleeper_league = SleeperLeagueData(
                 week_for_report,
@@ -198,7 +405,8 @@ def add_report_player_stats(config,
     return player
 
 
-def add_report_team_stats(config, team: BaseTeam, league: BaseLeague, week_counter, season, metrics_calculator, metrics, dq_ce,
+def add_report_team_stats(config, team: BaseTeam, league: BaseLeague, week_counter, season, metrics_calculator, metrics,
+                          dq_ce,
                           inactive_players) -> BaseTeam:
     team.name = metrics_calculator.decode_byte_string(team.name)
     bench_positions = league.bench_positions
@@ -263,7 +471,6 @@ def add_report_team_stats(config, team: BaseTeam, league: BaseLeague, week_count
 
 
 def get_player_game_time_statuses(week, league: BaseLeague):
-
     file_name = "week_" + str(week) + "-player_status_data.html"
     file_dir = os.path.join(league.data_dir, str(league.season), str(league.league_id), "week_" + str(week))
     file_path = os.path.join(file_dir, file_name)
@@ -310,6 +517,7 @@ def patch_http_connection_pool(**constructor_kwargs):
     increase the pool size to fix problems with "HttpConnectionPool is full, discarding connection" call this function
     with maxsize=16 (or whatever size you want to give to the connection pool).
     """
+
     class MyHTTPSConnectionPool(connectionpool.HTTPSConnectionPool):
         def __init__(self, *args, **kwargs):
             kwargs.update(constructor_kwargs)

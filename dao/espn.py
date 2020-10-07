@@ -48,7 +48,7 @@ class LeagueData(object):
         self.save_data = save_data
         self.dev_offline = dev_offline
 
-        self.offensive_positions = ["QB", "RB", "WR", "TE", "K", "RB/WR", "RB/WR/TE", "QB/RB/WR/TE"]
+        self.offensive_positions = ["QB", "RB", "WR", "TE", "K", "RB/WR", "WR/TE", "RB/WR/TE", "QB/RB/WR/TE", "OP"]
         self.defensive_positions = ["D/ST"]
 
         espn_auth_file = os.path.join(base_dir, config.get("ESPN", "espn_auth_dir"), "private.json")
@@ -225,7 +225,13 @@ class LeagueData(object):
                 pos_name = "FLEX_RB_TE_WR"
             if pos_name == "QB/RB/WR/TE":
                 league.flex_positions_qb_rb_te_wr = ["QB", "RB", "TE", "WR"]
-                pos_name = "FLEX_QB_RB_TE_WR"
+                pos_name = "FLEX_OFFENSIVE_PLAYER"
+            if pos_name == "OP":
+                league.flex_positions_offensive_player = ["QB", "RB", "WR", "TE"]
+                pos_name = "FLEX_OFFENSIVE_PLAYER"
+            if pos_name == "DP":
+                league.flex_positions_idp = ["CB", "DB", "DE", "DL", "DT", "EDR", "LB",  "S"]
+                pos_name = "FLEX_IDP"
 
             pos_counter = deepcopy(int(count))
             while pos_counter > 0:
@@ -456,6 +462,11 @@ class LeagueData(object):
                             position = "FLEX_RB_TE_WR"
                         elif position == "QB/RB/WR/TE":
                             position = "FLEX_QB_RB_TE_WR"
+                        elif position == "OP":
+                            position = "FLEX_OFFENSIVE_PLAYER"
+                        elif position == "DP":
+                            position = "FLEX_IDP"
+
                         base_player.eligible_positions.append(position)
 
                     if player.slot_position == "BE":
@@ -468,6 +479,10 @@ class LeagueData(object):
                         base_player.selected_position = "FLEX_RB_TE_WR"
                     elif player.slot_position == "QB/RB/WR/TE":
                         base_player.selected_position = "FLEX_QB_RB_TE_WR"
+                    elif player.slot_position == "OP":
+                        base_player.selected_position = "FLEX_OFFENSIVE_PLAYER"
+                    elif player.slot_position == "DP":
+                        base_player.selected_position = "FLEX_IDP"
                     else:
                         base_player.selected_position = player.slot_position
                     base_player.selected_position_is_flex = True if "/" in player.slot_position and \
