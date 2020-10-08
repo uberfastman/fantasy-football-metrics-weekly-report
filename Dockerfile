@@ -7,7 +7,9 @@ LABEL "org.opencontainers.image.source"="https://github.com/uberfastman/fantasy-
 WORKDIR /app
 
 # update package index list and install ruby
-RUN apt-get update && apt-get clean
+RUN apt-get update && \
+    apt-get install -y git && \
+    apt-get clean
 
 ## UNCOMMENT IF USING RUBY SCRIPT FOR CBS AUTHENTICATION!
 #RUN apt-get update && \

@@ -203,7 +203,10 @@ def check_for_updates():
             if not last_local_version:
                 tag_ndx += 1
 
-        ls_remote = git_ls_remote(project_repo.remotes.origin.url)
+        origin_url = str(project_repo.remotes.origin.url)
+        if "https" not in origin_url:
+            origin_url = "https://github.com/{0}".format(str(project_repo.remotes.origin.url).split(":")[1])
+        ls_remote = git_ls_remote(origin_url)
 
         regex = re.compile("[^0-9.]")
         remote_tags = sorted(
