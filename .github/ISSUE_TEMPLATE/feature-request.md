@@ -3,7 +3,7 @@ name: Feature Request
 about: Suggest a new idea/feature for the FFMWR app.
 title: "[Feature Request] Short Description of New Idea/Feature"
 labels: feature
-assignees: uberfastman
+assignees: ''
 
 ---
 
