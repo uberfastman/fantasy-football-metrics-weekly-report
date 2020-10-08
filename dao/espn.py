@@ -2,12 +2,16 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
 import json
-import logging
 import os
 import re
 import sys
+import time
+import logging
 from copy import deepcopy
 from statistics import median
+import colorama
+from colorama import Fore, Style
+
 from typing import List
 
 import requests
@@ -20,10 +24,15 @@ from ff_espn_api.league import checkRequestStatus
 from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
 from report.logger import get_logger
 
-logger = get_logger(__name__)
+colorama.init()
 
-# Suppress ESPN API debug logging
-logger.setLevel(level=logging.INFO)
+logger = get_logger(__name__, propagate=False)
+
+# Suppress ESPN API requests debug logging
+logging.getLogger("urllib3.connectionpool").setLevel(level=logging.WARNING)
+# Suppress gitpython debug logging
+logging.getLogger("git.cmd").setLevel(level=logging.WARNING)
+logging.getLogger("git.cmd.cmd.execute").setLevel(level=logging.WARNING)
 
 
 class LeagueData(object):
@@ -39,7 +48,7 @@ class LeagueData(object):
                  save_data=True,
                  dev_offline=False):
 
-        logger.debug("Initiating ESPN league.")
+        logger.debug("Initializing ESPN league.")
 
         self.league_id = league_id
         self.season = season
@@ -51,9 +60,18 @@ class LeagueData(object):
         self.offensive_positions = ["QB", "RB", "WR", "TE", "K", "RB/WR", "WR/TE", "RB/WR/TE", "QB/RB/WR/TE", "OP"]
         self.defensive_positions = ["D/ST"]
 
+        espn_auth_json = None
         espn_auth_file = os.path.join(base_dir, config.get("ESPN", "espn_auth_dir"), "private.json")
-        with open(espn_auth_file, "r") as auth:
-            espn_auth_json = json.load(auth)
+        if os.path.isfile(espn_auth_file):
+            with open(espn_auth_file, "r") as auth:
+                espn_auth_json = json.load(auth)
+        else:
+            no_auth_msg = "{0}No \"private.json\" file found for ESPN. If generating the report for a PUBLIC league\n" \
+                          "then ignore this message and CONTINUE running the app. However, if generating the report\n" \
+                          "for a PRIVATE league then please follow the instructions in the README.md for obtaining\n" \
+                          "ESPN credentials. Press \"y\" to CONTINUE or \"n\" to ABORT. ({1}y{0}/{2}n{0}) -> {3}".format(
+                                Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL)
+            self.check_auth(no_auth_msg)
 
         if self.dev_offline:
             self.league = self.save_and_load_data(
@@ -76,8 +94,8 @@ class LeagueData(object):
             self.league = LeagueWrapper(
                 league_id=self.league_id,
                 year=int(self.season),
-                espn_s2=espn_auth_json.get("espn_s2"),
-                swid=espn_auth_json.get("swid")
+                espn_s2=espn_auth_json.get("espn_s2") if espn_auth_json else None,
+                swid=espn_auth_json.get("swid") if espn_auth_json else None
             )  # type: LeagueWrapper
 
         self.league_settings = self.league.settings
@@ -153,6 +171,22 @@ class LeagueData(object):
             self.rosters_json_by_week[str(week_for_rosters)] = team_rosters_json
 
         self.teams_json = self.league.teams_json
+
+    def check_auth(self, msg):
+        logger.debug(msg)
+        time.sleep(0.25)
+        use_credentials = input("\n{0}".format(msg))
+        if use_credentials.lower() == "y":
+            logger.info("\"{0}y{1}\" -> Continuing...".format(Fore.GREEN, Style.RESET_ALL))
+        elif use_credentials.lower() == "n":
+            logger.info("\"{0}n{1}\" -> Aborting...".format(Fore.RED, Style.RESET_ALL))
+            sys.exit(0)
+        else:
+            incorrect_key_msg = "{0}Please type \"{1}y{0}\" to CONTINUE or \"{2}n{0}\" to ABORT and press " \
+                                "{1}<ENTER>{0}. ({1}y{0}/{2}n{0}) -> {3}".format(
+                                    Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL)
+            logger.debug(incorrect_key_msg)
+            self.check_auth(incorrect_key_msg)
 
     def save_and_load_data(self, file_dir, filename, data=None):
         file_path = os.path.join(file_dir, filename)

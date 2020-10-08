@@ -1,16 +1,70 @@
 import logging
 import logging.handlers as handlers
 import os
+import re
 import sys
 import time
 from configparser import NoSectionError
 # from logging.handlers import RotatingFileHandler
 from logging.handlers import TimedRotatingFileHandler
 
+import colorama
+from colorama import Fore, Style
+
 from utils.app_config_parser import AppConfigParser
+
+colorama.init()
 
 config = AppConfigParser()
 config.read(os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.ini"))
+
+
+class StyledFormatter(logging.Formatter):
+    def __init__(self, msg):
+        logging.Formatter.__init__(self, msg)
+
+    def format(self, record):
+
+        record.name = "{0}{1}{2}".format(Fore.RESET, record.name, Style.RESET_ALL)
+
+        log_level = record.levelname
+        if log_level == "DEBUG":
+            record.levelname = "{0}{1}{2}".format(Fore.MAGENTA, log_level, Style.RESET_ALL)
+            record.message = "{0}{1}{2}".format(Fore.MAGENTA, record.getMessage(), Style.RESET_ALL)
+        elif log_level == "INFO":
+            record.levelname = "{0}{1}{2}".format(Fore.WHITE, log_level, Style.RESET_ALL)
+            record.message = "{0}{1}{2}".format(Fore.WHITE, record.getMessage(), Style.RESET_ALL)
+        elif log_level == "WARNING":
+            record.levelname = "{0}{1}{2}".format(Fore.YELLOW, log_level, Style.RESET_ALL)
+            record.message = "{0}{1}{2}".format(Fore.YELLOW, record.getMessage(), Style.RESET_ALL)
+        elif log_level == "ERROR":
+            record.levelname = "{0}{1}{2}".format(Fore.RED, log_level, Style.RESET_ALL)
+            record.message = "{0}{1}{2}".format(Fore.RED, record.getMessage(), Style.RESET_ALL)
+        elif log_level == "CRITICAL":
+            record.levelname = "{0}{1}{2}".format(Fore.RED, log_level, Style.RESET_ALL)
+            record.message = "{0}{1}{2}".format(Fore.RED, record.getMessage(), Style.RESET_ALL)
+        else:
+            record.message = record.getMessage()
+
+        # noinspection PyUnresolvedReferences
+        if self.usesTime():
+            record.asctime = "{0}{1}{2}".format(Fore.RESET, self.formatTime(record, self.datefmt), Style.RESET_ALL)
+        s = self.formatMessage(record)
+        if record.exc_info:
+            # Cache the traceback text to avoid converting it multiple times
+            # (it's constant anyway)
+            if not record.exc_text:
+                record.exc_text = self.formatException(record.exc_info)
+        if record.exc_text:
+            if s[-1:] != "\n":
+                s = s + "\n"
+            s = s + record.exc_text
+        if record.stack_info:
+            if s[-1:] != "\n":
+                s = s + "\n"
+            s = s + self.formatStack(record.stack_info)
+
+        return s
 
 
 # class taken from stackoverflow: https://stackoverflow.com/a/8468041
@@ -47,6 +101,30 @@ class SizedTimedRotatingFileHandler(TimedRotatingFileHandler):
             return 1
         return 0
 
+    # noinspection PyBroadException
+    def emit(self, record):
+        try:
+            if self.shouldRollover(record):
+                self.doRollover()
+
+            if self.stream is None:
+                self.stream = self._open()
+
+            try:
+                ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+                msg = ansi_escape.sub("", self.format(record))
+                stream = self.stream
+                # issue 35046: merged two stream.writes into one.
+                stream.write(msg + self.terminator)
+                self.flush()
+            except RecursionError:  # See issue 36272
+                raise
+            except Exception:
+                self.handleError(record)
+
+        except Exception:
+            self.handleError(record)
+
 
 def get_logger(module_name=None, propagate=True):
 
@@ -70,7 +148,9 @@ def get_logger(module_name=None, propagate=True):
     if not os.path.exists(log_file_dir):
         os.makedirs(log_file_dir)
 
-    log_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    log_formatter = StyledFormatter("%(asctime)s {0}-{1} %(name)s {0}-{1} %(levelname)s {0}-{1} %(message)s".format(
+        Fore.RESET, Style.RESET_ALL
+    ))
 
     sh = logging.StreamHandler(stream=sys.stderr)
     sh.setLevel(log_level)

@@ -20,7 +20,7 @@ from report.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Suppress Fleaflicker API debug logging
+# Suppress Sleeper API debug logging
 logger.setLevel(level=logging.INFO)
 
 
@@ -36,7 +36,7 @@ class LeagueData(object):
                  save_data=True,
                  dev_offline=False):
 
-        logger.debug("Initiating Sleeper league.")
+        logger.debug("Initializing Sleeper league.")
 
         self.league_id = league_id
         self.season = season

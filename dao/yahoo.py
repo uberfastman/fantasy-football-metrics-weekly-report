@@ -34,7 +34,7 @@ class LeagueData(object):
                  save_data=True,
                  dev_offline=False):
 
-        logger.debug("Initiating Yahoo league.")
+        logger.debug("Initializing Yahoo league.")
 
         self.league_id = league_id
         self.game_id = game_id

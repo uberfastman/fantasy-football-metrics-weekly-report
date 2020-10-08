@@ -36,7 +36,7 @@ class LeagueData(object):
                  save_data=True,
                  dev_offline=False):
 
-        logger.debug("Initiating Fleaflicker league.")
+        logger.debug("Initializing Fleaflicker league.")
 
         self.league_id = league_id
         self.season = season

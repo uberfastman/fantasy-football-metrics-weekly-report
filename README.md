@@ -30,6 +30,8 @@
 
 #### Fantasy Football Platform Support: [Yahoo](#yahoo-setup), [ESPN](#espn-setup), [Sleeper](#sleeper-setup), [Fleaflicker](#fleaflicker-setup)
 
+***You can see an example of what a report looks like [here](resources/files/EXAMPLE-report.pdf)!***
+
 ---
 
 ###### Do you like the app? Star the repository here on GitHub and please consider donating to help support its development:
@@ -48,18 +50,19 @@
 
 ###### Interested in contributing? <sub><sub>[![Help Wanted](https://img.shields.io/github/labels/uberfastman/fantasy-football-metrics-weekly-report/help%20wanted)](resources/documentation/README.md)</sub></sub>
 
-___
-
-## [<ins>***NEW (AND EASIER) SETUP PROCESS USING DOCKER!***</ins>](#docker)
-
 ---
 
 ### Table of Contents
+* <ins>***[Quickstart Guide](#quickstart-guide)***</ins>
 * [About](#about)
     * [Example Report](#example-report)
+    * [Updating](#updating)
 * [Dependencies](#dependencies)
 * [Setup](#setup)
+    * [Command-line](#command-line)
+    * [Git](#git)
     * [Docker](#docker)
+    * [GitHub](#github)
     * [Yahoo Setup](#yahoo-setup)
     * [Fleaflicker Setup](#fleaflicker-setup)
     * [Sleeper Setup](#sleeper-setup)
@@ -78,6 +81,75 @@ ___
     * [Yahoo](#yahoo)
     * [Docker on Windows](#docker-on-windows)
 
+---
+
+<a name="quickstart-guide"></a>
+## *Quickstart Guide*
+
+```diff
++ NEW (AND EASIER) APPLICATION SETUP BELOW!
+```
+
+1. Open a command-line interface (see the [Command-line](#command-line) section for more details) on your computer.
+
+    * ***macOS***: type `Cmd + Space` (`⌘ + Space`) to bring up Spotlight, and search for "Terminal" and hit enter).
+    
+    * ***Windows***: type `Windows + R` to open the "Run" box, then type `cmd` and then click "OK" to open a regular Command Prompt (or type `cmd` and then press `Ctrl + Shift + Enter` to open a Command Prompt as administrator.)
+    
+    * ***Linux (Ubuntu)***: type `Ctrl+Alt+T`.
+
+2. Install Git (see [Git](#git) section for more details.
+
+    * ***macOS***: run `git --version` for the first time, and when prompted, install the *Xcode Command Line Tools*.
+    
+    * ***Windows***: Download [Git for Windows](https://git-scm.com/download/win) and install it.
+    
+    * ***Linux (Ubuntu)***: `sudo apt install git-all` (see above link for different Linux distributions)
+
+3. Install [Docker Desktop](#docker) for your operating system.
+
+    * ***macOS***: [Docker Desktop for Mac](https://docs.docker.com/docker-for-mac/install/)
+    
+    * ***Windows***: [Docker Desktop for Windows](https://docs.docker.com/docker-for-windows/install/)
+    
+    * ***Linux***: [Docker for Linux](https://docs.docker.com/engine/install/)
+
+4. Clone this app from GitHub (see [GitHub](#github) section for more details) to wherever you would like to store the app code on your computer (I recommend something like your user Documents folder).
+
+    ```bash
+    git clone https://github.com/uberfastman/fantasy-football-metrics-weekly-report.git
+    ```
+
+5. Navigate into the cloned app directory within the command line by running:
+
+    ```bash
+    cd fantasy-football-metrics-weekly-report
+    ```
+   
+6. Follow the required setup instructions for whichever fantasy football platform you use: [Yahoo](#yahoo-setup), [ESPN](#espn-setup), [Sleeper](#sleeper-setup), or [Fleaflicker](#fleaflicker-setup)
+
+7. Configure the app by updating values in the `config.ini` file (see the [Configuration](#configuration) section for more details). 
+
+    * *Alternately, the first time you try running the app it will detect that you have no `config.ini` file, and will ask you if you wish to create one. Provide values for the remaining prompts (it will ask you for your* **fantasy football platform**, *your* **league ID**, *the* **NFL season (year)**, *and the* **current NFL week**, *so have those values ready.*
+
+8. Run the Fantasy Football Metrics Weekly Report app using Docker (see the [Running the Report Application](#running-the-report-application) section for more details). 
+    
+    <sup>If on Windows, see the [Docker on Windows](#docker-on-windows) troubleshooting section if you encounter any permissions or access issues.</sup>
+    
+    * Run:
+    
+        ```bash
+        docker-compose up -d
+        ```
+   
+    * Wait for the above command to complete, then run:
+   
+        ```bash
+        docker exec -it fantasy-football-metrics-weekly-report_app_1 python main.py
+        ```
+
+    * ***Follow the prompts to generate a report for your fantasy league!***
+    
 ---
 
 <a name="about"></a>
@@ -104,6 +176,13 @@ Currently supported fantasy football platforms:
 #### Example Report
 ***You can see an example of what a report looks like [here](resources/files/EXAMPLE-report.pdf)!***
 
+<a name="updating"></a>
+#### Updating
+
+Every time you run the app it will check to see if you are using the latest version (as long as you have an active network connection). If it detects that your app is out of date, you will see prompt asking you if you wish to update the app. Type `y` and hit enter to confirm. 
+
+If you wish to update the app yourself manually, you can just type `n` to skip automatically updating, and run `git pull origin develop` manually from within the application directory on the command line.
+
 ---
 
 <a name="dependencies"></a>
@@ -123,47 +202,59 @@ _\* General setup **excludes** Google Drive and Slack integrations. See [Additio
 
 ---
 
+<a name="command-line"></a>
+#### Command-line
+
+Open a command-line terminal/prompt:
+
+* ***macOS***: type `Cmd + Space` (`⌘ + Space`) to bring up Spotlight, and search for "Terminal" and hit enter).
+
+* ***Windows***: type `Windows + R` to open the "Run" box, then type `cmd` and then click "OK" to open a regular Command Prompt (or type `cmd` and then press `Ctrl + Shift + Enter` to open a Command Prompt as administrator.)
+
+* ***Linux (Ubuntu)***: type `Ctrl+Alt+T`.
+
+<a name="git"></a>
+#### Git
+
+Install `git` (if you do not already have it installed). You can see detailed instructions for installation on your OS [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git).
+
+* ***macOS***: run `git --version` for the first time, and when prompted, install the *Xcode Command Line Tools*.
+
+* ***Windows***: Download [Git for Windows](https://git-scm.com/download/win) and install it.
+
+* ***Linux (Ubuntu)***: `sudo apt install git-all` (see above link for different Linux distributions)
+
+**NOTE**: If you are comfortable using the command line, feel free to just install `git` for the command line. *However*, if using the command line is not something you have much experience with and would prefer to do less in a command line shell, you can install [Git for Desktop](https://desktop.github.com).
+
 <a name="docker"></a>
 #### Docker
-<ins>***NEW (AND EASIER) APPLICATION SETUP BELOW!***</ins>
 
 * **NOTE: This application requires you to have administrative (admin) access for the computer on which you are installing it.**
 
-1. Install [Docker](https://docs.docker.com/get-docker/) for your operating system:
+Install [Docker](https://docs.docker.com/get-docker/) for your operating system:
     
-    * macOS: [Docker Desktop for Mac](https://docs.docker.com/docker-for-mac/install/)
-    
-    * Windows: [Docker Desktop for Windows](https://docs.docker.com/docker-for-windows/install/)
-    
-    * Linux: [Docker for Linux](https://docs.docker.com/engine/install/)
+* ***macOS***: [Docker Desktop for Mac](https://docs.docker.com/docker-for-mac/install/)
 
-2. Open a command line prompt
+* ***Windows***: [Docker Desktop for Windows](https://docs.docker.com/docker-for-windows/install/)
 
-    * ***macOS***: type `Cmd + Space` (`⌘ + Space`) to bring up Spotlight, and search for "Terminal" and hit enter).
-    
-    * ***Windows***: type `Windows + R` to open the "Run" box, then type `cmd` and then click "OK" to open a regular Command Prompt (or type `cmd` and then press `Ctrl + Shift + Enter` to open an administrator Command Prompt)
-    
-    * ***Linux (Ubuntu)***: type `Ctrl+Alt+T`.
-    
-3. Install `git` (if you do not already have it installed). You can see instructions for installation on your OS [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git). If you are comfortable using the command line, feel free to just install `git` for the command line. *However*, if using the command line is not something you have much experience with and would prefer to do less in a command line shell, you should install [Git for Desktop](https://desktop.github.com).
+* ***Linux***: [Docker for Linux](https://docs.docker.com/engine/install/)
 
-4. Clone this project to whichever directory you wish to use for this app:
+<a name="github"></a>
+#### GitHub
 
-    * If you already have an account on [GitHub](https://github.com), then I recommend using [SSH to connect with GitHub](https://help.github.com/en/articles/connecting-to-github-with-ssh).
-    
-    * If using SSH (as described in the link above), run:
-    
-        ```bash
-        git clone git@github.com:uberfastman/fantasy-football-metrics-weekly-report.git
-        ```
-  
-    * If ***not*** using SSH, then use HTTPS by running:
-    
-        ```bash
-        git clone https://github.com/uberfastman/fantasy-football-metrics-weekly-report.git
-        ```
-  
-5. Run `cd fantasy-football-metrics-weekly-report` to enter the project directory.
+Clone this project to whichever directory you wish to use for this app:
+
+* If you do ***not*** have an existing account on GitHub and do ***not*** wish to create one, then use HTTPS by running: 
+
+    ```bash
+    git clone https://github.com/uberfastman/fantasy-football-metrics-weekly-report.git
+    ```
+
+* If you already have an account on [GitHub](https://github.com), then I recommend using [SSH to connect with GitHub](https://help.github.com/en/articles/connecting-to-github-with-ssh) by running:
+
+    ```bash
+    git clone git@github.com:uberfastman/fantasy-football-metrics-weekly-report.git
+    ```
 
 ---
 
@@ -267,7 +358,7 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
 
 4. You can also specify the `year` from the command line by running the report with the `-y <chosen_year>` flag.
 
-5. Public ESPN leagues do not require any authentication to access their API at this time, so no additional steps are necessary for those leagues. However, certain data will not be available if you are not authenticated, so it is advised for you to still follow the below authentication steps anyway. For private leagues, you ***must*** complete the following authentication steps:
+5. Public ESPN leagues **do not** require any authentication to access their API at this time, so no additional steps are necessary for those leagues. However, certain data will not be available if you are not authenticated, so it is advised for you to still follow the below authentication steps anyway. For private leagues, you ***must*** complete the following authentication steps:
 
     1. Steven Morse has done a great deal of fantastic work to help teach people how to use the ESPN fantasy API, and has a useful blog post [here](https://stmorse.github.io/journal/espn-fantasy-3-python.html) detailing how to get your own session cookies. As stated in the aforementioned blog, you can get the cookies following the subsequent steps.
         
