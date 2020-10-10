@@ -4,9 +4,11 @@ __email__ = "wrenjr@yahoo.com"
 import getopt
 import os
 import re
+import time
 import sys
 import traceback
-from utils.app_config_parser import AppConfigParser
+import colorama
+from colorama import Fore, Style
 
 import pkg_resources
 from pkg_resources import DistributionNotFound, VersionConflict
@@ -15,25 +17,17 @@ from integrations.drive_integration import GoogleDriveUploader
 from integrations.slack_integration import SlackMessenger
 from report.builder import FantasyFootballReport
 from report.logger import get_logger
+from utils.report_tools import check_for_updates, get_valid_config
+
+colorama.init()
 
 logger = get_logger()
 
-# set local config file (check for existence and access, stop app if does not exist or cannot access)
-if os.path.isfile("config.ini"):
-    if os.access("config.ini", mode=os.R_OK):
-        logger.debug(
-            "Configuration file \"config.ini\" available. Running Fantasy Football Metrics Weekly Report app...")
-    else:
-        logger.error(
-            "Unable to access configuration file \"config.ini\". Please check that file permissions are properly set.")
-        sys.exit("...run aborted.")
-else:
-    logger.error(
-        "Configuration file \"config.ini\" not found. Please make sure that it exists in project root directory.")
-    sys.exit("...run aborted.")
+# set local config file (check for existence and access, create config.ini if does not exist or stop app if unable to access)
+config = get_valid_config()
 
-config = AppConfigParser()
-config.read("config.ini")
+# check to see if the current app is behind any commits, and provide option to update and re-run if behind
+up_to_date = check_for_updates()
 
 
 def main(argv):
@@ -110,7 +104,7 @@ def main(argv):
             options_dict["league_id"] = arg
         elif opt in ("-w", "--week"):
             if int(arg) < 1 or int(arg) > 17:
-                print("\nPlease select a valid week number from 1 to 17.")
+                logger.error("Please select a valid week number from 1 to 17.")
                 options_dict["week"] = select_week()
             else:
                 options_dict["week"] = arg
@@ -143,7 +137,9 @@ def main(argv):
 def select_league(week, platform, league_id, game_id, season, refresh_web_data, playoff_prob_sims, break_ties, dq_ce,
                   save_data, dev_offline, test):
     if not league_id:
-        default = input("Generate report for default league? (y/n) -> ")
+        default = input("{0}Generate report for default league? ({1}y{0}/{2}n{0}) -> {3}".format(
+            Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
+        ))
     else:
         default = "selected"
 
@@ -168,7 +164,9 @@ def select_league(week, platform, league_id, game_id, season, refresh_web_data, 
                                      test=test)
     elif default == "n":
         league_id = input(
-            "What is the league ID of the league for which you want to generate a report? -> ")
+            "{0}What is the league ID of the league for which you want to generate a report? -> {3}".format(
+                Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
+            ))
 
         if not week:
             week_for_report = select_week()
@@ -190,7 +188,7 @@ def select_league(week, platform, league_id, game_id, season, refresh_web_data, 
                                          dev_offline=dev_offline,
                                          test=test)
         except IndexError:
-            print("The league ID you have selected is not valid.")
+            logger.error("The league ID you have selected is not valid.")
             select_league(week, platform, None, game_id, season, refresh_web_data, playoff_prob_sims, break_ties, dq_ce,
                           save_data, dev_offline, test)
     elif default == "selected":
@@ -214,24 +212,31 @@ def select_league(week, platform, league_id, game_id, season, refresh_web_data, 
                                      dev_offline=dev_offline,
                                      test=test)
     else:
-        print("You must select either 'y' or 'n'.")
+        logger.warning("You must select either 'y' or 'n'.")
+        time.sleep(0.25)
         select_league(week, platform, None, game_id, season, refresh_web_data, playoff_prob_sims, break_ties, dq_ce,
                       save_data, dev_offline, test)
 
 
 def select_week():
-    default = input("Generate report for default week? (y/n) -> ")
+    default = input("{0}Generate report for default week? ({1}y{0}/{2}n{0}) -> {3}".format(
+        Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
+    ))
     if default == "y":
         return None
     elif default == "n":
-        chosen_week = input("For which week would you like to generate a report? (1 - 17) -> ")
+        chosen_week = input("{0}For which week would you like to generate a report? ({1}1{0} - {1}17{0}) -> {3}".format(
+            Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
+        ))
         if 0 < int(chosen_week) < 18:
             return chosen_week
         else:
-            print("Please select a valid week number between 1 and 17.")
+            logger.warning("Please select a valid week number between 1 and 17.")
+            time.sleep(0.25)
             select_week()
     else:
-        print("You must select either 'y' or 'n'.")
+        logger.warning("You must select either 'y' or 'n'.")
+        time.sleep(0.25)
         select_week()
 
 

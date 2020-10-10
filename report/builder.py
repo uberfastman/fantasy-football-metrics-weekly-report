@@ -408,5 +408,12 @@ class FantasyFootballReport(object):
         file_for_upload = pdf_generator.generate_pdf(filename_with_path, line_chart_data_list)
 
         logger.info("...SUCCESS! Generated PDF: {0}\n".format(file_for_upload))
+        logger.debug(
+            "\n\n\n"
+            "\n~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * "
+            "\n~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * END RUN ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * "
+            "\n~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * ~ * "
+            "\n\n\n"
+        )
 
         return file_for_upload
