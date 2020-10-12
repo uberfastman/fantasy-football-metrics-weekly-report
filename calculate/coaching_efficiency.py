@@ -121,9 +121,14 @@ class CoachingEfficiency(object):
                 [p for p in bench_players if self.is_player_eligible(p, week, inactive_players)])
 
             if Counter(self.roster_active_slots) == Counter(positions_filled_active):
+                num_bench_slots = self.roster_slot_counts.get("BN", 0)  # excludes IR players/slots
+                num_bench_players = len(bench_players)
+                # add empty bench slots to the ineligible efficiency bench player count
+                if num_bench_players < num_bench_slots:
+                    ineligible_efficiency_player_count += (num_bench_slots - num_bench_players)
+
                 # divide bench slots by 2 and DQ team if number of ineligible players >= the ceiling of that value
-                if ineligible_efficiency_player_count < math.ceil(
-                        self.roster_slot_counts.get("BN", 0) / 2.0):  # exclude IR players
+                if ineligible_efficiency_player_count < math.ceil(num_bench_slots / 2.0):  # excludes IR players/slots
                     efficiency_disqualification = False
                 else:
                     efficiency_disqualification = True
