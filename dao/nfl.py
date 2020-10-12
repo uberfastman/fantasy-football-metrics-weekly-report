@@ -28,7 +28,7 @@ if __name__ == '__main__':
         with open(os.path.join(nfl_auth_dir, "private.json"), "r") as auth:
             nfl_auth_json = json.load(auth)
 
-        with open(os.path.join(nfl_auth_dir, "nfl_ff_client.json"), "r") as nfl_ff_client:
+        with open(os.path.join(nfl_auth_dir, "private_nfl_ff_client.json"), "r") as nfl_ff_client:
             nfl_ff_client_json = json.load(nfl_ff_client)
 
         login_headers = {
@@ -118,7 +118,7 @@ if __name__ == '__main__':
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, " +
                           "like Gecko) Version/13.0 Safari/605.1.15",
             "Content-Type": "application/json",
-            "authorization": "Bearer {0}".format(access_token)
+            "Authorization": "Bearer {0}".format(access_token)
         }
 
         base = "https://api.nfl.com/v1/teams?"
@@ -129,8 +129,12 @@ if __name__ == '__main__':
 
         query = 's={"$query":{"abbr":"SEA","season":2020,"standings":{"$query":{"week.seasonType":"REG"}}}}"'
 
+        request_url = "{0}{2}{1}{3}".format(base, joiner, args, query)
+
+        print(request_url)
+
         response = requests.get(
-            "{0}{2}{1}{3}".format(base, joiner, args, query),
+            request_url,
             headers=data_headers
         )
 
