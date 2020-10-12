@@ -170,6 +170,8 @@ Currently supported fantasy football platforms:
 
 * ***CBS***
 
+* ***NFL.com***
+
 * ***MyFantasyLeague***
 
 <a name="example-report"></a>
