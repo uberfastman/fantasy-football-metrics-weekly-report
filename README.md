@@ -226,7 +226,9 @@ Install `git` (if you do not already have it installed). You can see detailed in
 
 * ***Linux (Ubuntu)***: `sudo apt install git-all` (see above link for different Linux distributions)
 
-**NOTE**: If you are comfortable using the command line, feel free to just install `git` for the command line. *However*, if using the command line is not something you have much experience with and would prefer to do less in a command line shell, you can install [Git for Desktop](https://desktop.github.com).
+**NOTE**: If you are comfortable using the command line, feel free to just install `git` for the command line. *However*, if using the command line is not something you have much experience with and would prefer to do less in a command line shell, you can install [Git for Desktop](https://desktop.github.com). 
+
+<ins>***If you use the Git for Desktop client, please keep the project name the same***</ins> (`fantasy-football-metrics-weekly-report`) <ins>***or else you will run into additional issues when running the app!***</ins>
 
 <a name="docker"></a>
 #### Docker
