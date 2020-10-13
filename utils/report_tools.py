@@ -269,12 +269,23 @@ def check_for_updates():
                 time.sleep(0.25)
                 check_for_updates()
         else:
-            logger.debug("The Fantasy Football Metrics Weekly Report app is up to date.")
+            logger.info(
+                "The Fantasy Football Metrics Weekly Report app is {0}up to date{1} and running {0}{2}{1}.".format(
+                    Fore.GREEN, Fore.WHITE, last_local_version))
             return True
 
 
 def update_app(repository: Repo):
     logger.debug("Updating app by pulling latest from develop.")
+
+    diff = repository.index.diff(None)
+    if len(diff) > 0:
+        logger.error("There are changes to local files that could cause conflicts when updating the app "
+                       "automatically.")
+        logger.warning("Please update the app manually by running {0}git pull origin develop{1} and resolve any "
+                       "conflicts by hand to update.".format(Fore.WHITE, Fore.YELLOW))
+        sys.exit(2)
+
     response = repository.git.pull("origin", "develop")
     logger.debug(response)
     return True
