@@ -3,6 +3,7 @@ __email__ = "wrenjr@yahoo.com"
 
 import datetime
 import json
+import logging
 import os
 
 from slack import WebClient
@@ -12,6 +13,10 @@ from report.logger import get_logger
 from utils.app_config_parser import AppConfigParser
 
 logger = get_logger(__name__, propagate=False)
+
+# Suppress verbose slack debug logging
+logging.getLogger("slack.web.slack_response").setLevel(level=logging.INFO)
+logging.getLogger("slack.web.base_client").setLevel(level=logging.INFO)
 
 
 class SlackMessenger(object):
