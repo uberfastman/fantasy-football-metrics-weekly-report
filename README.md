@@ -310,7 +310,7 @@ Clone this project to whichever directory you wish to use for this app:
 <a name="fleaflicker-setup"></a>
 #### Fleaflicker Setup
 
-Fleaflicker recently implemented a public API, but at the present time it is undocumented and subject to unexpected and sudden changes. *Please note, some of the data required to provide certain information to the report is not currently available in the Sleeper API, so for the time being web-scraping is used to supplement the data gathered from the Fleaflicker API.*
+Fleaflicker recently implemented a public API, but at the present time it is undocumented and subject to unexpected and sudden changes. *Please note, some of the data required to provide certain information to the report is not currently available in the Fleaflicker API, so for the time being web-scraping is used to supplement the data gathered from the Fleaflicker API.*
 
 1. Retrieve your Fleaflicker league ID. You can find it by looking at the URL of your league in your browser:
 
@@ -339,7 +339,7 @@ Sleeper has a public API, the documentation for which is available [here](https:
     
 2. Change the `league_id` value in `config.ini` to the above located league id.
 
-3. Make sure that you have accurately set the `current_week` configuration value in the `config.ini` file to reflect the current/ongoing NFL week at the time of running the report. ***This is required for the Fantasy Football Metrics Weekly Report app to run correctly!***
+3. *(Optional)* It is advised that you accurately set the `current_week` configuration value in the `config.ini` file to reflect the current/ongoing NFL week at the time of running the report, as the report will default to this value if retrieving the current NFL week from the Fox Sports API (which the app uses to fetch the current NFL week) is unsuccessful.
 
 4. Sleeper does not require any authentication to access their API at this time, so no additional steps are necessary.
 

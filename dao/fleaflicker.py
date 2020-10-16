@@ -33,6 +33,7 @@ class LeagueData(object):
                  config,
                  data_dir,
                  week_validation_function,
+                 get_current_nfl_week_function,
                  save_data=True,
                  dev_offline=False):
 
@@ -71,8 +72,11 @@ class LeagueData(object):
         scraped_league_scores = self.scrape(self.league_url + "/scores", os.path.join(
             self.data_dir, str(self.season), str(self.league_id)), str(self.league_id) + "-league-scores.html")
 
-        self.current_week = int(scraped_league_scores.findAll(
-            text=re.compile(".*This Week.*"))[-1].parent.findNext("li").text.strip().split(" ")[-1]) - 1
+        try:
+            self.current_week = int(scraped_league_scores.findAll(
+                text=re.compile(".*This Week.*"))[-1].parent.findNext("li").text.strip().split(" ")[-1]) - 1
+        except (IndexError, AttributeError) as e:
+            self.current_week = get_current_nfl_week_function(self.config, self.dev_offline)
 
         scraped_league_rules = self.scrape(self.league_url + "/rules", os.path.join(
             self.data_dir, str(self.season), str(self.league_id)), str(self.league_id) + "-league-rules.html")

@@ -33,6 +33,7 @@ class LeagueData(object):
                  config,
                  data_dir,
                  week_validation_function,
+                 get_current_nfl_week_function,
                  save_data=True,
                  dev_offline=False):
 
@@ -66,7 +67,8 @@ class LeagueData(object):
         # TODO: don't need this!
         # self.current_season = self.league_info.get("season")
 
-        # TODO: current week
+        self.current_week = get_current_nfl_week_function(self.config, self.dev_offline)
+
         self.current_week = self.config.getint("Configuration", "current_week")
 
         # validate user selection of week for which to generate report

@@ -340,6 +340,30 @@ def user_week_input_validation(config, week, retrieved_current_week, season):
     return int(week_for_report)
 
 
+def get_current_nfl_week(config: AppConfigParser, dev_offline):
+
+    fox_sports_public_api_key = {"apikey": "jE7yBJVRNAwdDesMgTzTXUUSx1It41Fq"}
+    fox_sports_main_url = "https://api.foxsports.com/bifrost/v1/nfl/scoreboard/main"
+
+    current_nfl_week = config.getint("Configuration", "current_week")
+
+    if not dev_offline:
+        logger.debug("Retrieving current NFL week from the Fox Sports API.")
+
+        try:
+            nfl_weekly_info = requests.get(fox_sports_main_url, params=fox_sports_public_api_key).json()
+            current_nfl_week = "".join(char for char in nfl_weekly_info.get("currentSelectionId") if char.isdigit())
+        except (KeyError, ValueError) as e:
+            logger.warning("Unable to retrieve current NFL week. Defaulting to value set in \"config.ini\".")
+            logger.debug(e)
+
+    else:
+        logger.debug("The Fantasy Football Metrics Weekly Report app is being run in offline mode. "
+                     "The current NFL week will default to the value set in \"config.ini\".")
+
+    return current_nfl_week
+
+
 def league_data_factory(week_for_report, platform, league_id, game_id, season, config, base_dir, data_dir, save_data,
                         dev_offline):
     supported_platforms = [str(platform) for platform in config.get("Configuration", "supported_platforms").split(",")]
@@ -367,34 +391,13 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, c
                 config,
                 data_dir,
                 user_week_input_validation,
+                get_current_nfl_week,
                 save_data,
                 dev_offline
             )
             return fleaflicker_league.map_data_to_base(BaseLeague)
 
         elif platform == "sleeper":
-            current_nfl_week = config.getint("Configuration", "current_week")
-            if not week_for_report:
-                input_str = "{0}Sleeper does not provide the current NFL week in the API. Are you trying to generate a " \
-                            "report for week {4} (current NFL week {5})? ({1}y{0}/{2}n{0}) -> {3}".format(
-                                Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL,
-                                current_nfl_week - 1, current_nfl_week)
-                time.sleep(1)
-                is_current_week_correct = input(input_str)
-                if is_current_week_correct == "n":
-                    chosen_week = input("{0}For which week would you like to generate a report? (1 - 17) -> {1}".format(
-                        Fore.GREEN, Style.RESET_ALL
-                    ))
-                    if 0 < int(chosen_week) < 18:
-                        week_for_report = chosen_week
-                    else:
-                        raise ValueError("Invalid week number (must be 1 through 17). Please try running the report "
-                                         "generator again with a valid current NFL week in \"config.ini\".")
-                elif is_current_week_correct == "y":
-                    pass
-                else:
-                    raise ValueError("Please only select \"y\" or \"n\". Try running the report generator again.")
-
             sleeper_league = SleeperLeagueData(
                 week_for_report,
                 league_id,
@@ -402,6 +405,7 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, c
                 config,
                 data_dir,
                 user_week_input_validation,
+                get_current_nfl_week,
                 save_data,
                 dev_offline
             )
