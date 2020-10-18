@@ -67,7 +67,7 @@ class ReportData(object):
         # option to disqualify manually configured team(s) (in config.ini) for current week of coaching efficiency
         self.coaching_efficiency_dqs = {}
         if int(week_counter) == int(week_for_report):
-            disqualified_teams = config.get("Configuration", "coaching_efficiency_disqualified_teams")
+            disqualified_teams = config.get("Settings", "coaching_efficiency_disqualified_teams")
             if disqualified_teams:
                 for team in disqualified_teams.split(","):
                     self.coaching_efficiency_dqs[team] = -2

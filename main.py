@@ -48,7 +48,7 @@ def main(argv):
             logger.error("Error: {0}\n{1}".format(dnfe, traceback.format_exc()))
             logger.error(
                 "MISSING DEPENDENCY: {0}. Please run `pip install {1}` and retry the report generation.".format(
-                    dependency, re.split("\W+", dependency)[0]))
+                    dependency, re.split("\\W+", dependency)[0]))
         except VersionConflict as vce:
             missing_dependency_count += 1
             logger.error("Error: {0}\n{1}".format(vce, traceback.format_exc()))
