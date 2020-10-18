@@ -69,7 +69,7 @@ class LeagueData(object):
 
         self.current_week = get_current_nfl_week_function(self.config, self.dev_offline)
 
-        self.current_week = self.config.getint("Configuration", "current_week")
+        self.current_week = self.config.getint("Settings", "current_week")
 
         # validate user selection of week for which to generate report
         self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week, self.season)
@@ -77,7 +77,7 @@ class LeagueData(object):
         self.num_playoff_slots = self.league_settings.get("playoff_teams")
         self.num_regular_season_weeks = (int(self.league_settings.get("playoff_week_start")) - 1) \
             if self.league_settings.get("playoff_week_start") > 0 \
-            else self.config.get("Configuration", "num_regular_season_weeks")
+            else self.config.get("Settings", "num_regular_season_weeks")
         self.roster_positions = dict(Counter(self.league_info.get("roster_positions")))
         self.has_median_matchup = bool(self.league_settings.get("league_average_match"))
         self.median_score_by_week = {}

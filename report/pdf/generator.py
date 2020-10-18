@@ -1295,7 +1295,7 @@ class PdfGenerator(object):
                                   "team performances through the end of the regular fantasy season." %
                                   "{0:,}".format(
                                       int(self.playoff_prob_sims) if self.playoff_prob_sims is not None else
-                                      self.config.getint("Configuration", "num_playoff_simulations",
+                                      self.config.getint("Settings", "num_playoff_simulations",
                                                          fallback=100000)) + (
                                       "\nProbabilities account for division winners in addition to overall "
                                       "win/loss/tie record." if self.report_data.has_divisions else ""),
@@ -1303,7 +1303,7 @@ class PdfGenerator(object):
                     footer_text="† Predicted Division Leaders{0}".format(
                         "<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
                         "‡ Predicted Division Qualifiers" if self.config.getint(
-                            "Configuration", "num_playoff_slots_per_division", fallback=1) > 1 else "")
+                            "Settings", "num_playoff_slots_per_division", fallback=1) > 1 else "")
                     if self.report_data.has_divisions else None
                 ))
 

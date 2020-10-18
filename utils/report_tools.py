@@ -2,28 +2,31 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
 import os
+import pkgutil
 import re
 import shutil
 import socket
 import sys
 import time
-import colorama
-from colorama import Fore, Style
 from datetime import datetime
 
+import colorama
 import requests
 from bs4 import BeautifulSoup
+from colorama import Fore, Style
 from git import Repo, TagReference, cmd
 from urllib3 import connectionpool, poolmanager
+from collections import defaultdict
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
 from calculate.covid_risk import CovidRisk
+from dao import platforms
 from dao.base import BaseLeague, BaseTeam, BasePlayer
-from dao.espn import LeagueData as EspnLeagueData
-from dao.fleaflicker import LeagueData as FleaflickerLeagueData
-from dao.sleeper import LeagueData as SleeperLeagueData
-from dao.yahoo import LeagueData as YahooLeagueData
+from dao.platforms.espn import LeagueData as EspnLeagueData
+from dao.platforms.fleaflicker import LeagueData as FleaflickerLeagueData
+from dao.platforms.sleeper import LeagueData as SleeperLeagueData
+from dao.platforms.yahoo import LeagueData as YahooLeagueData
 from report.logger import get_logger
 from utils.app_config_parser import AppConfigParser
 
@@ -34,6 +37,10 @@ colorama.init()
 current_date = datetime.today()
 current_year = current_date.year
 current_month = current_date.month
+
+supported_platforms = []
+for module in pkgutil.iter_modules(platforms.__path__):
+    supported_platforms.append(module.name)
 
 
 # function taken from https://stackoverflow.com/a/33117579 (written by 7h3rAm)
@@ -64,7 +71,54 @@ def get_valid_config():
         if os.access(config_file_path, mode=os.R_OK):
             logger.debug(
                 "Configuration file \"config.ini\" available. Running Fantasy Football Metrics Weekly Report app...")
+            config_template = AppConfigParser()
+            config_template.read(os.path.join(root_directory, "EXAMPLE-config.ini"))
             config.read(config_file_path)
+
+            if not set(config_template.sections()).issubset(set(config.sections())):
+                missing_sections = []
+                for section in config_template.sections():
+                    if section not in config.sections():
+                        missing_sections.append(section)
+
+                logger.error("Your local \"config.ini\" file is missing the following sections:\n\n{0}\n\n"
+                             "Please update your \"config.ini\" with the above sections from \"EXAMPLE-config.ini\" "
+                             "and try again.".format(", ".join(missing_sections)))
+                sys.exit("...run aborted.")
+            else:
+                logger.debug("All required local \"config.ini\" sections present.")
+
+            config_map = defaultdict(set)
+            for section in config.sections():
+                section_keys = set()
+                for (k, v) in config.items(section):
+                    section_keys.add(k)
+                config_map[section] = section_keys
+
+            missing_keys_map = defaultdict(set)
+            for section in config_template.sections():
+                if section in config.sections():
+                    for (k, v) in config_template.items(section):
+                        if k not in config_map.get(section):
+                            missing_keys_map[section].add(k)
+
+            if missing_keys_map:
+                missing_keys_str = ""
+                for section, keys in missing_keys_map.items():
+                    missing_keys_str += "Section: {0}\n".format(section)
+                    for key in keys:
+                        missing_keys_str += "  {0}\n".format(key)
+                    missing_keys_str += "\n"
+                missing_keys_str = missing_keys_str.strip()
+
+                logger.error("Your local \"config.ini\" file is  missing the following keys (from their respective "
+                             "sections):\n\n{0}\n\nPlease update your \"config.ini\" with the above keys from "
+                             "\"EXAMPLE-config.ini\" and try again.".format(missing_keys_str))
+
+                sys.exit("...run aborted.")
+            else:
+                logger.debug("All required local \"config.ini\" keys present.")
+
             return config
         else:
             logger.error(
@@ -98,7 +152,6 @@ def create_config_from_template(config: AppConfigParser, root_directory, config_
 
     if not platform:
         logger.debug("Getting ")
-        supported_platforms = config.get("Configuration", "supported_platforms").split(",")
         platform = input("{0}For which fantasy football platform are you generating a report? ({1}) -> {2}".format(
             Fore.GREEN, "/".join(supported_platforms), Style.RESET_ALL
         ))
@@ -109,13 +162,13 @@ def create_config_from_template(config: AppConfigParser, root_directory, config_
             config = create_config_from_template(config, root_directory, config_file_path)
         logger.debug("Retrieved fantasy football platform for \"config.ini\": {0}".format(platform))
 
-    config.set("Configuration", "platform", platform)
+    config.set("Settings", "platform", platform)
 
     if not league_id:
         league_id = input("{0}What is your league ID? -> {1}".format(Fore.GREEN, Style.RESET_ALL))
         logger.debug("Retrieved fantasy football league ID for \"config.ini\": {0}".format(league_id))
 
-    config.set("Configuration", "league_id", league_id)
+    config.set("Settings", "league_id", league_id)
 
     if not season:
         season = input("{0}For which NFL season (starting year of season) are you generating reports? -> {1}".format(
@@ -140,7 +193,7 @@ def create_config_from_template(config: AppConfigParser, root_directory, config_
                                                  league_id=league_id)
         logger.debug("Retrieved fantasy football season for \"config.ini\": {0}".format(season))
 
-    config.set("Configuration", "season", season)
+    config.set("Settings", "season", season)
 
     if not current_week:
         current_week = input(
@@ -161,7 +214,7 @@ def create_config_from_template(config: AppConfigParser, root_directory, config_
                                                  league_id=league_id, season=season)
         logger.debug("Retrieved current NFL week for \"config.ini\": {0}".format(current_week))
 
-    config.set("Configuration", "current_week", current_week)
+    config.set("Settings", "current_week", current_week)
 
     with open(config_file_path, "w") as cf:
         config.write(cf, space_around_delimiters=True)
@@ -296,7 +349,7 @@ def user_week_input_validation(config, week, retrieved_current_week, season):
     if week:
         week_for_report = week
     else:
-        week_for_report = config.get("Configuration", "week_for_report")
+        week_for_report = config.get("Settings", "week_for_report")
 
     # only validate user week if report is being run for current season
     if current_year == int(season) or (current_year == (int(season) + 1) and current_month < 9):
@@ -345,7 +398,7 @@ def get_current_nfl_week(config: AppConfigParser, dev_offline):
     fox_sports_public_api_key = {"apikey": "jE7yBJVRNAwdDesMgTzTXUUSx1It41Fq"}
     fox_sports_main_url = "https://api.foxsports.com/bifrost/v1/nfl/scoreboard/main"
 
-    current_nfl_week = config.getint("Configuration", "current_week")
+    current_nfl_week = config.getint("Settings", "current_week")
 
     if not dev_offline:
         logger.debug("Retrieving current NFL week from the Fox Sports API.")
@@ -366,7 +419,6 @@ def get_current_nfl_week(config: AppConfigParser, dev_offline):
 
 def league_data_factory(week_for_report, platform, league_id, game_id, season, config, base_dir, data_dir, save_data,
                         dev_offline):
-    supported_platforms = [str(platform) for platform in config.get("Configuration", "supported_platforms").split(",")]
 
     if platform in supported_platforms:
         if platform == "yahoo":

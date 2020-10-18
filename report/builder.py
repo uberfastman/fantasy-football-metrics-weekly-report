@@ -46,20 +46,20 @@ class FantasyFootballReport(object):
             self.platform = platform
             self.platform_str = str.capitalize(platform)
         else:
-            self.platform = self.config.get("Configuration", "platform")
-            self.platform_str = str.capitalize(self.config.get("Configuration", "platform"))
+            self.platform = self.config.get("Settings", "platform")
+            self.platform_str = str.capitalize(self.config.get("Settings", "platform"))
         if league_id:
             self.league_id = league_id
         else:
-            self.league_id = self.config.get("Configuration", "league_id")
+            self.league_id = self.config.get("Settings", "league_id")
         if game_id:
             self.game_id = game_id
         else:
-            self.game_id = self.config.get("Configuration", "game_id")
+            self.game_id = self.config.get("Settings", "game_id")
         if season:
             self.season = season
         else:
-            self.season = self.config.get("Configuration", "season")
+            self.season = self.config.get("Settings", "season")
 
         self.save_data = save_data
         # refresh data pulled from external web sources: bad boy data from USA Today, beef data from Fox Sports

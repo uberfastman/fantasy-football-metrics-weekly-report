@@ -1,4 +1,7 @@
 import logging
+import os
+import re
+from collections import defaultdict
 from configparser import ConfigParser, NoOptionError, NoSectionError
 
 logger = logging.getLogger(__name__)
@@ -8,9 +11,18 @@ logger = logging.getLogger(__name__)
 # a valid fallback value.
 _UNSET = object()
 
+_default_dict = dict
+DEFAULTSECT = "DEFAULT"
+
 
 class AppConfigParser(ConfigParser):
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.comment_map = defaultdict(dict)
+
+    # noinspection PyShadowingBuiltins
     def get(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
         """Get an option value for a given section.
 
@@ -56,3 +68,66 @@ class AppConfigParser(ConfigParser):
             return value
         else:
             return self._interpolation.before_get(self, section, option, value, d)
+
+    def read(self, filenames, encoding=None):
+        """Read and parse a filename or an iterable of filenames.
+
+        Files that cannot be opened are silently ignored; this is
+        designed so that you can specify an iterable of potential
+        configuration file locations (e.g. current directory, user's
+        home directory, systemwide directory), and all existing
+        configuration files in the iterable will be read.  A single
+        filename may also be given.
+
+        Return list of successfully read files.
+        """
+        if isinstance(filenames, (str, bytes, os.PathLike)):
+            filenames = [filenames]
+        read_ok = []
+        for filename in filenames:
+            try:
+                with open(filename, encoding=encoding) as fp:
+                    section = None
+                    key_comments = []
+                    lines = fp.readlines()
+                    for line in lines:
+                        if str(line).startswith("["):
+                            section = re.sub("[\\W_]+", "", line)
+                            self.comment_map[section] = {}
+                        else:
+                            if str(line).startswith(";"):
+                                key_comments.append(line)
+                            else:
+                                if "=" in line:
+                                    key = line.split("=")[0].strip()
+                                    self.comment_map[section][key] = key_comments
+                                    key_comments = []
+                    fp.seek(0)
+                    self._read(fp, filename)
+            except OSError:
+                continue
+            if isinstance(filename, os.PathLike):
+                filename = os.fspath(filename)
+            read_ok.append(filename)
+        return read_ok
+
+    def _write_section(self, fp, section_name, section_items, delimiter):
+        """Write a single section to the specified `fp'."""
+        fp.write("[{}]\n".format(section_name))
+        section_comments_map = self.comment_map.get(section_name)
+
+        for key, value in section_items:
+            value = self._interpolation.before_write(self, section_name, key, value)
+            if value is not None or not self._allow_no_value:
+                value = delimiter + str(value).replace('\n', '\n\t')
+            else:
+                value = ""
+
+            if key in section_comments_map.keys():
+
+                key_comments = section_comments_map.get(key)
+                for comment in key_comments:
+                    fp.write(comment)
+
+            fp.write("{}{}\n".format(key, value))
+        fp.write("\n")
