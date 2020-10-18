@@ -270,7 +270,7 @@ def check_for_updates():
         )
         last_remote_version = remote_tags[0][1]
 
-        num_commits_behind_develop = len(list(project_repo.iter_commits("develop..origin/develop")))
+        num_commits_behind_develop = len(list(project_repo.iter_commits("main..origin/main")))
 
         if str(last_local_version) == str(last_remote_version):
             local_version_color = Fore.GREEN
@@ -288,8 +288,8 @@ def check_for_updates():
             up_to_date_status_msg = "\n" \
                 "{0}The Fantasy Football Metrics Weekly Report app is {1}OUT OF DATE:\n\n" \
                 "  {2}Locally installed version: {3}\n" \
-                "  {4}Latest version on develop: {5}\n" \
-                "     {6}Commits behind develop: {7}\n\n" \
+                "     {4}Latest version on main: {5}\n" \
+                "        {6}Commits behind main: {7}\n\n" \
                 "{8}Please update the app and re-run to generate a report.{9}".format(
                     Fore.YELLOW, Fore.RED,
                     local_version_color, last_local_version,
@@ -329,17 +329,17 @@ def check_for_updates():
 
 
 def update_app(repository: Repo):
-    logger.debug("Updating app by pulling latest from develop.")
+    logger.debug("Updating app by pulling latest from main.")
 
     diff = repository.index.diff(None)
     if len(diff) > 0:
         logger.error("There are changes to local files that could cause conflicts when updating the app "
                        "automatically.")
-        logger.warning("Please update the app manually by running {0}git pull origin develop{1} and resolve any "
+        logger.warning("Please update the app manually by running {0}git pull origin main{1} and resolve any "
                        "conflicts by hand to update.".format(Fore.WHITE, Fore.YELLOW))
         sys.exit(2)
 
-    response = repository.git.pull("origin", "develop")
+    response = repository.git.pull("origin", "main")
     logger.debug(response)
     return True
 

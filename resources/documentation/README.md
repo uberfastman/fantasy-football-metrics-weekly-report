@@ -24,7 +24,7 @@ There is a pre-made setup bash script in the top level of this repository called
 
 * ***Note***: This script has not been extensively tested. It was added in order to simplify the required setup steps, but please still do your best to verify that things worked properly after running it before moving on to running the application.
  
-* Download the script by right-clicking [https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/develop/setup.sh](https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/develop/setup.sh) and selecting "Download Linked File". A file download should start to your local downloads folder (default is `~/Downloads/` on macOS).
+* Download the script by right-clicking [https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/main/setup.sh](https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/main/setup.sh) and selecting "Download Linked File". A file download should start to your local downloads folder (default is `~/Downloads/` on macOS).
 
 * Open a command line prompt
     * ***macOS***: type `Cmd + Space` (`⌘ + Space`) to bring up Spotlight, and search for "Terminal" and hit enter).
