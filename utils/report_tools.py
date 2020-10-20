@@ -8,7 +8,9 @@ import shutil
 import socket
 import sys
 import time
+from collections import defaultdict
 from datetime import datetime
+from pathlib import Path
 
 import colorama
 import requests
@@ -16,7 +18,6 @@ from bs4 import BeautifulSoup
 from colorama import Fore, Style
 from git import Repo, TagReference, cmd
 from urllib3 import connectionpool, poolmanager
-from collections import defaultdict
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
@@ -59,20 +60,20 @@ def active_network_connection(host="8.8.8.8", port=53, timeout=3):
         return False
 
 
-def get_valid_config():
+def get_valid_config(config_file="config.ini"):
     config = AppConfigParser()
 
-    root_directory = os.path.dirname(os.path.dirname(__file__))
+    root_directory = Path(__file__).parent.parent
 
-    config_file_path = os.path.join(root_directory, "config.ini")
+    config_file_path = root_directory / Path(config_file)
 
     # set local config file (check for existence and access, stop app if does not exist or cannot access)
-    if os.path.isfile(config_file_path):
+    if config_file_path.is_file():
         if os.access(config_file_path, mode=os.R_OK):
             logger.debug(
                 "Configuration file \"config.ini\" available. Running Fantasy Football Metrics Weekly Report app...")
             config_template = AppConfigParser()
-            config_template.read(os.path.join(root_directory, "EXAMPLE-config.ini"))
+            config_template.read(root_directory / "EXAMPLE-config.ini")
             config.read(config_file_path)
 
             if not set(config_template.sections()).issubset(set(config.sections())):
@@ -139,7 +140,7 @@ def get_valid_config():
         else:
             logger.warning("Please only select \"y\" or \"n\".")
             time.sleep(0.25)
-            get_valid_config()
+            get_valid_config(config_file)
 
 
 def create_config_from_template(config: AppConfigParser, root_directory, config_file_path, platform=None,
@@ -395,8 +396,7 @@ def user_week_input_validation(config, week, retrieved_current_week, season):
 
 def get_current_nfl_week(config: AppConfigParser, dev_offline):
 
-    fox_sports_public_api_key = {"apikey": "jE7yBJVRNAwdDesMgTzTXUUSx1It41Fq"}
-    fox_sports_main_url = "https://api.foxsports.com/bifrost/v1/nfl/scoreboard/main"
+    api_url = "https://bet.rotoworld.com/api/nfl/calendar/game_count"
 
     current_nfl_week = config.getint("Settings", "current_week")
 
@@ -404,8 +404,8 @@ def get_current_nfl_week(config: AppConfigParser, dev_offline):
         logger.debug("Retrieving current NFL week from the Fox Sports API.")
 
         try:
-            nfl_weekly_info = requests.get(fox_sports_main_url, params=fox_sports_public_api_key).json()
-            current_nfl_week = "".join(char for char in nfl_weekly_info.get("currentSelectionId") if char.isdigit())
+            nfl_weekly_info = requests.get(api_url).json()
+            current_nfl_week = nfl_weekly_info.get("period")
         except (KeyError, ValueError) as e:
             logger.warning("Unable to retrieve current NFL week. Defaulting to value set in \"config.ini\".")
             logger.debug(e)
@@ -639,3 +639,11 @@ def patch_http_connection_pool(**constructor_kwargs):
             super(MyHTTPSConnectionPool, self).__init__(*args, **kwargs)
 
     poolmanager.pool_classes_by_scheme['https'] = MyHTTPSConnectionPool
+
+
+if __name__ == "__main__":
+
+    local_config = AppConfigParser()
+    local_config.read("../config.ini")
+    local_current_nfl_week = get_current_nfl_week(config=local_config, dev_offline=False)
+    print(local_current_nfl_week)
