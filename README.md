@@ -475,7 +475,7 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
 
 The Fantasy Football Metrics Weekly Report application allows certain aspects of the generated report to be configured with a `.ini` file. Included in the repository is `EXAMPLE-config.ini`, containing default values, as well as league settings that point to a public Yahoo league as a "demo" of the app.
 
-The app ***REQUIRES*** that `config.ini` be present, so you should *make a copy* of the `EXAMPLE-config.ini` where it is already located, and then *rename the copy* to just `config.ini`. Then update the values to reflect the league for which you wish to generate a report, as well as any other settings you wish to change from the default values.
+The app ***REQUIRES*** that `config.ini` be present (or that the user has provided an `.ini` configuration file), so it is recommended that you *make a copy* of the `EXAMPLE-config.ini` where it is already located, and then *rename the copy* to just `config.ini`. Then update the values to reflect the league for which you wish to generate a report, as well as any other settings you wish to change from the default values. ***You can also pass your own configuration `.ini` file to the app using the `-c` (`--config-file`) command line argument.***
 
 <a name="report-features"></a>
 #### Report Features
@@ -565,19 +565,21 @@ After completing the above setup and configuration steps, you should now be able
 
 |             Flag             |                                      Description                                     |
 | :--------------------------- | :----------------------------------------------------------------------------------- |
-| `-h, --help`                 | Print command line usage message |
-| `-f, --fantasy-platform <platform>` | Fantasy football platform on which league for report is hosted. |
-| `-l --league-id <league_id>` | Fantasy Football league ID |
-| `-w --week <week>`           | Chosen week for which to generate report |
-| `-g --game-id <game_id>`     | Chosen fantasy game id for which to generate report. Defaults to "nfl", interpreted as the current season if using Yahoo. |
-| `-y, --year <year>`          | Chosen year (season) of the league for which a report is being generated. | 
-| `-s, --save-data`            | Save all retrieved data locally for faster future report generation |
-| `-s, --refresh-web-data`     | Refresh all web data from external APIs (such as bad boy and beef data) |
-| `-p, --playoff-prob-sims <int>` | Number of Monte Carlo playoff probability simulations to run." |
-| `-b, --break-ties`           | Break ties in metric rankings |
-| `-q, --disqualify-ce`        | Automatically disqualify teams ineligible for coaching efficiency metric |
-| `-d, --dev-offline`          | Run ***OFFLINE*** (for development). Must have previously run report with -s option. |
-| `-t, --test`                 | Generate TEST report (for development) |
+| `-h`, `--help`                             | Print command line usage message |
+| `-a`, `--auto-run`                         | Automatically run the report using the default week. |
+| `-f`, `--fantasy-platform` `<platform>`    | Fantasy football platform on which league for report is hosted. |
+| `-l`, `--league-id` `<league_id>`          | Fantasy Football league ID |
+| `-w`, `--week` `<week>`                    | Chosen week for which to generate report |
+| `-g`, `--game-id` `<game_id>`              | Chosen fantasy game id for which to generate report. Defaults to "nfl", interpreted as the current season if using Yahoo. |
+| `-y`, `--year` `<year>`                    | Chosen year (season) of the league for which a report is being generated. | 
+| `-c`, `--config-file` `<config_file_path>` | System file path (including file name) for .ini file to be used for configuration. |
+| `-s`, `--save-data`                        | Save all retrieved data locally for faster future report generation |
+| `-s`, `--refresh-web-data`                 | Refresh all web data from external APIs (such as bad boy and beef data) |
+| `-p`, `--playoff-prob-sims` `<int>`        | Number of Monte Carlo playoff probability simulations to run." |
+| `-b`, `--break-ties`                       | Break ties in metric rankings |
+| `-q`, `--disqualify-ce`                    | Automatically disqualify teams ineligible for coaching efficiency metric |
+| `-d`, `--dev-offline`                      | Run ***OFFLINE*** (for development). Must have previously run report with -s option. |
+| `-t`, `--test`                             | Generate TEST report (for development) |
 
 #### NOTE: all command line arguments <ins>***OVERRIDE***</ins> any settings configured in the local config.ini file!
 
