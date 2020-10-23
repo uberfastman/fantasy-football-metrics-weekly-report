@@ -135,7 +135,7 @@ class BadBoyStats(object):
         if len(self.bad_boy_data) == 0:
             logger.warning(
                 "NO bad boy records were loaded, please check your internet connection or the availability of "
-                "'https://www.usatoday.com/sports/nfl/arrests/' and try generating a new report.")
+                "\"https://www.usatoday.com/sports/nfl/arrests/\" and try generating a new report.")
         else:
             logger.info("{0} bad boy records loaded".format(len(self.bad_boy_data)))
 
@@ -223,7 +223,7 @@ class BadBoyStats(object):
             self.bad_boy_data[team_abbr] = nfl_team
 
     def get_player_bad_boy_stats(self, player_full_name, player_team_abbr, player_pos, key_str=""):
-        """ Looks up given player and returns number of 'bad boy' points based on custom crime scoring.
+        """ Looks up given player and returns number of "bad boy" points based on custom crime scoring.
 
         TODO: maybe limit for years and adjust defensive players rolling up to DEF team as it skews DEF scores high
         :param player_full_name: Player name to look up

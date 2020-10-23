@@ -565,67 +565,67 @@ class LeagueWrapper(League):
     def _fetch_teams(self):
         """Fetch teams in league"""
         params = {
-            'view': 'mTeam'
+            "view": "mTeam"
         }
         r = requests.get(self.ENDPOINT, params=params, cookies=self.cookies)
         self.status = r.status_code
         self.logger.debug(
-            'ESPN API Request: url: {0} params: {1} \nESPN API Response: {2}\n'.format(self.ENDPOINT, params, r.json()))
+            "ESPN API Request: url: {0} params: {1} \nESPN API Response: {2}\n".format(self.ENDPOINT, params, r.json()))
         checkRequestStatus(self.status)
 
         data = r.json() if self.year > 2017 else r.json()[0]
-        teams = data['teams']
-        members = data['members']
+        teams = data["teams"]
+        members = data["members"]
 
         params = {
-            'view': 'mMatchup',
+            "view": "mMatchup",
         }
         r = requests.get(self.ENDPOINT, params=params, cookies=self.cookies)
         self.status = r.status_code
         self.logger.debug(
-            'ESPN API Request: url: {0} params: {1} \nESPN API Response: {2}\n'.format(self.ENDPOINT, params, r.json()))
+            "ESPN API Request: url: {0} params: {1} \nESPN API Response: {2}\n".format(self.ENDPOINT, params, r.json()))
         checkRequestStatus(self.status)
 
         data = r.json() if self.year > 2017 else r.json()[0]
-        schedule = data['schedule']
+        schedule = data["schedule"]
 
         params = {
-            'view': 'mRoster',
+            "view": "mRoster",
         }
         r = requests.get(self.ENDPOINT, params=params, cookies=self.cookies)
         self.status = r.status_code
         self.logger.debug(
-            'ESPN API Request: url: {0} params: {1} \nESPN API Response: {2}\n'.format(self.ENDPOINT, params, r.json()))
+            "ESPN API Request: url: {0} params: {1} \nESPN API Response: {2}\n".format(self.ENDPOINT, params, r.json()))
         checkRequestStatus(self.status)
 
         data = r.json() if self.year > 2017 else r.json()[0]
         team_roster = {}
-        for team in data['teams']:
-            team_roster[team['id']] = team['roster']
+        for team in data["teams"]:
+            team_roster[team["id"]] = team["roster"]
 
         self.teams_json = {}
         for team in teams:
             self.teams_json[str(team["id"])] = team
             managers = None
 
-            owners = team['owners']
+            owners = team["owners"]
             if len(owners) > 1:
                 managers = []
 
             for member in members:
                 # For league that is not full the team will not have a owner field
-                if 'owners' not in team or not team['owners']:
+                if "owners" not in team or not team["owners"]:
                     break
-                elif member['id'] in owners:
+                elif member["id"] in owners:
                     if len(owners) > 1:
                         managers.append(member)
                     else:
                         managers = [member]
                         break
-            roster = team_roster[team['id']]
+            roster = team_roster[team["id"]]
 
             team = Team(team, roster, None, schedule)
-            team.owner = sorted(["%s %s" % (owner['firstName'], owner['lastName']) for owner in managers])
+            team.owner = sorted(["%s %s" % (owner["firstName"], owner["lastName"]) for owner in managers])
 
             self.teams.append(team)
 
@@ -647,17 +647,17 @@ class LeagueWrapper(League):
 
     def _fetch_settings(self):
         params = {
-            'view': 'mSettings',
+            "view": "mSettings",
         }
 
         r = requests.get(self.ENDPOINT, params=params, cookies=self.cookies)
         self.status = r.status_code
         self.logger.debug(
-            'ESPN API Request: url: {0} params: {1} \nESPN API Response: {2}\n'.format(self.ENDPOINT, params, r.json()))
+            "ESPN API Request: url: {0} params: {1} \nESPN API Response: {2}\n".format(self.ENDPOINT, params, r.json()))
         checkRequestStatus(self.status)
 
         data = r.json() if self.year > 2017 else r.json()[0]
-        self.settings_json = data['settings']
+        self.settings_json = data["settings"]
         self.settings = Settings(self.settings_json)
 
     # noinspection PyAttributeOutsideInit
@@ -670,23 +670,23 @@ class LeagueWrapper(League):
             week = self.current_week
 
         params = {
-            'view': 'mMatchupScore',
-            'scoringPeriodId': week,
+            "view": "mMatchupScore",
+            "scoringPeriodId": week,
         }
 
         filters = {"schedule": {"filterMatchupPeriodIds": {"value": [week]}}}
-        headers = {'x-fantasy-filter': json.dumps(filters)}
+        headers = {"x-fantasy-filter": json.dumps(filters)}
 
-        r = requests.get(self.ENDPOINT + '?view=mMatchup', params=params, cookies=self.cookies, headers=headers)
+        r = requests.get(self.ENDPOINT + "?view=mMatchup", params=params, cookies=self.cookies, headers=headers)
         self.status = r.status_code
         self.logger.debug(
-            'ESPN API Request: url: {0}?view=mMatchup params: {1} headers: {2} \nESPN API Response: {3}\n'.format(
+            "ESPN API Request: url: {0}?view=mMatchup params: {1} headers: {2} \nESPN API Response: {3}\n".format(
                 self.ENDPOINT, params, headers, r.json()))
         checkRequestStatus(self.status)
 
         data = r.json()
 
-        schedule = data['schedule']
+        schedule = data["schedule"]
         pro_schedule = self._get_nfl_schedule(week)
         positional_rankings = self._get_positional_ratings(week)
         self.box_data_json = [matchup for matchup in schedule]

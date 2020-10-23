@@ -233,7 +233,7 @@ def git_ls_remote(url):
     return remote_refs
 
 
-def check_for_updates():
+def check_for_updates(auto_run=False):
     logger.debug("Checking upstream remote for app updates.")
     project_repo = Repo(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -271,7 +271,28 @@ def check_for_updates():
         )
         last_remote_version = remote_tags[0][1]
 
-        num_commits_behind_develop = len(list(project_repo.iter_commits("main..origin/main")))
+        target_branch = "main"
+        active_branch = project_repo.active_branch.name
+        if active_branch != target_branch:
+            if not auto_run:
+                switch_branch = input("{0}You are {2}not{0} on the deployment branch ({1}\"{4}\"{0}) of the Fantasy "
+                                      "Football Metrics Weekly Report app. Do you want to switch to the {1}\"{4}\"{0} "
+                                      "branch? ({1}y{0}/{2}n{0}) -> {3}".format(
+                                          Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL, target_branch))
+
+                if switch_branch == "y":
+                    project_repo.git.checkout(target_branch)
+                elif switch_branch == "n":
+                    logger.warning("Running the app on a branch that is not \"{0}\" could result in unexpected and "
+                                   "potentially incorrect output.".format(target_branch))
+                else:
+                    logger.warning("You must select either \"y\" or \"n\".")
+                    check_for_updates(auto_run)
+            else:
+                logger.info("Auto-run is set to \"true\". Automatically switching to deployment branch \"main\".")
+                project_repo.git.checkout(target_branch)
+
+        num_commits_behind = len(list(project_repo.iter_commits("{0}..origin/{0}".format(target_branch))))
 
         if str(last_local_version) == str(last_remote_version):
             local_version_color = Fore.GREEN
@@ -280,22 +301,23 @@ def check_for_updates():
             local_version_color = Fore.RED
             remote_version_color = Fore.YELLOW
 
-        if num_commits_behind_develop > 0:
+        if num_commits_behind > 0:
             num_commits_color = Fore.RED
         else:
             num_commits_color = Fore.GREEN
 
-        if num_commits_behind_develop > 0:
+        if num_commits_behind > 0:
             up_to_date_status_msg = "\n" \
                 "{0}The Fantasy Football Metrics Weekly Report app is {1}OUT OF DATE:\n\n" \
                 "  {2}Locally installed version: {3}\n" \
-                "     {4}Latest version on main: {5}\n" \
-                "        {6}Commits behind main: {7}\n\n" \
-                "{8}Please update the app and re-run to generate a report.{9}".format(
+                "     {4}Latest version on {8}: {5}\n" \
+                "        {6}Commits behind {8}: {7}\n\n" \
+                "{9}Please update the app and re-run to generate a report.{10}".format(
                     Fore.YELLOW, Fore.RED,
                     local_version_color, last_local_version,
                     remote_version_color, last_remote_version,
-                    num_commits_color, num_commits_behind_develop,
+                    num_commits_color, num_commits_behind,
+                    target_branch,
                     Fore.YELLOW, Style.RESET_ALL
             )
             logger.debug(up_to_date_status_msg)
@@ -335,7 +357,7 @@ def update_app(repository: Repo):
     diff = repository.index.diff(None)
     if len(diff) > 0:
         logger.error("There are changes to local files that could cause conflicts when updating the app "
-                       "automatically.")
+                     "automatically.")
         logger.warning("Please update the app manually by running {0}git pull origin main{1} and resolve any "
                        "conflicts by hand to update.".format(Fore.WHITE, Fore.YELLOW))
         sys.exit(2)
@@ -387,9 +409,9 @@ def user_week_input_validation(config, week, retrieved_current_week, season):
                     else:
                         raise ValueError("Please only select \"y\" or \"n\". Try running the report generator again.")
             else:
-                raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
+                raise ValueError("You must select either \"default\" or an integer from 1 to 17 for the chosen week.")
         except ValueError:
-            raise ValueError("You must select either 'default' or an integer from 1 to 17 for the chosen week.")
+            raise ValueError("You must select either \"default\" or an integer from 1 to 17 for the chosen week.")
 
     return int(week_for_report)
 

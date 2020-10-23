@@ -371,7 +371,7 @@ class FantasyFootballReport(object):
             str(self.league.week_for_report) + " Report"
         report_footer_text = \
             "<para alignment='center'>" \
-            "Report generated {0} for {1} Fantasy Football league '{2}' with id {3} " \
+            "Report generated {0} for {1} Fantasy Football league \"{2}\" with id {3} " \
             "(<a href=\"{4}\" color=blue><u>{5}</u></a>)." \
             "<br></br><br></br><br></br>" \
             "If you enjoy using the Fantasy Football Metrics Weekly Report app, please feel free help support its " \

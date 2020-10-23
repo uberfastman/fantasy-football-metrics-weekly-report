@@ -181,8 +181,8 @@ class CovidRisk(object):
         if len(self.covid_data) == 0 and self.season >= 2020:
             logger.warning(
                 "NO COVID-19 data was loaded, please check your internet connection or the availability of "
-                "'https://site.web.api.espn.com/apis/site/v2/sports/football/nfl/transactions?region=us&lang=en"
-                "&contentorigin=espn' and try generating a new report.")
+                "\"https://site.web.api.espn.com/apis/site/v2/sports/football/nfl/transactions?region=us&lang=en"
+                "&contentorigin=espn\" and try generating a new report.")
         elif self.season < 2020:
             logger.warning("COVID-19 was not a factor during NFL seasons prior to 2020, so metric is being ignored.")
         else:

@@ -76,7 +76,7 @@ class BeefStats(object):
         if len(self.beef_data) == 0:
             logger.warning(
                 "NO beef data was loaded, please check your internet connection or the availability of "
-                "'https://api.foxsports.com/sportsdata/v1/football/nfl.json?apikey=jE7yBJVRNAwdDesMgTzTXUUSx1It41Fq' "
+                "\"https://api.foxsports.com/sportsdata/v1/football/nfl.json?apikey=jE7yBJVRNAwdDesMgTzTXUUSx1It41Fq\" "
                 "and try generating a new report.")
         else:
             logger.info("{0} player weights/TABBUs were loaded".format(len(self.beef_data)))
