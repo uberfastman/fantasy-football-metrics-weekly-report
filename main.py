@@ -144,6 +144,7 @@ def main(argv):
 def select_league(auto_run, week, platform, league_id, game_id, season, refresh_web_data, playoff_prob_sims, break_ties, dq_ce,
                   save_data, dev_offline, test):
     if not league_id:
+        time.sleep(0.25)
         default = input("{0}Generate report for default league? ({1}y{0}/{2}n{0}) -> {3}".format(
             Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
         ))
@@ -219,7 +220,7 @@ def select_league(auto_run, week, platform, league_id, game_id, season, refresh_
                                      dev_offline=dev_offline,
                                      test=test)
     else:
-        logger.warning("You must select either 'y' or 'n'.")
+        logger.warning("You must select either \"y\" or \"n\".")
         time.sleep(0.25)
         select_league(auto_run, week, platform, None, game_id, season, refresh_web_data, playoff_prob_sims, break_ties, dq_ce,
                       save_data, dev_offline, test)
@@ -227,10 +228,12 @@ def select_league(auto_run, week, platform, league_id, game_id, season, refresh_
 
 def select_week(auto_run=False):
     if not auto_run:
+        time.sleep(0.25)
         default = input("{0}Generate report for default week? ({1}y{0}/{2}n{0}) -> {3}".format(
             Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
         ))
     else:
+        logger.info("Auto-run is set to \"true\". Automatically running the report for the default (most recent) week.")
         default = "y"
 
     if default == "y":
@@ -246,7 +249,7 @@ def select_week(auto_run=False):
             time.sleep(0.25)
             select_week(auto_run)
     else:
-        logger.warning("You must select either 'y' or 'n'.")
+        logger.warning("You must select either \"y\" or \"n\".")
         time.sleep(0.25)
         select_week(auto_run)
 
@@ -264,7 +267,7 @@ if __name__ == "__main__":
         config = get_valid_config()
 
     # check to see if the current app is behind any commits, and provide option to update and re-run if behind
-    up_to_date = check_for_updates()
+    up_to_date = check_for_updates(options.get("auto_run", False))
 
     report = select_league(
         options.get("auto_run", False),

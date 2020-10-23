@@ -59,7 +59,7 @@ class LeagueData(object):
         scraped_league_info = self.scrape(self.league_url, os.path.join(
             self.data_dir, str(self.season), str(self.league_id)), str(self.league_id) + "-league-info.html")
 
-        # TODO: don't need current season here
+        # TODO: do NOT need current season here
         # try:
         #     self.current_season = scraped_league_info.find(
         #         "ul", attrs={"class": "dropdown-menu pull-right"}).find("li", attrs={"class": "active"}).text.strip()
@@ -104,7 +104,7 @@ class LeagueData(object):
         # validate user selection of week for which to generate report
         self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week, self.season)
 
-        # TODO: how to get LAST YEAR'S league rules from Fleaflicker API
+        # TODO: how to get league rules for LAST YEAR from Fleaflicker API
         self.league_rules = self.query(
             "https://www.fleaflicker.com/api/FetchLeagueRules?leagueId=" + str(self.league_id),
             os.path.join(self.data_dir, str(self.season), str(self.league_id)),
@@ -193,7 +193,7 @@ class LeagueData(object):
 
         self.roster_positions = self.league_rules.get("rosterPositions")
 
-        # TODO: how to get LAST YEAR'S transactions from Fleaflicker API...?
+        # TODO: how to get transactions for LAST YEAR from Fleaflicker API...?
         self.league_activity = self.query(
             "https://www.fleaflicker.com/api/FetchLeagueActivity?leagueId=" + str(self.league_id),
             os.path.join(self.data_dir, str(self.season), str(self.league_id)),

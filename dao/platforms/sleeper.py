@@ -296,7 +296,7 @@ class LeagueData(object):
         return response_json
 
     def fetch_player_data(self, player_id, week, starter=False):
-        # handle the Raiders' move from Oakland (OAK) to Las Vegas (LV) between the 2019 and 2020 seasons
+        # handle the move of the Raiders from Oakland (OAK) to Las Vegas (LV) between the 2019 and 2020 seasons
         if player_id == "OAK":
             player_id = "LV"
         player = deepcopy(self.player_data.get(str(player_id)))

@@ -209,4 +209,4 @@ if __name__ == "__main__":
     test_logger.addHandler(handler)
     for i in range(100):
         time.sleep(0.1)
-        test_logger.debug('i=%d' % i)
+        test_logger.debug("i=%d" % i)
