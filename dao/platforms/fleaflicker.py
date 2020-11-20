@@ -46,7 +46,7 @@ class LeagueData(object):
         self.save_data = save_data
         self.dev_offline = dev_offline
 
-        self.offensive_positions = ["QB", "RB", "WR", "TE", "K", "RB/WR/TE"]
+        self.offensive_positions = ["QB", "RB", "WR", "TE", "K", "RB/WR", "WR/TE", "RB/WR/TE", "RB/WR/TE/QB"]
         self.defensive_positions = ["D/ST"]
 
         # create full directory path if any directories in it do not already exist

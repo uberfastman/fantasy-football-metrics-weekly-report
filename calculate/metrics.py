@@ -563,7 +563,7 @@ class CalculateMetrics(object):
                     place += 1
             return resolved_coaching_efficiency_results_data
         else:
-            logger.warning(
+            logger.debug(
                 "No function to retrieve past player weekly points available. Cannot resolve coaching efficiency ties.")
             return data_for_coaching_efficiency
 
