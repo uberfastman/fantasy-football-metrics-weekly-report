@@ -18,7 +18,7 @@ from requests.exceptions import HTTPError
 from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
 from report.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, propagate=False)
 
 # Suppress Sleeper API debug logging
 logger.setLevel(level=logging.INFO)
@@ -191,7 +191,22 @@ class LeagueData(object):
                 scores = []
                 for matchup in self.matchups_by_week[str(week_for_matchups)]:
                     for team in matchup:
-                        team_score = team["points"]
+
+                        team_custom_points = team["custom_points"]
+                        if team_custom_points:
+                            team_custom_points = round(team_custom_points, 2)
+                            logger.warning(
+                                "Team \"{}\" points manually overridden by commissioner for week {}: {} -> {}".format(
+                                    team["info"]["owner"]["metadata"]["team_name"],
+                                    week_for_matchups,
+                                    team["points"],
+                                    team_custom_points
+                                )
+                            )
+                            matchup[matchup.index(team)]["points"] = team_custom_points
+                            team_score = team_custom_points
+                        else:
+                            team_score = team["points"]
                         if team_score:
                             scores.append(team_score)
 
