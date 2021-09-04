@@ -13,3 +13,4 @@ tests/*.txt
 tests/*.html
 tests/*.png
 tests/local.py
+.DS_Store

@@ -13,8 +13,8 @@ from colorama import Fore, Style
 import pkg_resources
 from pkg_resources import DistributionNotFound, VersionConflict
 
-from integrations.drive_integration import GoogleDriveUploader
-from integrations.slack_integration import SlackMessenger
+#from integrations.drive_integration import GoogleDriveUploader
+#from integrations.slack_integration import SlackMessenger
 from report.builder import FantasyFootballReport
 from report.logger import get_logger
 from utils.report_tools import check_for_updates, get_valid_config

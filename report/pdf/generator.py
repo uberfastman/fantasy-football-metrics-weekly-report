@@ -419,6 +419,8 @@ class PdfGenerator(object):
             [Paragraph(report_footer_text, self.text_style_normal)],
         ]
         footer_data = [
+
+            '''
             [
                 [],
                 [
@@ -473,7 +475,7 @@ class PdfGenerator(object):
                 Paragraph("bc1qataspvklhewtswm357m0677q4raag5new2xt3e", self.text_style_small),
                 Paragraph("0x5eAa522e66a90577D49e9E72f253EC952CDB4059", self.text_style_small),
                 Paragraph("nano_3ug3o6yy983jsqdsc773izhr3jfz4dq8bz7yfhhzkkeq7s8ern1ws7dng4pq", self.text_style_small)
-            ]
+            ]'''
         ]
         self.report_footer_title = Table(footer_title, colWidths=7.75*inch, style=self.title_style)
         self.report_footer = Table(footer_data, colWidths=2.50*inch, style=self.title_style)
@@ -1174,10 +1176,10 @@ class PdfGenerator(object):
         elements.append(self.spacer_tenth_inch)
         donate_header_data = [[
             Paragraph(
-                "Enjoying the app? Please consider donating to support its development:", self.text_style_italics),
+                "This was all a bad idea...", self.text_style_italics),
             self.get_img(
-                "resources/images/donate.png",
-                hyperlink="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=VZZCNLRHH9BQS"
+                "resources/images/udf-logo.png",
+                hyperlink="https://football.fantasysports.yahoo.com/f1/22152"
             )
         ]]
         elements.append(Table(donate_header_data, colWidths=[4.65*inch, 1.00*inch], style=self.header_style))
