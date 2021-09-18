@@ -43,7 +43,7 @@ soupsieve==2.0.1
 stringcase==1.2.0
 toml==0.10.1
 uritemplate==3.0.1
-urllib3==1.25.10
+urllib3==1.26.5
 yahoo-oauth==1.1
 yarl==1.6.0
 yfpy==3.3.0
