@@ -4,7 +4,6 @@
 
 ### Table of Contents
 * [Note to Users](#note-to-users)
-* [Automated Setup](#automated-setup)
 * [Manual Setup](#manual-setup)
 * [Running the Report Application](#running-the-report-application)
     * [macOS Launch Script](#macos-launch-script)
@@ -16,49 +15,14 @@
 ### Note to Users
 ***The following setup instructions are intended for developer use only! For information about how to set up the Fantasy Football Metrics Weekly Report app for regular usage, please see the setup documentation [HERE](../../README.md#setup) for more information.***
 
-<a name="automated-setup"></a>
-### Automated Setup
-
-##### ***FOR USERS RUNNING macOS ONLY***
-There is a pre-made setup bash script in the top level of this repository called `setup.sh`. In lieu of doing the manual setup steps, you can simply do the following:
-
-* ***Note***: This script has not been extensively tested. It was added in order to simplify the required setup steps, but please still do your best to verify that things worked properly after running it before moving on to running the application.
- 
-* Download the script by right-clicking [https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/main/setup.sh](https://raw.githubusercontent.com/uberfastman/fantasy-football-metrics-weekly-report/main/setup.sh) and selecting "Download Linked File". A file download should start to your local downloads folder (default is `~/Downloads/` on macOS).
-
-* Open a command line prompt
-    * ***macOS***: type `Cmd + Space` (`⌘ + Space`) to bring up Spotlight, and search for "Terminal" and hit enter).
-    
-* Navigate to wherever you wish to have the Fantasy Football Metrics Weekly Report application set up:
-    
-    Example (use whatever directory in which you wish to store the app):
-    
-    ```bash
-    cd ~/projects
-    ```
-
-* Move the the `setup.sh` script to the above location:
-    
-    Example (move the file from your downloads folder):
-    
-    ```bash
-    mv ~/Downloads/setup.sh .
-    ```
-  
-* Run `./setup.sh`
-
-    * If you get an error when running `./setup.sh`, the script might not be executable. You can run `chmod +x setup.sh` to make it executable. You may need to execute the `chmod` command as an administrator, depending on your system permissions, in which case you can run `sudo chmod +x setup.sh` and then enter your password.
-
-* You can now skip ahead to [Running the Report Application](#running-the-report-application).
-  
 --- 
  
 <a name="manual-setup"></a>
 ### Manual Setup
 
-* Make sure your operating system (OS) has Python 3 installed. See the above section on [dependencies](../../README.md#dependencies) for instructions.
+* Make sure your operating system (OS) has Python 3.7 (or later) installed. See the above section on [dependencies](../../README.md#dependencies) for instructions.
 
-* After you've finished installing Python 3, check that it has been successfully installed by running `python3 --version` (or `py -0p` (or `py -3` to see if you can launch Python 3 if `py -0p` fails) if using the [Python launcher for Windows](https://docs.python.org/3/using/windows.html#python-launcher-for-windows) in Windows to list installed Python version with their paths) in the command line again, and confirming that it outputs `Python 3.x.x`. If it *does **not***, double check that you followed all Python 3 installation steps correctly.
+* After you've finished installing Python 3.7, check that it has been successfully installed by running `python3 --version` (or `py -0p` (or `py -3` to see if you can launch Python 3 if `py -0p` fails) if using the [Python launcher for Windows](https://docs.python.org/3/using/windows.html#python-launcher-for-windows) in Windows to list installed Python version with their paths) in the command line again, and confirming that it outputs `Python 3.x.x`. If it *does **not***, double check that you followed all Python 3 installation steps correctly.
 
 * Open a command line prompt
 
