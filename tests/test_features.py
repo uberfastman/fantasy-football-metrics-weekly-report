@@ -35,13 +35,15 @@ def test_bad_boy_init():
     )
     bad_boy_stats.generate_crime_categories_json()
 
-    print("Player Bad Boy crime for {0}: {1}".format(
-        player_full_name,
-        bad_boy_stats.get_player_bad_boy_crime(player_full_name, player_team_abbr, player_position)
+    print("Player Bad Boy crime for {0} {1}: {2}".format(
+        player_first_name,
+        player_last_name,
+        bad_boy_stats.get_player_bad_boy_crime(player_first_name, player_last_name, player_team_abbr, player_position)
     ))
-    print("Player Bad Boy points for {0}: {1}".format(
-        player_full_name,
-        bad_boy_stats.get_player_bad_boy_points(player_full_name, player_team_abbr, player_position)
+    print("Player Bad Boy points for {0} {1}: {2}".format(
+        player_first_name,
+        player_last_name,
+        bad_boy_stats.get_player_bad_boy_points(player_first_name, player_last_name, player_team_abbr, player_position)
     ))
 
     assert bad_boy_stats.bad_boy_data is not None

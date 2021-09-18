@@ -9,6 +9,7 @@ import os
 import random
 import traceback
 from copy import deepcopy
+from utils.app_config_parser import AppConfigParser
 
 import numpy as np
 
@@ -19,8 +20,8 @@ logger = get_logger(__name__, propagate=False)
 
 class PlayoffProbabilities(object):
 
-    def __init__(self, config, simulations, num_weeks, num_playoff_slots, data_dir, num_divisions=0, save_data=False,
-                 recalculate=False, dev_offline=False):
+    def __init__(self, config: AppConfigParser, simulations, num_weeks, num_playoff_slots, data_dir, num_divisions=0,
+                 save_data=False, recalculate=False, dev_offline=False):
         logger.debug("Initializing playoff probabilities.")
 
         self.config = config
@@ -37,6 +38,12 @@ class PlayoffProbabilities(object):
 
     def calculate(self, week, week_for_report, standings, remaining_matchups):
         logger.debug("Calculating playoff probabilities.")
+
+        # with open("playoff_prob_standings.json", "w") as pps:
+        #     json.dump(standings, pps, indent=2)
+        #
+        # with open("playoff_prob_remaining_matchups.json", "w") as pprm:
+        #     json.dump(remaining_matchups, pprm, indent=2)
 
         teams_for_playoff_probs = {}
         for team in standings:
@@ -373,3 +380,19 @@ class TeamWithPlayoffProbs(object):
         self.losses = self.base_losses
         self.division_wins = self.base_division_wins
         self.division_losses = self.base_division_losses
+
+
+if __name__ == "__main__":
+
+    local_config = AppConfigParser()
+    local_config.read(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.ini"))
+
+    playoff_probs = PlayoffProbabilities(
+        local_config,
+        simulations=100,
+        num_weeks=13,
+        num_playoff_slots=6,
+        data_dir="."
+    )
+
+    # playoff_probs.calculate(week=8, week_for_report=7,)

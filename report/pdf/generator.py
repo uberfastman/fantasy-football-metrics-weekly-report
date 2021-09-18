@@ -1545,7 +1545,7 @@ class PdfGenerator(object):
 
             elements.append(title)
             elements.append(KeepTogether(self.create_3d_horizontal_bar_chart(self.data_for_covid_risk_rankings,
-                                                                             "Risk Factor", 5)))
+                                                                             "Risk Factor", 10)))
             elements.append(self.spacer_twentieth_inch)
             elements.append(self.add_page_break())
 

@@ -396,14 +396,16 @@ class LeagueData(object):
                     base_team.week = int(matchups_week)
                     base_team.name = team_data.get("name")
 
-                    for manager in self.league_teams[team_data.get("id")].get("owners"):
-                        base_manager = BaseManager()
+                    managers = self.league_teams[team_data.get("id")].get("owners")
+                    if managers:
+                        for manager in managers:
+                            base_manager = BaseManager()
 
-                        base_manager.manager_id = str(manager.get("id"))
-                        base_manager.email = None
-                        base_manager.name = manager.get("displayName")
+                            base_manager.manager_id = str(manager.get("id"))
+                            base_manager.email = None
+                            base_manager.name = manager.get("displayName")
 
-                        base_team.managers.append(base_manager)
+                            base_team.managers.append(base_manager)
 
                     base_team.manager_str = ", ".join([manager.name_str for manager in base_team.managers])
 

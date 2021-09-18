@@ -1,5 +1,5 @@
 # set base image
-FROM python:3.8-slim
+FROM python:3.9.7-slim
 
 LABEL "org.opencontainers.image.source"="https://github.com/uberfastman/fantasy-football-metrics-weekly-report"
 

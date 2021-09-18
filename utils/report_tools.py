@@ -321,7 +321,8 @@ def check_for_updates(auto_run=False):
                     Fore.YELLOW, Style.RESET_ALL
             )
             logger.debug(up_to_date_status_msg)
-            confirm_update = input(up_to_date_status_msg + " {1}Do you wish to update the app? {0}({1}y{0}/{2}n{0}) -> {3}".format(
+            confirm_update = input(
+                up_to_date_status_msg + " {1}Do you wish to update the app? {0}({1}y{0}/{2}n{0}) -> {3}".format(
                 Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
             ))
 
@@ -523,11 +524,11 @@ def add_report_player_stats(config,
         if config.getboolean("Report", "league_bad_boy_rankings"):
             bad_boy_stats = metrics.get("bad_boy_stats")  # type: BadBoyStats
             player.bad_boy_crime = bad_boy_stats.get_player_bad_boy_crime(
-                player.full_name, player.nfl_team_abbr, player.primary_position)
+                player.first_name, player.last_name, player.nfl_team_abbr, player.primary_position)
             player.bad_boy_points = bad_boy_stats.get_player_bad_boy_points(
-                player.full_name, player.nfl_team_abbr, player.primary_position)
+                player.first_name, player.last_name, player.nfl_team_abbr, player.primary_position)
             player.bad_boy_num_offenders = bad_boy_stats.get_player_bad_boy_num_offenders(
-                player.full_name, player.nfl_team_abbr, player.primary_position)
+                player.first_name, player.last_name, player.nfl_team_abbr, player.primary_position)
 
         if config.getboolean("Report", "league_beef_rankings"):
             beef_stats = metrics.get("beef_stats")  # type: BeefStats
