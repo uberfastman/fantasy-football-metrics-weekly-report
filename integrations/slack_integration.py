@@ -6,7 +6,7 @@ import json
 import logging
 import os
 
-from slack import WebClient
+from slack.web.client import WebClient
 from slack.errors import SlackApiError
 
 from report.logger import get_logger
