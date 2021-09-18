@@ -4,6 +4,8 @@ __email__ = "wrenjr@yahoo.com"
 import itertools
 import json
 import os
+import re
+import string
 from collections import OrderedDict
 
 import requests
@@ -11,7 +13,7 @@ from bs4 import BeautifulSoup
 
 from report.logger import get_logger
 
-logger = get_logger(__name__, propagate=False)
+logger = get_logger(__name__, propagate=True)
 
 
 class BadBoyStats(object):
@@ -28,8 +30,8 @@ class BadBoyStats(object):
         # nfl team abbreviations
         self.nfl_team_abbreviations = [
             "ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE",
-            "DAL", "DEN", "DET", "GB", "HOU", "IND", "JAC", "KC",  # http://nflarrest.com uses JAC for JAX
-            "LA", "LAC", "LV", "MIA", "MIN", "NE", "NO", "NYG",  # http://nflarrest.com uses LA for LAR
+            "DAL", "DEN", "DET", "GB", "HOU", "IND", "JAC", "KC",
+            "LA", "LAC", "LV", "MIA", "MIN", "NE", "NO", "NYG",
             "NYJ", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS"
         ]
 
@@ -41,18 +43,13 @@ class BadBoyStats(object):
 
         # position type reference
         self.position_types = {
-            "C": "D", "CB": "D", "DB": "D", "DE": "D", "DE/DT": "D", "DT": "D", "LB": "D", "S": "D",  # defense
+            "C": "D", "CB": "D", "DB": "D", "DE": "D", "DE/DT": "D", "DT": "D", "LB": "D", "S": "D", "Safety": "D",
+            # defense
             "FB": "O", "QB": "O", "RB": "O", "TE": "O", "WR": "O",  # offense
             "K": "S", "P": "S",  # special teams
             "OG": "L", "OL": "L", "OT": "L",  # offensive line
             "OC": "C",  # coaching staff
         }
-
-        # nfl_arrest_api_team_base_url = "https://nflarrest.com/api/v1/team/arrests/"
-        # headers = {
-        #     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko)" +
-        #                   " Version/13.0 Safari/605.1.15"
-        # }
 
         # create parent directory if it does not exist
         if not os.path.exists(data_dir):
@@ -84,31 +81,99 @@ class BadBoyStats(object):
             if not self.bad_boy_data:
                 logger.debug("Retrieving bad boy data from the web.")
 
-                # Scrape USA Today NFL crime database site
                 usa_today_nfl_arrest_url = "https://www.usatoday.com/sports/nfl/arrests/"
                 r = requests.get(usa_today_nfl_arrest_url)
                 data = r.text
                 soup = BeautifulSoup(data, "html.parser")
-                self.bad_boy_data = {}
+                cdata = re.search("var sitedata = (.*);", soup.find(text=re.compile("CDATA"))).group(1)
+                ajax_nonce = json.loads(cdata)["ajax_nonce"]
 
+                usa_today_nfl_arrest_url = "https://databases.usatoday.com/wp-admin/admin-ajax.php"
+                headers = {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                }
+
+                # example ajax query body
+                # example_body = (
+                #     'action=cspFetchTable&'
+                #     'security=61406e4feb&'
+                #     'pageID=10&'
+                #     'sortBy=Date&'
+                #     'sortOrder=desc&'
+                #     'searches={"Last_name":"hill","Team":"SEA","First_name":"leroy"}'
+                # )
                 arrests = []
-                types = set()
-                for row in soup.findAll("tr"):
-                    cells = row.findAll("td")
-                    if len(cells) > 0:
+                for team in self.nfl_team_abbreviations:
+
+                    page_num = 1
+                    body = (
+                            'action=cspFetchTable&'
+                            'security=' + ajax_nonce + '&'
+                                                       'pageID=10&'
+                                                       'sortBy=Date&'
+                                                       'sortOrder=desc&'
+                                                       'page=' + str(page_num) + '&'
+                                                                                 'searches={"Team":"' + team + '"}'
+                    )
+
+                    r = requests.post(usa_today_nfl_arrest_url, data=body, headers=headers)
+                    resp_json = r.json()
+
+                    arrests_data = resp_json["data"]["Result"]
+
+                    for arrest in arrests_data:
                         arrests.append({
-                            "name": cells[2].text,
-                            "team": "FA" if (cells[1].text == "Free agent" or cells[1].text == "Free Agent")
-                                else cells[1].text,
-                            "date": cells[0].text,
-                            "position": cells[3].text,
-                            "position_type": self.position_types[cells[3].text],
-                            "case": cells[4].text.upper(),
-                            "crime": cells[5].text.upper(),
-                            "description": cells[6].text,
-                            "outcome": cells[7].text
+                            "name": arrest["First_name"] + " " + arrest["Last_name"],
+                            "team": "FA" if (arrest["Team"] == "Free agent" or arrest["Team"] == "Free Agent")
+                            else arrest["Team"],
+                            "date": arrest["Date"],
+                            "position": arrest["Position"],
+                            "position_type": self.position_types[arrest["Position"]],
+                            "case": arrest["Case_1"].upper(),
+                            "crime": arrest["Category"].upper(),
+                            "description": arrest["Description"],
+                            "outcome": arrest["Outcome"]
                         })
-                        types.add(cells[3].text)
+
+                    total_results = resp_json["data"]["totalResults"]
+
+                    # the USA Today NFL arrests database only retrieves 20 entries per request
+                    if total_results > 20:
+                        if (total_results % 20) > 0:
+                            num_pages = (total_results // 20) + 1
+                        else:
+                            num_pages = total_results // 20
+
+                        for page in range(2, num_pages + 1):
+                            page_num += 1
+                            body = (
+                                'action=cspFetchTable&'
+                                'security=' + ajax_nonce + '&'
+                                'pageID=10&'
+                                'sortBy=Date&'
+                                'sortOrder=desc&'
+                                'page=' + str(page_num) + '&'
+                                'searches={"Team":"' + team + '"}'
+                            )
+
+                            r = requests.post(usa_today_nfl_arrest_url, data=body, headers=headers)
+                            resp_json = r.json()
+
+                            arrests_data = resp_json["data"]["Result"]
+
+                            for arrest in arrests_data:
+                                arrests.append({
+                                    "name": arrest["First_name"] + " " + arrest["Last_name"],
+                                    "team": "FA" if (arrest["Team"] == "Free agent" or arrest["Team"] == "Free Agent")
+                                    else arrest["Team"],
+                                    "date": arrest["Date"],
+                                    "position": arrest["Position"],
+                                    "position_type": self.position_types[arrest["Position"]],
+                                    "case": arrest["Case_1"].upper(),
+                                    "crime": arrest["Category"].upper(),
+                                    "description": arrest["Description"],
+                                    "outcome": arrest["Outcome"]
+                                })
 
                 arrests_by_team = {
                     key: list(group) for key, group in itertools.groupby(
@@ -118,9 +183,6 @@ class BadBoyStats(object):
                 }
 
                 for team_abbr in self.nfl_team_abbreviations:
-                    # response = requests.get(nfl_arrest_api_team_base_url + team_abbr, headers=headers)
-                    # logger.debug("Response {0} for {1} nflarrest query.".format(response.status_code, team_abbr))
-                    # self.add_entry(team_abbr, response)
                     self.add_entry(team_abbr, arrests_by_team.get(team_abbr))
 
                 self.save_bad_boy_data()
@@ -222,11 +284,12 @@ class BadBoyStats(object):
 
             self.bad_boy_data[team_abbr] = nfl_team
 
-    def get_player_bad_boy_stats(self, player_full_name, player_team_abbr, player_pos, key_str=""):
+    def get_player_bad_boy_stats(self, player_first_name, player_last_name, player_team_abbr, player_pos, key_str=""):
         """ Looks up given player and returns number of "bad boy" points based on custom crime scoring.
 
         TODO: maybe limit for years and adjust defensive players rolling up to DEF team as it skews DEF scores high
-        :param player_full_name: Player name to look up
+        :param player_first_name: First name of player to look up
+        :param player_last_name: Last name of player to look up
         :param player_team_abbr: Player's team (maybe limit to only crimes while on that team...or for DEF players???)
         :param player_pos: Player's position
         :param key_str: which player information to retrieve (crime: "worst_offense" or bad boy points: "total_points")
@@ -236,6 +299,12 @@ class BadBoyStats(object):
         if player_team not in self.nfl_team_abbreviations:
             if player_team in self.team_abbrev_conversion_dict.keys():
                 player_team = self.team_abbrev_conversion_dict[player_team]
+
+        player_full_name = (
+                (string.capwords(player_first_name) if player_first_name else "") +
+                (" " if player_first_name and player_last_name else "") +
+                (string.capwords(player_last_name) if player_last_name else "")
+        ).strip()
 
         # TODO: figure out how to include only ACTIVE players in team DEF rollups
         if player_pos == "DEF":
@@ -258,14 +327,17 @@ class BadBoyStats(object):
             }
             return self.bad_boy_data[player_full_name][key_str] if key_str else self.bad_boy_data[player_full_name]
 
-    def get_player_bad_boy_crime(self, player_full_name, player_team, player_pos):
-        return self.get_player_bad_boy_stats(player_full_name, player_team, player_pos, "worst_offense")
+    def get_player_bad_boy_crime(self, player_first_name, player_last_name, player_team, player_pos):
+        return self.get_player_bad_boy_stats(player_first_name, player_last_name, player_team, player_pos,
+                                             "worst_offense")
 
-    def get_player_bad_boy_points(self, player_full_name, player_team, player_pos):
-        return self.get_player_bad_boy_stats(player_full_name, player_team, player_pos, "total_points")
+    def get_player_bad_boy_points(self, player_first_name, player_last_name, player_team, player_pos):
+        return self.get_player_bad_boy_stats(player_first_name, player_last_name, player_team, player_pos,
+                                             "total_points")
 
-    def get_player_bad_boy_num_offenders(self, player_full_name, player_team, player_pos):
-        player_bad_boy_stats = self.get_player_bad_boy_stats(player_full_name, player_team, player_pos)
+    def get_player_bad_boy_num_offenders(self, player_first_name, player_last_name, player_team, player_pos):
+        player_bad_boy_stats = self.get_player_bad_boy_stats(player_first_name, player_last_name, player_team,
+                                                             player_pos)
         if player_bad_boy_stats.get("pos") == "DEF":
             return player_bad_boy_stats.get("num_offenders")
         else:

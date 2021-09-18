@@ -61,9 +61,11 @@ class GoogleDriveUploader(object):
         all_folders = drive.ListFile({"q": "mimeType='application/vnd.google-apps.folder' and trashed=false"}).GetList()
         all_pdfs = drive.ListFile({"q": "mimeType='application/pdf' and trashed=false"}).GetList()
 
+        google_drive_default_folder_name = self.config.get("Drive", "google_drive_parent_folder_default")
+
         # Check for "Fantasy_Football" root folder and create it if it does not exist
         google_drive_root_folder_name = self.config.get(
-            "Drive", "google_drive_root_folder_name", fallback="Fantasy_Football")
+            "Drive", "google_drive_root_folder_name", fallback=google_drive_default_folder_name)
         google_drive_root_folder_id = self.make_root_folder(
             drive,
             self.check_file_existence(google_drive_root_folder_name, root_folders, "root"),
@@ -71,6 +73,16 @@ class GoogleDriveUploader(object):
         )
 
         if not test:
+            # if Fantasy_Football folder is not root, make it inside selected root if it does not exist there
+            if google_drive_root_folder_name != google_drive_default_folder_name:
+                fantasy_football_folder_id = self.make_parent_folder(
+                    drive,
+                    self.check_file_existence(google_drive_default_folder_name, all_folders, google_drive_root_folder_id),
+                    google_drive_default_folder_name,
+                    google_drive_root_folder_id
+                )
+                google_drive_root_folder_id = fantasy_football_folder_id
+
             # Check for season folder and create it if it does not exist
             # noinspection PyTypeChecker
             season_folder_name = self.filename.split(os.sep)[-3]
