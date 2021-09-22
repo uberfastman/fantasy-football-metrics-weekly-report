@@ -236,7 +236,7 @@ class CovidRisk(object):
             # else:
             #     self.covid_data.get(player_team_abbr).get("transactions").append(player_transaction)
 
-    def get_player_covid_risk(self, player_full_name, player_team_abbr, player_pos):
+    def get_player_covid_risk(self, player_full_name, player_team_abbr):
 
         team_abbr = player_team_abbr.upper() if player_team_abbr else "?"
         if team_abbr not in self.nfl_team_abbreviations:

@@ -312,9 +312,10 @@ class BaseTeam(FantasyFootballReportObject):
         self.tabbu = 0
         self.total_covid_risk = 0
         self.positions_filled_active = []
-        self.coaching_efficiency = 0
-        self.luck = 0
+        self.standard_coaching_efficiency = 0
+        self.weighted_coaching_efficiency = 0
         self.optimal_points = 0
+        self.luck = 0
         self.weekly_overall_record = BaseRecord()
         self.record = BaseRecord()
         self.current_record = BaseRecord()

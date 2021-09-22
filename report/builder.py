@@ -175,7 +175,8 @@ class FantasyFootballReport(object):
         week_for_report_ordered_managers = []
 
         time_series_points_data = []
-        time_series_efficiency_data = []
+        time_series_standard_efficiency_data = []
+        time_series_weighted_efficiency_data = []
         time_series_luck_data = []
         time_series_power_rank_data = []
         time_series_zscore_data = []
@@ -184,7 +185,8 @@ class FantasyFootballReport(object):
 
         season_avg_points_by_position = defaultdict(list)
         season_weekly_top_scorers = []
-        season_weekly_highest_ce = []
+        season_weekly_highest_standard_ce = []
+        season_weekly_highest_weighted_ce = []
         season_weekly_teams_results = []
 
         week_counter = 1
@@ -239,20 +241,29 @@ class FantasyFootballReport(object):
             }
             season_weekly_top_scorers.append(top_scorer)
 
-            highest_ce = {
+            highest_standard_ce = {
                 "week": week_counter,
-                "team": report_data.data_for_coaching_efficiency[0][1],
-                "manager": report_data.data_for_coaching_efficiency[0][2],
-                "ce": report_data.data_for_coaching_efficiency[0][3],
+                "team": report_data.data_for_standard_coaching_efficiency[0][1],
+                "manager": report_data.data_for_standard_coaching_efficiency[0][2],
+                "ce": report_data.data_for_standard_coaching_efficiency[0][3],
             }
-            season_weekly_highest_ce.append(highest_ce)
+            season_weekly_highest_standard_ce.append(highest_standard_ce)
+
+            highest_weighted_ce = {
+                "week": week_counter,
+                "team": report_data.data_for_weighted_coaching_efficiency[0][1],
+                "manager": report_data.data_for_weighted_coaching_efficiency[0][2],
+                "ce": report_data.data_for_weighted_coaching_efficiency[0][3],
+            }
+            season_weekly_highest_weighted_ce.append(highest_weighted_ce)
 
             season_weekly_teams_results.append(report_data.teams_results)
 
             ordered_team_names = []
             ordered_team_managers = []
             weekly_points_data = []
-            weekly_coaching_efficiency_data = []
+            weekly_standard_coaching_efficiency_data = []
+            weekly_weighted_coaching_efficiency_data = []
             weekly_luck_data = []
             weekly_optimal_points_data = []
             weekly_z_score_data = []
@@ -262,11 +273,12 @@ class FantasyFootballReport(object):
                 ordered_team_names.append(team[1])
                 ordered_team_managers.append(team[2])
                 weekly_points_data.append([int(week_counter), float(team[3])])
-                weekly_coaching_efficiency_data.append([int(week_counter), team[4]])
-                weekly_luck_data.append([int(week_counter), float(team[5])])
-                weekly_optimal_points_data.append([int(week_counter), team[1], float(team[6])])
-                weekly_z_score_data.append([int(week_counter), team[7]])
-                weekly_power_rank_data.append([int(week_counter), team[8]])
+                weekly_standard_coaching_efficiency_data.append([int(week_counter), team[4]])
+                weekly_weighted_coaching_efficiency_data.append([int(week_counter), team[5]])
+                weekly_luck_data.append([int(week_counter), float(team[6])])
+                weekly_optimal_points_data.append([int(week_counter), team[1], float(team[7])])
+                weekly_z_score_data.append([int(week_counter), team[8]])
+                weekly_power_rank_data.append([int(week_counter), team[9]])
 
             week_for_report_ordered_team_names = ordered_team_names
             week_for_report_ordered_managers = ordered_team_managers
@@ -274,8 +286,10 @@ class FantasyFootballReport(object):
             if week_counter == 1:
                 for team_points in weekly_points_data:
                     time_series_points_data.append([team_points])
-                for team_efficiency in weekly_coaching_efficiency_data:
-                    time_series_efficiency_data.append([team_efficiency])
+                for team_standard_efficiency in weekly_standard_coaching_efficiency_data:
+                    time_series_standard_efficiency_data.append([team_standard_efficiency])
+                for team_weighted_efficiency in weekly_weighted_coaching_efficiency_data:
+                    time_series_weighted_efficiency_data.append([team_weighted_efficiency])
                 for team_luck in weekly_luck_data:
                     time_series_luck_data.append([team_luck])
                 for team_optimal_points in weekly_optimal_points_data:
@@ -287,9 +301,11 @@ class FantasyFootballReport(object):
             else:
                 for index, team_points in enumerate(weekly_points_data):
                     time_series_points_data[index].append(team_points)
-                for index, team_efficiency in enumerate(weekly_coaching_efficiency_data):
-                    if team_efficiency[1] != "DQ":
-                        time_series_efficiency_data[index].append(team_efficiency)
+                for index, team_standard_efficiency in enumerate(weekly_standard_coaching_efficiency_data):
+                    if team_standard_efficiency[1] != "DQ":
+                        time_series_standard_efficiency_data[index].append(team_standard_efficiency)
+                for index, team_weighted_efficiency in enumerate(weekly_weighted_coaching_efficiency_data):
+                    time_series_weighted_efficiency_data[index].append(team_weighted_efficiency)
                 for index, team_luck in enumerate(weekly_luck_data):
                     time_series_luck_data[index].append(team_luck)
                 for index, team_optimal_points in enumerate(weekly_optimal_points_data):
@@ -303,7 +319,8 @@ class FantasyFootballReport(object):
 
         report_data.data_for_season_avg_points_by_position = season_avg_points_by_position
         report_data.data_for_season_weekly_top_scorers = season_weekly_top_scorers
-        report_data.data_for_season_weekly_highest_ce = season_weekly_highest_ce
+        report_data.data_for_season_weekly_highest_standard_ce = season_weekly_highest_standard_ce
+        report_data.data_for_season_weekly_highest_weighted_ce = season_weekly_highest_weighted_ce
 
         # calculate season average metrics and then add columns for them to their respective metric table data
         season_average_calculator = SeasonAverageCalculator(week_for_report_ordered_team_names, report_data,
@@ -315,12 +332,18 @@ class FantasyFootballReport(object):
             first_ties=report_data.num_first_place_for_score_before_resolution > 1
         )
 
-        report_data.data_for_coaching_efficiency = season_average_calculator.get_average(
-            time_series_efficiency_data,
-            "data_for_coaching_efficiency",
+        report_data.data_for_standard_coaching_efficiency = season_average_calculator.get_average(
+            time_series_standard_efficiency_data,
+            "data_for_standard_coaching_efficiency",
             with_percent=True,
-            first_ties=((report_data.num_first_place_for_coaching_efficiency_before_resolution > 1) and
+            first_ties=((report_data.num_first_place_for_standard_coaching_efficiency_before_resolution > 1) and
                         (report_data.league.player_data_by_week_function is not None))
+        )
+
+        report_data.data_for_weighted_coaching_efficiency = season_average_calculator.get_average(
+            time_series_weighted_efficiency_data,
+            "data_for_weighted_coaching_efficiency",
+            with_percent=False
         )
 
         report_data.data_for_luck = season_average_calculator.get_average(
@@ -350,7 +373,7 @@ class FantasyFootballReport(object):
         line_chart_data_list = [week_for_report_ordered_team_names,
                                 week_for_report_ordered_managers,
                                 time_series_points_data,
-                                time_series_efficiency_data,
+                                time_series_standard_efficiency_data,
                                 time_series_luck_data,
                                 time_series_zscore_data,
                                 time_series_power_rank_data]

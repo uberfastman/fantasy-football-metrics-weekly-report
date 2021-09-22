@@ -57,7 +57,7 @@ class SeasonAverageCalculator(object):
 
                     if key == "data_for_scores":
                         ordered_team.insert(-1, value)
-                    elif key == "data_for_coaching_efficiency" and self.break_ties and first_ties:
+                    elif key == "data_for_standard_coaching_efficiency" and self.break_ties and first_ties:
                         ordered_team.insert(-2, value)
                     else:
                         ordered_team.append(value)

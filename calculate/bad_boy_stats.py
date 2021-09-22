@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 
 from report.logger import get_logger
 
-logger = get_logger(__name__, propagate=True)
+logger = get_logger(__name__, propagate=False)
 
 
 class BadBoyStats(object):

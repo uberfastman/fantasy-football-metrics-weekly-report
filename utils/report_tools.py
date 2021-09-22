@@ -538,14 +538,14 @@ def add_report_player_stats(config,
         if config.getboolean("Report", "league_covid_risk_rankings") and int(season) >= 2020:
             covid_risk = metrics.get("covid_risk")  # type: CovidRisk
             player.covid_risk = covid_risk.get_player_covid_risk(
-                player.full_name, player.nfl_team_abbr, player.primary_position)
+                player.full_name, player.nfl_team_abbr)
 
     return player
 
 
 def add_report_team_stats(config, team: BaseTeam, league: BaseLeague, week_counter, season, metrics_calculator, metrics,
-                          dq_ce,
-                          inactive_players) -> BaseTeam:
+                          dq_ce #, inactive_players
+                          ) -> BaseTeam:
     team.name = metrics_calculator.decode_byte_string(team.name)
     bench_positions = league.bench_positions
 
@@ -589,16 +589,28 @@ def add_report_team_stats(config, team: BaseTeam, league: BaseLeague, week_count
     team.positions_filled_active = [p.selected_position for p in team.roster if
                                     p.selected_position not in bench_positions]
 
+    inactive_players = []
+    # if dq_ce:
+    injured_players = get_player_game_time_statuses(week_counter, league).findAll("div", {"class": "tr"})
+    for player in injured_players:
+        player_name = player.find("a").text.strip()
+        player_status_info = player.find("div", {"class": "td w20 hidden-xs"}).find("b")
+        if player_status_info:
+            player_status = player_status_info.text.strip().lower()
+            if player_status == "out":
+                inactive_players.append(player_name)
+
     # calculate coaching efficiency and optimal score
-    team.coaching_efficiency, team.optimal_points = metrics.get("coaching_efficiency").execute_coaching_efficiency(
-        team.name,
-        team.roster,
-        team.points,
-        team.positions_filled_active,
-        int(week_counter),
-        inactive_players,
-        dq_eligible=dq_ce
-    )
+    team.standard_coaching_efficiency, team.weighted_coaching_efficiency, team.optimal_points = metrics.get(
+        "coaching_efficiency").execute_coaching_efficiency(
+            team.name,
+            team.roster,
+            team.points,
+            team.positions_filled_active,
+            int(week_counter),
+            inactive_players,
+            dq_eligible=dq_ce
+        )
 
     # # retrieve luck and record
     team.luck = metrics.get("luck").get(team.team_id).get("luck")

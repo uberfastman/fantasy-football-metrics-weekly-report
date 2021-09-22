@@ -475,7 +475,11 @@ class LeagueData(object):
                         y_player_for_week.player_points_value else 0
                     base_player.position_type = y_player_for_week.position_type
 
-                    base_player.primary_position = y_player_for_week.primary_position
+                    if y_player_for_week.primary_position == "D":
+                        base_player.primary_position = "FLEX_IDP"
+                    else:
+                        base_player.primary_position = y_player_for_week.primary_position
+
                     if y_player_for_week.selected_position_value == "W/R":
                         base_player.selected_position = "FLEX_RB_WR"
                     elif y_player_for_week.selected_position_value == "W/T":

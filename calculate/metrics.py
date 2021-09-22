@@ -21,7 +21,7 @@ class CalculateMetrics(object):
         self.league_id = league_id
         self.playoff_slots = playoff_slots
         self.playoff_simulations = playoff_simulations
-        self.coaching_efficiency_dq_count = 0
+        self.standard_coaching_efficiency_dq_count = 0
 
     @staticmethod
     def decode_byte_string(string):
@@ -274,27 +274,44 @@ class CalculateMetrics(object):
 
         return score_results_data
 
-    def get_coaching_efficiency_data(self, coaching_efficiency_results):
-        logger.debug("Creating league coaching efficiency data.")
+    def get_standard_coaching_efficiency_data(self, standard_coaching_efficiency_results):
+        logger.debug("Creating league standard coaching efficiency data.")
 
-        coaching_efficiency_results_data = []
+        standard_coaching_efficiency_results_data = []
         place = 1
-        for team in coaching_efficiency_results:  # type: BaseTeam
+        for team in standard_coaching_efficiency_results:  # type: BaseTeam
             ranked_team_name = team.name
             ranked_team_manager = team.manager_str
-            ranked_coaching_efficiency = team.coaching_efficiency
+            ranked_standard_coaching_efficiency = team.standard_coaching_efficiency
 
-            if ranked_coaching_efficiency == "DQ":
-                self.coaching_efficiency_dq_count += 1
+            if ranked_standard_coaching_efficiency == "DQ":
+                self.standard_coaching_efficiency_dq_count += 1
             else:
-                ranked_coaching_efficiency = "%.2f%%" % float(ranked_coaching_efficiency)
+                ranked_standard_coaching_efficiency = "%.2f%%" % float(ranked_standard_coaching_efficiency)
 
-            coaching_efficiency_results_data.append(
-                [place, ranked_team_name, ranked_team_manager, ranked_coaching_efficiency])
+            standard_coaching_efficiency_results_data.append(
+                [place, ranked_team_name, ranked_team_manager, ranked_standard_coaching_efficiency])
 
             place += 1
 
-        return coaching_efficiency_results_data
+        return standard_coaching_efficiency_results_data
+
+    @staticmethod
+    def get_weighted_coaching_efficiency_data(weighted_coaching_efficiency_results):
+        logger.debug("Creating league weighted coaching efficiency data.")
+
+        weighted_coaching_efficiency_results_data = []
+        place = 1
+        for team in weighted_coaching_efficiency_results:  # type: BaseTeam
+            ranked_team_name = team.name
+            ranked_team_manager = team.manager_str
+            ranked_weighted_coaching_efficiency = "%.2f" % float(team.weighted_coaching_efficiency)
+            weighted_coaching_efficiency_results_data.append(
+                [place, ranked_team_name, ranked_team_manager, ranked_weighted_coaching_efficiency])
+
+            place += 1
+
+        return weighted_coaching_efficiency_results_data
 
     @staticmethod
     def get_luck_data(luck_results):
@@ -477,23 +494,23 @@ class CalculateMetrics(object):
         return resolved_score_results_data
 
     @staticmethod
-    def resolve_coaching_efficiency_ties(data_for_coaching_efficiency,
-                                         ties_for_coaching_efficiency,
-                                         league,  # type: BaseLeague
-                                         teams_results,
-                                         week,
-                                         week_for_report,
-                                         break_ties):
+    def resolve_standard_coaching_efficiency_ties(data_for_standard_coaching_efficiency,
+                                                  ties_for_standard_coaching_efficiency,
+                                                  league,  # type: BaseLeague
+                                                  teams_results,
+                                                  week,
+                                                  week_for_report,
+                                                  break_ties):
 
-        logger.debug("Resolving coaching efficiency ties.")
+        logger.debug("Resolving standard coaching efficiency ties.")
 
         if league.player_data_by_week_function:
-            coaching_efficiency_results_data_with_tiebreakers = []
+            standard_coaching_efficiency_results_data_with_tiebreakers = []
             bench_positions = league.bench_positions
 
             season_average_points_by_player_dict = defaultdict(list)
-            if break_ties and ties_for_coaching_efficiency > 0 and int(week) == int(week_for_report):
-                for ce_result in data_for_coaching_efficiency:
+            if break_ties and ties_for_standard_coaching_efficiency > 0 and int(week) == int(week_for_report):
+                for ce_result in data_for_standard_coaching_efficiency:
                     if ce_result[0] == "1*":
                         players = []
                         for team_result in teams_results.values():
@@ -539,15 +556,15 @@ class CalculateMetrics(object):
 
                         ce_result.extend([num_players_exceeded_season_avg_points,
                                           round(total_percentage_points_players_exceeded_season_avg_points, 2)])
-                        coaching_efficiency_results_data_with_tiebreakers.append(ce_result)
+                        standard_coaching_efficiency_results_data_with_tiebreakers.append(ce_result)
                     else:
                         ce_result.extend(["N/A", "N/A"])
-                        coaching_efficiency_results_data_with_tiebreakers.append(ce_result)
+                        standard_coaching_efficiency_results_data_with_tiebreakers.append(ce_result)
 
                 groups = [list(group) for key, group in
-                          itertools.groupby(coaching_efficiency_results_data_with_tiebreakers, lambda x: x[3])]
+                          itertools.groupby(standard_coaching_efficiency_results_data_with_tiebreakers, lambda x: x[3])]
             else:
-                groups = [list(group) for key, group in itertools.groupby(data_for_coaching_efficiency, lambda x: x[3])]
+                groups = [list(group) for key, group in itertools.groupby(data_for_standard_coaching_efficiency, lambda x: x[3])]
 
             resolved_coaching_efficiency_results_data = []
             place = 1
@@ -564,8 +581,9 @@ class CalculateMetrics(object):
             return resolved_coaching_efficiency_results_data
         else:
             logger.debug(
-                "No function to retrieve past player weekly points available. Cannot resolve coaching efficiency ties.")
-            return data_for_coaching_efficiency
+                "No function to retrieve past player weekly points available. "
+                "Cannot resolve standard coaching efficiency ties.")
+            return data_for_standard_coaching_efficiency
 
     @staticmethod
     def resolve_season_average_ties(data_for_season_averages, with_percent):

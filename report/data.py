@@ -27,16 +27,16 @@ class ReportData(object):
         self.has_waiver_priorities = league.has_waiver_priorities
         self.is_faab = league.is_faab
 
-        inactive_players = []
-        if dq_ce:
-            injured_players = get_player_game_time_statuses(week_counter, league).findAll("div", {"class": "tr"})
-            for player in injured_players:
-                player_name = player.find("a").text.strip()
-                player_status_info = player.find("div", {"class": "td w20 hidden-xs"}).find("b")
-                if player_status_info:
-                    player_status = player_status_info.text.strip()
-                    if player_status == "Out":
-                        inactive_players.append(player_name)
+        # inactive_players = []
+        # if dq_ce:
+        #     injured_players = get_player_game_time_statuses(week_counter, league).findAll("div", {"class": "tr"})
+        #     for player in injured_players:
+        #         player_name = player.find("a").text.strip()
+        #         player_status_info = player.find("div", {"class": "td w20 hidden-xs"}).find("b")
+        #         if player_status_info:
+        #             player_status = player_status_info.text.strip()
+        #             if player_status == "Out":
+        #                 inactive_players.append(player_name)
 
         self.teams_results = {
             team.team_id: add_report_team_stats(
@@ -48,7 +48,7 @@ class ReportData(object):
                 metrics_calculator,
                 metrics,
                 dq_ce,
-                inactive_players
+                # inactive_players
             ) for team in league.teams_by_week.get(str(week_counter)).values()
         }
 
@@ -65,15 +65,15 @@ class ReportData(object):
         )
 
         # option to disqualify manually configured team(s) (in config.ini) for current week of coaching efficiency
-        self.coaching_efficiency_dqs = {}
+        self.standard_coaching_efficiency_dqs = {}
         if int(week_counter) == int(week_for_report):
             disqualified_teams = config.get("Settings", "coaching_efficiency_disqualified_teams")
             if disqualified_teams:
                 for team in disqualified_teams.split(","):
-                    self.coaching_efficiency_dqs[team] = -2
+                    self.standard_coaching_efficiency_dqs[team] = -2
                     for team_result in self.teams_results.values():
                         if team == team_result.name:
-                            team_result.coaching_efficiency = "DQ"
+                            team_result.standard_coaching_efficiency = "DQ"
 
         # used only for testing what happens when different metrics are tied; requires uncommenting lines in method
         if testing:
@@ -101,7 +101,8 @@ class ReportData(object):
         # create attributes for later updating
         self.data_for_season_avg_points_by_position = None
         self.data_for_season_weekly_top_scorers = None
-        self.data_for_season_weekly_highest_ce = None
+        self.data_for_season_weekly_highest_standard_ce = None
+        self.data_for_season_weekly_highest_weighted_ce = None
 
         # current standings data
         self.data_for_current_standings = metrics_calculator.get_standings_data(league)
@@ -172,7 +173,8 @@ class ReportData(object):
                 team_result.name,
                 team_result.manager_str,
                 team_result.points,
-                team_result.coaching_efficiency,
+                team_result.standard_coaching_efficiency,
+                team_result.weighted_coaching_efficiency,
                 team_result.luck,
                 team_result.optimal_points,
                 z_score_results[team_result.team_id]
@@ -184,12 +186,17 @@ class ReportData(object):
         self.data_for_scores = metrics_calculator.get_score_data(
             sorted(self.teams_results.values(), key=lambda x: float(x.points), reverse=True))
 
-        # coaching efficiency data
-        self.data_for_coaching_efficiency = metrics_calculator.get_coaching_efficiency_data(
+        # standard coaching efficiency data
+        self.data_for_standard_coaching_efficiency = metrics_calculator.get_standard_coaching_efficiency_data(
             sorted(self.teams_results.values(), key=lambda x: float(
-                x.coaching_efficiency) if x.coaching_efficiency != "DQ" else 0, reverse=True))
-        self.num_coaching_efficiency_dqs = metrics_calculator.coaching_efficiency_dq_count
-        self.coaching_efficiency_dqs.update(metrics.get("coaching_efficiency").coaching_efficiency_dqs)
+                x.standard_coaching_efficiency) if x.standard_coaching_efficiency != "DQ" else 0, reverse=True))
+        self.num_standard_coaching_efficiency_dqs = metrics_calculator.standard_coaching_efficiency_dq_count
+        self.standard_coaching_efficiency_dqs.update(
+            metrics.get("coaching_efficiency").standard_coaching_efficiency_dqs)
+
+        # weighted coaching efficiency data
+        self.data_for_weighted_coaching_efficiency = metrics_calculator.get_weighted_coaching_efficiency_data(
+            sorted(self.teams_results.values(), key=lambda x: float(x.weighted_coaching_efficiency), reverse=True))
 
         # luck data
         self.data_for_luck = metrics_calculator.get_luck_data(
@@ -228,18 +235,20 @@ class ReportData(object):
         self.num_first_place_for_score = len(
             [list(group) for key, group in itertools.groupby(self.data_for_scores, lambda x: x[3])][0])
 
-        # get number of coaching efficiency ties and ties for first
-        self.ties_for_coaching_efficiency = metrics_calculator.get_ties_count(self.data_for_coaching_efficiency,
-                                                                              "coaching_efficiency", self.break_ties)
-        self.num_first_place_for_coaching_efficiency_before_resolution = len(
-            [list(group) for key, group in itertools.groupby(self.data_for_coaching_efficiency, lambda x: x[0])][0])
+        # get number of standard coaching efficiency ties and ties for first
+        self.ties_for_standard_coaching_efficiency = metrics_calculator.get_ties_count(
+            self.data_for_standard_coaching_efficiency, "standard_coaching_efficiency", self.break_ties)
+        self.num_first_place_for_standard_coaching_efficiency_before_resolution = len(
+            [list(group) for key, group in itertools.groupby(
+                self.data_for_standard_coaching_efficiency, lambda x: x[0])][0])
 
-        if self.ties_for_coaching_efficiency > 0:
-            self.data_for_coaching_efficiency = metrics_calculator.resolve_coaching_efficiency_ties(
-                self.data_for_coaching_efficiency, self.ties_for_coaching_efficiency, league, self.teams_results,
-                week_counter, week_for_report, self.break_ties)
-        self.num_first_place_for_coaching_efficiency = len(
-            [list(group) for key, group in itertools.groupby(self.data_for_coaching_efficiency, lambda x: x[0])][0])
+        if self.ties_for_standard_coaching_efficiency > 0:
+            self.data_for_standard_coaching_efficiency = metrics_calculator.resolve_standard_coaching_efficiency_ties(
+                self.data_for_standard_coaching_efficiency, self.ties_for_standard_coaching_efficiency, league,
+                self.teams_results, week_counter, week_for_report, self.break_ties)
+        self.num_first_place_for_standard_coaching_efficiency = len(
+            [list(group) for key, group in itertools.groupby(
+                self.data_for_standard_coaching_efficiency, lambda x: x[0])][0])
 
         # get number of luck ties and ties for first
         self.ties_for_luck = metrics_calculator.get_ties_count(self.data_for_luck, "luck", self.break_ties)
@@ -269,7 +278,7 @@ class ReportData(object):
         power_ranking_results = metrics_calculator.calculate_power_rankings(
             self.teams_results,
             self.data_for_scores,
-            self.data_for_coaching_efficiency,
+            self.data_for_standard_coaching_efficiency,
             self.data_for_luck
         )
 
@@ -303,13 +312,13 @@ class ReportData(object):
             "COACHING EFFICIENCY tie(s): {2}\n".format(
                 week_counter,
                 self.ties_for_scores,
-                self.ties_for_coaching_efficiency
+                self.ties_for_standard_coaching_efficiency
             )
 
         # add line for coaching efficiency disqualifications if applicable
-        if self.num_coaching_efficiency_dqs > 0:
+        if self.num_standard_coaching_efficiency_dqs > 0:
             ce_dq_str = ""
-            for team_name, ineligible_players_count in self.coaching_efficiency_dqs.items():
+            for team_name, ineligible_players_count in self.standard_coaching_efficiency_dqs.items():
                 if ineligible_players_count == -1:
                     ce_dq_str += "{0} (incomplete active squad), ".format(team_name)
                 elif ineligible_players_count == -2:

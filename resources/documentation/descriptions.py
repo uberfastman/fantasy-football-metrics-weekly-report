@@ -31,15 +31,22 @@ team_z_score_rankings = "Measure of standard deviations away from mean for a sco
 team_score_rankings = "Teams ranked by highest score. If tie-breaks are turned on, highest bench points will be used " \
                       "to break score ties."
 
-team_coaching_efficiency_rankings = "Coaching efficiency is calculated by dividing the total points scored by each " \
-                                    "team this week by the highest possible points they could have scored (optimal " \
-                                    "points) this week. This metric is designed to quantify whether manager made " \
-                                    "good sit/start decisions, regardless of how high their team scored or whether " \
-                                    "their team won or lost.<br/>&nbsp;&nbsp;&nbsp;&nbsp;If tie-breaks are turned " \
-                                    "on, the team with the most starting players that exceeded their weekly average " \
-                                    "points is awarded a higher ranking, and if that is still tied, the team whose " \
-                                    "starting players exceeded their weekly average points by the highest cumulative " \
-                                    "percentage points is awarded a higher ranking."
+team_standard_coaching_efficiency_rankings = "Standard Coaching Efficiency (SCE) is calculated by dividing the total " \
+                                             "points scored by each team this week by the highest possible points " \
+                                             "they could have scored (optimal points) this week. This metric is " \
+                                             "designed to quantify whether manager made good sit/start decisions, " \
+                                             "regardless of how high their team scored or whether their team won or " \
+                                             "lost.<br/>&nbsp;&nbsp;&nbsp;&nbsp;If tie-breaks are turned on, the " \
+                                             "team with the most starting players that exceeded their weekly average " \
+                                             "points is awarded a higher ranking, and if that is still tied, the " \
+                                             "team whose starting players exceeded their weekly average points by " \
+                                             "the highest cumulative percentage points is awarded a higher ranking."
+
+team_weighted_coaching_efficiency_rankings = "Weighted Coaching Efficiency (WCE) is calculated as the sum of all " \
+                                             "percentage points for the actual points scored by roster position over " \
+                                             "the optimal points scored by that same roster position, each weighted " \
+                                             "by the probability of correctly selecting the optimal players from the " \
+                                             "available players for that roster position."
 
 team_luck_rankings = "Luck is calculated by matching up each team against every other team that week to get a total " \
                      "record against the whole league, then if that team won, the formula is:<br/>" \
@@ -90,5 +97,10 @@ covid_19_risk = "The COVID-19 risk ranking is a \"just-for-fun\" metric that pul
 
 weekly_top_scorers = "Running list of each week's highest scoring team. Can be used for weekly highest points payouts."
 
-weekly_highest_coaching_efficiency = "Running list of each week's team with the highest coaching efficiency. Can be " \
-                                     "used for weekly highest coaching efficiency payouts."
+weekly_highest_standard_coaching_efficiency = "Running list of each week's team with the highest Standard Coaching " \
+                                              "Efficiency. Can be used for weekly highest Standard Coaching " \
+                                              "Efficiency payouts."
+
+weekly_highest_weighted_coaching_efficiency = "Running list of each week's team with the highest Weighted Coaching " \
+                                              "Efficiency. Can be used for weekly highest Weighted Coaching " \
+                                              "Efficiency payouts."

@@ -143,7 +143,7 @@ class PdfGenerator(object):
         self.data_dir = os.path.join(league.data_dir, str(league.season), league.league_id)
         self.break_ties = report_data.break_ties
         self.playoff_prob_sims = playoff_prob_sims
-        self.num_coaching_efficiency_dqs = report_data.num_coaching_efficiency_dqs
+        self.num_standard_coaching_efficiency_dqs = report_data.num_standard_coaching_efficiency_dqs
 
         # table column widths
         # .........................Place/Rank..Team.......Manager....Col 4.....
@@ -402,13 +402,13 @@ class PdfGenerator(object):
         self.power_ranking_headers = [["Power Rank", "Team", "Manager", "Season Avg. (Place)"]]
         self.zscores_headers = [["Place", "Team", "Manager", "Z-Score"]]
         self.scores_headers = [["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]]
-        self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
+        self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency", "Season Avg. (Place)"]]
         self.luck_headers = [["Place", "Team", "Manager", "Luck", "Season Avg. (Place)", "Weekly Record (W-L)"]]
         self.optimal_scores_headers = [["Place", "Team", "Manager", "Optimal Points", "Season Total"]]
         self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]]
         self.beef_headers = [["Place", "Team", "Manager", "TABBU(s)"]]
         self.weekly_top_scorer_headers = [["Week", "Team", "Manager", "Score"]]
-        self.weekly_highest_ce_headers = [["Week", "Team", "Manager", "Coaching Efficiency (%)"]]
+        self.weekly_highest_ce_headers = [["Week", "Team", "Manager", "Coaching Efficiency"]]
         self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
 
         # options: "document", "section", or None
@@ -482,7 +482,8 @@ class PdfGenerator(object):
         self.report_data = report_data
         self.data_for_median_standings = report_data.data_for_current_median_standings
         self.data_for_scores = report_data.data_for_scores
-        self.data_for_coaching_efficiency = report_data.data_for_coaching_efficiency
+        self.data_for_standard_coaching_efficiency = report_data.data_for_standard_coaching_efficiency
+        self.data_for_weighted_coaching_efficiency = report_data.data_for_weighted_coaching_efficiency
         self.data_for_luck = report_data.data_for_luck
         self.data_for_optimal_scores = report_data.data_for_optimal_scores
         self.data_for_power_rankings = report_data.data_for_power_rankings
@@ -493,15 +494,15 @@ class PdfGenerator(object):
         self.data_for_weekly_points_by_position = report_data.data_for_weekly_points_by_position
         self.data_for_season_average_team_points_by_position = report_data.data_for_season_avg_points_by_position
         self.data_for_season_weekly_top_scorers = report_data.data_for_season_weekly_top_scorers
-        self.data_for_season_weekly_highest_ce = report_data.data_for_season_weekly_highest_ce
+        self.data_for_season_weekly_highest_standard_ce = report_data.data_for_season_weekly_highest_standard_ce
+        self.data_for_season_weekly_highest_weighted_ce = report_data.data_for_season_weekly_highest_weighted_ce
 
         # dynamically create table styles based on number of ties in metrics
         self.style_efficiency_dqs = None
         self.style_tied_scores = self.set_tied_values_style(self.report_data.ties_for_scores, table_style_list,
                                                             "scores")
-        self.style_tied_efficiencies = self.set_tied_values_style(self.report_data.ties_for_coaching_efficiency,
-                                                                  table_style_list,
-                                                                  "coaching_efficiency")
+        self.style_tied_efficiencies = self.set_tied_values_style(
+            self.report_data.ties_for_standard_coaching_efficiency, table_style_list, "coaching_efficiency")
         self.style_tied_luck = self.set_tied_values_style(self.report_data.ties_for_luck, table_style_list, "luck")
         self.style_tied_power_rankings = self.set_tied_values_style(self.report_data.ties_for_power_rankings,
                                                                     table_style_list,
@@ -544,10 +545,10 @@ class PdfGenerator(object):
             else:
                 num_first_places = self.report_data.num_first_place_for_score
         elif metric_type == "coaching_efficiency":
-            if not self.report_data.num_first_place_for_coaching_efficiency > 0:
+            if not self.report_data.num_first_place_for_standard_coaching_efficiency > 0:
                 num_first_places = 0
             else:
-                num_first_places = self.report_data.num_first_place_for_coaching_efficiency
+                num_first_places = self.report_data.num_first_place_for_standard_coaching_efficiency
         elif metric_type == "luck":
             if not self.report_data.num_first_place_for_luck > 0:
                 num_first_places = 0
@@ -587,15 +588,15 @@ class PdfGenerator(object):
                 index += 1
 
         if metric_type == "coaching_efficiency":
-            if self.num_coaching_efficiency_dqs > 0:
-                dq_index = len(self.data_for_scores) - self.num_coaching_efficiency_dqs + 1
+            if self.num_standard_coaching_efficiency_dqs > 0:
+                dq_index = len(self.data_for_scores) - self.num_standard_coaching_efficiency_dqs + 1
 
-                if self.report_data.ties_for_coaching_efficiency > 0:
+                if self.report_data.ties_for_standard_coaching_efficiency > 0:
                     efficiencies_dq_table_style_list = list(tied_values_table_style_list)
                 else:
                     efficiencies_dq_table_style_list = list(table_style_list)
 
-                eff_dq_count = self.num_coaching_efficiency_dqs
+                eff_dq_count = self.num_standard_coaching_efficiency_dqs
                 while eff_dq_count > 0:
                     efficiencies_dq_table_style_list.append(("TEXTCOLOR", (0, dq_index), (-1, -1), colors.red))
                     eff_dq_count -= 1
@@ -675,8 +676,8 @@ class PdfGenerator(object):
                 self.efficiency_headers[0][3] = "CE (%)"
                 self.efficiency_headers[0].extend(["# > Avg.", "Sum % > Avg."])
             else:
-                for index, team in enumerate(self.data_for_coaching_efficiency):
-                    self.data_for_coaching_efficiency[index] = team
+                for index, team in enumerate(self.data_for_standard_coaching_efficiency):
+                    self.data_for_standard_coaching_efficiency[index] = team
 
         if metric_type == "top_scorers":
             temp_data = []
@@ -747,7 +748,7 @@ class PdfGenerator(object):
                                             tied_metric)
 
         if metric_type == "coaching_efficiency":
-            if self.num_coaching_efficiency_dqs > 0:
+            if self.num_standard_coaching_efficiency_dqs > 0:
                 data_table.setStyle(self.style_efficiency_dqs)
         else:
             data_table.setStyle(table_style_ties)
@@ -1387,20 +1388,38 @@ class PdfGenerator(object):
             ))
             elements.append(self.spacer_twentieth_inch)
 
-        if self.config.getboolean("Report", "league_coaching_efficiency_rankings"):
-            # coaching efficiency
+        if self.config.getboolean("Report", "league_standard_coaching_efficiency_rankings"):
+            # standard coaching efficiency
             elements.append(self.create_section(
-                "Team Coaching Efficiency Rankings",
+                "Team Standard Coaching Efficiency Rankings",
                 self.efficiency_headers,
-                self.data_for_coaching_efficiency,
+                self.data_for_standard_coaching_efficiency,
                 self.style,
                 self.style_tied_efficiencies,
                 self.widths_05_cols_no_1,
-                tied_metric=((self.report_data.ties_for_coaching_efficiency > 0) and
+                tied_metric=((self.report_data.ties_for_standard_coaching_efficiency > 0) and
                              (self.report_data.league.player_data_by_week_function is not None)),
                 metric_type="coaching_efficiency"
             ))
             elements.append(self.spacer_twentieth_inch)
+
+        if self.config.getboolean("Report", "league_weighted_coaching_efficiency_rankings"):
+            # weighted coaching efficiency
+            elements.append(self.create_section(
+                "Team Weighted Coaching Efficiency Rankings",
+                self.efficiency_headers,
+                self.data_for_weighted_coaching_efficiency,
+                self.style,
+                self.style,
+                self.widths_05_cols_no_1,
+                metric_type="weighted_coaching_efficiency"
+            ))
+            elements.append(self.spacer_twentieth_inch)
+
+        if self.config.getboolean("Report", "league_score_rankings") or self.config.getboolean(
+                "Report", "league_standard_coaching_efficiency_rankings") or self.config.getboolean(
+                    "Report", "league_weighted_coaching_efficiency_rankings"):
+            elements.append(self.add_page_break())
 
         if self.config.getboolean("Report", "league_luck_rankings"):
             # luck
@@ -1416,11 +1435,6 @@ class PdfGenerator(object):
                 metric_type="luck"
             ))
 
-        if self.config.getboolean("Report", "league_score_rankings") or self.config.getboolean(
-                "Report", "league_coaching_efficiency_rankings") or self.config.getboolean("Report",
-                                                                                           "league_luck_rankings"):
-            elements.append(self.add_page_break())
-
         if self.config.getboolean("Report", "league_optimal_score_rankings"):
             # optimal scores
             elements.append(self.create_section(
@@ -1433,7 +1447,8 @@ class PdfGenerator(object):
             ))
             elements.append(self.spacer_twentieth_inch)
 
-        if self.config.getboolean("Report", "league_optimal_score_rankings"):
+        if self.config.getboolean("Report", "league_optimal_score_rankings") or self.config.getboolean(
+                "Report", "league_luck_rankings"):
             elements.append(self.add_page_break())
 
         if self.config.getboolean("Report", "league_bad_boy_rankings"):
@@ -1494,19 +1509,39 @@ class PdfGenerator(object):
             ))
             elements.append(self.spacer_twentieth_inch)
 
-        if self.config.getboolean("Report", "league_weekly_highest_ce"):
+        if self.config.getboolean("Report", "league_weekly_highest_standard_ce"):
 
-            weekly_highest_ce_title_str = "Weekly Highest Coaching Efficiency"
-            weekly_highest_ce_page_title = self.create_title(
-                "<i>" + weekly_highest_ce_title_str + "</i>", element_type="chart",
+            weekly_highest_standard_ce_title_str = "Weekly Highest Standard Coaching Efficiency"
+            weekly_highest_standard_ce_page_title = self.create_title(
+                "<i>" + weekly_highest_standard_ce_title_str + "</i>", element_type="chart",
                 anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>")
-            elements.append(weekly_highest_ce_page_title)
+            elements.append(weekly_highest_standard_ce_page_title)
 
-            # weekly highest coaching efficiency
+            # weekly highest standard coaching efficiency
             elements.append(self.create_section(
-                "Weekly Highest Coaching Efficiency",
+                "Weekly Highest Standard Coaching Efficiency",
                 self.weekly_highest_ce_headers,
-                self.data_for_season_weekly_highest_ce,
+                self.data_for_season_weekly_highest_standard_ce,
+                self.style_no_highlight,
+                self.style_no_highlight,
+                self.widths_04_cols_no_1,
+                metric_type="highest_ce",
+                section_title_function=self.toc.add_top_performers_section
+            ))
+
+        if self.config.getboolean("Report", "league_weekly_highest_weighted_ce"):
+
+            weekly_highest_weighted_ce_title_str = "Weekly Highest Weighted Coaching Efficiency"
+            weekly_highest_weighted_ce_page_title = self.create_title(
+                "<i>" + weekly_highest_weighted_ce_title_str + "</i>", element_type="chart",
+                anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>")
+            elements.append(weekly_highest_weighted_ce_page_title)
+
+            # weekly highest weighted coaching efficiency
+            elements.append(self.create_section(
+                "Weekly Highest Weighted Coaching Efficiency",
+                self.weekly_highest_ce_headers,
+                self.data_for_season_weekly_highest_weighted_ce,
                 self.style_no_highlight,
                 self.style_no_highlight,
                 self.widths_04_cols_no_1,
@@ -1515,7 +1550,8 @@ class PdfGenerator(object):
             ))
 
         if self.config.getboolean("Report", "league_weekly_top_scorers") or self.config.getboolean(
-                "Report", "league_weekly_highest_ce"):
+                "Report", "league_weekly_highest_standard_ce") or self.config.getboolean(
+                    "Report", "league_weekly_highest_weighted_ce"):
             elements.append(self.add_page_break())
 
         if self.config.getboolean("Report", "league_covid_risk_rankings") and int(self.season) >= 2020:
@@ -1650,7 +1686,8 @@ class TableOfContents(object):
                 "Report", "league_power_rankings") or self.config.getboolean(
                 "Report", "league_z_score_rankings") or self.config.getboolean(
                 "Report", "league_score_rankings") or self.config.getboolean(
-                "Report", "league_coaching_efficiency_rankings") or self.config.getboolean(
+                "Report", "league_standard_coaching_efficiency_rankings") or self.config.getboolean(
+                "Report", "league_weighted_coaching_efficiency_rankings") or self.config.getboolean(
                 "Report", "league_luck_rankings") or self.config.getboolean(
                 "Report", "league_optimal_score_rankings") or self.config.getboolean(
                 "Report", "league_bad_boy_rankings") or self.config.getboolean(
@@ -1667,7 +1704,7 @@ class TableOfContents(object):
             ]
 
         if self.config.getboolean("Report", "league_weekly_top_scorers") or self.config.getboolean(
-                "Report", "league_weekly_highest_ce"):
+                "Report", "league_weekly_highest_standard_ce"):
             self.toc_top_performers_section_data = [
                 [Paragraph("<b><i>Top Performers</i></b>", self.toc_style_title_right),
                  "",
