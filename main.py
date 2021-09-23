@@ -23,6 +23,8 @@ colorama.init()
 
 logger = get_logger()
 
+NFL_WEEKS = 18
+
 
 def main(argv):
     logger.debug("Running fantasy football metrics weekly report app with arguments:\n{0}".format(argv))
@@ -108,8 +110,8 @@ def main(argv):
         elif opt in ("-l", "--league-id"):
             options_dict["league_id"] = arg
         elif opt in ("-w", "--week"):
-            if int(arg) < 1 or int(arg) > 17:
-                logger.error("Please select a valid week number from 1 to 17.")
+            if int(arg) < 1 or int(arg) > NFL_WEEKS:
+                logger.error(f'Please select a valid week number from 1 to {NFL_WEEKS}.')
                 options_dict["week"] = select_week()
             else:
                 options_dict["week"] = arg
@@ -239,13 +241,13 @@ def select_week(auto_run=False):
     if default == "y":
         return None
     elif default == "n":
-        chosen_week = input("{0}For which week would you like to generate a report? ({1}1{0} - {1}17{0}) -> {3}".format(
-            Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
+        chosen_week = input("{0}For which week would you like to generate a report? ({1}1{0} - {1}{4}{0}) -> {3}".format(
+            Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL, NFL_WEEKS
         ))
-        if 0 < int(chosen_week) < 18:
+        if 1 <= int(chosen_week) <= NFL_WEEKS:
             return chosen_week
         else:
-            logger.warning("Please select a valid week number between 1 and 17.")
+            logger.warning(f"Please select a valid week number between 1 and {NFL_WEEKS}.")
             time.sleep(0.25)
             select_week(auto_run)
     else:

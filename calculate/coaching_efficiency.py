@@ -1,7 +1,7 @@
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "wrenjr@yahoo.com"
 
-from math import comb, ceil, pow
+from math import comb, ceil, pow, sqrt
 
 import sys
 from typing import List, Dict
@@ -162,12 +162,19 @@ class CoachingEfficiency(object):
         nCm_probability = 1 / comb(position["count"], position["slots"])
         # noinspection PyPep8Naming
         nCm_probability_complement = 1 - nCm_probability
+        if nCm_probability <= 0.5:
+            scaling_exponent = nCm_probability * pow(nCm_probability + 0.5, 2) + nCm_probability
+        elif nCm_probability > 0.5:
+            scaling_exponent = nCm_probability * sqrt(nCm_probability + 0.5) + nCm_probability
+        else:
+            scaling_exponent = 1
+        # scaling_exponent = (0.5 * nCm_probability) + nCm_probability
         position_actual_score = sum(position["starter_scores"])
         position_optimal_score = sum(sorted(position["scores"], reverse=True)[:position["slots"]])
 
         weighted_coaching_efficiency_sum_by_position = \
             percent_constant * \
-            pow(nCm_probability_complement, nCm_probability) * \
+            pow(nCm_probability_complement, scaling_exponent) * \
             ((position_actual_score / position_optimal_score) if position_optimal_score != 0 else 0)
 
         return weighted_coaching_efficiency_sum_by_position
@@ -250,13 +257,16 @@ class CoachingEfficiency(object):
         # if team_roster[0].owner_team_name == "Tale of 2 Teams":
             # week 1
             # position_map["QB"]["starter_scores"] = [22.64]
+            # position_map["QB"]["starter_scores"] = [10]
             # position_map["DEF"]["starter_scores"] = [7.5]
             # position_map["WR"]["starter_scores"] = [10.04, 4.4, 2.9]
 
             # week 2
             # position_map["QB"]["starter_scores"] = [14.28]
+            # position_map["QB"]["starter_scores"] = [5.0]
             # position_map["QB"]["starter_scores"] = [22]
             # position_map["WR"]["starter_scores"] = [15.5, 13.4, 5.5]
+            # position_map["WR"]["starter_scores"] = [15.5, 13.4, 2.5]
 
         weighted_coaching_efficiency = sum(
             self._weighted_coaching_efficiency_sum_by_position(pos) for pos in position_map.values())
