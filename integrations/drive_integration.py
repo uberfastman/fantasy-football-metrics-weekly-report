@@ -4,7 +4,7 @@ __email__ = "wrenjr@yahoo.com"
 
 import datetime
 import logging
-import os
+from pathlib import Path
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -25,15 +25,15 @@ class GoogleDriveUploader(object):
     def __init__(self, filename, config):
         logger.debug("Initializing Google Drive uploader.")
 
-        project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        project_dir = Path(__file__).parents[1]
 
         logger.debug("Authenticating with Google Drive.")
 
-        self.filename = os.path.join(project_dir, filename)
+        self.filename = Path(project_dir) / filename
         self.config = config
         self.gauth = GoogleAuth()
 
-        auth_token = os.path.join(project_dir, self.config.get("Drive", "google_drive_auth_token"))
+        auth_token = Path(project_dir) / Path(self.config.get("Drive", "google_drive_auth_token"))
 
         # Try to load saved client credentials
         self.gauth.LoadCredentialsFile(auth_token)
@@ -58,57 +58,81 @@ class GoogleDriveUploader(object):
         # Get lists of folders
         root_folders = drive.ListFile(
             {"q": "'root' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"}).GetList()
-        all_folders = drive.ListFile({"q": "mimeType='application/vnd.google-apps.folder' and trashed=false"}).GetList()
-        all_pdfs = drive.ListFile({"q": "mimeType='application/pdf' and trashed=false"}).GetList()
 
-        google_drive_default_folder_name = self.config.get("Drive", "google_drive_parent_folder_default")
+        google_drive_folder_path_default = self.config.get("Drive", "google_drive_folder_path_default")
+        google_drive_folder_path = Path(self.config.get(
+            "Drive", "google_drive_folder_path", fallback=google_drive_folder_path_default)).parts
 
-        # Check for "Fantasy_Football" root folder and create it if it does not exist
-        google_drive_root_folder_name = self.config.get(
-            "Drive", "google_drive_root_folder_name", fallback=google_drive_default_folder_name)
         google_drive_root_folder_id = self.make_root_folder(
             drive,
-            self.check_file_existence(google_drive_root_folder_name, root_folders, "root"),
-            google_drive_root_folder_name
+            self.check_file_existence(google_drive_folder_path[0], root_folders, "root"),
+            google_drive_folder_path[0]
         )
 
         if not test:
-            # if Fantasy_Football folder is not root, make it inside selected root if it does not exist there
-            if google_drive_root_folder_name != google_drive_default_folder_name:
-                fantasy_football_folder_id = self.make_parent_folder(
-                    drive,
-                    self.check_file_existence(google_drive_default_folder_name, all_folders, google_drive_root_folder_id),
-                    google_drive_default_folder_name,
-                    google_drive_root_folder_id
+            parent_folder_id = google_drive_root_folder_id
+            parent_folder_content_folders = drive.ListFile({
+                "q": (
+                    f"'{parent_folder_id}' in parents and "
+                    f"mimeType='application/vnd.google-apps.folder' and "
+                    f"trashed=false"
                 )
-                google_drive_root_folder_id = fantasy_football_folder_id
+            }).GetList()
+            for folder in google_drive_folder_path[1:]:
+                # create folder chain in Google Drive
+                parent_folder_id = self.make_parent_folder(
+                    drive,
+                    self.check_file_existence(folder, parent_folder_content_folders, parent_folder_id),
+                    folder,
+                    parent_folder_id
+                )
+
+                parent_folder_content_folders = drive.ListFile({
+                    "q": (
+                        f"'{parent_folder_id}' in parents and "
+                        f"mimeType='application/vnd.google-apps.folder' and "
+                        f"trashed=false"
+                    )
+                }).GetList()
 
             # Check for season folder and create it if it does not exist
-            # noinspection PyTypeChecker
-            season_folder_name = self.filename.split(os.sep)[-3]
+            season_folder_name = Path(self.filename).parts[-3]
 
             season_folder_id = self.make_parent_folder(
                 drive,
-                self.check_file_existence(
-                    season_folder_name,
-                    all_folders,
-                    google_drive_root_folder_id
-                ),
+                self.check_file_existence(season_folder_name, parent_folder_content_folders, parent_folder_id),
                 season_folder_name,
-                google_drive_root_folder_id
+                parent_folder_id
             )
+            season_folder_content_folders = drive.ListFile({
+                "q": (
+                    f"'{season_folder_id}' in parents and "
+                    f"mimeType='application/vnd.google-apps.folder' and "
+                    f"trashed=false"
+                )
+            }).GetList()
 
             # Check for league folder and create it if it does not exist
-            # noinspection PyTypeChecker
-            league_folder_name = self.filename.split(os.sep)[-2].replace("-", "_")
-            league_folder_id = self.make_parent_folder(drive,
-                                                       self.check_file_existence(league_folder_name, all_folders, season_folder_id),
-                                                       league_folder_name, season_folder_id)
+            league_folder_name = Path(self.filename).parts[-2].replace("-", "_")
+            league_folder_id = self.make_parent_folder(
+                drive,
+                self.check_file_existence(league_folder_name, season_folder_content_folders, season_folder_id),
+                league_folder_name, season_folder_id
+            )
+            league_folder_content_pdfs = drive.ListFile({
+                "q": (
+                    f"'{league_folder_id}' in parents and "
+                    f"mimeType='application/pdf' and "
+                    f"trashed=false"
+                )
+            }).GetList()
 
             # Check for league report and create if if it does not exist
-            report_file_name = self.filename.split(os.sep)[-1]
-            report_file = self.check_file_existence(report_file_name, all_pdfs, league_folder_id)
+            report_file_name = Path(self.filename).parts[-1]
+            report_file = self.check_file_existence(report_file_name, league_folder_content_pdfs, league_folder_id)
         else:
+            all_pdfs = drive.ListFile({"q": "mimeType='application/pdf' and trashed=false"}).GetList()
+
             report_file_name = self.filename
             report_file = self.check_file_existence(report_file_name, all_pdfs, "root")
             league_folder_id = "root"
@@ -204,7 +228,7 @@ class GoogleDriveUploader(object):
 
 if __name__ == "__main__":
     local_config = AppConfigParser()
-    local_config.read(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.ini"))
+    local_config.read(Path(__file__).parents[1] / "config.ini")
     reupload_file = local_config.get("Drive", "google_drive_reupload_file")
 
     google_drive_uploader = GoogleDriveUploader(reupload_file, local_config)

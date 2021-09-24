@@ -681,7 +681,10 @@ The following setup steps are ***required*** in order to allow the Google Drive 
 
 29. You should then see the command line output "Authentication successful.", as well as a list of 10 files in your Google Drive to confirm it can access your drive. It will also have automatically generated a `token.json` file in `auth/google/`, which you should just leave where it is and do ***NOT*** edit or modify in any way!
 
-30. *You can now upload your reports to Google Drive, either by changing the value of `google_drive_upload` to `True` in `config.ini`, or by setting the value of `google_drive_reupload_file` in `config.ini` to the filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/drive.py`*.
+30. *You can now upload your reports to Google Drive in one of two ways listed below. Please note, if you wish to specify where the app will upload the report to in Google Drive, change the value of `google_drive_folder_path` in `config.ini` to whatever path you wish to store the reports in Google Drive, for example: `Fantasy_Football/reports`. If you do not put a path in this value the report will default to uploading files to a `Fantasy_Football` directory at the root of your Google Drive.*
+    1. Change `google_drive_upload` to `True` in `config.ini` and generate a new report. You will see a message at the end of the run that indicates the report PDF was successfully uploaded to Google Drive, and provides the direct share link to the file.
+       **OR**
+    2. Set the value of `google_drive_reupload_file` in `config.ini` to the local filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/drive.py`*. This only works for preexisting reports that you have already generated, and will then upload that report to Google Drive without generating a new one. 
 
 ---
 
