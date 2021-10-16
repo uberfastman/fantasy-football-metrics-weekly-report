@@ -23,6 +23,8 @@ colorama.init()
 
 logger = get_logger()
 
+NFL_SEASON_LENGTH = 18
+
 
 def main(argv):
     logger.debug("Running fantasy football metrics weekly report app with arguments:\n{0}".format(argv))
@@ -108,8 +110,8 @@ def main(argv):
         elif opt in ("-l", "--league-id"):
             options_dict["league_id"] = arg
         elif opt in ("-w", "--week"):
-            if int(arg) < 1 or int(arg) > 17:
-                logger.error("Please select a valid week number from 1 to 17.")
+            if int(arg) < 1 or int(arg) > NFL_SEASON_LENGTH:
+                logger.error(f"Please select a valid week number from 1 to {NFL_SEASON_LENGTH}.")
                 options_dict["week"] = select_week()
             else:
                 options_dict["week"] = arg
@@ -141,8 +143,8 @@ def main(argv):
     return options_dict
 
 
-def select_league(auto_run, week, platform, league_id, game_id, season, refresh_web_data, playoff_prob_sims, break_ties, dq_ce,
-                  save_data, dev_offline, test):
+def select_league(config, auto_run, week, platform, league_id, game_id, season, refresh_web_data, playoff_prob_sims,
+                  break_ties, dq_ce,save_data, dev_offline, test):
     if not league_id:
         time.sleep(0.25)
         default = input("{0}Generate report for default league? ({1}y{0}/{2}n{0}) -> {3}".format(
@@ -197,8 +199,8 @@ def select_league(auto_run, week, platform, league_id, game_id, season, refresh_
                                          test=test)
         except IndexError:
             logger.error("The league ID you have selected is not valid.")
-            select_league(auto_run, week, platform, None, game_id, season, refresh_web_data, playoff_prob_sims, break_ties, dq_ce,
-                          save_data, dev_offline, test)
+            select_league(config, auto_run, week, platform, None, game_id, season, refresh_web_data, playoff_prob_sims,
+                          break_ties, dq_ce, save_data, dev_offline, test)
     elif default == "selected":
 
         if not week:
@@ -222,8 +224,8 @@ def select_league(auto_run, week, platform, league_id, game_id, season, refresh_
     else:
         logger.warning("You must select either \"y\" or \"n\".")
         time.sleep(0.25)
-        select_league(auto_run, week, platform, None, game_id, season, refresh_web_data, playoff_prob_sims, break_ties, dq_ce,
-                      save_data, dev_offline, test)
+        select_league(config, auto_run, week, platform, None, game_id, season, refresh_web_data, playoff_prob_sims,
+                      break_ties, dq_ce, save_data, dev_offline, test)
 
 
 def select_week(auto_run=False):
@@ -239,13 +241,15 @@ def select_week(auto_run=False):
     if default == "y":
         return None
     elif default == "n":
-        chosen_week = input("{0}For which week would you like to generate a report? ({1}1{0} - {1}17{0}) -> {3}".format(
-            Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
-        ))
-        if 0 < int(chosen_week) < 18:
+        chosen_week = input(
+            "{0}For which week would you like to generate a report? ({1}1{0} - {1}{4}{0}) -> {3}".format(
+                Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL, NFL_SEASON_LENGTH
+            )
+        )
+        if 0 < int(chosen_week) <= NFL_SEASON_LENGTH:
             return chosen_week
         else:
-            logger.warning("Please select a valid week number between 1 and 17.")
+            logger.warning(f"Please select a valid week number between 1 and {NFL_SEASON_LENGTH}.")
             time.sleep(0.25)
             select_week(auto_run)
     else:
@@ -258,18 +262,19 @@ def select_week(auto_run=False):
 if __name__ == "__main__":
 
     options = main(sys.argv[1:])
-    logger.debug("Fantasy football metrics weekly report app run configuration options:\n{0}".format(options))
+    logger.debug(f"Fantasy football metrics weekly report app run configuration options:\n{options}")
 
     # set local config (check for existence and access, create config.ini if does not exist or stop app if inaccessible)
     if options.get("config_file"):
-        config = get_valid_config(options.get("config_file"))
+        configuration = get_valid_config(options.get("config_file"))
     else:
-        config = get_valid_config()
+        configuration = get_valid_config()
 
     # check to see if the current app is behind any commits, and provide option to update and re-run if behind
     up_to_date = check_for_updates(options.get("auto_run", False))
 
     report = select_league(
+        configuration,
         options.get("auto_run", False),
         options.get("week", None),
         options.get("platform", None),
@@ -285,23 +290,23 @@ if __name__ == "__main__":
         options.get("test", False))
     report_pdf = report.create_pdf_report()
 
-    upload_file_to_google_drive = config.getboolean("Drive", "google_drive_upload")
+    upload_file_to_google_drive = configuration.getboolean("Drive", "google_drive_upload")
     upload_message = ""
     if upload_file_to_google_drive:
         if not options.get("test", False):
             # upload pdf to google drive
-            google_drive_uploader = GoogleDriveUploader(report_pdf, config)
+            google_drive_uploader = GoogleDriveUploader(report_pdf, configuration)
             upload_message = google_drive_uploader.upload_file()
             logger.info(upload_message)
         else:
             logger.info("Test report NOT uploaded to Google Drive.")
 
-    post_to_slack = config.getboolean("Slack", "post_to_slack")
+    post_to_slack = configuration.getboolean("Slack", "post_to_slack")
     if post_to_slack:
         if not options.get("test", False):
             # post pdf or link to pdf to slack
-            slack_messenger = SlackMessenger(config)
-            post_or_file = config.get("Slack", "post_or_file")
+            slack_messenger = SlackMessenger(configuration)
+            post_or_file = configuration.get("Slack", "post_or_file")
 
             if post_or_file == "post":
                 # post shareable link to uploaded google drive pdf on slack

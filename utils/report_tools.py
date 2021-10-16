@@ -35,6 +35,8 @@ logger = get_logger(__name__, propagate=False)
 
 colorama.init()
 
+NFL_SEASON_LENGTH = 18
+
 current_date = datetime.today()
 current_year = current_date.year
 current_month = current_date.month
@@ -123,19 +125,22 @@ def get_valid_config(config_file="config.ini"):
             return config
         else:
             logger.error(
-                "Unable to access configuration file \"config.ini\". Please check that file permissions are properly set.")
+                "Unable to access configuration file \"config.ini\". "
+                "Please check that file permissions are properly set.")
             sys.exit("...run aborted.")
     else:
         logger.debug("Configuration file \"config.ini\" not found.")
         create_config = input(
-            "{2}Configuration file \"config.ini\" not found. {1}Do you wish to create one? {0}({1}y{0}/{2}n{0}) -> {3}".format(
+            "{2}Configuration file \"config.ini\" not found. {1}"
+            "Do you wish to create one? {0}({1}y{0}/{2}n{0}) -> {3}".format(
                 Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
             ))
         if create_config == "y":
             return create_config_from_template(config, root_directory, config_file_path)
         if create_config == "n":
             logger.error(
-                "Configuration file \"config.ini\" not found. Please make sure that it exists in project root directory.")
+                "Configuration file \"config.ini\" not found. "
+                "Please make sure that it exists in project root directory.")
             sys.exit("...run aborted.")
         else:
             logger.warning("Please only select \"y\" or \"n\".")
@@ -202,9 +207,9 @@ def create_config_from_template(config: AppConfigParser, root_directory, config_
                 Fore.GREEN, Style.RESET_ALL
             ))
         try:
-            if int(current_week) < 0 or int(current_week) > 17:
+            if int(current_week) < 0 or int(current_week) > NFL_SEASON_LENGTH:
                 logger.warning(
-                    "Week {0} is not a valid NFL week. Please select a week from 1 to 17.".format(current_week))
+                    f"Week {current_week} is not a valid NFL week. Please select a week from 1 to {NFL_SEASON_LENGTH}.")
                 time.sleep(0.25)
                 config = create_config_from_template(config, root_directory, config_file_path, platform=platform,
                                                      league_id=league_id, season=season)
@@ -319,12 +324,13 @@ def check_for_updates(auto_run=False):
                     num_commits_color, num_commits_behind,
                     target_branch,
                     Fore.YELLOW, Style.RESET_ALL
-            )
+                )
             logger.debug(up_to_date_status_msg)
             confirm_update = input(
                 up_to_date_status_msg + " {1}Do you wish to update the app? {0}({1}y{0}/{2}n{0}) -> {3}".format(
-                Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
-            ))
+                    Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
+                )
+            )
 
             not_up_to_date_status_message = "Running {0} of app. Please update to {1} for the latest features, " \
                                             "improvements, and fixes.".format(
@@ -395,12 +401,13 @@ def user_week_input_validation(config, week, retrieved_current_week, season):
                     else:
                         raise ValueError("Please only select \"y\" or \"n\". Try running the report generator again.")
 
-            elif 0 < int(week_for_report) < 18:
+            elif 0 < int(week_for_report) <= NFL_SEASON_LENGTH:
                 if 0 < int(week_for_report) <= int(current_week) - 1:
                     week_for_report = week_for_report
                 else:
                     incomplete_week = input(
-                        "{0}Are you sure you want to generate a report for an incomplete week? ({1}y{0}/{2}n{0}) -> {3}".format(
+                        "{0}Are you sure you want to generate a report for an incomplete week? "
+                        "({1}y{0}/{2}n{0}) -> {3}".format(
                             Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
                         ))
                     if incomplete_week == "y":
@@ -410,9 +417,12 @@ def user_week_input_validation(config, week, retrieved_current_week, season):
                     else:
                         raise ValueError("Please only select \"y\" or \"n\". Try running the report generator again.")
             else:
-                raise ValueError("You must select either \"default\" or an integer from 1 to 17 for the chosen week.")
+                raise ValueError(
+                    f"You must select either \"default\" or an integer from 1 to {NFL_SEASON_LENGTH} "
+                    f"for the chosen week.")
         except ValueError:
-            raise ValueError("You must select either \"default\" or an integer from 1 to 17 for the chosen week.")
+            raise ValueError(
+                f"You must select either \"default\" or an integer from 1 to {NFL_SEASON_LENGTH} for the chosen week.")
 
     return int(week_for_report)
 
