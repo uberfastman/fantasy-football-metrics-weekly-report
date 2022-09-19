@@ -43,8 +43,8 @@ class CalculateMetrics(object):
                 team.manager_str,
                 str(team.record.get_wins()) + "-" + str(team.record.get_losses()) + "-" + str(team.record.get_ties()) +
                 " (" + str(team.record.get_percentage()) + ")",
-                round(float(team.record.get_points_for()), 2),
-                round(float(team.record.get_points_against()), 2),
+                "%.2f" % float(team.record.get_points_for()),
+                "%.2f" % float(team.record.get_points_against()),
                 team.record.get_streak_str(),
                 team.waiver_priority if not league.is_faab else "$%d" % team.faab,
                 team.num_moves,
@@ -129,8 +129,8 @@ class CalculateMetrics(object):
                     str(team.record.get_division_wins()) + "-" + str(team.record.get_division_losses()) + "-" + str(
                         team.record.get_division_ties()) +
                     " (" + str(team.record.get_division_percentage()) + ")",
-                    round(float(team.record.get_points_for()), 2),
-                    round(float(team.record.get_points_against()), 2),
+                    "%.2f" % float(team.record.get_points_for()),
+                    "%.2f" % float(team.record.get_points_against()),
                     team.record.get_streak_str(),
                     team.waiver_priority if not league.is_faab else "$%d" % team.faab,
                     team.num_moves,
