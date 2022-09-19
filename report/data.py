@@ -1,13 +1,13 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
 
 import itertools
 
 from calculate.metrics import CalculateMetrics
 from calculate.points_by_position import PointsByPosition
 from dao.base import BaseLeague, BaseMatchup, BaseTeam
-from utils.report_tools import add_report_team_stats, get_player_game_time_statuses
 from report.logger import get_logger
+from utils.report_tools import add_report_team_stats, get_player_game_time_statuses
 
 logger = get_logger(__name__, propagate=False)
 

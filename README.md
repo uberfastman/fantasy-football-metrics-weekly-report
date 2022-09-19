@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/latest)
 [![Last Release Date](https://img.shields.io/github/release-date/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases/latest)
 [![Version](https://img.shields.io/github/v/tag/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/tags)
-[![Last Commmit](https://img.shields.io/github/last-commit/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/commits/main)
+[![Last Commit](https://img.shields.io/github/last-commit/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/commits/main)
 
 ---
 
@@ -36,8 +36,8 @@
 
 ###### Do you like the app? Star the repository here on GitHub and please consider donating to help support its development:
 
-| <sub>PayPal/CC</sub> | <sub>Bitcoin (BTC)</sub> | <sub>Ethereum (ETH)</sub> | <sub>Nano (NANO)</sub> |
-| :---: | :---: | :---: | :---: |
+|                                                     <sub>PayPal/CC</sub>                                                     |                                      <sub>Bitcoin (BTC)</sub>                                      |                                      <sub>Ethereum (ETH)</sub>                                       |                                    <sub>Nano (NANO)</sub>                                    |
+|:----------------------------------------------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------------------:|
 | [![paypal](resources/images/donate-paypal.png)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=VZZCNLRHH9BQS) | [![donate-bitcoin](resources/images/donate-bitcoin.png)](https://share.trustwallet.com/ZoAkTpY1I9) | [![donate-ethereum](resources/images/donate-ethereum.png)](https://share.trustwallet.com/MF8YBO01I9) | [![donate-nano](resources/images/donate-nano.png)](https://share.trustwallet.com/bNXsMA11I9) |
 
 <sub>BTC: `bc1qataspvklhewtswm357m0677q4raag5new2xt3e`</sub>
@@ -98,7 +98,7 @@
     
     * ***Linux (Ubuntu)***: type `Ctrl+Alt+T`.
 
-2. Install Git (see [Git](#git) section for more details.
+2. Install Git (see [Git](#git) section for more details).
 
     * ***macOS***: run `git --version` for the first time, and when prompted, install the *Xcode Command Line Tools*.
     
@@ -139,7 +139,7 @@
     * Run:
     
         ```bash
-        docker-compose up -d
+        docker compose up -d
         ```
    
     * Wait for the above command to complete, then run:
@@ -189,7 +189,7 @@ If you wish to update the app yourself manually, you can just type `n` to skip a
 
 <a name="dependencies"></a>
 ### Dependencies
-The application is actively developed in macOS, but is cross-platform compatible. The app requires Python 3.7 or later (Python 2 is no longer supported). To check if you have Python 3.7 installed, open up a window in Terminal (macOS), Command Prompt (Windows), or a command line shell of your choice, and run `python --version`. If the return is `Python 3.7.x`, you are good to go. If the return is `Python 2.x.x`, you will need to install Python 3.7. Check out the instructions [here](https://realpython.com/installing-python/) for how to install Python 3.7 on your system.
+The application is actively developed in macOS, but is cross-platform compatible. The app requires Python 3.7 or later (Python 2 is no longer supported). To check if you have Python 3.7 or later installed, open up a window in Terminal (macOS), Command Prompt (Windows), or a command line shell of your choice, and run `python --version`. If the return is `Python 3.7.x`, you are good to go. If the return is `Python 2.x.x`, you will need to install Python 3.7. Check out the instructions [here](https://realpython.com/installing-python/) for how to install Python 3.7 on your system.
 
 Project dependencies can be viewed in the [`requirements.txt`](requirements.txt) file.
 
@@ -198,7 +198,7 @@ Project dependencies can be viewed in the [`requirements.txt`](requirements.txt)
 <a name="setup"></a>
 ### Setup*
 
-The Fantasy Football Metrics Weekly Report requires several different sets of setup steps, depending on which platform(s) for which you will be running it. To get the application running locally, you will first need to complete the below setup.
+The Fantasy Football Metrics Weekly Report requires several sets of setup steps, depending on which platform(s) for which you will be running it. To get the application running locally, you will first need to complete the below setup.
 
 _\* General setup **excludes** Google Drive and Slack integrations. See [Additional Integrations](#additional-integrations) for details on including those add-ons._
 
@@ -291,7 +291,7 @@ Clone this project to whichever directory you wish to use for this app:
     
     8. Once the app is created, it should redirect you to a page for your app, which will show both a `Client ID` and a `Client Secret`.
     
-    9. Copy the file `EXAMPLE-private.json` (located in the `auth/yahoo/` directory), and rename the file copy `private.json` by running the below command in your commmand line shell:
+    9. Copy the file `EXAMPLE-private.json` (located in the `auth/yahoo/` directory), and rename the file copy `private.json` by running the below command in your command line shell:
     
         * **macOS**/**Linux**: `cp auth/yahoo/EXAMPLE-private.json private.json auth/yahoo/private.json`
         
@@ -310,7 +310,7 @@ Clone this project to whichever directory you wish to use for this app:
 <a name="fleaflicker-setup"></a>
 #### Fleaflicker Setup
 
-Fleaflicker recently implemented a public API, but at the present time it is undocumented and subject to unexpected and sudden changes. *Please note, some of the data required to provide certain information to the report is not currently available in the Fleaflicker API, so for the time being web-scraping is used to supplement the data gathered from the Fleaflicker API.*
+Fleaflicker recently implemented a public API, but at the present time it is undocumented and subject to unexpected and sudden changes. *Please note, some data required to provide certain information to the report is not currently available in the Fleaflicker API, so for the time being web-scraping is used to supplement the data gathered from the Fleaflicker API.*
 
 1. Retrieve your Fleaflicker league ID. You can find it by looking at the URL of your league in your browser:
 
@@ -331,7 +331,7 @@ Fleaflicker recently implemented a public API, but at the present time it is und
 <a name="sleeper-setup"></a>
 #### Sleeper Setup
 
-Sleeper has a public API, the documentation for which is available [here](https://docs.sleeper.app). The Fantasy Football Metrics Weekly Report application uses this API to retrieve the necessary data to generate reports. *Please note, some of the data required to provide certain information to the report is not currently available in the Sleeper API, so a few small things are excluded in the report until such a time as the data becomes available*. That being said, the missing data does not fundamentally limit the capability of the app to generate a complete report.
+Sleeper has a public API, the documentation for which is available [here](https://docs.sleeper.app). The Fantasy Football Metrics Weekly Report application uses this API to retrieve the necessary data to generate reports. *Please note, some data required to provide certain information to the report is not currently available in the Sleeper API, so a few small things are excluded in the report until such a time as the data becomes available*. That being said, the missing data does not fundamentally limit the capability of the app to generate a complete report.
 
 1. Retrieve your Sleeper league ID. You can find it by looking at the URL of your league in your browser:
 
@@ -350,7 +350,7 @@ Sleeper has a public API, the documentation for which is available [here](https:
 <a name="espn-setup"></a>
 #### ESPN Setup
 
-ESPN has a public API, but it was just changed from v2 to v3, which introduced some variance to its functionality. At the present time it is also undocumented and subject to unexpected and sudden changes. *Please note, some of the data required to provide certain information to the report is not currently available in the ESPN API, so a few small things are excluded in the report until such a time as the data becomes available*. That being said, the missing data does not fundamentally limit the capability of the app to generate a complete report.
+ESPN has a public API, but it was just changed from v2 to v3, which introduced some variance to its functionality. At the present time it is also undocumented and subject to unexpected and sudden changes. *Please note, some  data required to provide certain information to the report is not currently available in the ESPN API, so a few small things are excluded in the report until such a time as the data becomes available*. That being said, the missing data does not fundamentally limit the capability of the app to generate a complete report.
 
 1. Retrieve your ESPN league ID. You can find it by looking at the URL of your league in your browser:
 
@@ -366,7 +366,7 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
 
     1. Steven Morse has done a great deal of fantastic work to help teach people how to use the ESPN fantasy API, and has a useful blog post [here](https://stmorse.github.io/journal/espn-fantasy-3-python.html) detailing how to get your own session cookies. As stated in the aforementioned blog, you can get the cookies following the subsequent steps.
         
-    2. *"A lot of the ESPN Fantasy tools are behind a login-wall. Since accounts are free, this is not a huge deal, but becomes slightly annoying for GET requests because now we somehow need to “login” through the request. One way to do this is to send session cookies along with the request. Again this can take us into a gray area, but to my knowledge there is nothing prohibited about using your own cookies for personal use within your own league.*
+    2. *"A lot of the ESPN Fantasy tools are behind a login-wall. Since accounts are free, this is not a huge deal, but becomes slightly annoying for GET requests because now we somehow need to “login” through the request. One way to do this is to send session cookies along with the request. Again this can take us into a gray area, but to my knowledge there is nothing prohibited about using your own cookies for personal use within your own league."*
         
         *Specifically, our GET request from the previous post is modified to look like, for example:*
 
@@ -382,7 +382,7 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
     
     3. Depending on what web browser (Firefox, Chrome, Edge, Brave, etc.) you are using, the process for viewing your session cookies in the web inspector will be different. I recommend Googling *"how to inspect element in [browser]"* (for your specific browser) to learn how to use that browser's web inspector.
            
-    4. Copy the file `EXAMPLE-private.json` (located in the `auth/espn/` directory), and rename the file copy `private.json` by running the below command in your commmand line shell:
+    4. Copy the file `EXAMPLE-private.json` (located in the `auth/espn/` directory), and rename the file copy `private.json` by running the below command in your command line shell:
     
         * **macOS**/**Linux**: `cp auth/espn/EXAMPLE-private.json private.json auth/espn/private.json`
         
@@ -404,7 +404,7 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
 2. From within the application directory (you should already be inside the `fantasy-football-metrics-weekly-report` directory) , run:
 
     ```bash
-    docker-compose up -d
+    docker compose up -d
     ```
 
     1. *FIRST TIME RUNNING*: The first time you run the above command, you must wait for the Docker image to build. You will output containing numbered steps (such as `Step 1/8 : FROM python:3.8-slim`). Wait until the process completes, and you see the below output:
@@ -412,11 +412,11 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
         ```bash
         Successfully built ae1d93516452
         Successfully tagged fantasy-football-metrics-weekly-report_app:latest
-        WARNING: Image for service app was built because it did not already exist. To rebuild this image you must use `docker-compose build` or `docker-compose up --build`.
+        WARNING: Image for service app was built because it did not already exist. To rebuild this image you must use `docker compose build` or `docker compose up --build`.
         Creating fantasy-football-metrics-weekly-report_app_1 ... done
         ```
        
-       **NOTE**: If you are running *Docker for Windows* and you see errors when trying to build the Docker container and/or run `docker-compose up -d`, please go to the [Docker on Windows](#docker-on-windows) section in [Troubleshooting](#troubleshooting) for workarounds!
+       **NOTE**: If you are running *Docker for Windows* and you see errors when trying to build the Docker container and/or run `docker compose up -d`, please go to the [Docker on Windows](#docker-on-windows) section in [Troubleshooting](#troubleshooting) for workarounds!
 
     2. *ALL SUBSEQUENT RUNS*: After the initial build of the Docker container, you will not see all the same build output as you did the first time. Instead, simply wait until you see the below output: 
         
@@ -449,22 +449,21 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
             2. The browser window should display a message asking for access to Yahoo Fantasy Sports on your account. Click `Accept`.  
         
             3. You should then see a verifier code (something like `w6nwjvz`). Copy the verifier code and return to the command line window, where you should now see the following prompt:
-        
-              ```bash
-              Enter verifier :
-              ```
-          
-              Paste the verifier code there and hit enter.
+    
+                ```bash
+                Enter verifier :
+                ```
+               Paste the verifier code there and hit enter.
           
             4. Assuming the above went as expected, the application should now generate a report for your Yahoo fantasy league for the selected NFL week.
             
 4. When you are *done* using the report app, it is recommended that you *shut down* the Docker container in which it is running. You can do so by running:
 
     ```bash
-    docker-compose down
+    docker compose down
     ```
   
-  The next time you run the app, you can simply re-run `docker-compose up -d` to restart the container. 
+  The next time you run the app, you can simply re-run `docker compose up -d` to restart the container. 
     
 ***NOTE***: You can also specify a large number of configuration options directly in the command line. Please see the [usage section](#usage) for more information.
 
@@ -526,35 +525,35 @@ Once the initial images have been retrieved and quality has been adjusted, the r
 
 In addition to turning on/off the features of the report PDF itself, there are additional configuration options, which are as follows:
 
-|                  Option                  | Description |
-| ---------------------------------------: | :---------- |
-| `platform`                               | Fantasy football platform for which you are generating a report. |
-| `supported_platforms`                    | Comma-delimited list of currently supported fantasy football platforms. |
-| `league_id`                              | The league id of the fantasy football for which you are running the report. |
-| `game_id`                                | Game id by season (see: [Game Resource](https://developer.yahoo.com/fantasysports/guide/game-resource.html#game-resource-desc) for Yahoo) |
-| `data_dir`                               | Directory where saved data is stored. |
-| `output_dir`                             | Directory where generated reports are created. |
-| `chosen_week`                            | Selected NFL season week for which to generate a report.|
-| `num_playoff_simulations`                | Number of Monte Carlo simulations to run for playoff predictions. The more sims, the longer the report will take to generate. |
-| `bench_positions`                        | Comma-delimited list of available bench positions in your league. |
-| `prohibited_statuses`                    | Comma-delimited list of possible statuses in your league that indicate a player was not able to play (only needed if you plan to utilize the automated coaching efficiency disqualification functionality). |
-| `initial_faab_budget`                    | Set the initial FAAB (Free Agent Acquisition Budget) for Yahoo leagues, since this information does not seem to be exposed in the API. |
-| `num_teams`                              | Number of teams in selected league. |
-| `num_regular_season_weeks`               | Number of regular season weeks in selected league. |
-| `num_playoff_slots`                      | Number of playoff slots in selected league. |
-| `num_playoff_slots_per_division`         | Numbers of teams per division that qualify for the playoffs. |
-| `coaching_efficiency_disqualified_teams` | Teams manually DQed from coaching efficiency rankings (if any). |
-| `yahoo_auth_dir`                         | Directory where Yahoo OAuth accesses and stores credentials and refresh tokens. |
-| `google_drive_upload`                    | Turn on (`True`) or off (`False`) the Google Drive upload functionality. |
-| `google_drive_auth_token`                | Google OAuth refresh token. |
-| `google_drive_root_folder_name`          | Online folder in Google Drive where reports are uploaded. |
-| `google_drive_reupload_file`             | File path of selected report that you wish to re-upload to Google Drive by running `upload_to_google_drive.py` as a standalone script. |
-| `post_to_slack`                          | Turn on (`True`) or off (`False`) the Slack upload functionality. |
-| `slack_auth_token`                       | Slack authentication token. |
-| `post_or_file`                           | Choose whether you post a link to the generated report on Slack (set to `post`), or upload the report PDF itself to Slack (set to `file`).
-| `slack_channel`                          | Selected Slack channel where reports are uploaded. |
-| `notify_channel`                         | Turn on (`True`) or off (`False`) using the `@here` slack tag to notify chosen Slack channel of a posted report file. |
-| `repost_file`                            | File path of selected report that you wish to repost to Slack. | 
+|                                   Option | Description                                                                                                                                                                                                 |
+|-----------------------------------------:|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|                               `platform` | Fantasy football platform for which you are generating a report.                                                                                                                                            |
+|                    `supported_platforms` | Comma-delimited list of currently supported fantasy football platforms.                                                                                                                                     |
+|                              `league_id` | The league id of the fantasy football for which you are running the report.                                                                                                                                 |
+|                                `game_id` | Game id by season (see: [Game Resource](https://developer.yahoo.com/fantasysports/guide/game-resource.html#game-resource-desc) for Yahoo)                                                                   |
+|                               `data_dir` | Directory where saved data is stored.                                                                                                                                                                       |
+|                             `output_dir` | Directory where generated reports are created.                                                                                                                                                              |
+|                            `chosen_week` | Selected NFL season week for which to generate a report.                                                                                                                                                    |
+|                `num_playoff_simulations` | Number of Monte Carlo simulations to run for playoff predictions. The more sims, the longer the report will take to generate.                                                                               |
+|                        `bench_positions` | Comma-delimited list of available bench positions in your league.                                                                                                                                           |
+|                    `prohibited_statuses` | Comma-delimited list of possible statuses in your league that indicate a player was not able to play (only needed if you plan to utilize the automated coaching efficiency disqualification functionality). |
+|                    `initial_faab_budget` | Set the initial FAAB (Free Agent Acquisition Budget) for Yahoo leagues, since this information does not seem to be exposed in the API.                                                                      |
+|                              `num_teams` | Number of teams in selected league.                                                                                                                                                                         |
+|               `num_regular_season_weeks` | Number of regular season weeks in selected league.                                                                                                                                                          |
+|                      `num_playoff_slots` | Number of playoff slots in selected league.                                                                                                                                                                 |
+|         `num_playoff_slots_per_division` | Numbers of teams per division that qualify for the playoffs.                                                                                                                                                |
+| `coaching_efficiency_disqualified_teams` | Teams manually DQed from coaching efficiency rankings (if any).                                                                                                                                             |
+|                         `yahoo_auth_dir` | Directory where Yahoo OAuth accesses and stores credentials and refresh tokens.                                                                                                                             |
+|                    `google_drive_upload` | Turn on (`True`) or off (`False`) the Google Drive upload functionality.                                                                                                                                    |
+|                `google_drive_auth_token` | Google OAuth refresh token.                                                                                                                                                                                 |
+|          `google_drive_root_folder_name` | Online folder in Google Drive where reports are uploaded.                                                                                                                                                   |
+|             `google_drive_reupload_file` | File path of selected report that you wish to re-upload to Google Drive by running `upload_to_google_drive.py` as a standalone script.                                                                      |
+|                          `post_to_slack` | Turn on (`True`) or off (`False`) the Slack upload functionality.                                                                                                                                           |
+|                       `slack_auth_token` | Slack authentication token.                                                                                                                                                                                 |
+|                           `post_or_file` | Choose whether you post a link to the generated report on Slack (set to `post`), or upload the report PDF itself to Slack (set to `file`).                                                                  |
+|                          `slack_channel` | Selected Slack channel where reports are uploaded.                                                                                                                                                          |
+|                         `notify_channel` | Turn on (`True`) or off (`False`) using the `@here` slack tag to notify chosen Slack channel of a posted report file.                                                                                       |
+|                            `repost_file` | File path of selected report that you wish to repost to Slack.                                                                                                                                              | 
 
 ---
 
@@ -563,23 +562,23 @@ In addition to turning on/off the features of the report PDF itself, there are a
 
 After completing the above setup and configuration steps, you should now be able to simply run `docker exec -it fantasy-football-metrics-weekly-report_app_1 python main.py` to regenerate a report. The report generator script (`main.py`) also supports several command line options/arguments that allow you to specify the following:
 
-|             Flag             |                                      Description                                     |
-| :--------------------------- | :----------------------------------------------------------------------------------- |
-| `-h`, `--help`                             | Print command line usage message |
-| `-a`, `--auto-run`                         | Automatically run the report using the default week. |
-| `-f`, `--fantasy-platform` `<platform>`    | Fantasy football platform on which league for report is hosted. |
-| `-l`, `--league-id` `<league_id>`          | Fantasy Football league ID |
-| `-w`, `--week` `<week>`                    | Chosen week for which to generate report |
+| Flag                                       | Description                                                                                                               |
+|:-------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------|
+| `-h`, `--help`                             | Print command line usage message                                                                                          |
+| `-a`, `--auto-run`                         | Automatically run the report using the default week.                                                                      |
+| `-f`, `--fantasy-platform` `<platform>`    | Fantasy football platform on which league for report is hosted.                                                           |
+| `-l`, `--league-id` `<league_id>`          | Fantasy Football league ID                                                                                                |
+| `-w`, `--week` `<week>`                    | Chosen week for which to generate report                                                                                  |
 | `-g`, `--game-id` `<game_id>`              | Chosen fantasy game id for which to generate report. Defaults to "nfl", interpreted as the current season if using Yahoo. |
-| `-y`, `--year` `<year>`                    | Chosen year (season) of the league for which a report is being generated. | 
-| `-c`, `--config-file` `<config_file_path>` | System file path (including file name) for .ini file to be used for configuration. |
-| `-s`, `--save-data`                        | Save all retrieved data locally for faster future report generation |
-| `-s`, `--refresh-web-data`                 | Refresh all web data from external APIs (such as bad boy and beef data) |
-| `-p`, `--playoff-prob-sims` `<int>`        | Number of Monte Carlo playoff probability simulations to run." |
-| `-b`, `--break-ties`                       | Break ties in metric rankings |
-| `-q`, `--disqualify-ce`                    | Automatically disqualify teams ineligible for coaching efficiency metric |
-| `-d`, `--dev-offline`                      | Run ***OFFLINE*** (for development). Must have previously run report with -s option. |
-| `-t`, `--test`                             | Generate TEST report (for development) |
+| `-y`, `--year` `<year>`                    | Chosen year (season) of the league for which a report is being generated.                                                 | 
+| `-c`, `--config-file` `<config_file_path>` | System file path (including file name) for .ini file to be used for configuration.                                        |
+| `-s`, `--save-data`                        | Save all retrieved data locally for faster future report generation                                                       |
+| `-s`, `--refresh-web-data`                 | Refresh all web data from external APIs (such as bad boy and beef data)                                                   |
+| `-p`, `--playoff-prob-sims` `<int>`        | Number of Monte Carlo playoff probability simulations to run."                                                            |
+| `-b`, `--break-ties`                       | Break ties in metric rankings                                                                                             |
+| `-q`, `--disqualify-ce`                    | Automatically disqualify teams ineligible for coaching efficiency metric                                                  |
+| `-d`, `--dev-offline`                      | Run ***OFFLINE*** (for development). Must have previously run report with -s option.                                      |
+| `-t`, `--test`                             | Generate TEST report (for development)                                                                                    |
 
 #### NOTE: all command line arguments <ins>***OVERRIDE***</ins> any settings configured in the local config.ini file!
 
@@ -610,7 +609,7 @@ The above command runs the report with the following configuration options (whic
 <a name="additional-integrations"></a>
 ### Additional Integrations
 
-The Fantasy Football Metrics Weekly Report application also supports several additional integrations if you choose to utilize them. Currently it is capable of uploading your generated reports to Google Drive, and also directly posting your generated reports to the Slack Messenger app.
+The Fantasy Football Metrics Weekly Report application also supports several additional integrations if you choose to utilize them. Currently, it is capable of uploading your generated reports to Google Drive, and also directly posting your generated reports to the Slack Messenger app.
 
 <a name="google-drive-setup"></a>
 #### Google Drive Setup
@@ -627,61 +626,69 @@ The following setup steps are ***required*** in order to allow the Google Drive 
 
 4. Name your project, something like `ff-report-drive-uploader`, but it can be anything you like.
 
-5. Click "CREATE".
+5. Click `CREATE`.
 
 6. It will take a few moments for the project to be created, but once it is there will be a notification.
 
 7. Go to the [Google Developers Console](https://console.developers.google.com/apis/dashboard).
 
-8. Your new project should automatically load in the dashboard, but in the event it does not or you have other projects (a different project might load by default), click the project name on the top left of the page (to the right of where it says "Google APIs"), and select your new project.
+8. Your new project should automatically load in the dashboard, but in the event it does not, or you have other projects (a different project might load by default), click the project name on the top left of the page (to the right of where it says "Google APIs"), and select your new project.
 
-9. Either click the `+ ENABLE APIS AND SERVICES` button on the top of the page, or select "Library" from the menu on the left, search for "Google Drive API", and click "Google Drive API" when it comes up.
+9. Either click the `+ ENABLE APIS AND SERVICES` button on the top of the page, or select "Library" from the menu on the left, search for `Google Drive API`, and click `Google Drive API` when it comes up.
 
 10. Click `ENABLE`.
 
-11. After a moment it will be enabled. Click "Credentials" from the left menu and then click "Create Credentials".
+11. After a moment it will be enabled. Click `Credentials` from the left menu and then click `CREATE CREDENTIALS`.
 
-12. From the menu that drops down, select "OAuth client ID".
+12. From the menu that drops down, select `OAuth client ID`.
 
-13. Click on "Configure Consent Screen".
+13. Click on `Configure Consent Screen`.
 
-14. Put `yff-report-drive-uploader` in `Application name`.
+14. Select `Internal` for the `User Type` then click `CREATE`.
 
-15. Click `Add Scope`, check the box next to the `../auth/drive` scope, and click `ADD`.
+15. Put `yff-report-drive-uploader` in `Application name`.
 
-16. Click `SAVE` at the bottom of the screen.
+16. Select your email from the dropdown under `User support email`.
 
-17. Now go click "Credentials" again from the left menu and then click "Create Credentials", then select "OAuth client ID".
+17. Enter your email again in the `Developer contact information` field.
 
-18. Select "Other" from the radio buttons, and put `yff-report-drive-uploader-client-id`.
+18. Click `SAVE AND CONTINUE`.
 
-19. Click "Create".
+19. Click `ADD OR REMOVE SCOPES`, search for `google drive` in the filter, check the box next to the `../auth/drive` scope, and click `UPDATE` at the bottom.
 
-20. A popup with your `client ID` and `client secret` will appear. Click "OK".
+20. Click `SAVE AND CONTINUE`.
 
-21. On the far right of your new credential, click the little arrow that displays "Download JSON" when you hover over it.
+21. Now go click `Credentials` again from the left menu and click `CREATE CREDENTIALS`, then select `OAuth client ID`.
 
-22. Your credentials JSON file will download. Rename it `credentials.json`, and put it in the `auth/google/` directory where `EXAMPLE-credentials.json` is located.
+22. Select `Desktop app` from the dropdown menu, and put `yff-report-drive-uploader-client-id`.
 
-23. Open a terminal window (makes sure you are inside the `fantasy-football-metrics-weekly-report` directory), and run:
+23. Click `CREATE`.
+
+24. A popup with your `client ID` and `client secret` will appear. Click `OK`.
+
+25. On the far right of your new credential, click the little arrow that displays `Download OAuth Client` when you hover over it, then click `DOWNLOAD JSON`.
+
+26. Your credentials JSON file will download. Rename it `credentials.json`, and put it in the `auth/google/` directory where `EXAMPLE-credentials.json` is located.
+
+27. Open a terminal window (makes sure you are inside the `fantasy-football-metrics-weekly-report` directory), and run:
 
     ```bash
     docker exec -it fantasy-football-metrics-weekly-report_app_1 python resources/google_quickstart.py --noauth_local_webserver
     ```
 
-24. You will see a message that says `Go to the following link in your browser:`, followed by a link. Copy the URL and paste it into a web browser, and hit enter. The open window will ask you to either select a Google account to log into (if you have multiple) or log in. Select your account/login.
+28. You will see a message that says `Go to the following link in your browser:`, followed by a link. Copy the URL and paste it into a web browser, and hit enter. The open window will ask you to either select a Google account to log into (if you have multiple) or log in. Select your account/login.
 
-25. A warning screen will appear saying "This app isn't verified". Click "Advanced" and then "Go to yff-report-drive-uploader (unsafe)" (this screen may vary depending on your web browser, but the point is you need to proceed past the warning).
+29. A warning screen will appear saying "This app isn't verified". Click "Advanced" and then "Go to yff-report-drive-uploader (unsafe)" (this screen may vary depending on your web browser, but the point is you need to proceed past the warning).
 
-26. On the next screen, a popup saying "Grant yff-report-drive-uploader permission" will appear. Click "Allow", then "Allow" again on the following "Confirm your choices" screen.
+30. On the next screen, a popup saying "Grant yff-report-drive-uploader permission" will appear. Click "Allow", then "Allow" again on the following "Confirm your choices" screen.
 
-27. Next you will see a screen that says only "Please copy this code, switch to your application and paste it there:". Copy the code, and return to your open terminal window (you can close the browser window once you've copied the verification code).
+31. Next you will see a screen that says only "Please copy this code, switch to your application and paste it there:". Copy the code, and return to your open terminal window (you can close the browser window once you've copied the verification code).
 
-28. Paste the verification code where it says `Enter verification code:`, and hit enter.
+32. Paste the verification code where it says `Enter verification code:`, and hit enter.
 
-29. You should then see the command line output "Authentication successful.", as well as a list of 10 files in your Google Drive to confirm it can access your drive. It will also have automatically generated a `token.json` file in `auth/google/`, which you should just leave where it is and do ***NOT*** edit or modify in any way!
+33. You should then see the command line output "Authentication successful.", as well as a list of 10 files in your Google Drive to confirm it can access your drive. It will also have automatically generated a `token.json` file in `auth/google/`, which you should just leave where it is and do ***NOT*** edit or modify in any way!
 
-30. *You can now upload your reports to Google Drive in one of two ways listed below. Please note, if you wish to specify where the app will upload the report to in Google Drive, change the value of `google_drive_folder_path` in `config.ini` to whatever path you wish to store the reports in Google Drive, for example: `Fantasy_Football/reports`. If you do not put a path in this value the report will default to uploading files to a `Fantasy_Football` directory at the root of your Google Drive.*
+34. *You can now upload your reports to Google Drive in one of two ways listed below. Please note, if you wish to specify where the app will upload the report to in Google Drive, change the value of `google_drive_folder_path` in `config.ini` to whatever path you wish to store the reports in Google Drive, for example: `Fantasy_Football/reports`. If you do not put a path in this value the report will default to uploading files to a `Fantasy_Football` directory at the root of your Google Drive.*
     1. Change `google_drive_upload` to `True` in `config.ini` and generate a new report. You will see a message at the end of the run that indicates the report PDF was successfully uploaded to Google Drive, and provides the direct share link to the file.
        **OR**
     2. Set the value of `google_drive_reupload_file` in `config.ini` to the local filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/drive.py`*. This only works for preexisting reports that you have already generated, and will then upload that report to Google Drive without generating a new one. 
@@ -691,7 +698,7 @@ The following setup steps are ***required*** in order to allow the Google Drive 
 <a name="slack-setup"></a>
 #### Slack Setup
 
-The Fantasy Football Metrics Weekly Report application includes integration with the poplular personal and business chat app Slack, allowing your generated reports (or links to where they are stored on Google Drive) to be uploaded directly to Slack,  making it easy to share the report with all league members.
+The Fantasy Football Metrics Weekly Report application includes integration with the popular personal and business chat app Slack, allowing your generated reports (or links to where they are stored on Google Drive) to be uploaded directly to Slack,  making it easy to share the report with all league members.
 
 The following setup steps are ***required*** in order to allow the Slack integration to function properly:
 
@@ -725,17 +732,17 @@ The following setup steps are ***required*** in order to allow the Slack integra
 
 13. From the dropdown menu, select the below scopes:
     
-    |           OAuth Scope           |                                      Description                                     |
-    | :--------------------------- | :----------------------------------------------------------------------------------- |
-    | `channels:read`                 | View basic information about public channels in the workspace |
-    | `chat:write` | Send messages as @ff-report |
-    | `chat:write.customize` | Send messages as @ff-report with a customized username and avatar |
-    | `chat:write.public`           | Send messages to channels @ff-report isn't a member of |
-    | `files:write`          | Upload, edit, and delete files as ff-report | 
-    | `groups:read`            | View basic information about private channels that ff-report has been added to |
-    | `im:read`     | View basic information about direct messages that ff-report has been added to |
-    | `incoming-webhook` | Post messages to specific channels in Slack |
-    | `mpim:read`           | View basic information about group direct messages that ff-report has been added to |
+| OAuth Scope            | Description                                                                         |
+|:-----------------------|:------------------------------------------------------------------------------------|
+| `channels:read`        | View basic information about public channels in the workspace                       |
+| `chat:write`           | Send messages as @ff-report                                                         |
+| `chat:write.customize` | Send messages as @ff-report with a customized username and avatar                   |
+| `chat:write.public`    | Send messages to channels @ff-report isn't a member of                              |
+| `files:write`          | Upload, edit, and delete files as ff-report                                         | 
+| `groups:read`          | View basic information about private channels that ff-report has been added to      |
+| `im:read`              | View basic information about direct messages that ff-report has been added to       |
+| `incoming-webhook`     | Post messages to specific channels in Slack                                         |
+| `mpim:read`            | View basic information about group direct messages that ff-report has been added to |
 
 14. Scroll back up to `OAuth Tokens & Redirect URLs`, and now you should be able to click the `Install App to Workspace` button, so click it.
 
@@ -743,9 +750,9 @@ The following setup steps are ***required*** in order to allow the Slack integra
 
 16. You will now be redirected back to the `OAuth & Permissions` section of your app settings. At the top, you will see a `Bot User OAuth Access Token` field, which will now have a value populated.
 
-17. Copy the file `EXAMPLE-token.json` (located in the `auth/slack/` directory), and rename the file copy `token.json`, then copy and paste the above `Bot user OAuth Access Token` into the field value of `token.json` where it says `"SLACK_APP_OAUTH_ACCESS_TOKEN_STRING"`, replacing that string. Make sure you are using douple quotes (`"`) on either side of your token string.
+17. Copy the file `EXAMPLE-token.json` (located in the `auth/slack/` directory), and rename the file copy `token.json`, then copy and paste the above `Bot user OAuth Access Token` into the field value of `token.json` where it says `"SLACK_APP_OAUTH_ACCESS_TOKEN_STRING"`, replacing that string. Make sure you are using double quotes (`"`) on either side of your token string.
 
-18. If you are posting to a *private channel*, you will need to invite the bot to the channel before it can make posts there. Just go to the Slack channel and type `@ff-report`, and then hit enter. Slack will ask if you wish to invite the bot to the channel, so confirm that you wish to add the bot to the channel and now it should be able to post to the *private channel*. 
+18. If you are posting to a *private channel*, you will need to invite the bot to the channel before it can make posts there. Just go to the Slack channel and type `@ff-report`, and then hit enter. Slack will ask if you wish to invite the bot to the channel, so confirm that you wish to add the bot to the channel, and now it should be able to post to the *private channel*. 
 
 19. *You can now upload your reports to Slack, either by updating the following values in `config.ini`:*
 
@@ -763,7 +770,7 @@ The following setup steps are ***required*** in order to allow the Slack integra
 <a name="logs"></a>
 #### Logs
 
-In addition to printing output from the application to the command line, the Fantasy Football Metrics Weekly Report also logs all of the same output to [out.log](logs/out.log), which you can view at any time to see output from past runs of the application.
+In addition to printing output from the application to the command line, the Fantasy Football Metrics Weekly Report also logs all the same output to [out.log](logs/out.log), which you can view at any time to see output from past runs of the application.
 
 <a name="yahoo"></a>
 #### Yahoo
@@ -777,12 +784,12 @@ Occasionally when you use the Yahoo fantasy football API, there are hangups on t
         for team in team_standings:
     IndexError: list index out of range
 
-Typically when the above error (or a similar error) occurs, it simply means that one of the Yahoo Fantasy Football API calls failed and so no data was retrieved. This can be fixed by simply re-running data query.
+Typically, when the above error (or a similar error) occurs, it simply means that one of the Yahoo Fantasy Football API calls failed and so no data was retrieved. This can be fixed by simply re-running data query.
 
 <a name="docker-on-windows"></a>
 #### Docker on Windows
 
-If you are running Docker on Windows, you might encounter errors when trying to build the Docker image and/or run `docker-compose up -d`. Typically these errors revolve around the way Windows strictly enforces file access permissions. There are two known permissions issues (and workarounds) currently for running the FFMWR app.
+If you are running Docker on Windows, you might encounter errors when trying to build the Docker image and/or run `docker compose up -d`. Typically, these errors revolve around the way Windows strictly enforces file access permissions. There are two known permissions issues (and workarounds) currently for running the FFMWR app.
 
 1. If you are running on <ins>***Windows 10 Enterprise, Pro, or Education***</ins> (all of which support the Hyper-V feature), then the latest version of Docker for Windows requires you to specifically give Docker permission to access any files and directories you need it to be able to see.
 
@@ -796,7 +803,7 @@ If you are running Docker on Windows, you might encounter errors when trying to 
 
     3. After clicking the `+` button to add a directory, select the FFMWR app directory (which will be wherever you cloned it), or any parent directory of the app directory, and add it. Then click `Apply & Restart`.
     
-    4. Now go back to your command line shell, make sure you are in the FFMWR app directory, and re-run `docker-compose up -d`. This time things should build and startup as expected without any errors, and you can pick up where you left of with [Running the Report Application](#running-the-report-application)!
+    4. Now go back to your command line shell, make sure you are in the FFMWR app directory, and re-run `docker compose up -d`. This time things should build and startup as expected without any errors, and you can pick up where you left of with [Running the Report Application](#running-the-report-application)!
     
 2. If you are running on <ins>***Windows 10 Home***</ins> (which does **not** support the Hyper-V feature), then Docker for Windows does not have the File Sharing option discussed above for Windows 10 Enterprise, Pro, and Education users. However, you might still run into similar permissions issues. The below steps should provide a workaround to just sharing the files in Docker Desktop for Windows:
 
@@ -806,4 +813,18 @@ If you are running Docker on Windows, you might encounter errors when trying to 
     
     3. Use `cd` commands to navigate to whichever directory you cloned the FFMWR app into (e.g. `cd ~\Documents\fantasy-football-metrics-weekly-report\`).
     
-    4. Now from within that command prompt shell (which has privileged admin access), you should be able to re-run `docker-compose up -d`, wait for everything to build and start running, and then pick up where you left of with [Running the Report Application](#running-the-report-application). Remember to stay in the admin command prompt shell to give your command the right file access!
+    4. Now from within that command prompt shell (which has privileged admin access), you should be able to re-run `docker compose up -d`, wait for everything to build and start running, and then pick up where you left of with [Running the Report Application](#running-the-report-application). Remember to stay in the admin command prompt shell to give your command the right file access!
+
+<a name="reportlab"></a>
+#### Reportlab
+
+On macOS 12+ (Monterey) or on Macs using the M1 ARM architecture, you might encounter the following error (or one like it) during dependency installation:
+```shell
+Symbol not found in flat namespace '_FT_Done_Face' from reportlab with Python@3.9 on macOS 12
+```
+
+You may need to force `pip` to _reinstall_ the reportlab library using the following command:
+
+```shell
+pip install reportlab --force-reinstall --no-cache-dir --global-option=build_exta
+```

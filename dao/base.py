@@ -1,9 +1,9 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
 
 import json
-import os
 from collections import defaultdict
+from pathlib import Path
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
@@ -11,6 +11,7 @@ from calculate.covid_risk import CovidRisk
 from calculate.playoff_probabilities import PlayoffProbabilities
 
 
+# noinspection GrazieInspection
 def complex_json_handler(obj):
     """Custom handler to allow custom objects to be serialized into json.
 
@@ -222,7 +223,7 @@ class BaseLeague(FantasyFootballReportObject):
             playoff_prob_sims,
             self.num_regular_season_weeks,
             self.num_playoff_slots,
-            data_dir=os.path.join(self.data_dir, str(self.season), self.league_id),
+            data_dir=Path(self.data_dir) / str(self.season) / self.league_id,
             num_divisions=self.num_divisions,
             save_data=save_data,
             recalculate=recalculate,
@@ -231,7 +232,7 @@ class BaseLeague(FantasyFootballReportObject):
 
     def get_bad_boy_stats(self, save_data=False, dev_offline=False, refresh=False):
         return BadBoyStats(
-            os.path.join(self.data_dir, str(self.season), self.league_id),
+            Path(self.data_dir) / str(self.season) / self.league_id,
             save_data=save_data,
             dev_offline=dev_offline,
             refresh=refresh
@@ -239,7 +240,7 @@ class BaseLeague(FantasyFootballReportObject):
 
     def get_beef_stats(self, save_data=False, dev_offline=False, refresh=False):
         return BeefStats(
-            os.path.join(self.data_dir, str(self.season), self.league_id),
+            Path(self.data_dir) / str(self.season) / self.league_id,
             save_data=save_data,
             dev_offline=dev_offline,
             refresh=refresh
@@ -248,7 +249,7 @@ class BaseLeague(FantasyFootballReportObject):
     def get_covid_risk(self, save_data=False, dev_offline=False, refresh=False):
         return CovidRisk(
             self.config,
-            os.path.join(self.data_dir, str(self.season), self.league_id),
+            Path(self.data_dir) / str(self.season) / self.league_id,
             season=self.season,
             week=self.week_for_report,
             save_data=save_data,
@@ -343,8 +344,10 @@ class BaseTeam(FantasyFootballReportObject):
         return self._combined_record
 
 
+# noinspection DuplicatedCode
 class BaseRecord(FantasyFootballReportObject):
 
+    # noinspection GrazieInspection
     def __init__(self, week=0, wins=0, ties=0, losses=0, percentage=0, points_for=0, points_against=0,
                  streak_type=None, streak_len=0, team_id=None, team_name=None, rank=None, division=None,
                  division_wins=0, division_ties=0, division_losses=0, division_percentage=0, division_points_for=0,

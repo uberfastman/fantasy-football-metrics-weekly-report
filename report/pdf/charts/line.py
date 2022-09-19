@@ -1,5 +1,6 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
+
 # code snippets: http://www.reportlab.com/chartgallery/
 
 import json

@@ -1,5 +1,5 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
 
 import itertools
 import json
@@ -7,13 +7,14 @@ import os
 import re
 import string
 from collections import OrderedDict
+from pathlib import Path
 
 import requests
 from bs4 import BeautifulSoup
 
 from report.logger import get_logger
 
-logger = get_logger(__name__, propagate=True)
+logger = get_logger(__name__, propagate=False)
 
 
 class BadBoyStats(object):
@@ -52,12 +53,12 @@ class BadBoyStats(object):
         }
 
         # create parent directory if it does not exist
-        if not os.path.exists(data_dir):
+        if not Path(data_dir).exists():
             os.makedirs(data_dir)
 
         # Load the scoring based on crime categories
-        with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "resources", "files",
-                               "crime-categories.json"), mode="r", encoding="utf-8") as crimes:
+        with open(Path(__file__).parent.parent / "resources" / "files" / "crime-categories.json", mode="r",
+                  encoding="utf-8") as crimes:
             self.crime_rankings = json.load(crimes)
             logger.debug("Crime categories loaded.")
 
@@ -66,11 +67,11 @@ class BadBoyStats(object):
 
         # preserve raw retrieved player crime data for reference and later usage
         self.raw_bad_boy_data = {}
-        self.raw_bad_boy_data_file_path = os.path.join(data_dir, "bad_boy_raw_data.json")
+        self.raw_bad_boy_data_file_path = Path(data_dir) / "bad_boy_raw_data.json"
 
         # for collecting all retrieved bad boy data
         self.bad_boy_data = {}
-        self.bad_boy_data_file_path = os.path.join(data_dir, "bad_boy_data.json")
+        self.bad_boy_data_file_path = Path(data_dir) / "bad_boy_data.json"
 
         # load preexisting (saved) bad boy data (if it exists) if refresh=False
         if not self.refresh:
@@ -147,13 +148,13 @@ class BadBoyStats(object):
                         for page in range(2, num_pages + 1):
                             page_num += 1
                             body = (
-                                'action=cspFetchTable&'
-                                'security=' + ajax_nonce + '&'
-                                'pageID=10&'
-                                'sortBy=Date&'
-                                'sortOrder=desc&'
-                                'page=' + str(page_num) + '&'
-                                'searches={"Team":"' + team + '"}'
+                                f'action=cspFetchTable'
+                                f'&security={ajax_nonce}'
+                                f'&pageID=10'
+                                f'&sortBy=Date'
+                                f'&sortOrder=desc'
+                                f'&page={page_num}'
+                                f'&searches={{"Team":"{team}"}}'
                             )
 
                             r = requests.post(usa_today_nfl_arrest_url, data=body, headers=headers)
@@ -203,7 +204,7 @@ class BadBoyStats(object):
 
     def open_bad_boy_data(self):
         logger.debug("Loading saved bay boy data.")
-        if os.path.exists(self.bad_boy_data_file_path):
+        if Path(self.bad_boy_data_file_path).exists():
             with open(self.bad_boy_data_file_path, "r", encoding="utf-8") as bad_boy_in:
                 self.bad_boy_data = dict(json.load(bad_boy_in))
 
@@ -306,7 +307,7 @@ class BadBoyStats(object):
                 (string.capwords(player_last_name) if player_last_name else "")
         ).strip()
 
-        # TODO: figure out how to include only ACTIVE players in team DEF rollups
+        # TODO: figure out how to include only ACTIVE players in team DEF roll-ups
         if player_pos == "DEF":
             # player_full_name = player_team
             player_full_name = "TEMPORARY DISABLING OF TEAM DEFENSES IN BAD BOY POINTS"
@@ -345,8 +346,8 @@ class BadBoyStats(object):
 
     def generate_crime_categories_json(self):
         unique_crimes = OrderedDict(sorted(self.unique_crime_categories_for_output.items(), key=lambda k_v: k_v[0]))
-        with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "resources", "files",
-                               "crime-categories-output.json"), mode="w", encoding="utf-8") as crimes:
+        with open(Path(__file__).parent.parent / "resources" / "files" / "crime-categories-output.json", mode="w",
+                  encoding="utf-8") as crimes:
             json.dump(unique_crimes, crimes, ensure_ascii=False, indent=2)
 
     def __str__(self):

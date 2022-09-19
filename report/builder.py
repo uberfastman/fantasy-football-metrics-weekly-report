@@ -1,19 +1,20 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
 
 import datetime
 import os
 from collections import defaultdict
+from pathlib import Path
 
 from calculate.coaching_efficiency import CoachingEfficiency
 from calculate.metrics import CalculateMetrics
 from calculate.points_by_position import PointsByPosition
 from calculate.season_averages import SeasonAverageCalculator
 from dao.base import BaseLeague, BaseTeam
-from utils.report_tools import league_data_factory, patch_http_connection_pool
 from report.data import ReportData
 from report.logger import get_logger
 from report.pdf.generator import PdfGenerator
+from utils.report_tools import league_data_factory, patch_http_connection_pool
 
 logger = get_logger(__name__, propagate=False)
 
@@ -40,8 +41,8 @@ class FantasyFootballReport(object):
 
         # config vars
         self.config = config
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.data_dir = os.path.join(base_dir, self.config.get("Configuration", "data_dir"))
+        base_dir = Path(__file__).parent.parent
+        self.data_dir = base_dir / Path(self.config.get("Configuration", "data_dir"))
         if platform:
             self.platform = platform
             self.platform_str = str.capitalize(platform)
@@ -62,7 +63,7 @@ class FantasyFootballReport(object):
             self.season = self.config.get("Settings", "season")
 
         self.save_data = save_data
-        # refresh data pulled from external web sources: bad boy data from USA Today, beef data from Fox Sports
+        # refresh data pulled from external web sources: bad boy data from USA Today, beef data from Sleeper API
         self.refresh_web_data = refresh_web_data
         self.playoff_prob_sims = playoff_prob_sims
         self.break_ties = break_ties
@@ -139,11 +140,11 @@ class FantasyFootballReport(object):
 
         if self.config.getboolean("Report", "league_beef_rankings"):
             begin = datetime.datetime.now()
-            logger.info("Retrieving beef data from Fox Sports {0}...".format(
+            logger.info("Retrieving beef data from Sleeper {0}...".format(
                 "API" if not self.dev_offline or self.refresh_web_data else "saved data"))
             self.beef_stats = self.league.get_beef_stats(self.save_data, self.dev_offline, self.refresh_web_data)
             delta = datetime.datetime.now() - begin
-            logger.info("...retrieved all beef data from Fox Sports {0} in {1}\n".format(
+            logger.info("...retrieved all beef data from Sleeper {0} in {1}\n".format(
                 "API" if not self.dev_offline else "saved data", str(delta)))
         else:
             self.beef_stats = None
@@ -152,7 +153,7 @@ class FantasyFootballReport(object):
             begin = datetime.datetime.now()
             logger.info(
                 "Retrieving COVID-19 risk data from https://sportsdata.usatoday.com/football/nfl/transactions {0}..."
-                    .format("website" if not self.dev_offline or self.refresh_web_data else "saved data"))
+                .format("website" if not self.dev_offline or self.refresh_web_data else "saved data"))
             self.covid_risk = self.league.get_covid_risk(self.save_data, self.dev_offline, self.refresh_web_data)
             delta = datetime.datetime.now() - begin
             logger.info(
@@ -362,10 +363,8 @@ class FantasyFootballReport(object):
 
         filename = self.league.name.replace(" ", "-") + "(" + str(self.league_id) + ")_week-" + str(
             self.league.week_for_report) + "_report.pdf"
-        report_save_dir = os.path.join(
-            self.config.get("Configuration", "output_dir"),
-            str(self.league.season),
-            self.league.name.replace(" ", "-") + "(" + self.league_id + ")")
+        report_save_dir = (Path(self.config.get("Configuration", "output_dir")) / str(self.league.season) /
+                           f"{self.league.name.replace(' ', '-')}({self.league_id})")
         report_title_text = \
             self.league.name + " (" + str(self.league_id) + ") Week " + \
             str(self.league.week_for_report) + " Report"
@@ -385,13 +384,13 @@ class FantasyFootballReport(object):
                 self.league.url
             )
 
-        if not os.path.isdir(report_save_dir):
+        if not Path(report_save_dir).is_dir():
             os.makedirs(report_save_dir)
 
         if not self.test:
-            filename_with_path = os.path.join(report_save_dir, filename)
+            filename_with_path = Path(report_save_dir) / filename
         else:
-            filename_with_path = os.path.join(self.config.get("Configuration", "output_dir"), "test_report.pdf")
+            filename_with_path = Path(self.config.get("Configuration", "output_dir")) / "test_report.pdf"
 
         # instantiate pdf generator
         pdf_generator = PdfGenerator(

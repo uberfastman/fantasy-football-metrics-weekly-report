@@ -7,7 +7,7 @@ from configparser import ConfigParser, NoOptionError, NoSectionError
 logger = logging.getLogger(__name__)
 
 # Used in parser getters to indicate the default behaviour when a specific
-# option is not found it to raise an exception. Created to enable `None' as
+# option is not found it to raise an exception. Created to enable `None` as
 # a valid fallback value.
 _UNSET = object()
 
@@ -34,7 +34,7 @@ class AppConfigParser(ConfigParser):
         If interpolation is enabled and the optional argument `raw' is False,
         all interpolations are expanded in the return values.
 
-        Arguments `raw', `vars', and `fallback' are keyword only.
+        Arguments `raw', `vars', and `fallback` are keyword only.
 
         The section DEFAULT is special.
         """
@@ -75,7 +75,7 @@ class AppConfigParser(ConfigParser):
         Files that cannot be opened are silently ignored; this is
         designed so that you can specify an iterable of potential
         configuration file locations (e.g. current directory, user's
-        home directory, systemwide directory), and all existing
+        home directory, system-wide directory), and all existing
         configuration files in the iterable will be read.  A single
         filename may also be given.
 
@@ -112,7 +112,7 @@ class AppConfigParser(ConfigParser):
         return read_ok
 
     def _write_section(self, fp, section_name, section_items, delimiter):
-        """Write a single section to the specified `fp'."""
+        """Write a single section to the specified `fp`."""
         fp.write("[{}]\n".format(section_name))
         section_comments_map = self.comment_map.get(section_name)
 

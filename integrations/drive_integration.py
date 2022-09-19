@@ -1,5 +1,6 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
+
 # code snippets taken from: http://stackoverflow.com/questions/24419188/automating-pydrive-verification-process
 
 import datetime
@@ -127,7 +128,7 @@ class GoogleDriveUploader(object):
                 )
             }).GetList()
 
-            # Check for league report and create if if it does not exist
+            # Check for league report and create it if it does not exist
             report_file_name = Path(self.filename).parts[-1]
             report_file = self.check_file_existence(report_file_name, league_folder_content_pdfs, league_folder_id)
         else:
@@ -164,8 +165,14 @@ class GoogleDriveUploader(object):
             }
         )
 
-        return "\nFantasy Football Report\nGenerated %s\n*%s*\n\n_Google Drive Link:_\n%s" % (
-            "{:%Y-%b-%d %H:%M:%S}".format(datetime.datetime.now()), upload_file['title'], upload_file["alternateLink"])
+        return (
+            f"\n"
+            f"Fantasy Football Report\n"
+            f"Generated {'{:%Y-%b-%d %H:%M:%S}'.format(datetime.datetime.now())}\n"
+            f"*{upload_file['title']}*\n\n"
+            f"_Google Drive Link:_\n"
+            f"{upload_file['alternateLink']}"
+        )
 
     @staticmethod
     def check_file_existence(file_name, file_list, parent_id):

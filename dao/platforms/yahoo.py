@@ -1,9 +1,9 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
 
 import logging
-import os
 from copy import deepcopy
+from pathlib import Path
 # from collections import defaultdict
 # from concurrent.futures import ThreadPoolExecutor
 from statistics import median
@@ -17,10 +17,12 @@ from report.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Suppress YahooFantasyFootballQuery debug logging
+# Suppress YFPY debug logging
 logging.getLogger("yfpy.query").setLevel(level=logging.INFO)
+logging.getLogger("yfpy.data").setLevel(level=logging.INFO)
 
 
+# noinspection DuplicatedCode
 class LeagueData(object):
 
     def __init__(self,
@@ -45,7 +47,7 @@ class LeagueData(object):
 
         logger.debug("Retrieving Yahoo league data.")
         self.yahoo_data = Data(self.data_dir, save_data=save_data, dev_offline=dev_offline)
-        yahoo_auth_dir = os.path.join(base_dir, config.get("Yahoo", "yahoo_auth_dir"))
+        yahoo_auth_dir = Path(base_dir) / Path(config.get("Yahoo", "yahoo_auth_dir"))
         self.yahoo_query = YahooFantasySportsQuery(
             yahoo_auth_dir, self.league_id, self.game_id, offline=dev_offline, browser_callback=False
         )
@@ -54,11 +56,11 @@ class LeagueData(object):
             yahoo_fantasy_game = self.yahoo_data.retrieve(str(self.game_id) + "-game-metadata",
                                                           self.yahoo_query.get_game_metadata_by_game_id,
                                                           params={"game_id": self.game_id},
-                                                          data_type_class=Game)
+                                                          data_type_class=Game)  # type: Game
         else:
             yahoo_fantasy_game = self.yahoo_data.retrieve("current-game-metadata",
                                                           self.yahoo_query.get_current_game_metadata,
-                                                          data_type_class=Game)
+                                                          data_type_class=Game)  # type: Game
 
         self.league_key = yahoo_fantasy_game.game_key + ".l." + self.league_id
         self.season = yahoo_fantasy_game.season
@@ -67,9 +69,9 @@ class LeagueData(object):
         self.league_info = self.yahoo_data.retrieve(str(self.league_id) + "-league-info",
                                                     self.yahoo_query.get_league_info,
                                                     data_type_class=League,
-                                                    new_data_dir=os.path.join(self.data_dir,
-                                                                              str(self.season),
-                                                                              str(self.league_id)))  # type: League
+                                                    new_data_dir=(
+                                                            self.data_dir / str(self.season) / str(self.league_id)
+                                                    ))  # type: League
 
         self.season = self.league_info.season
         self.current_week = self.league_info.current_week
@@ -96,7 +98,7 @@ class LeagueData(object):
         #             str(team.get("team").name.decode("utf-8")).replace(" ", "_") + "-roster_stats",
         #             self.yahoo_query.get_team_roster_player_stats,
         #             params={"team_id": str(team.get("team").team_id)},
-        #             new_data_dir=os.path.join(self.data_dir, str(self.season), str(self.league_id), "rosters")
+        #             new_data_dir=Path(self.data_dir) / str(self.season) / str(self.league_id) / "rosters"
         #         )
         #     } for team in self.league_info.standings.teams
         # }
@@ -111,8 +113,7 @@ class LeagueData(object):
         #                     "week_" + str(week) + "-matchups_by_week",
         #                     self.yahoo_query.get_league_matchups_by_week,
         #                     params={"chosen_week": week},
-        #                     new_data_dir=os.path.join(
-        #                         self.data_dir, str(self.season), str(self.league_id), "week_" + str(week)))
+        #                     new_data_dir=Path(self.data_dir) / str(self.season) / str(self.league_id) / f"week_{week}"
         #             }
         #
         #         self.matchups_by_week = {}
@@ -135,9 +136,8 @@ class LeagueData(object):
         #                         str(team.get("team").name.decode("utf-8")).replace(" ", "_") + "-roster",
         #                         self.yahoo_query.get_team_roster_player_stats_by_week,
         #                         params={"team_id": team_id, "chosen_week": week},
-        #                         new_data_dir=os.path.join(
-        #                             self.data_dir, str(self.season), str(self.league_id), "week_" + str(week),
-        #                                 "rosters")
+        #                         new_data_dir=(Path(self.data_dir) / str(self.season) / str(self.league_id) /
+        #                                       f"week_{week}" / "rosters")
         #                     )
         #             }
         #
@@ -160,8 +160,8 @@ class LeagueData(object):
             self.matchups_by_week[wk] = self.yahoo_data.retrieve(
                 "week_" + str(wk) + "-matchups_by_week",
                 self.yahoo_query.get_league_matchups_by_week,
-                params={"chosen_week": wk},
-                new_data_dir=os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk))
+                params={"chosen_week": str(wk)},
+                new_data_dir=self.data_dir / str(self.season) / str(self.league_id) / f"week_{str(wk)}"
             )
 
             if int(wk) <= int(self.week_for_report):
@@ -192,8 +192,9 @@ class LeagueData(object):
                         str(team.get("team").name.decode("utf-8")).replace(" ", "_") + "-roster",
                         self.yahoo_query.get_team_roster_player_info_by_week,
                         params={"team_id": str(team.get("team").team_id), "chosen_week": str(wk)},
-                        new_data_dir=os.path.join(
-                            self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk), "rosters")
+                        new_data_dir=(
+                                self.data_dir / str(self.season) / str(self.league_id) / f"week_{str(wk)}" / "rosters"
+                        )
                     ) for team in self.league_info.standings.teams
             }
 
@@ -225,8 +226,7 @@ class LeagueData(object):
                 player_key,
                 self.yahoo_query.get_player_stats_by_week,
                 params=params,
-                new_data_dir=os.path.join(
-                    self.data_dir, str(self.season), self.league_id, "week_" + str(week), "players"),
+                new_data_dir=Path(self.data_dir) / str(self.season) / self.league_id / f"week_{week}" / "players",
                 data_type_class=Player
             )
         else:
@@ -234,7 +234,7 @@ class LeagueData(object):
                 player_key,
                 self.yahoo_query.get_player_stats_for_season,
                 params=params,
-                new_data_dir=os.path.join(self.data_dir, str(self.season), self.league_id, "players"),
+                new_data_dir=Path(self.data_dir) / str(self.season) / self.league_id / "players",
                 data_type_class=Player
             )
 
@@ -286,7 +286,7 @@ class LeagueData(object):
                 league.flex_positions_qb_rb_te_wr = ["QB", "RB", "TE", "WR"]
                 pos_name = "FLEX_QB_RB_TE_WR"
             if pos_name == "D":
-                league.flex_positions_idp = ["CB", "DB", "DE", "DL", "DT", "LB",  "S"]
+                league.flex_positions_idp = ["CB", "DB", "DE", "DL", "DT", "LB", "S"]
                 pos_name = "FLEX_IDP"
 
             pos_counter = deepcopy(pos_count)
@@ -372,7 +372,7 @@ class LeagueData(object):
                         percentage=float(team_standings_info.percentage) if team_standings_info.percentage else 0.0,
                         points_for=float(team_standings_info.points_for) if team_standings_info.points_for else 0.0,
                         points_against=float(team_standings_info.points_against) if team_standings_info.points_against
-                            else 0.0,
+                        else 0.0,
                         streak_type=streak_type,
                         streak_len=int(team_standings_info.streak_length) if team_standings_info.streak_type else 0,
                         team_id=y_team.team_id,
@@ -380,11 +380,11 @@ class LeagueData(object):
                         rank=int(team_standings_info.rank) if team_standings_info.rank else 0,
                         division=base_team.division,
                         division_wins=int(team_standings_info.team_standings.divisional_outcome_totals.wins) if
-                            team_standings_info.team_standings.divisional_outcome_totals.wins else 0,
+                        team_standings_info.team_standings.divisional_outcome_totals.wins else 0,
                         division_losses=int(team_standings_info.team_standings.divisional_outcome_totals.losses) if
-                            team_standings_info.team_standings.divisional_outcome_totals.losses else 0,
+                        team_standings_info.team_standings.divisional_outcome_totals.losses else 0,
                         division_ties=int(team_standings_info.team_standings.divisional_outcome_totals.ties) if
-                            team_standings_info.team_standings.divisional_outcome_totals.ties else 0,
+                        team_standings_info.team_standings.divisional_outcome_totals.ties else 0,
                         division_percentage=round(float(
                             team_standings_info.team_standings.divisional_outcome_totals.wins / (
                                     team_standings_info.team_standings.divisional_outcome_totals.wins +
@@ -498,18 +498,17 @@ class LeagueData(object):
                         eligible_positions = [eligible_positions]
 
                     for position in eligible_positions:
-                        pos = position.get("position")
-                        if pos == "W/R":
-                            pos = "FLEX_RB_WR"
-                        elif pos == "W/T":
-                            pos = "FLEX_TE_WR"
-                        elif pos == "W/R/T":
-                            pos = "FLEX_RB_TE_WR"
-                        elif pos == "Q/W/R/T":
-                            pos = "FLEX_QB_RB_TE_WR"
-                        elif pos == "D":
-                            pos = "FLEX_IDP"
-                        base_player.eligible_positions.append(pos)
+                        if position == "W/R":
+                            position = "FLEX_RB_WR"
+                        elif position == "W/T":
+                            position = "FLEX_TE_WR"
+                        elif position == "W/R/T":
+                            position = "FLEX_RB_TE_WR"
+                        elif position == "Q/W/R/T":
+                            position = "FLEX_QB_RB_TE_WR"
+                        elif position == "D":
+                            position = "FLEX_IDP"
+                        base_player.eligible_positions.append(position)
 
                     for stat in y_player_for_week.stats:
                         y_stat = stat.get("stat")  # type: Stat

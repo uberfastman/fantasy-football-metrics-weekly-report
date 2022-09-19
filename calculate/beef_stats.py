@@ -1,9 +1,9 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
 
 import json
-import os
 from collections import OrderedDict
+from pathlib import Path
 
 import requests
 
@@ -16,7 +16,7 @@ class BeefStats(object):
 
     def __init__(self, data_dir, save_data=False, dev_offline=False, refresh=False):
         """
-        Initialize class, load data from FOX Sports, and combine defensive player data
+        Initialize class, load data from Sleeper API, and combine defensive player data into team total
         """
         logger.debug("Initializing beef stats.")
 
@@ -38,15 +38,14 @@ class BeefStats(object):
             "LA": "LAR"
         }
 
-        self.fox_sports_public_api_key = {"apikey": "jE7yBJVRNAwdDesMgTzTXUUSx1It41Fq"}
-        self.teams_url = "https://api.foxsports.com/sportsdata/v1/football/nfl/teams.json"
+        self.nfl_player_data_url = "https://api.sleeper.app/v1/players/nfl"
         self.tabbu_value = 500.0
 
         self.raw_player_data = {}
-        self.raw_player_data_file_path = os.path.join(data_dir, "beef_raw_data.json")
+        self.raw_player_data_file_path = Path(data_dir) / "beef_raw_data.json"
 
         self.beef_data = {}
-        self.beef_data_file_path = os.path.join(data_dir, "beef_data.json")
+        self.beef_data_file_path = Path(data_dir) / "beef_data.json"
         if not self.refresh:
             self.open_beef_data()
 
@@ -55,14 +54,9 @@ class BeefStats(object):
             if not self.beef_data:
                 logger.debug("Retrieving beef data from the web.")
 
-                fox_sports_nfl_teams_data = requests.get(self.teams_url, params=self.fox_sports_public_api_key).json()
-
-                for team in fox_sports_nfl_teams_data.get("page"):
-                    team_url = team.get("links").get("api").get("athletes")
-                    team_roster = requests.get(team_url, self.fox_sports_public_api_key).json()
-                    for player_json in team_roster.get("page"):
-                        player_full_name = player_json.get("firstName") + " " + player_json.get("lastName")
-                        self.add_entry(player_full_name, player_json, team)
+                nfl_player_data = requests.get(self.nfl_player_data_url).json()
+                for player_sleeper_key, player_data in nfl_player_data.items():
+                    self.add_entry(player_data)
 
                 self.save_beef_data()
 
@@ -76,14 +70,13 @@ class BeefStats(object):
         if len(self.beef_data) == 0:
             logger.warning(
                 "NO beef data was loaded, please check your internet connection or the availability of "
-                "\"https://api.foxsports.com/sportsdata/v1/football/nfl.json?apikey=jE7yBJVRNAwdDesMgTzTXUUSx1It41Fq\" "
-                "and try generating a new report.")
+                "\"https://api.sleeper.app/v1/players/nfl\" and try generating a new report.")
         else:
             logger.info("{0} player weights/TABBUs were loaded".format(len(self.beef_data)))
 
     def open_beef_data(self):
         logger.debug("Loading saved beef data.")
-        if os.path.exists(self.beef_data_file_path):
+        if Path(self.beef_data_file_path).exists():
             with open(self.beef_data_file_path, "r", encoding="utf-8") as beef_in:
                 self.beef_data = dict(json.load(beef_in))
 
@@ -93,40 +86,46 @@ class BeefStats(object):
             with open(self.beef_data_file_path, "w", encoding="utf-8") as beef_out:
                 json.dump(self.beef_data, beef_out, ensure_ascii=False, indent=2)
 
-    def add_entry(self, player_full_name, player_json=None, team_json=None):
+    def add_entry(self, player_json=None):
 
-        if player_json:
+        player_full_name = player_json.get("full_name", "")
+        if player_json and player_json.get("team") is not None and player_json.get(
+                "fantasy_positions") is not None and "DEF" not in player_json.get("fantasy_positions"):
+
             # add raw player data json to raw_player_data for output and later reference
             self.raw_player_data[player_full_name] = player_json
 
-            player_team = team_json.get("abbreviation")
             player_beef_dict = {
                 "fullName": player_full_name,
-                "firstName": player_json.get("firstName").replace(".", ""),
-                "lastName": player_json.get("lastName"),
-                "weight": player_json.get("weight"),
-                "tabbu": float(player_json.get("weight")) / float(self.tabbu_value),
-                "position": player_json.get("position").get("abbreviation"),
-                "team": player_team
+                "firstName": player_json.get("first_name").replace(".", ""),
+                "lastName": player_json.get("last_name"),
+                "weight": float(player_json.get("weight")) if player_json.get("weight") != "" else 0.0,
+                "tabbu": (float(player_json.get("weight")) if player_json.get("weight") != "" else 0.0) / float(
+                    self.tabbu_value),
+                "position": player_json.get("position"),
+                "team": player_json.get("team")
             }
 
             if player_full_name not in self.beef_data.keys():
                 self.beef_data[player_full_name] = player_beef_dict
 
-            if player_json.get("position").get("abbreviation") in ["CB", "LB", "DE", "DT", "S"]:
-                if team_json.get("abbreviation") not in self.beef_data.keys():
-                    self.beef_data[team_json.get("abbreviation")] = {
-                        "weight": player_json.get("weight"),
-                        "tabbu": float(player_json.get("weight")) / self.tabbu_value,
+            positions = set()
+            position_types = player_json.get("fantasy_positions")
+            if position_types and not positions.intersection(("OL", "RB", "WR", "TE")) and (
+                    "DL" in position_types or "DB" in position_types):
+
+                if player_beef_dict.get("team") not in self.beef_data.keys():
+                    self.beef_data[player_beef_dict.get("team")] = {
+                        "weight": player_beef_dict.get("weight"),
+                        "tabbu": player_beef_dict.get("weight") / self.tabbu_value,
                         "players": {player_full_name: player_beef_dict}
                     }
                 else:
-                    weight = self.beef_data[team_json.get("abbreviation")].get("weight") + float(
-                        player_json.get("weight"))
-                    tabbu = self.beef_data[team_json.get("abbreviation")].get("tabbu") + (
-                            float(player_json.get("weight")) / self.tabbu_value)
+                    weight = self.beef_data[player_beef_dict.get("team")].get("weight") + player_beef_dict.get("weight")
+                    tabbu = self.beef_data[player_beef_dict.get("team")].get("tabbu") + (
+                            player_beef_dict.get("weight") / self.tabbu_value)
 
-                    team_def_entry = self.beef_data[team_json.get("abbreviation")]
+                    team_def_entry = self.beef_data[player_beef_dict.get("team")]
                     team_def_entry["weight"] = weight
                     team_def_entry["tabbu"] = tabbu
                     team_def_entry["players"][player_full_name] = player_beef_dict

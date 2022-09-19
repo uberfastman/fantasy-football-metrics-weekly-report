@@ -1,29 +1,31 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
 
 import os
 import sys
+from pathlib import Path
+
 from utils.app_config_parser import AppConfigParser
 
-module_dir = os.path.dirname(os.path.dirname(__file__))
-sys.path.append(module_dir)
+module_dir = Path(__file__).parent.parent
+sys.path.append(str(module_dir))
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
 from calculate.covid_risk import CovidRisk
 
-test_data_dir = os.path.join(module_dir, "tests")
-if not os.path.exists(test_data_dir):
+test_data_dir = Path(module_dir) / "tests"
+if not Path(test_data_dir).exists():
     os.makedirs(test_data_dir)
 
 config = AppConfigParser()
-config.read(os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.ini"))
+config.read(Path(__file__).parent.parent / "config.ini")
 
-player_first_name = "Dion"
-player_last_name = "Lewis"
+player_first_name = "Marquise"
+player_last_name = "Brown"
 player_full_name = "{0} {1}".format(player_first_name, player_last_name)
-player_team_abbr = "PHI"
-player_position = "RB"
+player_team_abbr = "ARI"
+player_position = "WR"
 
 
 def test_bad_boy_init():

@@ -1,5 +1,5 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
 
 import os
 import pkgutil
@@ -69,7 +69,7 @@ def get_valid_config(config_file="config.ini"):
 
     config_file_path = root_directory / Path(config_file)
 
-    # set local config file (check for existence and access, stop app if does not exist or cannot access)
+    # set local config file (check for existence and access, stop app if it does not exist or cannot access)
     if config_file_path.is_file():
         if os.access(config_file_path, mode=os.R_OK):
             logger.debug(
@@ -84,9 +84,11 @@ def get_valid_config(config_file="config.ini"):
                     if section not in config.sections():
                         missing_sections.append(section)
 
-                logger.error("Your local \"config.ini\" file is missing the following sections:\n\n{0}\n\n"
-                             "Please update your \"config.ini\" with the above sections from \"EXAMPLE-config.ini\" "
-                             "and try again.".format(", ".join(missing_sections)))
+                logger.error(
+                    f"Your local \"config.ini\" file is missing the following sections:\n\n"
+                    f"{', '.join(missing_sections)}\n\nPlease update your \"config.ini\" with the above sections from "
+                    f"\"EXAMPLE-config.ini\" and try again."
+                )
                 sys.exit("...run aborted.")
             else:
                 logger.debug("All required local \"config.ini\" sections present.")
@@ -108,15 +110,17 @@ def get_valid_config(config_file="config.ini"):
             if missing_keys_map:
                 missing_keys_str = ""
                 for section, keys in missing_keys_map.items():
-                    missing_keys_str += "Section: {0}\n".format(section)
+                    missing_keys_str += f"Section: {section}\n"
                     for key in keys:
-                        missing_keys_str += "  {0}\n".format(key)
+                        missing_keys_str += f"  {key}\n"
                     missing_keys_str += "\n"
                 missing_keys_str = missing_keys_str.strip()
 
-                logger.error("Your local \"config.ini\" file is  missing the following keys (from their respective "
-                             "sections):\n\n{0}\n\nPlease update your \"config.ini\" with the above keys from "
-                             "\"EXAMPLE-config.ini\" and try again.".format(missing_keys_str))
+                logger.error(
+                    f"Your local \"config.ini\" file is  missing the following keys (from their respective sections):"
+                    f"\n\n{missing_keys_str}\n\nPlease update your \"config.ini\" with the above keys from "
+                    f"\"EXAMPLE-config.ini\" and try again."
+                )
 
                 sys.exit("...run aborted.")
             else:
@@ -131,10 +135,9 @@ def get_valid_config(config_file="config.ini"):
     else:
         logger.debug("Configuration file \"config.ini\" not found.")
         create_config = input(
-            "{2}Configuration file \"config.ini\" not found. {1}"
-            "Do you wish to create one? {0}({1}y{0}/{2}n{0}) -> {3}".format(
-                Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
-            ))
+            f"{Fore.RED}Configuration file \"config.ini\" not found. {Fore.GREEN}Do you wish to create one? "
+            f"{Fore.YELLOW}({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
+        )
         if create_config == "y":
             return create_config_from_template(config, root_directory, config_file_path)
         if create_config == "n":
@@ -151,35 +154,39 @@ def get_valid_config(config_file="config.ini"):
 def create_config_from_template(config: AppConfigParser, root_directory, config_file_path, platform=None,
                                 league_id=None, season=None, current_week=None):
     logger.debug("Creating \"config.ini\" file from template.")
-    config_template_file = os.path.join(root_directory, "EXAMPLE-config.ini")
+    config_template_file = Path(root_directory) / "EXAMPLE-config.ini"
     config_file_path = shutil.copyfile(config_template_file, config_file_path)
 
     config.read(config_file_path)
 
     if not platform:
         logger.debug("Getting ")
-        platform = input("{0}For which fantasy football platform are you generating a report? ({1}) -> {2}".format(
-            Fore.GREEN, "/".join(supported_platforms), Style.RESET_ALL
-        ))
+        platform = input(
+            f"{Fore.GREEN}For which fantasy football platform are you generating a report? "
+            f"({'/'.join(supported_platforms)}) -> {Style.RESET_ALL}"
+        )
         if platform not in supported_platforms:
-            logger.warning("Please only select one of the following platforms: {0}".format(
-                ", or ".join([", ".join(supported_platforms[:-1]), supported_platforms[-1]])))
+            logger.warning(
+                f"Please only select one of the following platforms: "
+                f"{', or '.join([', '.join(supported_platforms[:-1]), supported_platforms[-1]])}"
+            )
             time.sleep(0.25)
             config = create_config_from_template(config, root_directory, config_file_path)
-        logger.debug("Retrieved fantasy football platform for \"config.ini\": {0}".format(platform))
+        logger.debug(f"Retrieved fantasy football platform for \"config.ini\": {platform}")
 
     config.set("Settings", "platform", platform)
 
     if not league_id:
-        league_id = input("{0}What is your league ID? -> {1}".format(Fore.GREEN, Style.RESET_ALL))
-        logger.debug("Retrieved fantasy football league ID for \"config.ini\": {0}".format(league_id))
+        league_id = input(f"{Fore.GREEN}What is your league ID? -> {Style.RESET_ALL}")
+        logger.debug(f"Retrieved fantasy football league ID for \"config.ini\": {league_id}")
 
     config.set("Settings", "league_id", league_id)
 
     if not season:
-        season = input("{0}For which NFL season (starting year of season) are you generating reports? -> {1}".format(
-            Fore.GREEN, Style.RESET_ALL
-        ))
+        season = input(
+            f"{Fore.GREEN}For which NFL season (starting year of season) are you generating reports? -> "
+            f"{Style.RESET_ALL}"
+        )
         try:
             if int(season) > current_year:
                 logger.warning("This report cannot predict the future. Please only input a current or past NFL season.")
@@ -197,15 +204,15 @@ def create_config_from_template(config: AppConfigParser, root_directory, config_
             time.sleep(0.25)
             config = create_config_from_template(config, root_directory, config_file_path, platform=platform,
                                                  league_id=league_id)
-        logger.debug("Retrieved fantasy football season for \"config.ini\": {0}".format(season))
+        logger.debug(f"Retrieved fantasy football season for \"config.ini\": {season}")
 
     config.set("Settings", "season", season)
 
     if not current_week:
         current_week = input(
-            "{0}What is the current week of the NFL season? (week following the last complete week) -> {1}".format(
-                Fore.GREEN, Style.RESET_ALL
-            ))
+            f"{Fore.GREEN}What is the current week of the NFL season? (week following the last complete week) -> "
+            f"{Style.RESET_ALL}"
+        )
         try:
             if int(current_week) < 0 or int(current_week) > NFL_SEASON_LENGTH:
                 logger.warning(
@@ -218,7 +225,7 @@ def create_config_from_template(config: AppConfigParser, root_directory, config_
             time.sleep(0.25)
             config = create_config_from_template(config, root_directory, config_file_path, platform=platform,
                                                  league_id=league_id, season=season)
-        logger.debug("Retrieved current NFL week for \"config.ini\": {0}".format(current_week))
+        logger.debug(f"Retrieved current NFL week for \"config.ini\": {current_week}")
 
     config.set("Settings", "current_week", current_week)
 
@@ -240,7 +247,7 @@ def git_ls_remote(url):
 
 def check_for_updates(auto_run=False):
     logger.debug("Checking upstream remote for app updates.")
-    project_repo = Repo(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    project_repo = Repo(Path(__file__).parent.parent)
 
     if not active_network_connection():
         logger.info("No active network connection found. Unable to check for updates for the Fantasy Football Metrics "
@@ -264,7 +271,7 @@ def check_for_updates(auto_run=False):
 
         origin_url = str(project_repo.remotes.origin.url)
         if "https" not in origin_url:
-            origin_url = "https://github.com/{0}".format(str(project_repo.remotes.origin.url).split(":")[1])
+            origin_url = f"https://github.com/{str(project_repo.remotes.origin.url).split(':')[1]}"
         ls_remote = git_ls_remote(origin_url)
 
         regex = re.compile("[^0-9.]")
@@ -280,16 +287,20 @@ def check_for_updates(auto_run=False):
         active_branch = project_repo.active_branch.name
         if active_branch != target_branch:
             if not auto_run:
-                switch_branch = input("{0}You are {2}not{0} on the deployment branch ({1}\"{4}\"{0}) of the Fantasy "
-                                      "Football Metrics Weekly Report app. Do you want to switch to the {1}\"{4}\"{0} "
-                                      "branch? ({1}y{0}/{2}n{0}) -> {3}".format(
-                                          Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL, target_branch))
+                switch_branch = input(
+                    f"{Fore.YELLOW}You are {Fore.RED}not{Fore.YELLOW} on the deployment branch "
+                    f"({Fore.GREEN}\"{target_branch}\"{Fore.YELLOW}) of the Fantasy Football Metrics Weekly Report "
+                    f"app. Do you want to switch to the {Fore.GREEN}\"{target_branch}\"{Fore.YELLOW} branch? "
+                    f"({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
+                )
 
                 if switch_branch == "y":
                     project_repo.git.checkout(target_branch)
                 elif switch_branch == "n":
-                    logger.warning("Running the app on a branch that is not \"{0}\" could result in unexpected and "
-                                   "potentially incorrect output.".format(target_branch))
+                    logger.warning(
+                        f"Running the app on a branch that is not \"{target_branch}\" could result in unexpected and "
+                        f"potentially incorrect output."
+                    )
                 else:
                     logger.warning("You must select either \"y\" or \"n\".")
                     check_for_updates(auto_run)
@@ -297,7 +308,7 @@ def check_for_updates(auto_run=False):
                 logger.info("Auto-run is set to \"true\". Automatically switching to deployment branch \"main\".")
                 project_repo.git.checkout(target_branch)
 
-        num_commits_behind = len(list(project_repo.iter_commits("{0}..origin/{0}".format(target_branch))))
+        num_commits_behind = len(list(project_repo.iter_commits(f"{target_branch}..origin/{target_branch}")))
 
         if str(last_local_version) == str(last_remote_version):
             local_version_color = Fore.GREEN
@@ -312,29 +323,24 @@ def check_for_updates(auto_run=False):
             num_commits_color = Fore.GREEN
 
         if num_commits_behind > 0:
-            up_to_date_status_msg = "\n" \
-                "{0}The Fantasy Football Metrics Weekly Report app is {1}OUT OF DATE:\n\n" \
-                "  {2}Locally installed version: {3}\n" \
-                "     {4}Latest version on {8}: {5}\n" \
-                "        {6}Commits behind {8}: {7}\n\n" \
-                "{9}Please update the app and re-run to generate a report.{10}".format(
-                    Fore.YELLOW, Fore.RED,
-                    local_version_color, last_local_version,
-                    remote_version_color, last_remote_version,
-                    num_commits_color, num_commits_behind,
-                    target_branch,
-                    Fore.YELLOW, Style.RESET_ALL
-                )
+            up_to_date_status_msg = (
+                f"\n"
+                f"{Fore.YELLOW}The Fantasy Football Metrics Weekly Report app is {Fore.RED}OUT OF DATE:\n\n"
+                f"  {local_version_color}Locally installed version: {last_local_version}\n"
+                f"     {remote_version_color}Latest version on {target_branch}: {last_remote_version}\n"
+                f"        {num_commits_color}Commits behind {target_branch}: {num_commits_behind}\n\n"
+                f"{Fore.YELLOW}Please update the app and re-run to generate a report.{Style.RESET_ALL}"
+            )
             logger.debug(up_to_date_status_msg)
             confirm_update = input(
-                up_to_date_status_msg + " {1}Do you wish to update the app? {0}({1}y{0}/{2}n{0}) -> {3}".format(
-                    Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
-                )
+                f"{up_to_date_status_msg} {Fore.GREEN}Do you wish to update the app? "
+                f"{Fore.YELLOW}({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
             )
 
-            not_up_to_date_status_message = "Running {0} of app. Please update to {1} for the latest features, " \
-                                            "improvements, and fixes.".format(
-                                                last_local_version, last_remote_version)
+            not_up_to_date_status_message = (
+                f"Running {last_local_version} of app. Please update to {last_remote_version} for the latest "
+                f"features, improvements, and fixes."
+            )
 
             if confirm_update == "y":
                 up_to_date = update_app(project_repo)
@@ -353,8 +359,9 @@ def check_for_updates(auto_run=False):
                 check_for_updates()
         else:
             logger.info(
-                "The Fantasy Football Metrics Weekly Report app is {0}up to date{1} and running {0}{2}{1}.".format(
-                    Fore.GREEN, Fore.WHITE, last_local_version))
+                f"The Fantasy Football Metrics Weekly Report app is {Fore.GREEN}up to date{Fore.WHITE} and running "
+                f"{Fore.GREEN}{last_local_version}{Fore.WHITE}."
+            )
             return True
 
 
@@ -365,8 +372,10 @@ def update_app(repository: Repo):
     if len(diff) > 0:
         logger.error("There are changes to local files that could cause conflicts when updating the app "
                      "automatically.")
-        logger.warning("Please update the app manually by running {0}git pull origin main{1} and resolve any "
-                       "conflicts by hand to update.".format(Fore.WHITE, Fore.YELLOW))
+        logger.warning(
+            f"Please update the app manually by running {Fore.WHITE}git pull origin main{Fore.YELLOW} and resolve any "
+            f"conflicts by hand to update."
+        )
         sys.exit(2)
 
     response = repository.git.pull("origin", "main")
@@ -390,10 +399,10 @@ def user_week_input_validation(config, week, retrieved_current_week, season):
                     week_for_report = str(int(current_week) - 1)
                 else:
                     first_week_incomplete = input(
-                        "{0}The first week of the season is not yet complete. Are you sure you want to generate a "
-                        "report for an incomplete week? ({1}y{0}/{2}n{0}) -> {3}".format(
-                            Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
-                        ))
+                        f"{Fore.YELLOW}The first week of the season is not yet complete. Are you sure you want to "
+                        f"generate a report for an incomplete week? "
+                        f"({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
+                    )
                     if first_week_incomplete == "y":
                         week_for_report = current_week
                     elif first_week_incomplete == "n":
@@ -406,10 +415,9 @@ def user_week_input_validation(config, week, retrieved_current_week, season):
                     week_for_report = week_for_report
                 else:
                     incomplete_week = input(
-                        "{0}Are you sure you want to generate a report for an incomplete week? "
-                        "({1}y{0}/{2}n{0}) -> {3}".format(
-                            Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
-                        ))
+                        f"{Fore.YELLOW}Are you sure you want to generate a report for an incomplete week? "
+                        f"({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
+                    )
                     if incomplete_week == "y":
                         week_for_report = week_for_report
                     elif incomplete_week == "n":
@@ -428,17 +436,17 @@ def user_week_input_validation(config, week, retrieved_current_week, season):
 
 
 def get_current_nfl_week(config: AppConfigParser, dev_offline):
-
-    api_url = "https://bet.rotoworld.com/api/nfl/calendar/game_count"
+    # api_url = "https://bet.rotoworld.com/api/nfl/calendar/game_count"
+    api_url = "https://api.sleeper.app/v1/state/nfl"
 
     current_nfl_week = config.getint("Settings", "current_week")
 
     if not dev_offline:
-        logger.debug("Retrieving current NFL week from the Fox Sports API.")
+        logger.debug("Retrieving current NFL week from the Sleeper API.")
 
         try:
             nfl_weekly_info = requests.get(api_url).json()
-            current_nfl_week = nfl_weekly_info.get("period")
+            current_nfl_week = nfl_weekly_info.get("week")
         except (KeyError, ValueError) as e:
             logger.warning("Unable to retrieve current NFL week. Defaulting to value set in \"config.ini\".")
             logger.debug(e)
@@ -452,7 +460,6 @@ def get_current_nfl_week(config: AppConfigParser, dev_offline):
 
 def league_data_factory(week_for_report, platform, league_id, game_id, season, config, base_dir, data_dir, save_data,
                         dev_offline):
-
     if platform in supported_platforms:
         if platform == "yahoo":
             yahoo_league = YahooLeagueData(
@@ -512,8 +519,9 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, c
 
     else:
         logger.error(
-            "Generating fantasy football reports for the \"{0}\" fantasy football platform is not currently supported. "
-            "Please change your settings in config.ini and try again.".format(platform))
+            f"Generating fantasy football reports for the \"{platform}\" fantasy football platform is not currently "
+            f"supported. Please change your settings in config.ini and try again."
+        )
         sys.exit("...run aborted.")
 
 
@@ -567,8 +575,9 @@ def add_report_team_stats(config, team: BaseTeam, league: BaseLeague, week_count
     # confirm total starting lineup points is the same as team points
     if round(team.points, 2) != (starting_lineup_points + team.home_field_advantage):
         logger.warning(
-            "Team {0} retrieved points ({1}) are not equal to calculated sum of team starting lineup points ({2}). "
-            "Check data!".format(team.name, round(team.points, 2), starting_lineup_points))
+            f"Team {team.name} retrieved points ({round(team.points, 2)}) are not equal to calculated sum of team "
+            f"starting lineup points ({starting_lineup_points}). Check data!"
+        )
 
     team.bench_points = round(sum([p.points for p in team.roster if p.selected_position in bench_positions]), 2)
 
@@ -620,8 +629,8 @@ def add_report_team_stats(config, team: BaseTeam, league: BaseLeague, week_count
 
 def get_player_game_time_statuses(week, league: BaseLeague):
     file_name = "week_" + str(week) + "-player_status_data.html"
-    file_dir = os.path.join(league.data_dir, str(league.season), str(league.league_id), "week_" + str(week))
-    file_path = os.path.join(file_dir, file_name)
+    file_dir = Path(league.data_dir) / str(league.season) / str(league.league_id) / f"week_{week}"
+    file_path = Path(file_dir) / file_name
 
     if not league.dev_offline:
         user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) " \
@@ -638,20 +647,20 @@ def get_player_game_time_statuses(week, league: BaseLeague):
         response = requests.get("https://www.footballdb.com/transactions/injuries.html", headers=headers, params=params)
 
         html_soup = BeautifulSoup(response.text, "html.parser")
-        logger.debug("Response URL: {0}".format(response.url))
-        logger.debug("Response (HTML): {0}".format(html_soup))
+        logger.debug(f"Response URL: {response.url}")
+        logger.debug(f"Response (HTML): {html_soup}")
     else:
         try:
             with open(file_path, "r", encoding="utf-8") as data_in:
                 html_soup = BeautifulSoup(data_in.read(), "html.parser")
         except FileNotFoundError:
             logger.error(
-                "FILE {0} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
-                    file_path))
+                f"FILE {file_path} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!"
+            )
             sys.exit("...run aborted.")
 
     if league.save_data:
-        if not os.path.exists(file_dir):
+        if not Path(file_dir).exists():
             os.makedirs(file_dir)
 
         with open(file_path, "w", encoding="utf-8") as data_out:
@@ -671,11 +680,11 @@ def patch_http_connection_pool(**constructor_kwargs):
             kwargs.update(constructor_kwargs)
             super(MyHTTPSConnectionPool, self).__init__(*args, **kwargs)
 
+    # noinspection PyUnresolvedReferences
     poolmanager.pool_classes_by_scheme['https'] = MyHTTPSConnectionPool
 
 
 if __name__ == "__main__":
-
     local_config = AppConfigParser()
     local_config.read("../config.ini")
     local_current_nfl_week = get_current_nfl_week(config=local_config, dev_offline=False)

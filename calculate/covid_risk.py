@@ -1,11 +1,11 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
 
 import itertools
 import json
-import os
 from collections import OrderedDict
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import requests
 from bs4 import BeautifulSoup
@@ -82,10 +82,10 @@ class CovidRisk(object):
         }
 
         self.raw_covid_data = {}
-        self.raw_covid_data_file_path = os.path.join(data_dir, "covid_raw_data.json")
+        self.raw_covid_data_file_path = Path(data_dir) / "covid_raw_data.json"
 
         self.covid_data = {}
-        self.covid_data_file_path = os.path.join(data_dir, "covid_data.json")
+        self.covid_data_file_path = Path(data_dir) / "covid_data.json"
 
         # load preexisting (saved) covid data (if it exists) if refresh=False
         if not self.refresh:
@@ -190,11 +190,11 @@ class CovidRisk(object):
 
     def open_covid_data(self):
         logger.debug("Loading saved COVID-19 risk data.")
-        if os.path.exists(self.covid_data_file_path):
+        if Path(self.covid_data_file_path).exists():
             with open(self.covid_data_file_path, "r", encoding="utf-8") as covid_in:
                 self.covid_data = dict(json.load(covid_in))
 
-        if os.path.exists(self.raw_covid_data_file_path):
+        if Path(self.raw_covid_data_file_path).exists():
             with open(self.raw_covid_data_file_path, "r", encoding="utf-8") as covid_raw_in:
                 self.raw_covid_data = dict(json.load(covid_raw_in))
 
@@ -236,6 +236,7 @@ class CovidRisk(object):
             # else:
             #     self.covid_data.get(player_team_abbr).get("transactions").append(player_transaction)
 
+    # noinspection PyUnusedLocal
     def get_player_covid_risk(self, player_full_name, player_team_abbr, player_pos):
 
         team_abbr = player_team_abbr.upper() if player_team_abbr else "?"

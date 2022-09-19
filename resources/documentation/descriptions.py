@@ -1,5 +1,5 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
 
 league_standings = "Overall standings for the chosen week. Dynamically adjusts information based on whether a league " \
                    "uses only waivers or has a FAAB (free agent acquisition budget). Data marked with an " \
@@ -26,7 +26,7 @@ team_power_rankings = "The power rankings are calculated by taking a weekly aver
 team_z_score_rankings = "Measure of standard deviations away from mean for a score. Shows teams performing above or " \
                         "below their normal scores for the current week. See <a href=\"https://en.wikipedia.org/wiki/" \
                         "Standard_score\" color=blue>Standard Score</a>. This metric shows which teams " \
-                        "overperformed or underperformed compared to how those teams usually do."
+                        "over-performed or underperformed compared to how those teams usually do."
 
 team_score_rankings = "Teams ranked by highest score. If tie-breaks are turned on, highest bench points will be used " \
                       "to break score ties."
@@ -74,11 +74,10 @@ beef_rankings = "The Beef ranking is a \"just-for-fun\" metric with a made-up un
                 "<b>U</b>nit(s)\". The TABBU was derived from the amount of trimmed and boneless beef is produced by " \
                 "one beef cow, based on academic research done for the beef industry found " \
                 "<a href=\"https://extension.tennessee.edu/publications/Documents/PB1822.pdf\" color=blue>here</a>, " \
-                "and is set as equivalent to 500 lbs. The app pulls player weight data from the Fox Sports API, an " \
-                "example of which can be found <a href=\"https://api.foxsports.com/sportsdata/v1/football/nfl/draft/" \
-                "2019/athletes.json?apikey=jE7yBJVRNAwdDesMgTzTXUUSx1It41Fq\" color=blue><u>here</u></a>, and uses " \
-                "the total weight of each team's starting lineup, including the rolled-up weights of starting " \
-                "defenses, to give each team a total TABBU score."
+                "and is set as equivalent to 500 lbs. The app pulls player weight data from the Sleeper API, an " \
+                "example of which can be found <a href=\"https://api.sleeper.app/v1/players/nfl\" color=blue>" \
+                "<u>here</u></a>, and uses the total weight of each team's starting lineup, including the rolled-up " \
+                "weights of starting defenses, to give each team a total TABBU score."
 
 covid_19_risk = "The COVID-19 risk ranking is a \"just-for-fun\" metric that pulls NFL player transaction history " \
                 "from <a href=\"https://sportsdata.usatoday.com/football/nfl/transactions\" color=blue><u>USA Today " \

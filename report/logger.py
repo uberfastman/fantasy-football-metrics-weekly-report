@@ -7,6 +7,7 @@ import time
 from configparser import NoSectionError
 # from logging.handlers import RotatingFileHandler
 from logging.handlers import TimedRotatingFileHandler
+from pathlib import Path
 
 import colorama
 from colorama import Fore, Style
@@ -16,7 +17,7 @@ from utils.app_config_parser import AppConfigParser
 colorama.init()
 
 config = AppConfigParser()
-config.read(os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.ini"))
+config.read(Path(__file__).parent.parent / "config.ini")
 
 
 class StyledFormatter(logging.Formatter):
@@ -79,6 +80,7 @@ class SizedTimedRotatingFileHandler(TimedRotatingFileHandler):
     def __init__(self, filename, maxBytes=0, backupCount=0, encoding=None, delay=0, when='h', interval=1, utc=False):
         handlers.TimedRotatingFileHandler.__init__(self, filename, when, interval, backupCount, encoding, delay, utc)
         self.maxBytes = maxBytes
+        # noinspection PyTypeChecker
         self.stream = None
 
     def shouldRollover(self, record):
@@ -88,9 +90,9 @@ class SizedTimedRotatingFileHandler(TimedRotatingFileHandler):
         Basically, see if the supplied record would cause the file to exceed
         the size limit we have.
         """
-        if self.stream is None:                 # delay was set...
+        if self.stream is None:  # delay was set...
             self.stream = self._open()
-        if self.maxBytes > 0:                   # are we rolling over?
+        if self.maxBytes > 0:  # are we rolling over?
             msg = "%s\n" % self.format(record)
             # due to non-posix-compliant Windows feature
             self.stream.seek(0, 2)
@@ -127,7 +129,6 @@ class SizedTimedRotatingFileHandler(TimedRotatingFileHandler):
 
 
 def get_logger(module_name=None, propagate=True):
-
     log_level_mapping = {
         "info": logging.INFO,
         "debug": logging.DEBUG,
@@ -143,9 +144,9 @@ def get_logger(module_name=None, propagate=True):
 
     log_file_dir = "logs"
     log_file_name = "out.log"
-    log_file = os.path.join(log_file_dir, log_file_name)
+    log_file = Path(log_file_dir) / log_file_name
 
-    if not os.path.exists(log_file_dir):
+    if not Path(log_file_dir).exists():
         os.makedirs(log_file_dir)
 
     log_formatter = StyledFormatter("%(asctime)s {0}-{1} %(name)s {0}-{1} %(levelname)s {0}-{1} %(message)s".format(
@@ -167,12 +168,12 @@ def get_logger(module_name=None, propagate=True):
         log_file,
         when="h",
         interval=1,
-        maxBytes=10*1024*1024,
+        maxBytes=10 * 1024 * 1024,
         backupCount=5,
         # encoding='bz2'  # uncomment for bz2 compression
     )
 
-    rfh.setLevel(logging.DEBUG)
+    rfh.setLevel(log_level)
     rfh.setFormatter(log_formatter)
 
     if module_name:
@@ -183,7 +184,7 @@ def get_logger(module_name=None, propagate=True):
     if logger.hasHandlers():
         logger.handlers = []
 
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(log_level)
     logger.addHandler(sh)
     logger.addHandler(rfh)
 
@@ -195,7 +196,7 @@ def get_logger(module_name=None, propagate=True):
 
 if __name__ == "__main__":
 
-    log_filename = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs", "out.log")
+    log_filename = Path(__file__).parent.parent / "logs" / "out.log"
     test_logger = get_logger(__name__)
     test_logger.setLevel(logging.DEBUG)
     handler = SizedTimedRotatingFileHandler(

@@ -1,17 +1,15 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
 
 import getopt
-import os
 import re
-import time
+import subprocess
 import sys
-import traceback
+import time
+from pathlib import Path
+
 import colorama
 from colorama import Fore, Style
-
-import pkg_resources
-from pkg_resources import DistributionNotFound, VersionConflict
 
 from integrations.drive_integration import GoogleDriveUploader
 from integrations.slack_integration import SlackMessenger
@@ -30,27 +28,20 @@ def main(argv):
     logger.debug("Running fantasy football metrics weekly report app with arguments:\n{0}".format(argv))
 
     dependencies = []
-    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "requirements.txt"), "r") as reqs:
+    with open(Path(__file__).parent / "requirements.txt", "r") as reqs:
         for line in reqs.readlines():
             if not line.startswith("#"):
                 dependencies.append(line.strip())
 
     missing_dependency_count = 0
     for dependency in dependencies:
-        try:
-            pkg_resources.require(dependency)
-        except DistributionNotFound as dnfe:
+        installed_dependencies = subprocess.check_output(["pip", "freeze"]).decode("utf-8")
+        dependency_is_installed = True if installed_dependencies.find(dependency) != -1 else False
+        if not dependency_is_installed:
             missing_dependency_count += 1
-            logger.error("Error: {0}\n{1}".format(dnfe, traceback.format_exc()))
             logger.error(
                 "MISSING DEPENDENCY: {0}. Please run `pip install {1}` and retry the report generation.".format(
                     dependency, re.split("\\W+", dependency)[0]))
-        except VersionConflict as vce:
-            missing_dependency_count += 1
-            logger.error("Error: {0}\n{1}".format(vce, traceback.format_exc()))
-            logger.error(
-                "MISSING DEPENDENCY: {0}. Please run `pip install {1}` and retry the report generation.".format(
-                    dependency, dependency))
 
     if missing_dependency_count > 0:
         logger.error(
@@ -144,7 +135,7 @@ def main(argv):
 
 
 def select_league(config, auto_run, week, platform, league_id, game_id, season, refresh_web_data, playoff_prob_sims,
-                  break_ties, dq_ce,save_data, dev_offline, test):
+                  break_ties, dq_ce, save_data, dev_offline, test):
     if not league_id:
         time.sleep(0.25)
         default = input("{0}Generate report for default league? ({1}y{0}/{2}n{0}) -> {3}".format(
@@ -264,7 +255,7 @@ if __name__ == "__main__":
     options = main(sys.argv[1:])
     logger.debug(f"Fantasy football metrics weekly report app run configuration options:\n{options}")
 
-    # set local config (check for existence and access, create config.ini if does not exist or stop app if inaccessible)
+    # set local config (check for existence & access, create config.ini if it does not exist/stop app if inaccessible)
     if options.get("config_file"):
         configuration = get_valid_config(options.get("config_file"))
     else:
@@ -309,7 +300,7 @@ if __name__ == "__main__":
             post_or_file = configuration.get("Slack", "post_or_file")
 
             if post_or_file == "post":
-                # post shareable link to uploaded google drive pdf on slack
+                # post shareable link to uploaded Google Drive pdf on slack
                 slack_response = slack_messenger.post_to_selected_slack_channel(upload_message)
             elif post_or_file == "file":
                 # upload pdf report directly to slack

@@ -19,8 +19,8 @@ class MyDocTemplate(SimpleDocTemplate):
     # the DocTemplate you are using. The data to be passed to notify is a list
     # of three or four items containing a level number, the entry text, the page
     # number and an optional destination key which the entry should point to.
-    # This list will usually be created in a document template"s method like
-    # afterFlowable(), making notification calls using the notify() method
+    # This list will usually be created in a document template's method like
+    # afterFlowable(), making notification calls using the "notify()" method
     # with appropriate data.
 
     def afterFlowable1(self, flowable):

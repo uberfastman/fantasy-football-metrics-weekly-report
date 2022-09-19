@@ -1,11 +1,13 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
+
 # code snippets: https://www.reportlab.com/snippets/4/
 
 import json
 
 from reportlab.graphics.charts.legends import Legend
 from reportlab.graphics.charts.piecharts import Pie
+# noinspection PyProtectedMember
 from reportlab.graphics.shapes import Drawing, _DrawingEditorMixin
 from reportlab.lib.colors import HexColor, black
 from reportlab.lib.colors import white

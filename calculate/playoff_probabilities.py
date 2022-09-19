@@ -1,5 +1,6 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
+
 # code snippets: https://github.com/cdtdev/ff_monte_carlo (originally written by https://github.com/cdtdev)
 
 import datetime
@@ -9,11 +10,12 @@ import os
 import random
 import traceback
 from copy import deepcopy
-from utils.app_config_parser import AppConfigParser
+from pathlib import Path
 
 import numpy as np
 
 from report.logger import get_logger
+from utils.app_config_parser import AppConfigParser
 
 logger = get_logger(__name__, propagate=False)
 
@@ -110,13 +112,13 @@ class PlayoffProbabilities(object):
                             for division in sorted_divisions.values():
                                 division_winners.append(division[0])
 
-                                div_qual_count = deepcopy(num_playoff_slots_per_division_without_leader)
+                                div_qualifiers_count = deepcopy(num_playoff_slots_per_division_without_leader)
                                 for remaining_team in division[1:]:
-                                    if div_qual_count > 0:
+                                    if div_qualifiers_count > 0:
                                         division_qualifiers.append(remaining_team)
                                     else:
                                         remaining_teams.append(remaining_team)
-                                    div_qual_count -= 1
+                                    div_qualifiers_count -= 1
 
                             division_winners = sorted(
                                 division_winners, key=lambda x: x.get_wins_with_points(), reverse=True)
@@ -152,10 +154,12 @@ class PlayoffProbabilities(object):
                                                 remaining_playoff_count - 1].team_id].add_division_qualifier_tally()
                                         remaining_playoff_count += 1
                                 else:
-                                    raise ValueError("Specified number of playoff qualifiers per division ({0}) exceeds"
-                                                     " available league playoff spots. Please correct the value of "
-                                                     "\"num_playoff_slots_per_division\" in \"config.ini\".".format(
-                                                        num_playoff_slots_per_division_without_leader + 1))
+                                    raise ValueError(
+                                        f"Specified number of playoff qualifiers per division "
+                                        f"({num_playoff_slots_per_division_without_leader + 1}) exceeds available "
+                                        f"league playoff spots. Please correct the value of "
+                                        f"\"num_playoff_slots_per_division\" in \"config.ini\"."
+                                    )
 
                             if (len(division_winners) + len(division_qualifiers)) < self.num_playoff_slots:
                                 remaining_playoff_count = 1
@@ -242,19 +246,19 @@ class PlayoffProbabilities(object):
                         self.simulations), ("s" if self.simulations > 1 else ""), str(delta)))
 
                     if self.save_data:
-                        save_dir = os.path.join(self.data_dir, "week_" + str(week_for_report))
-                        if not os.path.exists(save_dir):
+                        save_dir = Path(self.data_dir) / f"week_{week_for_report}"
+                        if not Path(save_dir).exists():
                             os.makedirs(save_dir)
 
-                        with open(os.path.join(save_dir, "playoff_probs_data.json"), "w") as pp_out:
+                        with open(Path(save_dir) / "playoff_probs_data.json", "w") as pp_out:
                             json.dump(self.playoff_probs_data, pp_out, ensure_ascii=False, indent=2)
 
                 else:
                     logger.info("Using saved Monte Carlo playoff simulations for playoff probabilities.")
 
-                    playoff_probs_data_file_path = os.path.join(
-                        self.data_dir, "week_" + str(week_for_report), "playoff_probs_data.json")
-                    if os.path.exists(playoff_probs_data_file_path):
+                    playoff_probs_data_file_path = (Path(self.data_dir) / f"week_{week_for_report}" /
+                                                    "playoff_probs_data.json")
+                    if Path(playoff_probs_data_file_path).exists():
                         with open(playoff_probs_data_file_path, "r") as pp_in:
                             self.playoff_probs_data = json.load(pp_in)
                     else:
@@ -383,9 +387,8 @@ class TeamWithPlayoffProbs(object):
 
 
 if __name__ == "__main__":
-
     local_config = AppConfigParser()
-    local_config.read(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.ini"))
+    local_config.read(Path(__file__).parent.parent / "config.ini")
 
     playoff_probs = PlayoffProbabilities(
         local_config,

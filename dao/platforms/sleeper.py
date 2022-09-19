@@ -1,5 +1,5 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
 
 import datetime
 import json
@@ -10,6 +10,7 @@ from collections import defaultdict, Counter
 from copy import deepcopy
 from datetime import datetime, timedelta
 from itertools import groupby
+from pathlib import Path
 from statistics import median
 
 import requests
@@ -24,6 +25,7 @@ logger = get_logger(__name__, propagate=False)
 logger.setLevel(level=logging.INFO)
 
 
+# noinspection DuplicatedCode
 class LeagueData(object):
 
     def __init__(self,
@@ -50,7 +52,7 @@ class LeagueData(object):
         self.defensive_positions = ["DEF"]
 
         # create full directory path if any directories in it do not already exist
-        if not os.path.exists(self.data_dir):
+        if not Path(self.data_dir).exists():
             os.makedirs(self.data_dir)
 
         self.base_url = "https://api.sleeper.app/v1/"
@@ -58,8 +60,8 @@ class LeagueData(object):
 
         self.league_info = self.query(
             self.base_url + "league/" + str(self.league_id),
-            os.path.join(self.data_dir, str(self.season), str(self.league_id)),
-            str(self.league_id) + "-league_info.json"
+            Path(self.data_dir) / str(self.season) / str(self.league_id),
+            f"{self.league_id}-league_info.json"
         )
 
         self.league_settings = self.league_info.get("settings")
@@ -82,7 +84,7 @@ class LeagueData(object):
 
         self.player_data = self.query(
             self.base_url + "players/nfl",
-            os.path.join(self.data_dir, str(self.season), str(self.league_id)),
+            Path(self.data_dir) / str(self.season) / str(self.league_id),
             str(self.league_id) + "-player_data.json",
             check_for_saved_data=True,
             refresh_days_delay=7
@@ -92,14 +94,12 @@ class LeagueData(object):
         self.player_projected_stats_data_by_week = {}
         for week_for_player_stats in range(1, int(self.num_regular_season_weeks) + 1):
             if int(week_for_player_stats) <= int(self.week_for_report):
-
                 self.player_stats_data_by_week[str(week_for_player_stats)] = {
                     player["player_id"]: player["stats"] for player in self.query(
                         self.base_stat_url + "stats/nfl/" + str(season) + "/" + str(week_for_player_stats) +
-                            "?season_type=regular",
-                        os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(
-                            week_for_player_stats)),
-                        "week_" + str(week_for_player_stats) + "-player_stats_by_week.json",
+                        "?season_type=regular",
+                        Path(self.data_dir) / str(self.season) / str(self.league_id) / f"week_{week_for_player_stats}",
+                        f"week_{week_for_player_stats}-player_stats_by_week.json",
                         check_for_saved_data=True,
                         refresh_days_delay=1
                     )
@@ -108,10 +108,9 @@ class LeagueData(object):
             self.player_projected_stats_data_by_week[str(week_for_player_stats)] = {
                 player["player_id"]: player["stats"] for player in self.query(
                     self.base_stat_url + "projections/nfl/" + str(season) + "/" + str(week_for_player_stats) +
-                        "?season_type=regular",
-                    os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(
-                        week_for_player_stats)),
-                    "week_" + str(week_for_player_stats) + "-player_projected_stats_by_week.json",
+                    "?season_type=regular",
+                    Path(self.data_dir) / str(self.season) / str(self.league_id) / f"week_{week_for_player_stats}",
+                    f"week_{week_for_player_stats}-player_projected_stats_by_week.json",
                     check_for_saved_data=True,
                     refresh_days_delay=1
                 )
@@ -120,8 +119,8 @@ class LeagueData(object):
         self.player_season_stats = {
             player["player_id"]: player["stats"] for player in self.query(
                 self.base_stat_url + "stats/nfl/" + str(self.season) + "?season_type=regular",
-                os.path.join(self.data_dir, str(self.season), str(self.league_id)),
-                str(self.league_id) + "-player_season_stats.json",
+                Path(self.data_dir) / str(self.season) / str(self.league_id),
+                f"{league_id}-player_season_stats.json",
                 check_for_saved_data=True,
                 refresh_days_delay=1
             )
@@ -130,30 +129,30 @@ class LeagueData(object):
         self.player_season_projected_stats = {
             player["player_id"]: player["stats"] for player in self.query(
                 self.base_stat_url + "projections/nfl/" + str(self.season) + "?season_type=regular",
-                os.path.join(self.data_dir, str(self.season), str(self.league_id)),
-                str(self.league_id) + "-player_season_projected_stats.json",
+                Path(self.data_dir) / str(self.season) / str(self.league_id),
+                f"{league_id}-player_season_projected_stats.json",
                 check_for_saved_data=True,
                 refresh_days_delay=1
             )
         }
 
-        # with open(os.path.join(
-        #         self.data_dir, str(self.season), str(self.league_id), "player_stats_by_week.json"), "w") as out:
+        # with open(Path(
+        #         self.data_dir) / str(self.season) / str(self.league_id) / "player_stats_by_week.json"), "w") as out:
         #     json.dump(self.player_stats_data_by_week, out, ensure_ascii=False, indent=2)
 
         self.league_managers = {
             manager.get("user_id"): manager for manager in self.query(
                 self.base_url + "league/" + self.league_id + "/users",
-                os.path.join(self.data_dir, str(self.season), str(self.league_id)),
-                str(self.league_id) + "-league_managers.json"
+                Path(self.data_dir) / str(self.season) / str(self.league_id),
+                f"{league_id}-league_managers.json"
             )
         }
 
         self.standings = sorted(
             self.query(
                 self.base_url + "league/" + league_id + "/rosters",
-                os.path.join(self.data_dir, str(self.season), str(self.league_id)),
-                str(self.league_id) + "-league_standings.json"
+                Path(self.data_dir) / str(self.season) / str(self.league_id),
+                f"{self.league_id}-league_standings.json"
             ),
             key=lambda x: (
                 x.get("settings").get("wins"),
@@ -177,9 +176,8 @@ class LeagueData(object):
                     sorted(
                         self.query(
                             self.base_url + "league/" + league_id + "/matchups/" + str(week_for_matchups),
-                            os.path.join(
-                                self.data_dir, str(self.season), str(self.league_id), "week_" + str(week_for_matchups)),
-                            "week_" + str(week_for_matchups) + "-matchups_by_week.json"
+                            Path(self.data_dir) / str(self.season) / str(self.league_id) / f"week_{week_for_matchups}",
+                            f"week_{week_for_matchups}-matchups_by_week.json"
                         ),
                         key=lambda x: x["matchup_id"]
                     ),
@@ -231,9 +229,8 @@ class LeagueData(object):
             self.league_transactions_by_week[str(week_for_transactions)] = defaultdict(lambda: defaultdict(list))
             weekly_transactions = self.query(
                 self.base_url + "league/" + league_id + "/transactions/" + str(week_for_transactions),
-                os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(
-                    week_for_transactions)),
-                "week_" + str(week_for_transactions) + "-transactions_by_week.json"
+                Path(self.data_dir) / str(self.season) / str(self.league_id) / f"week_{week_for_transactions}",
+                f"week_{week_for_transactions}-transactions_by_week.json"
             )
 
             for transaction in weekly_transactions:
@@ -253,14 +250,14 @@ class LeagueData(object):
 
     def query(self, url, file_dir, filename, check_for_saved_data=False, refresh_days_delay=1):
 
-        file_path = os.path.join(file_dir, filename)
+        file_path = Path(file_dir) / filename
 
         run_query = True
         if check_for_saved_data:
-            if not os.path.exists(file_path):
+            if not Path(file_path).exists():
                 logger.debug("File {0} does not exist... attempting data retrieval.".format(filename))
             else:
-                file_modified_timestamp = datetime.fromtimestamp(os.path.getmtime(file_path))
+                file_modified_timestamp = datetime.fromtimestamp(Path(file_path).stat().st_mtime)
                 if file_modified_timestamp < (datetime.today() - timedelta(days=refresh_days_delay)):
                     if not self.dev_offline:
                         logger.debug("Data in {0} over {1} day{2} old... refreshing.".format(
@@ -302,7 +299,7 @@ class LeagueData(object):
         if self.save_data or check_for_saved_data:
             if run_query:
                 logger.debug("Saving Sleeper data retrieved from endpoint: {0}".format(url))
-                if not os.path.exists(file_dir):
+                if not Path(file_dir).exists():
                     os.makedirs(file_dir)
 
                 with open(file_path, "w", encoding="utf-8") as data_out:
@@ -512,10 +509,15 @@ class LeagueData(object):
                         wins=int(team_settings.get("wins")),
                         losses=int(team_settings.get("losses")),
                         ties=int(team_settings.get("ties")),
-                        percentage=round(float(int(team_settings.get("wins")) / (
+                        percentage=(
+                            round(float(int(team_settings.get("wins")) / (
                                 int(team_settings.get("wins")) + int(team_settings.get("losses")) +
-                                int(team_settings.get("ties")))), 3) if int(team_settings.get("wins")) +
-                                int(team_settings.get("losses")) + int(team_settings.get("ties")) > 0 else 0.0,
+                                int(team_settings.get("ties"))
+                            )), 3)
+                            if int(team_settings.get("wins")) +
+                            int(team_settings.get("losses")) +
+                            int(team_settings.get("ties")) > 0 else 0.0
+                        ),
                         points_for=float(str(team_settings.get("fpts")) + "." + (
                             str(team_settings.get("fpts_decimal")) if team_settings.get("fpts_decimal") else "0")),
                         points_against=float(
@@ -645,9 +647,9 @@ class LeagueData(object):
 
                         base_player.season_points, base_player.season_projected_points = self.get_player_points(
                             stats=self.player_season_stats[str(base_player.player_id)]
-                                if str(base_player.player_id) in self.player_season_stats.keys() else [],
+                            if str(base_player.player_id) in self.player_season_stats.keys() else [],
                             projected_stats=self.player_season_projected_stats[str(base_player.player_id)]
-                                if str(base_player.player_id) in self.player_season_projected_stats.keys() else []
+                            if str(base_player.player_id) in self.player_season_projected_stats.keys() else []
                         )
 
                         base_player.position_type = "O" if base_player.display_position in self.offensive_positions \
@@ -675,14 +677,15 @@ class LeagueData(object):
 
                         if player["starter"]:
 
-                            if not player.get("roster_assignation_delayed", False) and player.get("multiple_non_flex_positions", False):
+                            if not player.get("roster_assignation_delayed", False) and player.get(
+                                    "multiple_non_flex_positions", False):
                                 player["roster_assignation_delayed"] = True
                                 roster.append(player)
                                 continue
 
                             available_primary_slots = list(set(base_player.eligible_positions).intersection(
                                 set(team_filled_positions)).difference(
-                                    {"FLEX_RB_WR", "FLEX_TE_WR", "FLEX_RB_TE_WR", "FLEX_QB_RB_TE_WR", "FLEX_IDP"}))
+                                {"FLEX_RB_WR", "FLEX_TE_WR", "FLEX_RB_TE_WR", "FLEX_QB_RB_TE_WR", "FLEX_IDP"}))
 
                             available_wrrb_flex_slots = list(set(base_player.eligible_positions).intersection(
                                 set(league.flex_positions_rb_wr)))

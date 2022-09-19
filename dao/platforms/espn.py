@@ -1,20 +1,20 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
 
 import json
+import logging
 import os
 import re
 import sys
 import time
-import logging
 from copy import deepcopy
+from pathlib import Path
 from statistics import median
-import colorama
-from colorama import Fore, Style
-
 from typing import List
 
+import colorama
 import requests
+from colorama import Fore, Style
 from ff_espn_api import League, Settings, Team
 from ff_espn_api.box_player import BoxPlayer
 from ff_espn_api.box_score import BoxScore
@@ -35,6 +35,7 @@ logging.getLogger("git.cmd").setLevel(level=logging.WARNING)
 logging.getLogger("git.cmd.cmd.execute").setLevel(level=logging.WARNING)
 
 
+# noinspection DuplicatedCode
 class LeagueData(object):
 
     def __init__(self,
@@ -61,27 +62,29 @@ class LeagueData(object):
         self.defensive_positions = ["D/ST"]
 
         espn_auth_json = None
-        espn_auth_file = os.path.join(base_dir, config.get("ESPN", "espn_auth_dir"), "private.json")
-        if os.path.isfile(espn_auth_file):
+        espn_auth_file = Path(base_dir) / config.get("ESPN", "espn_auth_dir") / "private.json"
+        if Path(espn_auth_file).is_file():
             with open(espn_auth_file, "r") as auth:
                 espn_auth_json = json.load(auth)
         else:
-            no_auth_msg = "{0}No \"private.json\" file found for ESPN. If generating the report for a PUBLIC league\n" \
-                          "then ignore this message and CONTINUE running the app. However, if generating the report\n" \
-                          "for a PRIVATE league then please follow the instructions in the README.md for obtaining\n" \
-                          "ESPN credentials. Press \"y\" to CONTINUE or \"n\" to ABORT. ({1}y{0}/{2}n{0}) -> {3}".format(
-                                Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL)
+            no_auth_msg = (
+                f"{Fore.YELLOW}No \"private.json\" file found for ESPN. If generating the report for a PUBLIC league\n"
+                f"then ignore this message and CONTINUE running the app. However, if generating the report\n"
+                f"for a PRIVATE league then please follow the instructions in the README.md for obtaining\n"
+                f"ESPN credentials. Press \"y\" to CONTINUE or \"n\" to ABORT. "
+                f"({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
+            )
             self.check_auth(no_auth_msg)
 
         if self.dev_offline:
             self.league = self.save_and_load_data(
-                os.path.join(self.data_dir, str(self.season), str(self.league_id)),
-                str(self.league_id) + "-league_info.json"
+                Path(self.data_dir) / str(self.season) / str(self.league_id),
+                f"{self.league_id}-league_info.json"
             )
         else:
             # TODO: GET SAVE/LOAD WORKING FOR ESPN!
             # self.league = self.save_and_load_data(
-            #     os.path.join(self.data_dir, str(self.season), str(self.league_id)),
+            #     Path(self.data_dir) / str(self.season) / str(self.league_id),
             #     str(self.league_id) + "-league_info.json",
             #     data=LeagueWrapper(
             #         league_id=self.league_id,
@@ -182,14 +185,16 @@ class LeagueData(object):
             logger.info("\"{0}n{1}\" -> Aborting...".format(Fore.RED, Style.RESET_ALL))
             sys.exit(0)
         else:
-            incorrect_key_msg = "{0}Please type \"{1}y{0}\" to CONTINUE or \"{2}n{0}\" to ABORT and press " \
-                                "{1}<ENTER>{0}. ({1}y{0}/{2}n{0}) -> {3}".format(
-                                    Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL)
+            incorrect_key_msg = (
+                f"{Fore.YELLOW}Please type \"{Fore.GREEN}y{Fore.YELLOW}\" to CONTINUE or \"{Fore.RED}n{Fore.YELLOW}\" "
+                f"to ABORT and press {Fore.GREEN}<ENTER>{Fore.YELLOW}. "
+                f"({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
+            )
             logger.debug(incorrect_key_msg)
             self.check_auth(incorrect_key_msg)
 
     def save_and_load_data(self, file_dir, filename, data=None):
-        file_path = os.path.join(file_dir, filename)
+        file_path = Path(file_dir) / filename
 
         if self.dev_offline:
             logger.debug("Loading saved ESPN league data.")
@@ -204,7 +209,7 @@ class LeagueData(object):
 
         if self.save_data:
             logger.debug("Saving ESPN league data.")
-            if not os.path.exists(file_dir):
+            if not Path(file_dir).exists():
                 os.makedirs(file_dir)
 
             with open(file_path, "w", encoding="utf-8") as data_out:
@@ -264,7 +269,7 @@ class LeagueData(object):
                 league.flex_positions_offensive_player = ["QB", "RB", "WR", "TE"]
                 pos_name = "FLEX_OFFENSIVE_PLAYER"
             if pos_name == "DP":
-                league.flex_positions_idp = ["CB", "DB", "DE", "DL", "DT", "EDR", "LB",  "S"]
+                league.flex_positions_idp = ["CB", "DB", "DE", "DL", "DT", "EDR", "LB", "S"]
                 pos_name = "FLEX_IDP"
 
             pos_counter = deepcopy(int(count))
@@ -557,6 +562,7 @@ class LeagueData(object):
         return league
 
 
+# noinspection DuplicatedCode
 class LeagueWrapper(League):
 
     def __init__(self, league_id: int, year: int, espn_s2=None, swid=None):
@@ -613,7 +619,7 @@ class LeagueWrapper(League):
                 managers = []
 
             for member in members:
-                # For league that is not full the team will not have a owner field
+                # For league that is not full the team will not have an owner field
                 if "owners" not in team or not team["owners"]:
                     break
                 elif member["id"] in owners:

@@ -1,9 +1,11 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
 
-import math
 from collections import defaultdict, Counter
 
+import math
+
+from dao.base import BasePlayer
 from report.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)
@@ -71,8 +73,11 @@ class CoachingEfficiency(object):
 
         return list(set(optimal_flex_players))
 
-    def is_player_eligible(self, player, week, inactives):
-        return player.status in self.inactive_statuses or player.bye_week == week or player.full_name in inactives
+    def is_player_ineligible(self, player: BasePlayer, week, inactives):
+        if player.points != 0.0:
+            return False
+        else:
+            return player.status in self.inactive_statuses or player.bye_week == week or player.full_name in inactives
 
     def execute_coaching_efficiency(self, team_name, team_roster, team_points, positions_filled_active, week,
                                     inactive_players, dq_eligible=False):
@@ -118,7 +123,7 @@ class CoachingEfficiency(object):
                 p for p in team_roster if p.selected_position == "BN"
             ]  # exclude IR players
             ineligible_efficiency_player_count = len(
-                [p for p in bench_players if self.is_player_eligible(p, week, inactive_players)])
+                [p for p in bench_players if self.is_player_ineligible(p, week, inactive_players)])
 
             if Counter(self.roster_active_slots) == Counter(positions_filled_active):
                 num_bench_slots = self.roster_slot_counts.get("BN", 0)  # excludes IR players/slots

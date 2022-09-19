@@ -1,5 +1,5 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
 
 import datetime
 import json
@@ -9,6 +9,7 @@ import re
 import sys
 from collections import defaultdict
 from copy import deepcopy
+from pathlib import Path
 from statistics import median
 
 import requests
@@ -24,6 +25,7 @@ logger = get_logger(__name__)
 logger.setLevel(level=logging.INFO)
 
 
+# noinspection DuplicatedCode
 class LeagueData(object):
 
     def __init__(self,
@@ -50,36 +52,38 @@ class LeagueData(object):
         self.defensive_positions = ["D/ST"]
 
         # create full directory path if any directories in it do not already exist
-        if not os.path.exists(self.data_dir):
+        if not Path(self.data_dir).exists():
             os.makedirs(self.data_dir)
 
         logger.debug("Getting Fleaflicker league data.")
 
         self.league_url = "https://www.fleaflicker.com/nfl/leagues/" + str(self.league_id)
-        scraped_league_info = self.scrape(self.league_url, os.path.join(
-            self.data_dir, str(self.season), str(self.league_id)), str(self.league_id) + "-league-info.html")
+        # noinspection PyUnusedLocal
+        scraped_league_info = self.scrape(self.league_url, Path(
+            self.data_dir) / str(self.season) / str(self.league_id), f"{self.league_id}-league-info.html")
 
         # TODO: do NOT need current season here
         # try:
         #     self.current_season = scraped_league_info.find(
         #         "ul", attrs={"class": "dropdown-menu pull-right"}).find("li", attrs={"class": "active"}).text.strip()
         # except AttributeError:
-        #     scraped_league_playoffs = self.scrape(self.league_url + "/playoffs", os.path.join(
-        #         self.data_dir, str(self.season), str(self.league_id)), str(self.league_id) + "-league-playoffs.html")
+        #     scraped_league_playoffs = self.scrape(self.league_url + "/playoffs", Path(
+        #         self.data_dir) / str(self.season) / str(self.league_id), f"{self.league_id}-league-playoffs.html")
         #     self.current_season = scraped_league_playoffs.find(
         #         "small", attrs={"class": "btn btn-primary disabled"}).text.strip()
 
-        scraped_league_scores = self.scrape(self.league_url + "/scores", os.path.join(
-            self.data_dir, str(self.season), str(self.league_id)), str(self.league_id) + "-league-scores.html")
+        scraped_league_scores = self.scrape(self.league_url + "/scores", Path(
+            self.data_dir) / str(self.season) / str(self.league_id), f"{self.league_id}-league-scores.html")
 
         try:
             self.current_week = int(scraped_league_scores.findAll(
                 text=re.compile(".*This Week.*"))[-1].parent.findNext("li").text.strip().split(" ")[-1]) - 1
         except (IndexError, AttributeError) as e:
+            logger.error(e)
             self.current_week = get_current_nfl_week_function(self.config, self.dev_offline)
 
-        scraped_league_rules = self.scrape(self.league_url + "/rules", os.path.join(
-            self.data_dir, str(self.season), str(self.league_id)), str(self.league_id) + "-league-rules.html")
+        scraped_league_rules = self.scrape(self.league_url + "/rules", Path(
+            self.data_dir) / str(self.season) / str(self.league_id), f"{self.league_id}-league-rules.html")
 
         elements = scraped_league_rules.findAll(["dt", "dd"])
         for elem in elements:
@@ -107,15 +111,14 @@ class LeagueData(object):
         # TODO: how to get league rules for LAST YEAR from Fleaflicker API
         self.league_rules = self.query(
             "https://www.fleaflicker.com/api/FetchLeagueRules?leagueId=" + str(self.league_id),
-            os.path.join(self.data_dir, str(self.season), str(self.league_id)),
-            str(self.league_id) + "-league-rules.json"
+            Path(self.data_dir) / str(self.season) / str(self.league_id), f"{self.league_id}-league-rules.json"
         )
 
         self.league_standings = self.query(
             "https://www.fleaflicker.com/api/FetchLeagueStandings?leagueId=" + str(self.league_id) +
             ("&season=" + self.season) if self.season else "",
-            os.path.join(self.data_dir, str(self.season), str(self.league_id)),
-            str(self.league_id) + "-league-standings.json"
+            Path(self.data_dir) / str(self.season) / str(self.league_id),
+            f"{self.league_id}-league-standings.json"
         )
 
         self.league_info = self.league_standings.get("league")
@@ -148,8 +151,8 @@ class LeagueData(object):
                 "https://www.fleaflicker.com/api/FetchLeagueScoreboard?leagueId=" + str(self.league_id) +
                 "&scoringPeriod=" + str(wk) +
                 ("&season=" + str(self.season) if self.season else ""),
-                os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk)),
-                "week_" + str(wk) + "-scoreboard.json"
+                Path(self.data_dir) / str(self.season) / str(self.league_id) / f"week_{wk}",
+                f"week_{wk}-scoreboard.json"
             )
 
             if int(wk) <= int(self.week_for_report):
@@ -173,8 +176,8 @@ class LeagueData(object):
         #         self.query(
         #             "https://www.fleaflicker.com/api/FetchLeagueBoxscore?leagueId=" + str(self.league_id) +
         #             "&fantasyGameId=" + str(game.get("id")),
-        #             os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk), "matchups"),
-        #             str(game.get("id")) + "-matchup.json"
+        #             Path(self.data_dir) / str(self.season) / str(self.league_id) / f"week_{wk}" / "matchups",
+        #             f"{game.get('id')}-matchup.json"
         #         ) for game in self.scoreboard_by_week[str(wk)].get("games")
         #     ]
 
@@ -186,8 +189,8 @@ class LeagueData(object):
                     "&teamId=" + str(team.get("id")) +
                     ("&season=" + str(self.season) if self.season else "") +
                     ("&scoringPeriod=" + str(wk)),
-                    os.path.join(self.data_dir, str(self.season), str(self.league_id), "week_" + str(wk), "rosters"),
-                    str(team.get("id")) + "-" + str(team.get("name")).replace(" ", "_") + "-roster.json"
+                    Path(self.data_dir) / str(self.season) / str(self.league_id) / f"week_{wk}" / "rosters",
+                    f"{team.get('id')}-{team.get('name').replace(' ', '_')}-roster.json"
                 ) for team in self.ranked_league_teams
             }
 
@@ -196,8 +199,7 @@ class LeagueData(object):
         # TODO: how to get transactions for LAST YEAR from Fleaflicker API...?
         self.league_activity = self.query(
             "https://www.fleaflicker.com/api/FetchLeagueActivity?leagueId=" + str(self.league_id),
-            os.path.join(self.data_dir, str(self.season), str(self.league_id)),
-            str(self.league_id) + "-league-transactions.json"
+            Path(self.data_dir) / str(self.season) / str(self.league_id), f"{self.league_id}-league-transactions.json"
         )
 
         self.league_transactions_by_team = defaultdict(dict)
@@ -239,7 +241,7 @@ class LeagueData(object):
 
     def query(self, url, file_dir, filename):
 
-        file_path = os.path.join(file_dir, filename)
+        file_path = Path(file_dir) / filename
 
         if not self.dev_offline:
             logger.debug("Retrieving Fleaflicker data from endpoint: {0}".format(url))
@@ -267,7 +269,7 @@ class LeagueData(object):
 
         if self.save_data:
             logger.debug("Saving Fleaflicker data retrieved from endpoint: {0}".format(url))
-            if not os.path.exists(file_dir):
+            if not Path(file_dir).exists():
                 os.makedirs(file_dir)
 
             with open(file_path, "w", encoding="utf-8") as data_out:
@@ -277,7 +279,7 @@ class LeagueData(object):
 
     def scrape(self, url, file_dir, filename):
 
-        file_path = os.path.join(file_dir, filename)
+        file_path = Path(file_dir) / filename
 
         if not self.dev_offline:
             logger.debug("Scraping Fleaflicker data from endpoint: {0}".format(url))
@@ -301,7 +303,7 @@ class LeagueData(object):
 
         if self.save_data:
             logger.debug("Saving Fleaflicker data scraped from endpoint: {0}".format(url))
-            if not os.path.exists(file_dir):
+            if not Path(file_dir).exists():
                 os.makedirs(file_dir)
 
             with open(file_path, "w", encoding="utf-8") as data_out:
@@ -514,6 +516,7 @@ class LeagueData(object):
                     flea_player_position = player.get("position")
                     flea_league_player = player.get("leaguePlayer")
 
+                    # noinspection SpellCheckingInspection
                     if flea_league_player:
                         flea_pro_player = flea_league_player.get("proPlayer")
 
@@ -525,8 +528,10 @@ class LeagueData(object):
                         base_player.display_position = flea_pro_player.get("position")
                         base_player.nfl_team_id = None
                         base_player.nfl_team_abbr = flea_pro_player.get("proTeam", {}).get("abbreviation").upper()
-                        base_player.nfl_team_name = flea_pro_player.get("proTeam", {}).get("location") + " " + \
-                            flea_pro_player.get("proTeam", {}).get("name")
+                        base_player.nfl_team_name = (
+                            f"{flea_pro_player.get('proTeam', {}).get('location')} "
+                            f"{flea_pro_player.get('proTeam', {}).get('name')}"
+                        )
                         if flea_player_position.get("label") == "D/ST":
                             base_player.first_name = flea_pro_player.get("nameFull")
                         else:
@@ -584,6 +589,8 @@ class LeagueData(object):
                         base_player.selected_position_is_flex = True if "/" in flea_pro_player.get(
                             "position") else False
 
+                        # typeAbbreviaition is misspelled in API data
+                        # noinspection SpellCheckingInspection
                         base_player.status = flea_pro_player.get("injury", {}).get("typeAbbreviaition")
 
                         for stat in flea_league_player.get("viewingActualStats"):

@@ -1,13 +1,27 @@
+# macOS
+.DS_Store
+
+# JetBrains
 .idea/
+
+# Python
 *.pyc
 *.pytest_cache
+
+# auth secrets
 private*.json
 token*.json
 credentials*.json
+
+# configuration
 config*.ini
+
+# output
 crime-categories-output.json
 logs
 output/
+
+# testing
 tests/*.json
 tests/*.txt
 tests/*.html

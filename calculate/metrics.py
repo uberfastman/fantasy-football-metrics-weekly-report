@@ -1,5 +1,5 @@
 __author__ = "Wren J. R. (uberfastman)"
-__email__ = "wrenjr@yahoo.com"
+__email__ = "uberfastman@uberfastman.dev"
 
 import itertools
 from collections import defaultdict, OrderedDict
@@ -42,7 +42,7 @@ class CalculateMetrics(object):
                 team.name,
                 team.manager_str,
                 str(team.record.get_wins()) + "-" + str(team.record.get_losses()) + "-" + str(team.record.get_ties()) +
-                    " (" + str(team.record.get_percentage()) + ")",
+                " (" + str(team.record.get_percentage()) + ")",
                 round(float(team.record.get_points_for()), 2),
                 round(float(team.record.get_points_against()), 2),
                 team.record.get_streak_str(),
@@ -125,12 +125,12 @@ class CalculateMetrics(object):
                     team.manager_str,
                     str(team.record.get_wins()) + "-" + str(team.record.get_losses()) + "-" + str(
                         team.record.get_ties()) +
-                        " (" + str(team.record.get_percentage()) + ")",
+                    " (" + str(team.record.get_percentage()) + ")",
                     str(team.record.get_division_wins()) + "-" + str(team.record.get_division_losses()) + "-" + str(
                         team.record.get_division_ties()) +
-                        " (" + str(team.record.get_division_percentage()) + ")",
-                        round(float(team.record.get_points_for()), 2),
-                        round(float(team.record.get_points_against()), 2),
+                    " (" + str(team.record.get_division_percentage()) + ")",
+                    round(float(team.record.get_points_for()), 2),
+                    round(float(team.record.get_points_against()), 2),
                     team.record.get_streak_str(),
                     team.waiver_priority if not league.is_faab else "$%d" % team.faab,
                     team.num_moves,
@@ -152,24 +152,26 @@ class CalculateMetrics(object):
         current_median_standings_data = []
         rank = 1
         for team in sorted(
-            league.current_median_standings,
-            key=lambda x: (
-                x.get_combined_record().get_wins(),
-                -x.get_combined_record().get_losses(),
-                x.get_combined_record().get_ties(),
-                x.get_combined_record().get_points_for()
-            ),
-            reverse=True
+                league.current_median_standings,
+                key=lambda x: (
+                        x.get_combined_record().get_wins(),
+                        -x.get_combined_record().get_losses(),
+                        x.get_combined_record().get_ties(),
+                        x.get_combined_record().get_points_for()
+                ),
+                reverse=True
         ):  # type: BaseTeam
             combined_record = team.get_combined_record()
             team_current_median_standings_data = [
                 rank,
                 team.name,
                 team.manager_str,
-                str(combined_record.get_wins()) + "-" + str(combined_record.get_losses()) + "-" + str(combined_record.get_ties()) +
-                    " (" + str(combined_record.get_percentage()) + ")",
-                str(team.current_median_record.get_wins()) + "-" + str(team.current_median_record.get_losses()) + "-" + str(team.current_median_record.get_ties()) +
-                    " (" + str(team.current_median_record.get_percentage()) + ")",
+                str(combined_record.get_wins()) + "-" + str(combined_record.get_losses()) + "-" + str(
+                    combined_record.get_ties()) +
+                " (" + str(combined_record.get_percentage()) + ")",
+                str(team.current_median_record.get_wins()) + "-" + str(
+                    team.current_median_record.get_losses()) + "-" + str(team.current_median_record.get_ties()) +
+                " (" + str(team.current_median_record.get_percentage()) + ")",
                 "{:.2f}".format(round(float(team.current_median_record.get_points_for()), 2)),
                 team.current_median_record.get_streak_str(),
                 "{:.2f}".format(team.current_median_record.get_points_against())
@@ -202,13 +204,13 @@ class CalculateMetrics(object):
                 team_playoff_stats[-1] = 100.00
 
             team_playoffs_data = [
-                team_with_playoff_probs[0],
-                team.manager_str,
-                str(team.record.get_wins()) + "-" + str(team.record.get_losses()) + "-" +
-                str(team.record.get_ties()) + " (" + str(team.record.get_percentage()) + ")",
-                team_with_playoff_probs[1],
-                team_with_playoff_probs[3]
-            ] + team_playoff_stats
+                                     team_with_playoff_probs[0],
+                                     team.manager_str,
+                                     str(team.record.get_wins()) + "-" + str(team.record.get_losses()) + "-" +
+                                     str(team.record.get_ties()) + " (" + str(team.record.get_percentage()) + ")",
+                                     team_with_playoff_probs[1],
+                                     team_with_playoff_probs[3]
+                                 ] + team_playoff_stats
             # ] + summed_stats
 
             if team.record.division or team.record.division == 0:

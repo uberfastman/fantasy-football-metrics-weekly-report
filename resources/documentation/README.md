@@ -133,7 +133,7 @@
 
 <a name="macos-launch-script"></a>
 ##### macOS Launch Script
-If you are running on macOS, there is an additional bash script available in the project, [run_in_virtualenv.command](../run_in_virtualenv.command). This script allows you to double-click it and run the app in a new Terminal window. It ***REQUIRES*** you to have completed all steps in [Setup](../../README.md#setup), and also the above steps in [Running the Report Application](#running-the-report-application), with the exception of running the `workon` command or the `python main.py` command. Instead, do the following:
+If you are running on macOS, there is an additional bash script available in the project, [run_in_virtualenv.command](../run_in_virtualenv.command). This script allows you to double-click it and run the app in a new Terminal window. It ***REQUIRES*** you to have completed all steps in [Setup](../../README.md#setup), and also the above steps in [Running the Report Application](#running-the-report-application), except running the `workon` command or the `python main.py` command. Instead, do the following:
 
 * Right click on [run_in_virtualenv.command](../run_in_virtualenv.command) and select `Open With`, then select `TextEdit`.
 
@@ -141,7 +141,7 @@ If you are running on macOS, there is an additional bash script available in the
 
 * Move [run_in_virtualenv.command](../run_in_virtualenv.command) wherever you wish it to be for easy access.
 
-* **You can now double-click [run_in_virtualenv.command](../run_in_virtualenv.command) and it will open a new Terminal window and run the application!** *If that fails, you may need to change the permissions on [run_in_virtualenv.command](../run_in_virtualenv.command)*. You can do that as follows:
+* **You can now double-click [run_in_virtualenv.command](../run_in_virtualenv.command), and it will open a new Terminal window and run the application!** *If that fails, you may need to change the permissions on [run_in_virtualenv.command](../run_in_virtualenv.command)*. You can do that as follows:
     
     * Open a Terminal window.
     
