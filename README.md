@@ -145,7 +145,7 @@
     * Wait for the above command to complete, then run:
    
         ```bash
-        docker exec -it fantasy-football-metrics-weekly-report_app_1 python main.py
+        docker exec -it fantasy-football-metrics-weekly-report-app-1 python main.py
         ```
 
     * ***Follow the prompts to generate a report for your fantasy league!***
