@@ -39,7 +39,14 @@
     python -m pytest -v -s
     ```
 
-8. Update the git tag:
+8. Create a git commit:
+
+   ```shell
+   git add .
+   git commit -m 'commit message'
+   ```
+
+9. Update the git tag:
 
    `git tag -a [tag_name/version] -m [message]`
 
@@ -48,10 +55,8 @@
    git push origin --tags
    ```
 
-9. Update `fantasy-football-metrics-weekly-report` GitHub repository:
+10. Update `fantasy-football-metrics-weekly-report` GitHub repository:
 
    ```shell
-   git add .
-   git commit -m 'commit message'
    git push
    ```

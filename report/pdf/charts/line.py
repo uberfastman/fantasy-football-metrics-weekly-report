@@ -55,13 +55,14 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         self.chart.x = 45
         self.chart.strokeWidth = 1
 
+        index = 0
         for color in series_colors_cmyk:
-            index = series_colors_cmyk.index(color)
             self.chart.lines[index].strokeColor = PCMYKColor(color[0], color[1], color[2], color[3], alpha=color[4])
             self.chart.lines[index].symbol = makeMarker("FilledCircle")
             self.chart.lines[index].symbol.strokeColor = PCMYKColor(color[0], color[1], color[2], color[3],
                                                                     alpha=color[4])
             self.chart.lines[index].symbol.size = 5
+            index += 1
         self.chart.lines.strokeWidth = 2
 
         self.legend.colorNamePairs = Auto(obj=self.chart)

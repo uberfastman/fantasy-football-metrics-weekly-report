@@ -8,6 +8,7 @@ import sys
 import urllib.request
 from copy import deepcopy
 from pathlib import Path
+from random import choice, randint
 from urllib.error import URLError
 
 from PIL import Image
@@ -902,6 +903,36 @@ class PdfGenerator(object):
             [5, 10, 30, 0, 100]  # beige
         ]
 
+        # create additional dynamic line chart colors when there are more than 20 teams in a league
+        if len(series_names) > len(series_colors):
+            additional_team_count = len(series_names) - len(series_colors)
+
+            # ensure that all additional dynamic colors are unique and different from the initial 20 colors
+            c_colors = set()
+            m_colors = set()
+            y_colors = set()
+            k_colors = set()
+            for color in series_colors:
+                c_colors.add(color[0])
+                m_colors.add(color[1])
+                y_colors.add(color[2])
+                k_colors.add(color[3])
+
+            while additional_team_count > 0:
+
+                c_color = choice(list(set(list(range(0, 101))) - c_colors))
+                m_color = choice(list(set(list(range(0, 101))) - m_colors))
+                y_color = choice(list(set(list(range(0, 101))) - y_colors))
+                k_color = choice(list(set(list(range(0, 101))) - k_colors))
+
+                c_colors.add(c_color)
+                m_colors.add(m_color)
+                y_colors.add(y_color)
+                k_colors.add(k_color)
+
+                series_colors.append([c_color, m_color, y_color, k_color, 100])
+                additional_team_count -= 1
+
         box_width = 550
         box_height = 240
         chart_width = 490
@@ -1591,11 +1622,11 @@ class PdfGenerator(object):
                                        "Fantasy Points", 10.00)))
             elements.append(self.spacer_twentieth_inch)
             elements.append(KeepTogether(
-                self.create_line_chart(efficiency_data, len(points_data[0]), series_names, "Weekly Coaching Efficiency",
+                self.create_line_chart(efficiency_data, len(efficiency_data[0]), series_names, "Weekly Coaching Efficiency",
                                        "Weeks", "Coaching Efficiency (%)", 5.00)))
             elements.append(self.spacer_twentieth_inch)
             elements.append(KeepTogether(
-                self.create_line_chart(luck_data, len(points_data[0]), series_names, "Weekly Luck", "Weeks", "Luck (%)",
+                self.create_line_chart(luck_data, len(luck_data[0]), series_names, "Weekly Luck", "Weeks", "Luck (%)",
                                        20.00)))
             elements.append(self.spacer_tenth_inch)
             elements.append(self.add_page_break())
@@ -1752,7 +1783,25 @@ class TableOfContents(object):
     def get_current_anchor(self):
         return self.toc_anchor
 
+    # noinspection DuplicatedCode
     def get_toc(self):
+
+        row_heights = []
+        if self.toc_metric_section_data:
+            row_heights.extend([0.25 * inch] * len(self.toc_metric_section_data))
+            row_heights.append(0.05 * inch)
+        if self.toc_top_performers_section_data:
+            row_heights.extend([0.25 * inch] * len(self.toc_top_performers_section_data))
+            row_heights.append(0.05 * inch)
+        if self.toc_chart_section_data:
+            row_heights.extend([0.25 * inch] * len(self.toc_chart_section_data))
+            row_heights.append(0.05 * inch)
+        if self.toc_team_section_data:
+            row_heights.extend([0.25 * inch] * len(self.toc_team_section_data))
+            row_heights.append(0.05 * inch)
+        if self.toc_appendix_data:
+            row_heights.extend([0.25 * inch] * len(self.toc_appendix_data))
+
         return Table(
             (self.toc_metric_section_data + [["", "", ""]] if self.toc_metric_section_data else []) +
             (self.toc_top_performers_section_data + [["", "", ""]] if self.toc_top_performers_section_data else []) +
@@ -1760,11 +1809,7 @@ class TableOfContents(object):
             (self.toc_team_section_data + [["", "", ""]] if self.toc_team_section_data else []) +
             (self.toc_appendix_data if self.toc_appendix_data else []),
             colWidths=[3.25 * inch, 2 * inch, 2.50 * inch],
-            rowHeights=[0.25 * inch] * len(self.toc_metric_section_data) + [0.05 * inch] +
-                       [0.25 * inch] * len(self.toc_top_performers_section_data) + [0.05 * inch] +
-                       [0.25 * inch] * len(self.toc_chart_section_data) + [0.05 * inch] +
-                       [0.25 * inch] * len(self.toc_team_section_data) + [0.05 * inch] +
-                       [0.25 * inch] * len(self.toc_appendix_data)
+            rowHeights=row_heights
         )
 
 
