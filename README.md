@@ -189,7 +189,7 @@ If you wish to update the app yourself manually, you can just type `n` to skip a
 
 <a name="dependencies"></a>
 ### Dependencies
-The application is actively developed in macOS, but is cross-platform compatible. The app requires Python 3.7 or later (Python 2 is no longer supported). To check if you have Python 3.7 or later installed, open up a window in Terminal (macOS), Command Prompt (Windows), or a command line shell of your choice, and run `python --version`. If the return is `Python 3.7.x`, you are good to go. If the return is `Python 2.x.x`, you will need to install Python 3.7. Check out the instructions [here](https://realpython.com/installing-python/) for how to install Python 3.7 on your system.
+The application is actively developed in macOS, but is cross-platform compatible. The app requires Python 3.8 or later (Python 2 is no longer supported). To check if you have Python 3.8 or later installed, open up a window in Terminal (macOS), Command Prompt (Windows), or a command line shell of your choice, and run `python --version`. If the return is `Python 3.8.x`, `Python 3.9.x`, or `Python 3.10.x`, you are good to go. If the return is `Python 2.x.x`, you will need to install Python 3.8. Check out the instructions [here](https://realpython.com/installing-python/) for how to install Python 3.8 on your system.
 
 Project dependencies can be viewed in the [`requirements.txt`](requirements.txt) file.
 
