@@ -42,6 +42,7 @@ class LeagueData(object):
                  week_for_report,
                  league_id,
                  season,
+                 start_week,
                  config,
                  base_dir,
                  data_dir,
@@ -106,6 +107,8 @@ class LeagueData(object):
         self.league_standings = self.league.standings()
 
         self.season = self.league.year
+        # TODO: figure out how to get league starting week
+        self.start_week = start_week or 1
         self.current_week = self.league.current_week
         self.num_playoff_slots = int(self.league_settings.playoff_team_count)
         self.num_regular_season_weeks = int(self.league.settings.reg_season_count)
@@ -225,6 +228,7 @@ class LeagueData(object):
 
         league.name = self.league_settings.name
         league.week = int(self.current_week)
+        league.start_week = int(self.start_week)
         league.season = self.season
         league.num_teams = int(self.league_settings.team_count)
         league.num_playoff_slots = int(self.num_playoff_slots)

@@ -458,12 +458,13 @@ def get_current_nfl_week(config: AppConfigParser, dev_offline):
     return current_nfl_week
 
 
-def league_data_factory(week_for_report, platform, league_id, game_id, season, config, base_dir, data_dir, save_data,
-                        dev_offline):
+def league_data_factory(week_for_report, platform, league_id, game_id, season, start_week, config, base_dir, data_dir,
+                        save_data, dev_offline):
     if platform in supported_platforms:
         if platform == "yahoo":
             yahoo_league = YahooLeagueData(
                 week_for_report,
+                start_week,
                 league_id,
                 game_id,
                 config,
@@ -480,6 +481,7 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, c
                 week_for_report,
                 league_id,
                 season,
+                start_week,
                 config,
                 data_dir,
                 user_week_input_validation,
@@ -494,6 +496,7 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, c
                 week_for_report,
                 league_id,
                 season,
+                start_week,
                 config,
                 data_dir,
                 user_week_input_validation,
@@ -508,6 +511,7 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, c
                 week_for_report,
                 league_id,
                 season,
+                start_week,
                 config,
                 base_dir,
                 data_dir,

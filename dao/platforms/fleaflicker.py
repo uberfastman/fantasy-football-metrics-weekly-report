@@ -32,6 +32,7 @@ class LeagueData(object):
                  week_for_report,
                  league_id,
                  season,
+                 start_week,
                  config,
                  data_dir,
                  week_validation_function,
@@ -74,6 +75,9 @@ class LeagueData(object):
 
         scraped_league_scores = self.scrape(self.league_url + "/scores", Path(
             self.data_dir) / str(self.season) / str(self.league_id), f"{self.league_id}-league-scores.html")
+
+        # TODO: figure out how to get league starting week
+        self.start_week = start_week or 1
 
         try:
             self.current_week = int(scraped_league_scores.findAll(
@@ -319,6 +323,7 @@ class LeagueData(object):
 
         league.name = self.league_info.get("name")
         league.week = int(self.current_week)
+        league.start_week = int(self.start_week)
         league.season = self.season
         league.num_teams = int(self.league_info.get("size"))
         league.num_playoff_slots = int(self.num_playoff_slots)

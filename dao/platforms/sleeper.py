@@ -32,6 +32,7 @@ class LeagueData(object):
                  week_for_report,
                  league_id,
                  season,
+                 start_week,
                  config,
                  data_dir,
                  week_validation_function,
@@ -68,6 +69,9 @@ class LeagueData(object):
         self.league_scoring = self.league_info.get("scoring_settings")
         # TODO: don't need this!
         # self.current_season = self.league_info.get("season")
+
+        # TODO: figure out how to get league starting week
+        self.start_week = start_week or 1
 
         self.current_week = get_current_nfl_week_function(self.config, self.dev_offline)
 
@@ -363,6 +367,7 @@ class LeagueData(object):
 
         league.name = self.league_info.get("name")
         league.week = int(self.current_week)
+        league.start_week = int(self.start_week)
         league.season = self.league_info.get("season")
         league.num_teams = int(self.league_settings.get("num_teams"))
         league.num_playoff_slots = int(self.num_playoff_slots)
