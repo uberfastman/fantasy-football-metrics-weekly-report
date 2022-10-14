@@ -95,6 +95,7 @@ class BaseLeague(FantasyFootballReportObject):
         # attributes mapped directly from platform API data
         self.name = None
         self.week = None
+        self.start_week = 1
         self.season = None
         self.num_teams = 0
         self.num_playoff_slots = 0

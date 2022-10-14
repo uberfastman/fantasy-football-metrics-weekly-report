@@ -26,6 +26,7 @@ class FantasyFootballReport(object):
                  league_id=None,
                  game_id=None,
                  season=None,
+                 start_week=None,
                  config=None,
                  refresh_web_data=False,
                  playoff_prob_sims=None,
@@ -72,33 +73,24 @@ class FantasyFootballReport(object):
         self.dev_offline = dev_offline
         self.test = test
 
+        f_str_newline = '\n'
         # verification output message
         logger.info(
-            "\nGenerating%s %s Fantasy Football report with settings:\n"
-            "    league id: %s\n"
-            "    game id: %s\n"
-            "    week: %s\n"
-            "%s"
-            "%s"
-            "    playoff_prob_sims: %s\n"
-            "%s"
-            "%s"
-            "%s"
-            "%s"
-            "on %s..." % (
-                " TEST" if self.test else "", self.platform_str,
-                str(self.league_id),
-                str(self.game_id) if self.game_id else "nfl (current season)",
-                str(week_for_report) if week_for_report else "selected/default",
-                "    save_data: " + str(self.save_data) + "\n",
-                "    refresh_web_data: " + str(self.refresh_web_data) + "\n",
-                str(self.playoff_prob_sims),
-                "    break_ties: " + str(self.break_ties) + "\n",
-                "    dq_ce: " + str(self.dq_ce) + "\n",
-                "    dev_offline: " + str(self.dev_offline) + "\n",
-                "    test: " + str(self.test) + "\n",
-                "{:%b %d, %Y}".format(datetime.datetime.now())
-            )
+            f"{f_str_newline}"
+            f"Generating{' TEST' if self.test else ''} {self.platform_str} Fantasy Football report with settings:"
+            f"{f_str_newline}"
+            f"    league id: {self.league_id}{f_str_newline}"
+            f"    game id: {self.game_id if self.game_id else 'nfl (current season)'}{f_str_newline}"
+            f"    week: {week_for_report if week_for_report else 'selected/default'}{f_str_newline}"
+            f"    start_week: {start_week if start_week else 'default=1'}{f_str_newline}"
+            f"{f'    save_data: {self.save_data}{f_str_newline}'}"
+            f"{f'    refresh_web_data: {self.refresh_web_data}{f_str_newline}'}"
+            f"    playoff_prob_sims: {self.playoff_prob_sims}{f_str_newline}"
+            f"{f'    break_ties: {self.break_ties}{f_str_newline}'}"
+            f"{f'    dq_ce: {self.dq_ce}{f_str_newline}'}"
+            f"{f'    dev_offline: {self.dev_offline}{f_str_newline}'}"
+            f"{f'    test: {self.test}{f_str_newline}'}"
+            f"on {'{:%b %d, %Y}'.format(datetime.datetime.now())}..."
         )
 
         begin = datetime.datetime.now()
@@ -112,6 +104,7 @@ class FantasyFootballReport(object):
             league_id=self.league_id,
             game_id=self.game_id,
             season=self.season,
+            start_week=start_week,
             config=self.config,
             base_dir=base_dir,
             data_dir=self.data_dir,
@@ -188,7 +181,7 @@ class FantasyFootballReport(object):
         season_weekly_highest_ce = []
         season_weekly_teams_results = []
 
-        week_counter = 1
+        week_counter = self.league.start_week
         while week_counter <= self.league.week_for_report:
 
             week_for_report = self.league.week_for_report
@@ -272,7 +265,7 @@ class FantasyFootballReport(object):
             week_for_report_ordered_team_names = ordered_team_names
             week_for_report_ordered_managers = ordered_team_managers
 
-            if week_counter == 1:
+            if week_counter == self.league.start_week:
                 for team_points in weekly_points_data:
                     time_series_points_data.append([team_points])
                 for team_efficiency in weekly_coaching_efficiency_data:

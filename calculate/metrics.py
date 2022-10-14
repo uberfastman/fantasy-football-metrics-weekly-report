@@ -671,7 +671,7 @@ class CalculateMetrics(object):
 
         records = defaultdict(BaseRecord)
         for team in standings:  # type: BaseTeam
-            if week == 1:
+            if week == league.start_week:
                 record = BaseRecord(int(week), team_id=team.team_id, team_name=team.name, division=team.division)
             else:
                 previous_week_record = league.records_by_week[str(int(week) - 1)][team.team_id]  # type: BaseRecord

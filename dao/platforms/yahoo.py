@@ -27,6 +27,7 @@ class LeagueData(object):
 
     def __init__(self,
                  week_for_report,
+                 start_week,
                  league_id,
                  game_id,
                  config,
@@ -74,6 +75,7 @@ class LeagueData(object):
                                                     ))  # type: League
 
         self.season = self.league_info.season
+        self.start_week = start_week or self.league_info.start_week
         self.current_week = self.league_info.current_week
         self.num_playoff_slots = self.league_info.settings.num_playoff_teams
         self.num_regular_season_weeks = int(self.league_info.settings.playoff_start_week) - 1
@@ -156,7 +158,7 @@ class LeagueData(object):
         # TODO: figure out how to write to json files (json.dump) in a thread-safe manner
         # YAHOO API QUERY: run yahoo queries to retrieve matchups by week for the entire season
         self.matchups_by_week = {}
-        for wk in range(1, self.num_regular_season_weeks + 1):
+        for wk in range(self.start_week, self.num_regular_season_weeks + 1):
             self.matchups_by_week[wk] = self.yahoo_data.retrieve(
                 "week_" + str(wk) + "-matchups_by_week",
                 self.yahoo_query.get_league_matchups_by_week,
@@ -184,7 +186,7 @@ class LeagueData(object):
         logger.debug("Getting Yahoo rosters by week data.")
         # YAHOO API QUERY: run yahoo queries to retrieve team rosters by week for the season up to the current week
         self.rosters_by_week = {}
-        for wk in range(1, int(self.week_for_report) + 1):
+        for wk in range(self.start_week, int(self.week_for_report) + 1):
             self.rosters_by_week[str(wk)] = {
                 str(team.get("team").team_id):
                     self.yahoo_data.retrieve(
@@ -201,7 +203,7 @@ class LeagueData(object):
         # TODO: too many request to Yahoo, triggers 999 rate limiting error
         # self.player_stats_by_week = defaultdict(lambda: defaultdict(Player))
         # self.player_season_stats = {}
-        # for wk in range(1, int(self.week_for_report) + 1):
+        # for wk in range(self.start_week, int(self.week_for_report) + 1):
         #     for roster in self.rosters_by_week[str(wk)].values():
         #         for player in roster:
         #             y_player = player.get("player")  # type: Player
@@ -247,6 +249,7 @@ class LeagueData(object):
 
         league.name = self.league_info.name
         league.week = int(self.current_week)
+        league.start_week = int(self.start_week)
         league.season = self.season
         league.num_teams = int(self.league_info.num_teams)
         league.num_playoff_slots = int(self.num_playoff_slots)
