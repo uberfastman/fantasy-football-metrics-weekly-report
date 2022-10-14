@@ -5,10 +5,12 @@ import os
 import sys
 from pathlib import Path
 
-from utils.app_config_parser import AppConfigParser
+from pytest import mark
 
 module_dir = Path(__file__).parent.parent
 sys.path.append(str(module_dir))
+
+from utils.app_config_parser import AppConfigParser
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
@@ -72,6 +74,7 @@ def test_beef_init():
     assert beef_stats.beef_data is not None
 
 
+@mark.skip
 def test_covid_init():
     covid_risk = CovidRisk(
         config=config,

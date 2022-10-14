@@ -86,7 +86,7 @@ class BadBoyStats(object):
                 r = requests.get(usa_today_nfl_arrest_url)
                 data = r.text
                 soup = BeautifulSoup(data, "html.parser")
-                cdata = re.search("var sitedata = (.*);", soup.find(text=re.compile("CDATA"))).group(1)
+                cdata = re.search("var sitedata = (.*);", soup.find(string=re.compile("CDATA"))).group(1)
                 ajax_nonce = json.loads(cdata)["ajax_nonce"]
 
                 usa_today_nfl_arrest_url = "https://databases.usatoday.com/wp-admin/admin-ajax.php"
