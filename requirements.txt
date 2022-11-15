@@ -5,7 +5,7 @@ slackclient==2.9.4
 # sleeper-api-wrapper==1.0.7
 ff-espn-api==1.1.9
 reportlab==3.6.11
-Pillow==9.2.0
+Pillow==9.3.0
 beautifulsoup4==4.11.1
 httplib2==0.20.4
 numpy==1.23.4
