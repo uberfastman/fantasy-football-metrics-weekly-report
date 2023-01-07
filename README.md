@@ -421,7 +421,8 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
     2. *ALL SUBSEQUENT RUNS*: After the initial build of the Docker container, you will not see all the same build output as you did the first time. Instead, simply wait until you see the below output: 
         
         ```bash
-        Creating fantasy-football-metrics-weekly-report_app_1 ... done
+         - Network fantasy-football-metrics-weekly-report_default  Created
+         - Container fantasy-football-metrics-weekly-report-app-1  Started
         ```
       
     3. The docker image is now running, and ready for use!
@@ -429,7 +430,7 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
 3. Run the report:
 
     ```bash
-    docker exec -it fantasy-football-metrics-weekly-report_app_1 python main.py
+    docker exec -it fantasy-football-metrics-weekly-report-app-1 python main.py
     ```
 
     1. You should see the following prompts: 
