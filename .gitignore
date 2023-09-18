@@ -1,29 +1,34 @@
 # macOS
-.DS_Store
+**.DS_Store
 
 # JetBrains
 .idea/
 
 # Python
-*.pyc
-*.pytest_cache
+**__pycache__
+**.pytest_cache
+
+# environment
+.venv
 
 # auth secrets
-private*.json
-token*.json
-credentials*.json
+**private*.json
+!**private.template.json
+**token*.json
+!**token.template.json
+**credentials*.json
+!**credentials.template.json
 
 # configuration
 config*.ini
+!config.template.ini
 
 # output
-crime-categories-output.json
-logs
+**logs/
 output/
+
+# miscellaneous
+resources/files/crime_categories.new.json
 
 # testing
 tests/*.json
-tests/*.txt
-tests/*.html
-tests/*.png
-tests/local.py

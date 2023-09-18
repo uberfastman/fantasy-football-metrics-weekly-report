@@ -21,7 +21,7 @@ logger = get_logger(__name__, propagate=False)
 class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
 
     def __init__(self, labels, data, width=400, height=200, font="Helvetica", *args, **kw):
-        logger.debug("Generating pie chart with data:\n{0}\n".format(json.dumps(data, indent=2)))
+        logger.debug(f"Generating pie chart with data:\n{json.dumps(data, indent=2)}\n")
 
         # see https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/ for colors
         pdf_chart_colors = [
@@ -95,7 +95,7 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
         n = len(self.pie.data)
         self.set_items(n, self.pie.slices, "fillColor", pdf_chart_colors)
         self.legend.colorNamePairs = [
-            (self.pie.slices[i].fillColor, (self.pie.labels[i][0:20], "%0.2f" % data[i])) for i in range(n)]
+            (self.pie.slices[i].fillColor, (self.pie.labels[i][0:20], f"{data[i]:0.2f}")) for i in range(n)]
 
     @staticmethod
     def set_items(n, obj, attr, values):

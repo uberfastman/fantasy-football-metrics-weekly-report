@@ -70,8 +70,10 @@ class PlayoffProbabilities(object):
         try:
             if int(week) == int(week_for_report):
                 if self.recalculate:
-                    logger.info("Running %s Monte Carlo playoff simulation%s..." % ("{0:,}".format(
-                        self.simulations), ("s" if self.simulations > 1 else "")))
+                    logger.info(
+                        f"Running {self.simulations:,} Monte Carlo playoff "
+                        f"simulation{'s' if self.simulations > 1 else ''}..."
+                    )
 
                     begin = datetime.datetime.now()
                     avg_wins = [0.0] * self.num_playoff_slots
@@ -190,7 +192,8 @@ class PlayoffProbabilities(object):
                                     playoff_count)
                                 playoff_count += 1
 
-                        for team in teams_for_playoff_probs.values():  # type: TeamWithPlayoffProbs
+                        team: TeamWithPlayoffProbs
+                        for team in teams_for_playoff_probs.values():
                             team.reset_to_base_record()
 
                         sim_count += 1
@@ -223,7 +226,8 @@ class PlayoffProbabilities(object):
 
                                     division_qualifier_count -= 1
 
-                    for team in teams_for_playoff_probs.values():  # type: TeamWithPlayoffProbs
+                    team: TeamWithPlayoffProbs
+                    for team in teams_for_playoff_probs.values():
                         playoff_min_wins = round((avg_wins[self.num_playoff_slots - 1]) / self.simulations, 2)
                         if playoff_min_wins > team.wins:
                             needed_wins = np.rint(playoff_min_wins - team.wins)
@@ -242,8 +246,10 @@ class PlayoffProbabilities(object):
                         ]
 
                     delta = datetime.datetime.now() - begin
-                    logger.info("...ran %s playoff simulation%s in %s\n" % ("{0:,}".format(
-                        self.simulations), ("s" if self.simulations > 1 else ""), str(delta)))
+                    logger.info(
+                        f"...ran {self.simulations:,} playoff simulation{'s' if self.simulations > 1 else ''} "
+                        f"in {str(delta)}\n"
+                    )
 
                     if self.save_data:
                         save_dir = Path(self.data_dir) / f"week_{week_for_report}"
@@ -256,24 +262,27 @@ class PlayoffProbabilities(object):
                 else:
                     logger.info("Using saved Monte Carlo playoff simulations for playoff probabilities.")
 
-                    playoff_probs_data_file_path = (Path(self.data_dir) / f"week_{week_for_report}" /
-                                                    "playoff_probs_data.json")
+                    playoff_probs_data_file_path = (
+                        Path(self.data_dir) / f"week_{week_for_report}" / "playoff_probs_data.json"
+                    )
                     if Path(playoff_probs_data_file_path).exists():
                         with open(playoff_probs_data_file_path, "r") as pp_in:
                             self.playoff_probs_data = json.load(pp_in)
                     else:
                         raise FileNotFoundError(
-                            "FILE {0} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
-                                playoff_probs_data_file_path))
+                            f"FILE {playoff_probs_data_file_path} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING "
+                            f"PREVIOUSLY SAVED DATA!"
+                        )
 
                 return self.playoff_probs_data
             else:
-                logger.debug("No predicted playoff standings calculated for week {0}. The Fantasy Football Metrics "
-                             "Weekly Report application currently only supports playoff predictions when run for the "
-                             "current week.".format(week))
+                logger.debug(
+                    f"No predicted playoff standings calculated for week {week}. The Fantasy Football Metrics Weekly "
+                    f"Report application currently only supports playoff predictions when run for the current week."
+                )
                 return None
         except Exception as e:
-            logger.error("COULDN'T CALCULATE PLAYOFF PROBS WITH EXCEPTION: {0}\n{1}".format(e, traceback.format_exc()))
+            logger.error(f"COULDN'T CALCULATE PLAYOFF PROBS WITH EXCEPTION: {e}\n{traceback.format_exc()}")
             return None
 
     def group_by_division(self, teams_for_playoff_probs):

@@ -8,7 +8,7 @@ import sys
 import urllib.request
 from copy import deepcopy
 from pathlib import Path
-from random import choice, randint
+from random import choice
 from urllib.error import URLError
 
 from PIL import Image
@@ -58,12 +58,14 @@ def get_player_image(url, data_dir, week, image_quality, width=1.0 * inch, playe
         if not Path(local_img_jpg_path).exists():
             if not Path(local_img_path).exists():
                 if not dev_offline:
-                    logger.debug("Retrieving player headshot for \"{0}\"".format(player_name))
+                    logger.debug(f"Retrieving player headshot for \"{player_name}\"")
                     try:
                         urllib.request.urlretrieve(url, local_img_path)
                     except URLError:
-                        logger.error("Unable to retrieve player headshot{0} at url {1}".format(
-                            (" for player " + player_name) if player_name else "", url))
+                        logger.error(
+                            f"Unable to retrieve player "
+                            f"headshot{(' for player ' + player_name) if player_name else ''} at url {url}"
+                        )
                         local_img_path = Path("resources") / "images" / "photo-not-available.jpg"
                 else:
                     logger.error(
@@ -86,7 +88,7 @@ def get_player_image(url, data_dir, week, image_quality, width=1.0 * inch, playe
             local_img_path = local_img_jpg_path
 
     else:
-        logger.error("No available URL for player{0}.".format(" " + player_name if player_name else ""))
+        logger.error(f"No available URL for player{' ' + player_name if player_name else ''}.")
         img_name = "photo-not-available.jpg"
         local_img_path = Path("resources") / "images" / img_name
 
@@ -149,55 +151,45 @@ class PdfGenerator(object):
         self.num_coaching_efficiency_dqs = report_data.num_coaching_efficiency_dqs
 
         # table column widths
-        # .........................Place/Rank..Team.......Manager....Col 4.....
+        # ..........................Place/Rank...Team.........Manager......Col 4.....
         self.widths_04_cols_no_1 = [1.00 * inch, 2.50 * inch, 2.50 * inch, 1.75 * inch]  # 7.75
 
-        # .........................Place.......Team.......Manager....Col 4.....
+        # ..........................Place........Team.........Manager......Col 4.....
         self.widths_04_cols_no_2 = [0.45 * inch, 2.30 * inch, 1.75 * inch, 3.25 * inch]  # 7.75
 
-        # .........................Place.......Team.......Manager....Metric.....Avg.......
+        # ..........................Place........Team.........Manager......Metric.......Avg.......
         self.widths_05_cols_no_1 = [0.45 * inch, 1.95 * inch, 1.85 * inch, 1.75 * inch, 1.75 * inch]  # 7.75
 
-        # .........................Place.......Team.......Manager....Col 4......Col 5......Col 6.....
-        self.widths_06_cols_no_1 = [0.45 * inch, 1.95 * inch, 1.85 * inch, 1.00 * inch, 1.50 * inch,
-                                    1.00 * inch]  # 7.75
+        # ..........................Place........Team.........Manager......Col 4........Col 5........Col 6.....
+        self.widths_06_cols_no_1 = [0.45 * inch, 1.95 * inch, 1.85 * inch, 1.00 * inch, 1.50 * inch, 1.00 * inch]  # 7.75
 
-        # .........................Place.......Team.......Manager....Col 4......Col 5......Col 6.....
-        self.widths_06_cols_no_2 = [0.45 * inch, 1.95 * inch, 1.35 * inch, 1.00 * inch, 2.00 * inch,
-                                    1.00 * inch]  # 7.75
+        # ..........................Place........Team.........Manager......Col 4........Col 5........Col 6.....
+        self.widths_06_cols_no_2 = [0.45 * inch, 1.95 * inch, 1.35 * inch, 1.00 * inch, 2.00 * inch, 1.00 * inch]  # 7.75
 
-        # .........................Place.......Team.......Manager....Col 4......Col 5......Col 6.....
-        self.widths_06_cols_no_3 = [0.45 * inch, 1.95 * inch, 1.85 * inch, 0.60 * inch, 1.45 * inch,
-                                    1.45 * inch]  # 7.75
+        # ..........................Place........Team.........Manager......Col 4........Col 5........Col 6.....
+        self.widths_06_cols_no_3 = [0.45 * inch, 1.95 * inch, 1.85 * inch, 0.60 * inch, 1.45 * inch, 1.45 * inch]  # 7.75
 
-        # .........................Place.......Team.......Manager....Col 4......Col 5......Col 6........Col 7.....
-        self.widths_07_cols_no_1 = [0.45 * inch, 1.80 * inch, 1.50 * inch, 0.75 * inch, 1.50 * inch, 0.75 * inch,
-                                    1.00 * inch]  # 7.75
+        # ..........................Place........Team.........Manager......Col 4........Col 5........Col 6........Col 7.....
+        self.widths_07_cols_no_1 = [0.45 * inch, 1.80 * inch, 1.50 * inch, 0.75 * inch, 1.50 * inch, 0.75 * inch, 1.00 * inch]  # 7.75
 
-        # .........................Place.......Team.......Manager....Col 4......Col 5......Col 6........Col 7.....
-        self.widths_07_cols_no_2 = [0.45 * inch, 1.80 * inch, 1.50 * inch, 1.10 * inch, 1.00 * inch, 1.05 * inch,
-                                    0.85 * inch]  # 7.75
+        # ..........................Place........Team.........Manager......Col 4........Col 5........Col 6........Col 7.....
+        self.widths_07_cols_no_2 = [0.45 * inch, 1.80 * inch, 1.50 * inch, 1.10 * inch, 1.00 * inch, 1.05 * inch, 0.85 * inch]  # 7.75
 
-        # .........................Place.......Team.......Manager....Record.....Pts For....Pts Against..Streak.......Waiver.....Moves......Trades....
-        self.widths_10_cols_no_1 = [0.45 * inch, 1.80 * inch, 1.10 * inch, 1.00 * inch, 0.80 * inch, 1.05 * inch,
-                                    0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]  # 8.20
+        # ..........................Place........Team.........Manager......Record.......Pts For......Pts Against..Streak.......Waiver.......Moves........Trades....
+        self.widths_10_cols_no_1 = [0.45 * inch, 1.80 * inch, 1.10 * inch, 1.00 * inch, 0.80 * inch, 1.05 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]  # 8.20
 
-        # .........................Place.......Team.......Manager....Record.....Div Rec....Pts For......Pts Against..Streak.....Waiver.....Moves......Trades....
-        self.widths_11_cols_no_1 = [0.40 * inch, 1.65 * inch, 0.95 * inch, 0.85 * inch, 0.85 * inch, 0.80 * inch,
-                                    0.90 * inch, 0.45 * inch, 0.45 * inch, 0.45 * inch, 0.45 * inch]  # 8.20
+        # ..........................Place........Team.........Manager......Record.......Div Rec......Pts For......Pts Against..Streak.......Waiver.......Moves........Trades....
+        self.widths_11_cols_no_1 = [0.40 * inch, 1.65 * inch, 0.80 * inch, 0.85 * inch, 0.85 * inch, 0.80 * inch, 0.90 * inch, 0.45 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]  # 8.20
 
-        # .........................Place.......Team.......Manager....Record.....Pts For....Pts Against..Streak.......Waiver.....FAAB.......Moves......Trades....
-        self.widths_11_cols_no_2 = [0.40 * inch, 1.65 * inch, 1.05 * inch, 1.00 * inch, 0.80 * inch, 1.05 * inch,
-                                    0.45 * inch, 0.45 * inch, 0.45 * inch, 0.45 * inch, 0.45 * inch]  # 8.20
+        # ..........................Place........Team.........Manager......Record.......Pts For......Pts Against..Streak.......Waiver.......FAAB.........Moves........Trades....
+        self.widths_11_cols_no_2 = [0.40 * inch, 1.65 * inch, 0.90 * inch, 1.00 * inch, 0.80 * inch, 1.05 * inch, 0.45 * inch, 0.50 * inch, 0.45 * inch, 0.50 * inch, 0.50 * inch]  # 8.20
 
-        # .........................Place.......Team.......Manager....Record.....Div Rec....Pts For......Pts Against..Streak.....Waiver.....FAAB.......Moves......Trades...
-        self.widths_12_cols_no_1 = [0.40 * inch, 1.55 * inch, 1.00 * inch, 0.85 * inch, 0.85 * inch, 0.65 * inch,
-                                    0.65 * inch, 0.45 * inch, 0.45 * inch, 0.45 * inch, 0.45 * inch,
-                                    0.45 * inch]  # 8.20
+        # ..........................Place........Team.........Manager......Record.......Div Rec......Pts For......Pts Against..Streak.......Waiver.......FAAB.........Moves........Trades...
+        self.widths_12_cols_no_1 = [0.40 * inch, 1.55 * inch, 0.85 * inch, 0.85 * inch, 0.85 * inch, 0.65 * inch, 0.65 * inch, 0.45 * inch, 0.50 * inch, 0.45 * inch, 0.50 * inch, 0.50 * inch]  # 8.20
 
-        # .........................Team.........Manager...Record.....Pts For....Pts Against....Finish Positions..............................................
-        self.widths_n_cols_no_1 = [1.55 * inch, 1.00 * inch, 0.95 * inch, 0.65 * inch, 0.65 * inch] + [
-            round(3.4 / self.playoff_slots, 2) * inch] * self.playoff_slots  # 8.20
+        if self.playoff_slots > 0:
+            # .........................Team.........Manager......Record.......Pts For......Pts Against....Finish Positions..............................................
+            self.widths_n_cols_no_1 = [1.55 * inch, 1.00 * inch, 0.95 * inch, 0.65 * inch, 0.65 * inch] + [round(3.4 / self.playoff_slots, 2) * inch] * self.playoff_slots  # 8.20
 
         self.line_separator = Drawing(100, 1)
         self.line_separator.add(Line(0, -65, 550, -65, strokeColor=colors.black, strokeWidth=1))
@@ -213,9 +205,10 @@ class PdfGenerator(object):
         font_key = config.get("Report", "font", fallback="helvetica")
         supported_fonts = [font.strip() for font in self.config.get("Report", "supported_fonts").split(",")]
         if font_key not in supported_fonts:
-            logger.warning("The {0} font is not supported at this time. Report formatting has defaulted to Helvetica. "
-                           "Please try again with one of the following supported font keys:"
-                           "{1}".format(font_key, supported_fonts))
+            logger.warning(
+                f"The {font_key} font is not supported at this time. Report formatting has defaulted to Helvetica. "
+                f"Please try again with one of the following supported font keys: {supported_fonts}"
+            )
         font_dict = {
             "helvetica": 1,
             "times": 2,
@@ -541,7 +534,7 @@ class PdfGenerator(object):
         Add the page number
         """
         page_num = canvas.getPageNumber()
-        text = "Page %s" % page_num
+        text = f"Page {page_num}"
         canvas.setFont(self.font, self.font_size - 4)
         canvas.drawRightString(4.45 * inch, 0.25 * inch, text)
 
@@ -622,8 +615,9 @@ class PdfGenerator(object):
                        subtitle_text=None, subsubtitle_text=None, header_text=None, footer_text=None, row_heights=None,
                        tied_metric=False, metric_type=None, section_title_function=None):
         logger.debug(
-            "Creating report section: \"{0}\" with data:\n{1}\n".format(
-                title_text if title_text else metric_type, json.dumps(data, indent=2)))
+            f"Creating report section: \"{title_text if title_text else metric_type}\" with "
+            f"data:\n{json.dumps(data, indent=2)}\n"
+        )
 
         title = None
         if title_text:
@@ -858,7 +852,17 @@ class PdfGenerator(object):
                           row_heights=None, tied_metric=False):
 
         table_data = deepcopy(col_headers)
-        [table_data.append(item) for item in data]
+
+        max_chars: int = self.config.getint("Report", "max_data_chars")
+        for row in data:
+            display_row = []
+            for cell in row:
+                if isinstance(cell, str):
+                    # truncate data cell contents to specified max characters
+                    display_row.append(f"{cell[:max_chars].strip()}..." if len(cell) > max_chars else cell)
+                else:
+                    display_row.append(cell)
+            table_data.append(display_row)
 
         if tied_metric:
             if table_data[0][-1] == "Bench Points":
@@ -878,6 +882,14 @@ class PdfGenerator(object):
         return table
 
     def create_line_chart(self, data, data_length, series_names, chart_title, x_axis_title, y_axis_title, y_step):
+
+        max_chars: int = self.config.getint("Report", "max_data_chars")
+        display_series_names = []
+        for name in series_names:
+            # truncate series name to specified max characters
+            display_series_names.append(f"{name[:max_chars].strip()}..." if len(str(name)) > max_chars else name)
+
+        series_names = display_series_names
 
         # see https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/ for colors
         series_colors = [
@@ -1013,7 +1025,7 @@ class PdfGenerator(object):
         for team in alphabetical_teams:
             team_id = team[0]
             team_weekly_points_by_position = team[1]
-            team_result = self.teams_results[team_id]  # type: BaseTeam
+            team_result: BaseTeam = self.teams_results[team_id]
             player_info = team_result.roster
 
             if self.config.getboolean(
@@ -1050,8 +1062,9 @@ class PdfGenerator(object):
                 doc_elements.append(KeepTogether(team_table))
                 doc_elements.append(self.spacer_quarter_inch)
 
-            if self.config.getboolean("Report", "league_bad_boy_rankings") and \
-                    self.config.getboolean("Report", "team_bad_boy_stats"):
+            if (self.config.getboolean("Report", "league_bad_boy_rankings")
+                    and self.config.getboolean("Report", "team_bad_boy_stats")):
+
                 if player_info:
                     offending_players = []
                     for player in player_info:
@@ -1075,8 +1088,9 @@ class PdfGenerator(object):
                         doc_elements.append(KeepTogether(bad_boys_table))
                         doc_elements.append(self.spacer_tenth_inch)
 
-            if self.config.getboolean("Report", "league_beef_rankings") and \
-                    self.config.getboolean("Report", "team_beef_stats"):
+            if (self.config.getboolean("Report", "league_beef_rankings")
+                    and self.config.getboolean("Report", "team_beef_stats")):
+
                 if player_info:
                     doc_elements.append(self.create_title("Beefiest Bois", 8.5, "section"))
                     doc_elements.append(self.spacer_tenth_inch)
@@ -1086,7 +1100,7 @@ class PdfGenerator(object):
                     ndx = 0
                     count = 0
                     while count < num_beefy_bois:
-                        player = beefy_players[ndx]  # type: BasePlayer
+                        player: BasePlayer = beefy_players[ndx]
                         if player.last_name:
                             beefy_players_data.append([player.full_name, player.tabbu, player.weight])
                             count += 1
@@ -1102,7 +1116,8 @@ class PdfGenerator(object):
             if self.config.getboolean("Report", "team_boom_or_bust"):
                 if player_info:
                     starting_players = []
-                    for player in player_info:  # type: BasePlayer
+                    player: BasePlayer
+                    for player in player_info:
                         if player.selected_position not in self.report_data.bench_positions:
                             if player.season_points and player.week_for_report > 1:
                                 player.season_average_points = round(
@@ -1116,8 +1131,9 @@ class PdfGenerator(object):
                                 player.season_average_points = 0
                             starting_players.append(player)
 
-                    if any(player.season_points for player in starting_players) and \
-                            starting_players[0].week_for_report > 1:
+                    if (any(player.season_points for player in starting_players)
+                            and starting_players[0].week_for_report > 1):
+
                         starting_players = sorted(
                             starting_players,
                             key=lambda x:
@@ -1157,33 +1173,32 @@ class PdfGenerator(object):
                                                                    worst_weekly_player.nfl_team_name else "N/A")],
                         [best_player_headshot, worst_player_headshot]
                     ]
-                    if any(player.season_points for player in starting_players) and \
-                            starting_players[0].week_for_report > 1:
+                    if (any(player.season_points for player in starting_players)
+                            and starting_players[0].week_for_report > 1):
                         data.append(
                             [
-                                "{0} ({1} avg: +{2}%)".format(
-                                    round(best_weekly_player.points, 2),
-                                    best_weekly_player.season_average_points,
-                                    round(((best_weekly_player.points - best_weekly_player.season_average_points) /
-                                           best_weekly_player.season_average_points) * 100, 2)
+                                f"""{round(best_weekly_player.points, 2)} 
+                                ({best_weekly_player.season_average_points} 
+                                avg: +{
+                                    round(((best_weekly_player.points - best_weekly_player.season_average_points)
+                                           / best_weekly_player.season_average_points) * 100, 2) 
                                     if best_weekly_player.season_average_points > 0
                                     else "∞"
                                     if best_weekly_player.season_average_points == 0
-                                    else round(((best_weekly_player.season_average_points - best_weekly_player.points) /
-                                                best_weekly_player.season_average_points) * -100, 2)
-                                ),
-                                "{0} ({1} avg: -{2}%)".format(
-                                    round(worst_weekly_player.points, 2),
-                                    worst_weekly_player.season_average_points,
-                                    round(((worst_weekly_player.season_average_points - worst_weekly_player.points) /
-                                           worst_weekly_player.season_average_points) * 100, 2)
+                                    else round(((best_weekly_player.season_average_points - best_weekly_player.points)
+                                                / best_weekly_player.season_average_points) * -100, 2)
+                                }%)""",
+                                f"""{round(worst_weekly_player.points, 2)} 
+                                ({worst_weekly_player.season_average_points} 
+                                avg: -{
+                                    round(((worst_weekly_player.season_average_points - worst_weekly_player.points) 
+                                         / worst_weekly_player.season_average_points) * 100, 2)
                                     if worst_weekly_player.season_average_points > 0
                                     else "∞"
                                     if worst_weekly_player.season_average_points == 0
-                                    else round(
-                                        ((worst_weekly_player.season_average_points - worst_weekly_player.points) /
-                                         worst_weekly_player.season_average_points) * -100, 2)
-                                )
+                                    else round(((worst_weekly_player.season_average_points - worst_weekly_player.points)
+                                                / worst_weekly_player.season_average_points) * -100, 2)
+                                }%)"""
                             ]
                         )
                     else:
@@ -1256,7 +1271,7 @@ class PdfGenerator(object):
                         table_footer = None
 
                     table_header = self.report_data.divisions[
-                        division[0][-1]] if self.report_data.divisions else "Division {0}".format(division_count)
+                        division[0][-1]] if self.report_data.divisions else f"Division {division_count}"
 
                     division_table = self.create_section(
                         table_title,
@@ -1290,7 +1305,7 @@ class PdfGenerator(object):
             elements.append(standings)
             elements.append(self.spacer_tenth_inch)
 
-        if self.config.getboolean("Report", "league_playoff_probs"):
+        if self.config.getboolean("Report", "league_playoff_probs") and self.playoff_slots > 0:
             # update playoff probabilities style to make playoff teams green
             playoff_probs_style = deepcopy(self.style)
             playoff_probs_style.add("TEXTCOLOR", (0, 1), (-1, self.playoff_slots), colors.green)
@@ -1298,9 +1313,10 @@ class PdfGenerator(object):
             if self.report_data.has_divisions:
                 self.playoff_probs_headers[0].insert(3, "Division")
                 playoff_probs_style.add("FONTSIZE", (0, 0), (-1, -1), self.font_size - 4)
-                self.widths_n_cols_no_1 = \
-                    [1.35 * inch, 0.90 * inch, 0.75 * inch, 0.75 * inch, 0.50 * inch, 0.50 * inch] + \
+                self.widths_n_cols_no_1 = (
+                    [1.35 * inch, 0.90 * inch, 0.75 * inch, 0.75 * inch, 0.50 * inch, 0.50 * inch] +
                     [round(3.4 / self.playoff_slots, 2) * inch] * self.playoff_slots
+                )
 
             data_for_playoff_probs = self.report_data.data_for_playoff_probs
             team_num = 1
@@ -1328,6 +1344,11 @@ class PdfGenerator(object):
 
             # playoff probabilities
             if data_for_playoff_probs:
+                num_playoff_simulations = (
+                    int(self.playoff_prob_sims) if self.playoff_prob_sims is not None
+                    else self.config.getint("Settings", "num_playoff_simulations", fallback=100000)
+                )
+
                 elements.append(self.create_section(
                     "Playoff Probabilities",
                     self.playoff_probs_headers,
@@ -1335,24 +1356,26 @@ class PdfGenerator(object):
                     playoff_probs_style,
                     playoff_probs_style,
                     self.widths_n_cols_no_1,
-                    subtitle_text="Playoff probabilities were calculated using %s Monte Carlo simulations to predict "
-                                  "team performances through the end of the regular fantasy season." %
-                                  "{0:,}".format(
-                                      int(self.playoff_prob_sims) if self.playoff_prob_sims is not None else
-                                      self.config.getint("Settings", "num_playoff_simulations",
-                                                         fallback=100000)) + (
-                                      "\nProbabilities account for division winners in addition to overall "
-                                      "win/loss/tie record." if self.report_data.has_divisions else ""),
+                    subtitle_text=(
+                        f"Playoff probabilities were calculated using {num_playoff_simulations:,} Monte Carlo "
+                        f"simulations to predict team performances through the end of the regular fantasy season."
+                        + ("\nProbabilities account for division winners in addition to overall win/loss/tie record."
+                           if self.report_data.has_divisions else "")
+                    ),
                     metric_type="playoffs",
-                    footer_text="† Predicted Division Leaders{0}".format(
-                        "<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                        "‡ Predicted Division Qualifiers" if self.config.getint(
-                            "Settings", "num_playoff_slots_per_division", fallback=1) > 1 else "")
-                    if self.report_data.has_divisions else None
+                    footer_text=(
+                        f"""† Predicted Division Leaders{
+                            "<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                            "‡ Predicted Division Qualifiers" 
+                            if self.config.getint("Settings", "num_playoff_slots_per_division", fallback=1) > 1 else ""
+                        }"""
+                        if self.report_data.has_divisions else None
+                    )
                 ))
 
-        if self.config.getboolean("Report", "league_standings") or \
-                self.config.getboolean("Report", "league_playoff_probs"):
+        if (self.config.getboolean("Report", "league_standings")
+                or self.config.getboolean("Report", "league_playoff_probs")):
+
             elements.append(self.add_page_break())
 
         if self.config.getboolean("Report", "league_median_standings"):
@@ -1371,8 +1394,9 @@ class PdfGenerator(object):
                 self.widths_07_cols_no_2,
                 metric_type="median_standings",
                 subtitle_text="League standings when every team plays against the league median score each week.<br/>",
-                subsubtitle_text="WEEK {0} LEAGUE MEDIAN SCORE: {1}".format(
-                    self.week_for_report, self.data_for_median_standings[0][-1])
+                subsubtitle_text=(
+                    f"WEEK {self.week_for_report} LEAGUE MEDIAN SCORE: {self.data_for_median_standings[0][-1]}"
+                )
             ))
             elements.append(self.spacer_twentieth_inch)
 
@@ -1621,8 +1645,9 @@ class PdfGenerator(object):
                 self.create_line_chart(points_data, len(points_data[0]), series_names, "Weekly Points", "Weeks",
                                        "Fantasy Points", 10.00)))
             elements.append(self.spacer_twentieth_inch)
+            # NOTE: MUST USE POINTS DATA FOR COACHING EFFICIENCY DATA LENGTH ARGUMENT IN THE EVENT OF DQs
             elements.append(KeepTogether(
-                self.create_line_chart(efficiency_data, len(efficiency_data[0]), series_names, "Weekly Coaching Efficiency",
+                self.create_line_chart(efficiency_data, len(points_data[0]), series_names, "Weekly Coaching Efficiency",
                                        "Weeks", "Coaching Efficiency (%)", 5.00)))
             elements.append(self.spacer_twentieth_inch)
             elements.append(KeepTogether(
@@ -1653,7 +1678,7 @@ class PdfGenerator(object):
         elements.append(self.report_footer)
 
         # build pdf
-        logger.info("generating PDF ({0})...".format(str(filename_with_path).split("/")[-1]))
+        logger.info(f"generating PDF ({str(filename_with_path).split('/')[-1]})...")
         # doc.build(elements, onFirstPage=self.add_page_number, onLaterPages=self.add_page_number)
         doc.build(elements, onLaterPages=self.add_page_number)
 
@@ -1664,7 +1689,7 @@ class TableOfContents(object):
 
     def __init__(self, font, font_size, config, break_ties):
 
-        self.config = config  # type: AppConfigParser
+        self.config: AppConfigParser = config
         self.break_ties = break_ties
 
         self.toc_style_right = ParagraphStyle(name="tocr", alignment=TA_RIGHT, fontSize=font_size - 2, fontName=font)
@@ -1828,7 +1853,7 @@ class Appendix(object):
         return str(self.entry_anchor_num - 1)
 
     def add_entry(self, title, section_anchor, text):
-        body_style = deepcopy(self.style)  # type: ParagraphStyle
+        body_style: ParagraphStyle = deepcopy(self.style)
         body_style.fontSize = self.font_size - 4
         body_style.firstLineIndent = 1
         entry = Paragraph(

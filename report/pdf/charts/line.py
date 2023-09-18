@@ -35,7 +35,7 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
     # noinspection PyPep8Naming
     def __init__(self, data, font, font_bold, title, x_axis_params, y_axis_params, series_names, series_colors_cmyk,
                  box_width, box_height, chart_width, chart_height, width=550, height=215, *args, **kw):
-        logger.debug("Generating line chart with data:\n{0}\n".format(json.dumps(data, indent=2)))
+        logger.debug(f"Generating line chart with data:\n{json.dumps(data, indent=2)}\n")
 
         Drawing.__init__(self, width, height, *args, **kw)
         Drawing.hAlign = "CENTER"
@@ -130,7 +130,7 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         self.chart.xValueAxis.labels.dx = 1
         # self.chart.xValueAxis.strokeWidth = 0
         # self.chart.xValueAxis.visibleAxis = 1
-        # print(self.chart.xValueAxis.getProperties())
+        # logger.info(self.chart.xValueAxis.getProperties())
         # self.chart.xValueAxis.labels.angle = 45
 
     def make_y_axis(self, y_label, y_min, y_max, y_step, font="Helvetica"):

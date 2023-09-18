@@ -38,10 +38,10 @@ class MyDocTemplate(SimpleDocTemplate):
             txt = flowable.getPlainText()
             style = flowable.style.name
             if style == "Heading1":
-                key = "h1-%s" % self.seq.nextf("heading1")
+                key = f"h1-{self.seq.nextf('heading1')}"
                 self.canv.bookmarkPage(key)
                 self.notify("TOCEntry", (0, txt, self.page))
             elif style == "Heading2":
-                key = "h2-%s" % self.seq.nextf("heading2")
+                key = f"h2-{self.seq.nextf('heading2')}"
                 self.canv.bookmarkPage(key)
                 self.notify("TOCEntry", (1, txt, self.page, key))

@@ -56,8 +56,9 @@ class AppConfigParser(ConfigParser):
                          str(option).startswith("report") or
                          str(option).startswith("team")):
                     logger.warning(
-                        "MISSING CONFIGURATION VALUE: \"{0}: {1}\"! Setting to default value of \"False\". To include "
-                        "this section, update \"config.ini\" and try again.".format(section, option))
+                        f"MISSING CONFIGURATION VALUE: \"{section}: {option}\"! Setting to default value of \"False\". "
+                        f"To include this section, update \"config.ini\" and try again."
+                    )
                     return "False"
                 else:
                     raise NoOptionError(option, section)
@@ -113,7 +114,7 @@ class AppConfigParser(ConfigParser):
 
     def _write_section(self, fp, section_name, section_items, delimiter):
         """Write a single section to the specified `fp`."""
-        fp.write("[{}]\n".format(section_name))
+        fp.write(f"[{section_name}]\n")
         section_comments_map = self.comment_map.get(section_name)
 
         for key, value in section_items:
@@ -129,5 +130,5 @@ class AppConfigParser(ConfigParser):
                 for comment in key_comments:
                     fp.write(comment)
 
-            fp.write("{}{}\n".format(key, value))
+            fp.write(f"{key}{value}\n")
         fp.write("\n")

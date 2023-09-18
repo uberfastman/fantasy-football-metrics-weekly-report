@@ -64,15 +64,16 @@ class BeefStats(object):
         else:
             if not self.beef_data:
                 raise FileNotFoundError(
-                    "FILE {0} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
-                        self.beef_data_file_path))
+                    f"FILE {self.beef_data_file_path} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY "
+                    f"SAVED DATA!"
+                )
 
         if len(self.beef_data) == 0:
             logger.warning(
                 "NO beef data was loaded, please check your internet connection or the availability of "
                 "\"https://api.sleeper.app/v1/players/nfl\" and try generating a new report.")
         else:
-            logger.info("{0} player weights/TABBUs were loaded".format(len(self.beef_data)))
+            logger.info(f"{len(self.beef_data)} player weights/TABBUs were loaded")
 
     def open_beef_data(self):
         logger.debug("Loading saved beef data.")
@@ -154,8 +155,9 @@ class BeefStats(object):
             return self.beef_data[player_full_name][key_str]
         else:
             logger.debug(
-                "Player not found: {0}. Setting weight and TABBU to 0. Run report with the -r flag "
-                "(--refresh-web-data) to refresh all external web data and try again.".format(player_full_name))
+                f"Player not found: {player_full_name}. Setting weight and TABBU to 0. Run report with the -r flag "
+                f"(--refresh-web-data) to refresh all external web data and try again."
+            )
 
             self.beef_data[player_full_name] = {
                 "fullName": player_full_name,
