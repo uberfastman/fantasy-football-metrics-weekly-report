@@ -1,0 +1,14 @@
+
+services:
+
+  app:
+    image: ghcr.io/uberfastman/fantasy-football-metrics-weekly-report:15.0.0
+    platform: linux/amd64
+    ports:
+      - "5001:5000"
+    volumes:
+      - /etc/localtime:/etc/localtime # sync container timezone with host
+      - ./config.ini:/opt/ffmwr/config.ini # mount host config file
+      - ./auth:/opt/ffmwr/auth # mount host auth directory
+      - ./logs:/opt/ffmwr/logs # mount host logs directory
+      - ./output:/opt/ffmwr/output # mount host output directory

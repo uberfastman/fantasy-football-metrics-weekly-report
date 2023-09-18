@@ -67,8 +67,6 @@ class LeagueData(object):
 
         self.league_settings = self.league_info.get("settings")
         self.league_scoring = self.league_info.get("scoring_settings")
-        # TODO: don't need this!
-        # self.current_season = self.league_info.get("season")
 
         # TODO: figure out how to get league starting week
         self.start_week = start_week or 1
@@ -198,12 +196,9 @@ class LeagueData(object):
                         if team_custom_points:
                             team_custom_points = round(team_custom_points, 2)
                             logger.warning(
-                                "Team \"{}\" points manually overridden by commissioner for week {}: {} -> {}".format(
-                                    team["info"]["owner"]["metadata"]["team_name"],
-                                    week_for_matchups,
-                                    team["points"],
-                                    team_custom_points
-                                )
+                                f"Team \"{team['info']['owner']['metadata']['team_name']}\" points manually overridden "
+                                f"by commissioner for week {week_for_matchups}: {team['points']} "
+                                f"-> {team_custom_points}"
                             )
                             matchup[matchup.index(team)]["points"] = team_custom_points
                             team_score = team_custom_points
@@ -259,50 +254,54 @@ class LeagueData(object):
         run_query = True
         if check_for_saved_data:
             if not Path(file_path).exists():
-                logger.debug("File {0} does not exist... attempting data retrieval.".format(filename))
+                logger.debug(f"File {filename} does not exist... attempting data retrieval.")
             else:
                 file_modified_timestamp = datetime.fromtimestamp(Path(file_path).stat().st_mtime)
                 if file_modified_timestamp < (datetime.today() - timedelta(days=refresh_days_delay)):
                     if not self.dev_offline:
-                        logger.debug("Data in {0} over {1} day{2} old... refreshing.".format(
-                            filename, refresh_days_delay, "s" if refresh_days_delay > 1 else ""))
+                        logger.debug(
+                            f"Data in {filename} over {refresh_days_delay} day{'s' if refresh_days_delay > 1 else ''} "
+                            f"old... refreshing."
+                        )
                     else:
-                        logger.debug("Data in {0} over {1} day{2} old but dev_offline=True... skipping refresh.".format(
-                            filename, refresh_days_delay, "s" if refresh_days_delay > 1 else ""))
+                        logger.debug(
+                            f"Data in {filename} over {refresh_days_delay} day{'s' if refresh_days_delay > 1 else ''} "
+                            f"old but dev_offline=True... skipping refresh."
+                        )
                 else:
-                    logger.debug("Data in {0} still recent... skipping refresh.".format(filename))
+                    logger.debug(f"Data in {filename} still recent... skipping refresh.")
                     run_query = False
                     with open(file_path, "r") as saved_data:
                         response_json = json.load(saved_data)
 
         if not self.dev_offline:
             if run_query:
-                logger.debug("Retrieving Sleeper data from endpoint: {0}".format(url))
+                logger.debug(f"Retrieving Sleeper data from endpoint: {url}")
                 response = requests.get(url)
 
                 try:
                     response.raise_for_status()
                 except HTTPError as e:
                     # log error and terminate query if status code is not 200
-                    logger.error("REQUEST FAILED WITH STATUS CODE: {0} - {1}".format(response.status_code, e))
+                    logger.error(f"REQUEST FAILED WITH STATUS CODE: {response.status_code} - {e}")
                     sys.exit("...run aborted.")
 
                 response_json = response.json()
-                logger.debug("Response (JSON): {0}".format(response_json))
+                logger.debug(f"Response (JSON): {response_json}")
         else:
             try:
-                logger.debug("Loading saved Sleeper data for endpoint: {0}".format(url))
+                logger.debug(f"Loading saved Sleeper data for endpoint: {url}")
                 with open(file_path, "r", encoding="utf-8") as data_in:
                     response_json = json.load(data_in)
             except FileNotFoundError:
                 logger.error(
-                    "FILE {0} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
-                        file_path))
+                    f"FILE {file_path} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!"
+                )
                 sys.exit("...run aborted.")
 
         if self.save_data or check_for_saved_data:
             if run_query:
-                logger.debug("Saving Sleeper data retrieved from endpoint: {0}".format(url))
+                logger.debug(f"Saving Sleeper data retrieved from endpoint: {url}")
                 if not Path(file_dir).exists():
                     os.makedirs(file_dir)
 
@@ -362,8 +361,9 @@ class LeagueData(object):
     def map_data_to_base(self, base_league_class):
         logger.debug("Mapping Sleeper data to base objects.")
 
-        league = base_league_class(self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data,
-                                   self.dev_offline)  # type: BaseLeague
+        league: BaseLeague = base_league_class(
+            self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data, self.dev_offline
+        )
 
         league.name = self.league_info.get("name")
         league.week = int(self.current_week)
@@ -391,25 +391,44 @@ class LeagueData(object):
 
         league.bench_positions = ["BN", "IR"]
 
+        flex_mapping = {
+            "WRRB_FLEX": {
+                "flex_label": "FLEX_RB_WR",
+                "flex_positions_attribute": "flex_positions_rb_wr",
+                "flex_positions": ["RB", "WR"]
+            },
+            "REC_FLEX": {
+                "flex_label": "FLEX_TE_WR",
+                "flex_positions_attribute": "flex_positions_te_wr",
+                "flex_positions": ["TE", "WR"]
+            },
+            "FLEX": {
+                "flex_label": "FLEX_RB_TE_WR",
+                "flex_positions_attribute": "flex_positions_rb_te_wr",
+                "flex_positions": ["RB", "TE", "WR"]
+            },
+            "SUPER_FLEX": {
+                "flex_label": "FLEX_QB_RB_TE_WR",
+                "flex_positions_attribute": "flex_positions_qb_rb_te_wr",
+                "flex_positions": ["QB", "RB", "TE", "WR"]
+            },
+            "IDP_FLEX": {
+                "flex_label": "FLEX_IDP",
+                "flex_positions_attribute": "flex_positions_idp",
+                "flex_positions": ["DB", "DL", "LB"]
+            }
+        }
+
         for position, count in self.roster_positions.items():
             pos_name = position
             pos_count = count
 
-            if pos_name == "WRRB_FLEX":
-                pos_name = "FLEX_RB_WR"
-                league.flex_positions_rb_wr = ["RB", "WR"]
-            if pos_name == "REC_FLEX":
-                pos_name = "FLEX_TE_WR"
-                league.flex_positions_te_wr = ["TE", "WR"]
-            if pos_name == "FLEX":
-                pos_name = "FLEX_RB_TE_WR"
-                league.flex_positions_rb_te_wr = ["RB", "TE", "WR"]
-            if pos_name == "SUPER_FLEX":
-                pos_name = "FLEX_QB_RB_TE_WR"
-                league.flex_positions_qb_rb_te_wr = ["QB", "RB", "TE", "WR"]
-            if pos_name == "IDP_FLEX":
-                pos_name = "FLEX_IDP"
-                league.flex_positions_idp = ["DB", "DL", "LB"]
+            if pos_name in flex_mapping.keys():
+                league.__setattr__(
+                    flex_mapping[pos_name].get("flex_positions_attribute"),
+                    flex_mapping[pos_name].get("flex_positions")
+                )
+                pos_name = flex_mapping[pos_name].get("flex_label")
 
             pos_counter = deepcopy(pos_count)
             while pos_counter > 0:
@@ -475,7 +494,7 @@ class LeagueData(object):
                         base_team.name = team_info.get("owner").get("metadata").get("team_name") if team_info.get(
                             "owner").get("metadata").get("team_name") else team_info.get("owner").get("display_name")
                     else:
-                        base_team.name = "Team #{0}".format(team_info.get("roster_id"))
+                        base_team.name = f"Team #{team_info.get('roster_id')}"
 
                     if team_info.get("owner"):
                         for manager in [team_info.get("owner")] + team_info.get("co_owners"):
@@ -548,13 +567,11 @@ class LeagueData(object):
                     # get median for week
                     week_median = self.median_score_by_week.get(matchups_week)
 
-                    median_record = league_median_records_by_team.get(str(base_team.team_id))  # type: BaseRecord
+                    median_record: BaseRecord = league_median_records_by_team.get(str(base_team.team_id))
                     if not median_record:
                         median_record = BaseRecord(
                             team_id=base_team.team_id,
-                            team_name=base_team.name,
-                            points_for=(base_team.points - week_median),
-                            points_against=week_median
+                            team_name=base_team.name
                         )
                         league_median_records_by_team[str(base_team.team_id)] = median_record
 
@@ -602,16 +619,11 @@ class LeagueData(object):
             league.players_by_week[str(week)] = {}
             team_count = 1
             for team_id, roster in rosters.items():
-                league_team = league.teams_by_week.get(str(week)).get(str(team_id))  # type: BaseTeam
+                league_team: BaseTeam = league.teams_by_week.get(str(week)).get(str(team_id))
 
                 team_filled_positions = [
-                    position if position not in ["WRRB_FLEX", "REC_FLEX", "FLEX", "SUPER_FLEX", "IDP_FLEX"]
-                    else "FLEX_RB_WR" if position == "WRRB_FLEX"
-                    else "FLEX_TE_WR" if position == "REC_FLEX"
-                    else "FLEX_RB_TE_WR" if position == "FLEX"
-                    else "FLEX_QB_RB_TE_WR" if position == "SUPER_FLEX"
-                    else "FLEX_IDP" if position == "IDP_FLEX"
-                    else position
+                    position if position not in flex_mapping.keys()
+                    else flex_mapping[position].get("flex_label")
                     for position in self.league_info.get("roster_positions")
                 ]
 
@@ -621,7 +633,7 @@ class LeagueData(object):
 
                         base_player.week_for_report = int(week)
                         base_player.player_id = player.get("player_id")
-                        # TODO: missing bye
+                        # TODO: use week WITHOUT projections (Ex.: 11: null) to determine player bye week
                         base_player.bye_week = None
                         base_player.display_position = player.get("position")
                         base_player.nfl_team_id = None
@@ -665,20 +677,12 @@ class LeagueData(object):
                         if len(eligible_positions) > 1:
                             player["multiple_non_flex_positions"] = True
                         for position in eligible_positions:
+                            if position in flex_mapping.keys():
+                                position = flex_mapping[position].get("flex_label")
+                            for flex_label, flex_positions in league.get_flex_positions_dict().items():
+                                if position in flex_positions:
+                                    base_player.eligible_positions.append(flex_label)
                             base_player.eligible_positions.append(position)
-
-                            if position in league.flex_positions_rb_wr:
-                                base_player.eligible_positions.append("FLEX_RB_WR")
-                            if position in league.flex_positions_te_wr:
-                                base_player.eligible_positions.append("FLEX_TE_WR")
-                            if position in league.flex_positions_rb_te_wr:
-                                base_player.eligible_positions.append("FLEX_RB_TE_WR")
-                            if position in league.flex_positions_qb_rb_te_wr:
-                                base_player.eligible_positions.append("FLEX_QB_RB_TE_WR")
-                            if position in league.flex_positions_idp:
-                                base_player.eligible_positions.append("FLEX_IDP")
-
-                        base_player.eligible_positions = list(set(base_player.eligible_positions))
 
                         if player["starter"]:
 
@@ -688,24 +692,36 @@ class LeagueData(object):
                                 roster.append(player)
                                 continue
 
-                            available_primary_slots = list(set(base_player.eligible_positions).intersection(
-                                set(team_filled_positions)).difference(
-                                {"FLEX_RB_WR", "FLEX_TE_WR", "FLEX_RB_TE_WR", "FLEX_QB_RB_TE_WR", "FLEX_IDP"}))
+                            available_primary_slots = list(
+                                set(base_player.eligible_positions)
+                                .intersection(set(team_filled_positions))
+                                .difference(set([item.get("flex_label") for item in flex_mapping.values()]))
+                            )
 
-                            available_wrrb_flex_slots = list(set(base_player.eligible_positions).intersection(
-                                set(league.flex_positions_rb_wr)))
+                            available_wrrb_flex_slots = list(
+                                set(base_player.eligible_positions)
+                                .intersection(set(league.flex_positions_rb_wr))
+                            )
 
-                            available_rec_flex_slots = list(set(base_player.eligible_positions).intersection(
-                                set(league.flex_positions_te_wr)))
+                            available_rec_flex_slots = list(
+                                set(base_player.eligible_positions)
+                                .intersection(set(league.flex_positions_te_wr))
+                            )
 
-                            available_flex_slots = list(set(base_player.eligible_positions).intersection(
-                                set(league.flex_positions_rb_te_wr)))
+                            available_flex_slots = list(
+                                set(base_player.eligible_positions)
+                                .intersection(set(league.flex_positions_rb_te_wr))
+                            )
 
-                            available_super_flex_slots = list(set(base_player.eligible_positions).intersection(
-                                set(league.flex_positions_qb_rb_te_wr)))
+                            available_super_flex_slots = list(
+                                set(base_player.eligible_positions)
+                                .intersection(set(league.flex_positions_qb_rb_te_wr))
+                            )
 
-                            available_idp_flex_slots = list(set(base_player.eligible_positions).intersection(
-                                set(league.flex_positions_idp)))
+                            available_idp_flex_slots = list(
+                                set(base_player.eligible_positions)
+                                .intersection(set(league.flex_positions_idp))
+                            )
 
                             if len(available_primary_slots) > 0:
                                 if base_player.primary_position in available_primary_slots:
@@ -737,11 +753,11 @@ class LeagueData(object):
 
                             elif len(available_idp_flex_slots) > 0 and "FLEX_IDP" in team_filled_positions:
                                 base_player.selected_position = "FLEX_IDP"
-                                # base_player.selected_position_is_flex = True
+                                base_player.selected_position_is_flex = True
                                 team_filled_positions.pop(team_filled_positions.index(base_player.selected_position))
 
                             else:
-                                print(json.dumps(player, indent=2))
+                                logger.debug(f"\n{json.dumps(player, indent=2)}")
                                 raise ValueError("Player position missing! Check data!")
                             league_team.projected_points += base_player.projected_points
                         else:

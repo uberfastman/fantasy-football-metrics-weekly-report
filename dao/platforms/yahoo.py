@@ -7,9 +7,10 @@ from pathlib import Path
 # from collections import defaultdict
 # from concurrent.futures import ThreadPoolExecutor
 from statistics import median
+from typing import List
 
 from yfpy.data import Data
-from yfpy.models import Game, League, Matchup, Team, Manager, Player, RosterPosition, Stat
+from yfpy.models import Game, League, Manager, Matchup, Team, Player
 from yfpy.query import YahooFantasySportsQuery
 
 from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
@@ -54,39 +55,42 @@ class LeagueData(object):
         )
 
         if self.game_id and self.game_id != "nfl":
-            yahoo_fantasy_game = self.yahoo_data.retrieve(str(self.game_id) + "-game-metadata",
-                                                          self.yahoo_query.get_game_metadata_by_game_id,
-                                                          params={"game_id": self.game_id},
-                                                          data_type_class=Game)  # type: Game
+            yahoo_fantasy_game: Game = self.yahoo_data.retrieve(
+                str(self.game_id) + "-game-metadata",
+                self.yahoo_query.get_game_metadata_by_game_id,
+                params={"game_id": self.game_id},
+                data_type_class=Game
+            )
         else:
-            yahoo_fantasy_game = self.yahoo_data.retrieve("current-game-metadata",
-                                                          self.yahoo_query.get_current_game_metadata,
-                                                          data_type_class=Game)  # type: Game
+            yahoo_fantasy_game: Game = self.yahoo_data.retrieve(
+                "current-game-metadata",
+                self.yahoo_query.get_current_game_metadata,
+                data_type_class=Game
+            )
 
         self.league_key = yahoo_fantasy_game.game_key + ".l." + self.league_id
         self.season = yahoo_fantasy_game.season
 
         # YAHOO API QUERY: run query to retrieve all league information, including current standings
-        self.league_info = self.yahoo_data.retrieve(str(self.league_id) + "-league-info",
-                                                    self.yahoo_query.get_league_info,
-                                                    data_type_class=League,
-                                                    new_data_dir=(
-                                                            self.data_dir / str(self.season) / str(self.league_id)
-                                                    ))  # type: League
+        self.league_info: League = self.yahoo_data.retrieve(
+            str(self.league_id) + "-league-info",
+            self.yahoo_query.get_league_info,
+            data_type_class=League,
+            new_data_dir=(self.data_dir / str(self.season) / str(self.league_id)))
 
         self.season = self.league_info.season
         self.start_week = start_week or self.league_info.start_week
         self.current_week = self.league_info.current_week
         self.num_playoff_slots = self.league_info.settings.num_playoff_teams
         self.num_regular_season_weeks = int(self.league_info.settings.playoff_start_week) - 1
-        self.num_divisions = int(len(self.league_info.settings.divisions))
+        self.num_divisions = len(self.league_info.settings.divisions)
+
         self.divisions = {
-            str(division["division"].division_id): division["division"].name for
+            str(division.division_id): division.name for
             division in self.league_info.settings.divisions
         }
         self.roster_positions = self.league_info.settings.roster_positions
-        # TODO: Yahoo does not currently offer a built-in median game
-        self.has_median_matchup = False
+        self.has_median_matchup = bool(self.league_info.settings.uses_median_score)
         self.median_score_by_week = {}
 
         # validate user selection of week for which to generate report
@@ -138,8 +142,9 @@ class LeagueData(object):
         #                         str(team.get("team").name.decode("utf-8")).replace(" ", "_") + "-roster",
         #                         self.yahoo_query.get_team_roster_player_stats_by_week,
         #                         params={"team_id": team_id, "chosen_week": week},
-        #                         new_data_dir=(Path(self.data_dir) / str(self.season) / str(self.league_id) /
-        #                                       f"week_{week}" / "rosters")
+        #                         new_data_dir=(
+        #                           Path(self.data_dir) / str(self.season) / str(self.league_id) / f"week_{week}" / "rosters"
+        #                         )
         #                     )
         #             }
         #
@@ -168,11 +173,10 @@ class LeagueData(object):
 
             if int(wk) <= int(self.week_for_report):
                 scores = []
+                matchup: Matchup
                 for matchup in self.matchups_by_week[wk]:
-                    yfpy_matchup = matchup.get("matchup")  # type: Matchup
-                    for team in yfpy_matchup.teams:
-                        yfpy_team = team.get("team")  # type: Team
-                        team_score = yfpy_team.points
+                    for team in matchup.teams:
+                        team_score = team.points
                         if team_score:
                             scores.append(team_score)
 
@@ -188,12 +192,12 @@ class LeagueData(object):
         self.rosters_by_week = {}
         for wk in range(self.start_week, int(self.week_for_report) + 1):
             self.rosters_by_week[str(wk)] = {
-                str(team.get("team").team_id):
+                str(team.team_id):
                     self.yahoo_data.retrieve(
-                        str(team.get("team").team_id) + "-" +
-                        str(team.get("team").name.decode("utf-8")).replace(" ", "_") + "-roster",
+                        str(team.team_id) + "-" +
+                        str(team.name.decode("utf-8")).replace(" ", "_") + "-roster",
                         self.yahoo_query.get_team_roster_player_info_by_week,
-                        params={"team_id": str(team.get("team").team_id), "chosen_week": str(wk)},
+                        params={"team_id": str(team.team_id), "chosen_week": str(wk)},
                         new_data_dir=(
                                 self.data_dir / str(self.season) / str(self.league_id) / f"week_{str(wk)}" / "rosters"
                         )
@@ -206,7 +210,7 @@ class LeagueData(object):
         # for wk in range(self.start_week, int(self.week_for_report) + 1):
         #     for roster in self.rosters_by_week[str(wk)].values():
         #         for player in roster:
-        #             y_player = player.get("player")  # type: Player
+        #             y_player: Player = player.get("player")
         #             player_id = str(y_player.player_id)
         #             player_key = str(y_player.player_key)
         #
@@ -244,10 +248,11 @@ class LeagueData(object):
     def map_data_to_base(self, base_league_class):
         logger.debug("Mapping Yahoo data to base objects.")
 
-        league = base_league_class(self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data,
-                                   self.dev_offline)  # type: BaseLeague
+        league: BaseLeague = base_league_class(
+            self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data, self.dev_offline
+        )
 
-        league.name = self.league_info.name
+        league.name = self.league_info.name.decode()
         league.week = int(self.current_week)
         league.start_week = int(self.start_week)
         league.season = self.season
@@ -270,27 +275,44 @@ class LeagueData(object):
 
         league.bench_positions = ["BN", "IR"]
 
+        flex_mapping = {
+            "W/R": {
+                "flex_label": "FLEX_RB_WR",
+                "flex_positions_attribute": "flex_positions_rb_wr",
+                "flex_positions": ["RB", "WR"]
+            },
+            "W/T": {
+                "flex_label": "FLEX_TE_WR",
+                "flex_positions_attribute": "flex_positions_te_wr",
+                "flex_positions": ["TE", "WR"]
+            },
+            "W/R/T": {
+                "flex_label": "FLEX_RB_TE_WR",
+                "flex_positions_attribute": "flex_positions_rb_te_wr",
+                "flex_positions": ["RB", "TE", "WR"]
+            },
+            "Q/W/R/T": {
+                "flex_label": "FLEX_QB_RB_TE_WR",
+                "flex_positions_attribute": "flex_positions_qb_rb_te_wr",
+                "flex_positions": ["QB", "RB", "TE", "WR"]
+            },
+            "D": {
+                "flex_label": "FLEX_IDP",
+                "flex_positions_attribute": "flex_positions_idp",
+                "flex_positions": ["CB", "DB", "DE", "DL", "DT", "LB", "S"]
+            }
+        }
+
         for position in self.roster_positions:
-            pos = position.get("roster_position")  # type: RosterPosition
+            pos_name = position.position
+            pos_count = position.count
 
-            pos_name = pos.position
-            pos_count = int(pos.count)
-
-            if pos_name == "W/R":
-                league.flex_positions_rb_wr = ["RB", "WR"]
-                pos_name = "FLEX_RB_WR"
-            if pos_name == "W/T":
-                league.flex_positions_te_wr = ["TE", "WR"]
-                pos_name = "FLEX_TE_WR"
-            if pos_name == "W/R/T":
-                league.flex_positions_rb_te_wr = ["RB", "TE", "WR"]
-                pos_name = "FLEX_RB_TE_WR"
-            if pos_name == "Q/W/R/T":
-                league.flex_positions_qb_rb_te_wr = ["QB", "RB", "TE", "WR"]
-                pos_name = "FLEX_QB_RB_TE_WR"
-            if pos_name == "D":
-                league.flex_positions_idp = ["CB", "DB", "DE", "DL", "DT", "LB", "S"]
-                pos_name = "FLEX_IDP"
+            if pos_name in flex_mapping.keys():
+                league.__setattr__(
+                    flex_mapping[pos_name].get("flex_positions_attribute"),
+                    flex_mapping[pos_name].get("flex_positions")
+                )
+                pos_name = flex_mapping[pos_name].get("flex_label")
 
             pos_counter = deepcopy(pos_count)
             while pos_counter > 0:
@@ -302,63 +324,62 @@ class LeagueData(object):
             league.roster_position_counts[pos_name] = pos_count
 
         league_median_records_by_team = {}
+        matchups: List[Matchup]
         for week, matchups in self.matchups_by_week.items():
             league.teams_by_week[str(week)] = {}
             league.matchups_by_week[str(week)] = []
             for matchup in matchups:
-                y_matchup = matchup.get("matchup")  # type: Matchup
                 base_matchup = BaseMatchup()
 
-                base_matchup.week = int(y_matchup.week)
-                base_matchup.complete = True if y_matchup.status == "postevent" else False
-                base_matchup.tied = True if (y_matchup.is_tied and int(y_matchup.is_tied) == 1) else False
+                base_matchup.week = int(matchup.week)
+                base_matchup.complete = True if matchup.status == "postevent" else False
+                base_matchup.tied = bool(matchup.is_tied)
 
-                for team in y_matchup.teams:  # type: dict
-                    y_team = team.get("team")  # type: Team
+                team: Team
+                for team in matchup.teams:
                     base_team = BaseTeam()
 
-                    opposite_key = 1 if y_matchup.teams.index(team) == 0 else 0
-                    team_division = y_team.division_id
-                    opponent_division = y_matchup.teams[opposite_key].get("team").division_id
+                    opposite_key = 1 if matchup.teams.index(team) == 0 else 0
+                    team_division = team.division_id
+                    opponent_division = matchup.teams[opposite_key].division_id
                     if team_division and opponent_division and team_division == opponent_division:
                         base_matchup.division_matchup = True
 
-                    base_team.week = int(y_matchup.week)
-                    base_team.name = y_team.name
-                    base_team.num_moves = y_team.number_of_moves
-                    base_team.num_trades = y_team.number_of_trades
+                    base_team.week = matchup.week
+                    base_team.name = team.name.decode()
+                    base_team.num_moves = team.number_of_moves
+                    base_team.num_trades = team.number_of_trades
 
-                    if isinstance(y_team.managers, list):
-                        y_team_manager = y_team.managers
+                    if isinstance(team.managers, list):
+                        team_managers = team.managers
                     else:
-                        y_team_manager = [y_team.managers]
+                        team_managers = [team.managers]
 
-                    for manager in y_team_manager:
-                        y_manager = manager.get("manager")  # type: Manager
+                    manager: Manager
+                    for manager in team_managers:
                         base_manager = BaseManager()
 
-                        base_manager.manager_id = str(y_manager.manager_id)
-                        base_manager.email = y_manager.email
-                        base_manager.name = y_manager.nickname
+                        base_manager.manager_id = str(manager.manager_id)
+                        base_manager.email = manager.email
+                        base_manager.name = manager.nickname
 
                         base_team.managers.append(base_manager)
 
                     base_team.manager_str = ", ".join([manager.name_str for manager in base_team.managers])
 
-                    base_team.team_id = str(y_team.team_id)
-                    base_team.points = float(y_team.points)
-                    base_team.projected_points = float(y_team.projected_points)
-                    base_team.waiver_priority = y_team.waiver_priority
+                    base_team.team_id = str(team.team_id)
+                    base_team.points = team.points
+                    base_team.projected_points = team.projected_points
+                    base_team.waiver_priority = team.waiver_priority
                     league.has_waiver_priorities = base_team.waiver_priority > 0
                     if league.is_faab:
-                        base_team.faab = int(y_team.faab_balance) if y_team.faab_balance else 0
-                    base_team.url = y_team.url
+                        base_team.faab = team.faab_balance if team.faab_balance else 0
+                    base_team.url = team.url
 
                     team_standings_info = Team({})
                     for ranked_team in self.league_info.standings.teams:
-                        ranked_team = ranked_team.get("team")
-                        if int(ranked_team.team_id) == int(base_team.team_id):
-                            team_standings_info = ranked_team  # type: Team
+                        if ranked_team.team_id == int(base_team.team_id):
+                            team_standings_info = ranked_team
 
                     if team_standings_info.streak_type == "win":
                         streak_type = "W"
@@ -378,8 +399,8 @@ class LeagueData(object):
                         else 0.0,
                         streak_type=streak_type,
                         streak_len=int(team_standings_info.streak_length) if team_standings_info.streak_type else 0,
-                        team_id=y_team.team_id,
-                        team_name=y_team.name,
+                        team_id=team.team_id,
+                        team_name=team.name,
                         rank=int(team_standings_info.rank) if team_standings_info.rank else 0,
                         division=base_team.division,
                         division_wins=int(team_standings_info.team_standings.divisional_outcome_totals.wins) if
@@ -404,7 +425,7 @@ class LeagueData(object):
                     # get median for week
                     week_median = self.median_score_by_week.get(str(week))
 
-                    median_record = league_median_records_by_team.get(str(base_team.team_id))  # type: BaseRecord
+                    median_record: BaseRecord = league_median_records_by_team.get(str(base_team.team_id))
                     if not median_record:
                         median_record = BaseRecord(
                             team_id=base_team.team_id,
@@ -436,7 +457,7 @@ class LeagueData(object):
 
                     # no winner/loser if matchup is tied
                     if not base_matchup.tied:
-                        if y_team.team_key == y_matchup.winner_team_key:
+                        if team.team_key == matchup.winner_team_key:
                             base_matchup.winner = base_team
                         else:
                             base_matchup.loser = base_team
@@ -446,80 +467,63 @@ class LeagueData(object):
 
         for week, rosters in self.rosters_by_week.items():
             league.players_by_week[str(week)] = {}
+            roster: List[Player]
             for team_id, roster in rosters.items():
-                league_team = league.teams_by_week.get(str(week)).get(str(team_id))  # type: BaseTeam
+                league_team: BaseTeam = league.teams_by_week.get(str(week)).get(str(team_id))
                 for player in roster:
-                    y_player_for_week = player.get("player")  # type: Player
                     base_player = BasePlayer()
 
                     base_player.week_for_report = int(week)
-                    base_player.player_id = y_player_for_week.player_key
-                    base_player.bye_week = int(y_player_for_week.bye) if y_player_for_week.bye else 0
-                    base_player.display_position = y_player_for_week.display_position
-                    base_player.nfl_team_id = y_player_for_week.editorial_team_key
-                    base_player.nfl_team_abbr = y_player_for_week.editorial_team_abbr
-                    base_player.nfl_team_name = y_player_for_week.editorial_team_full_name
-                    base_player.first_name = y_player_for_week.first_name
-                    base_player.last_name = y_player_for_week.last_name
-                    base_player.full_name = y_player_for_week.full_name
+                    base_player.player_id = player.player_key
+                    base_player.bye_week = player.bye if player.bye else 0
+                    base_player.display_position = player.display_position
+                    base_player.nfl_team_id = player.editorial_team_key
+                    base_player.nfl_team_abbr = player.editorial_team_abbr
+                    base_player.nfl_team_name = player.editorial_team_full_name
+                    base_player.first_name = player.first_name
+                    base_player.last_name = player.last_name
+                    base_player.full_name = player.full_name
                     if base_player.display_position != "DEF":
-                        base_player.headshot_url = "https:" + y_player_for_week.headshot_url.split(":")[-1]
+                        base_player.headshot_url = "https:" + player.headshot_url.split(":")[-1]
                     else:
                         # use ESPN D/ST team logo (higher resolution)
-                        base_player.headshot_url = \
-                            "https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/{0}.png".format(
-                                base_player.nfl_team_abbr)
+                        base_player.headshot_url = (
+                            f"https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/{base_player.nfl_team_abbr}.png"
+                        )
                         # base_player.headshot_url = y_player_for_week.headshot_url
-                    base_player.owner_team_id = y_player_for_week.ownership.owner_team_key
-                    base_player.owner_team_name = y_player_for_week.ownership.owner_team_name
-                    base_player.percent_owned = float(
-                        y_player_for_week.percent_owned_value) if y_player_for_week.percent_owned_value else 0
-                    base_player.points = float(y_player_for_week.player_points_value) if \
-                        y_player_for_week.player_points_value else 0
-                    base_player.position_type = y_player_for_week.position_type
-
-                    base_player.primary_position = y_player_for_week.primary_position
-                    if y_player_for_week.selected_position_value == "W/R":
-                        base_player.selected_position = "FLEX_RB_WR"
-                    elif y_player_for_week.selected_position_value == "W/T":
-                        base_player.selected_position = "FLEX_TE_WR"
-                    elif y_player_for_week.selected_position_value == "W/R/T":
-                        base_player.selected_position = "FLEX_RB_TE_WR"
-                    elif y_player_for_week.selected_position_value == "Q/W/R/T":
-                        base_player.selected_position = "FLEX_QB_RB_TE_WR"
-                    elif y_player_for_week.selected_position_value == "D":
-                        base_player.selected_position = "FLEX_IDP"
+                    base_player.owner_team_id = player.ownership.owner_team_key
+                    base_player.owner_team_name = player.ownership.owner_team_name
+                    base_player.percent_owned = player.percent_owned_value if player.percent_owned_value else 0
+                    base_player.points = player.player_points_value if player.player_points_value else 0
+                    base_player.position_type = player.position_type
+                    if player.primary_position in flex_mapping.keys():
+                        base_player.primary_position = flex_mapping[player.primary_position].get("flex_label")
                     else:
-                        base_player.selected_position = y_player_for_week.selected_position_value
-                    base_player.selected_position_is_flex = True if int(
-                        y_player_for_week.selected_position.is_flex) == 1 else False
+                        base_player.primary_position = player.primary_position
 
-                    base_player.status = y_player_for_week.status
+                    if player.selected_position_value in flex_mapping.keys():
+                        base_player.selected_position = flex_mapping[player.selected_position_value].get("flex_label")
+                    else:
+                        base_player.selected_position = player.selected_position_value
+                    base_player.selected_position_is_flex = bool(player.selected_position.is_flex)
 
-                    eligible_positions = y_player_for_week.eligible_positions
-                    if isinstance(eligible_positions, dict):
-                        eligible_positions = [eligible_positions]
+                    base_player.status = player.status
 
+                    eligible_positions = player.eligible_positions
                     for position in eligible_positions:
-                        if position == "W/R":
-                            position = "FLEX_RB_WR"
-                        elif position == "W/T":
-                            position = "FLEX_TE_WR"
-                        elif position == "W/R/T":
-                            position = "FLEX_RB_TE_WR"
-                        elif position == "Q/W/R/T":
-                            position = "FLEX_QB_RB_TE_WR"
-                        elif position == "D":
-                            position = "FLEX_IDP"
+                        if position in flex_mapping.keys():
+                            position = flex_mapping[position].get("flex_label")
+                        for flex_label, flex_positions in league.get_flex_positions_dict().items():
+                            if position in flex_positions:
+                                base_player.eligible_positions.append(flex_label)
                         base_player.eligible_positions.append(position)
 
-                    for stat in y_player_for_week.stats:
-                        y_stat = stat.get("stat")  # type: Stat
+                    for stat in player.stats:
                         base_stat = BaseStat()
 
-                        base_stat.stat_id = y_stat.stat_id
-                        base_stat.name = y_stat.name
-                        base_stat.value = y_stat.value
+                        base_stat.stat_id = stat.stat_id
+                        base_stat.name = stat.name
+                        base_stat.value = stat.value
 
                         base_player.stats.append(base_stat)
 

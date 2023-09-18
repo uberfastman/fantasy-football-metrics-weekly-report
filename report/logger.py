@@ -26,30 +26,31 @@ class StyledFormatter(logging.Formatter):
 
     def format(self, record):
 
-        record.name = "{0}{1}{2}".format(Fore.RESET, record.name, Style.RESET_ALL)
+        record.name = f"{Fore.RESET}{record.name}{Style.RESET_ALL}"
 
         log_level = record.levelname
         if log_level == "DEBUG":
-            record.levelname = "{0}{1}{2}".format(Fore.MAGENTA, log_level, Style.RESET_ALL)
-            record.message = "{0}{1}{2}".format(Fore.MAGENTA, record.getMessage(), Style.RESET_ALL)
+            record.levelname = f"{Fore.MAGENTA}{log_level}{Style.RESET_ALL}"
+            record.message = f"{Fore.MAGENTA}{record.getMessage()}{Style.RESET_ALL}"
         elif log_level == "INFO":
-            record.levelname = "{0}{1}{2}".format(Fore.WHITE, log_level, Style.RESET_ALL)
-            record.message = "{0}{1}{2}".format(Fore.WHITE, record.getMessage(), Style.RESET_ALL)
+            record.levelname = f"{Fore.WHITE}{log_level}{Style.RESET_ALL}"
+            record.message = f"{Fore.WHITE}{record.getMessage()}{Style.RESET_ALL}"
         elif log_level == "WARNING":
-            record.levelname = "{0}{1}{2}".format(Fore.YELLOW, log_level, Style.RESET_ALL)
-            record.message = "{0}{1}{2}".format(Fore.YELLOW, record.getMessage(), Style.RESET_ALL)
+            record.levelname = f"{Fore.YELLOW}{log_level}{Style.RESET_ALL}"
+            record.message = f"{Fore.YELLOW}{record.getMessage()}{Style.RESET_ALL}"
         elif log_level == "ERROR":
-            record.levelname = "{0}{1}{2}".format(Fore.RED, log_level, Style.RESET_ALL)
-            record.message = "{0}{1}{2}".format(Fore.RED, record.getMessage(), Style.RESET_ALL)
+            record.levelname = f"{Fore.RED}{log_level}{Style.RESET_ALL}"
+            record.message = f"{Fore.RED}{record.getMessage()}{Style.RESET_ALL}"
         elif log_level == "CRITICAL":
-            record.levelname = "{0}{1}{2}".format(Fore.RED, log_level, Style.RESET_ALL)
-            record.message = "{0}{1}{2}".format(Fore.RED, record.getMessage(), Style.RESET_ALL)
+            record.levelname = f"{Fore.RED}{log_level}{Style.RESET_ALL}"
+            record.message = f"{Fore.RED}{record.getMessage()}{Style.RESET_ALL}"
         else:
             record.message = record.getMessage()
 
         # noinspection PyUnresolvedReferences
         if self.usesTime():
-            record.asctime = "{0}{1}{2}".format(Fore.RESET, self.formatTime(record, self.datefmt), Style.RESET_ALL)
+            record.asctime = f"{Fore.RESET}{self.formatTime(record, self.datefmt)}{Style.RESET_ALL}"
+
         s = self.formatMessage(record)
         if record.exc_info:
             # Cache the traceback text to avoid converting it multiple times
@@ -93,7 +94,7 @@ class SizedTimedRotatingFileHandler(TimedRotatingFileHandler):
         if self.stream is None:  # delay was set...
             self.stream = self._open()
         if self.maxBytes > 0:  # are we rolling over?
-            msg = "%s\n" % self.format(record)
+            msg = f"{record}\n"
             # due to non-posix-compliant Windows feature
             self.stream.seek(0, 2)
             if self.stream.tell() + len(msg) >= self.maxBytes:
@@ -149,9 +150,12 @@ def get_logger(module_name=None, propagate=True):
     if not Path(log_file_dir).exists():
         os.makedirs(log_file_dir)
 
-    log_formatter = StyledFormatter("%(asctime)s {0}-{1} %(name)s {0}-{1} %(levelname)s {0}-{1} %(message)s".format(
-        Fore.RESET, Style.RESET_ALL
-    ))
+    log_formatter = StyledFormatter(
+        f"%(asctime)s {Fore.RESET}-{Style.RESET_ALL} "
+        f"%(name)s {Fore.RESET}-{Style.RESET_ALL} "
+        f"%(levelname)s {Fore.RESET}-{Style.RESET_ALL} "
+        f"%(message)s"
+    )
 
     sh = logging.StreamHandler(stream=sys.stderr)
     sh.setLevel(log_level)
@@ -210,4 +214,4 @@ if __name__ == "__main__":
     test_logger.addHandler(handler)
     for i in range(100):
         time.sleep(0.1)
-        test_logger.debug("i=%d" % i)
+        test_logger.debug(f"i={i}")

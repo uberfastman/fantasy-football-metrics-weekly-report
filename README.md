@@ -30,7 +30,7 @@
 
 #### Fantasy Football Platform Support: [Yahoo](#yahoo-setup), [ESPN](#espn-setup), [Sleeper](#sleeper-setup), [Fleaflicker](#fleaflicker-setup)
 
-***You can see an example of what a report looks like [here](resources/files/EXAMPLE-report.pdf)!***
+***You can see an example of what a report looks like [here](resources/files/example_report.pdf)!***
 
 ---
 
@@ -55,11 +55,11 @@
 ### Table of Contents
 * <ins>***[Quickstart Guide](#quickstart-guide)***</ins>
 * [About](#about)
-    * [Example Report](#example-report)
-    * [Updating](#updating)
+  * [Example Report](#example-report)
+  * [Updating](#updating)
 * [Dependencies](#dependencies)
 * [Setup](#setup)
-    * [Command-line](#command-line)
+  * [Command-line](#command-line)
     * [Git](#git)
     * [Docker](#docker)
     * [GitHub](#github)
@@ -69,17 +69,17 @@
     * [ESPN Setup](#espn-setup)
 * [Running the Report Application](#running-the-report-application)
 * [Configuration](#configuration)
-   * [Report Features](#report-features)
-   * [Report Formatting](#report-formatting)
-   * [Report Settings](#report-settings)
+  * [Report Features](#report-features)
+  * [Report Formatting](#report-formatting)
+  * [Report Settings](#report-settings)
 * [Usage](#usage)
 * [Additional Integrations](#additional-integrations)
-    * [Google Drive](#google-drive-setup)
-    * [Slack](#slack-setup)
+  * [Google Drive](#google-drive-setup)
+  * [Slack](#slack-setup)
 * [Troubleshooting](#troubleshooting)
-    * [Logs](#logs)
-    * [Yahoo](#yahoo)
-    * [Docker on Windows](#docker-on-windows)
+  * [Logs](#logs)
+  * [Yahoo](#yahoo)
+  * [Docker on Windows](#docker-on-windows)
 
 ---
 
@@ -92,36 +92,34 @@
 
 1. Open a command-line interface (see the [Command-line](#command-line) section for more details) on your computer.
 
-    * ***macOS***: type `Cmd + Space` (`⌘ + Space`) to bring up Spotlight, and search for "Terminal" and hit enter).
+   * ***macOS***: type `Cmd + Space` (`⌘ + Space`) to bring up Spotlight, and search for "Terminal" and hit enter).
     
-    * ***Windows***: type `Windows + R` to open the "Run" box, then type `cmd` and then click "OK" to open a regular Command Prompt (or type `cmd` and then press `Ctrl + Shift + Enter` to open a Command Prompt as administrator.)
+   * ***Windows***: type `Windows + R` to open the "Run" box, then type `cmd` and then click "OK" to open a regular Command Prompt (or type `cmd` and then press `Ctrl + Shift + Enter` to open a Command Prompt as administrator.)
     
-    * ***Linux (Ubuntu)***: type `Ctrl+Alt+T`.
+   * ***Linux (Ubuntu)***: type `Ctrl+Alt+T`.
 
 2. Install Git (see [Git](#git) section for more details).
 
-    * ***macOS***: run `git --version` for the first time, and when prompted, install the *Xcode Command Line Tools*.
+   * ***macOS***: run `git --version` for the first time, and when prompted, install the *Xcode Command Line Tools*.
     
-    * ***Windows***: Download [Git for Windows](https://git-scm.com/download/win) and install it.
+   * ***Windows***: Download [Git for Windows](https://git-scm.com/download/win) and install it.
     
-    * ***Linux (Ubuntu)***: `sudo apt install git-all` (see above link for different Linux distributions)
+   * ***Linux (Ubuntu)***: `sudo apt install git-all` (see above link for different Linux distributions)
 
 3. Install [Docker Desktop](#docker) for your operating system.
 
-    * ***macOS***: [Docker Desktop for Mac](https://docs.docker.com/docker-for-mac/install/)
+   * ***macOS***: [Docker Desktop for Mac](https://docs.docker.com/docker-for-mac/install/)
     
-    * ***Windows***: [Docker Desktop for Windows](https://docs.docker.com/docker-for-windows/install/)
+   * ***Windows***: [Docker Desktop for Windows](https://docs.docker.com/docker-for-windows/install/)
     
-    * ***Linux***: [Docker for Linux](https://docs.docker.com/engine/install/)
+   * ***Linux***: [Docker for Linux](https://docs.docker.com/engine/install/)
 
 4. Clone this app from GitHub (see [GitHub](#github) section for more details) to wherever you would like to store the app code on your computer (I recommend something like your user Documents folder).
-
     ```bash
     git clone https://github.com/uberfastman/fantasy-football-metrics-weekly-report.git
     ```
 
 5. Navigate into the cloned app directory within the command line by running:
-
     ```bash
     cd fantasy-football-metrics-weekly-report
     ```
@@ -136,19 +134,18 @@
     
     <sup>If on Windows, see the [Docker on Windows](#docker-on-windows) troubleshooting section if you encounter any permissions or access issues.</sup>
     
-    * Run:
-    
-        ```bash
-        docker compose up -d
-        ```
+   * Run:
+       ```bash
+       docker compose up -d
+       ```
+       If you wish to see the Docker logs, then run `docker compose up`.
    
-    * Wait for the above command to complete, then run:
-   
-        ```bash
-        docker exec -it fantasy-football-metrics-weekly-report-app-1 python main.py
-        ```
+   * Wait for the above command to complete, then run:
+       ```bash
+       docker exec -it fantasy-football-metrics-weekly-report-app-1 python main.py
+       ```
 
-    * ***Follow the prompts to generate a report for your fantasy league!***
+   * ***Follow the prompts to generate a report for your fantasy league!***
     
 ---
 
@@ -176,7 +173,7 @@ Currently supported fantasy football platforms:
 
 <a name="example-report"></a>
 #### Example Report
-***You can see an example of what a report looks like [here](resources/files/EXAMPLE-report.pdf)!***
+***You can see an example of what a report looks like [here](resources/files/example_report.pdf)!***
 
 <a name="updating"></a>
 #### Updating
@@ -189,7 +186,8 @@ If you wish to update the app yourself manually, you can just type `n` to skip a
 
 <a name="dependencies"></a>
 ### Dependencies
-The application is actively developed in macOS, but is cross-platform compatible. The app requires Python 3.8 or later (Python 2 is no longer supported). To check if you have Python 3.8 or later installed, open up a window in Terminal (macOS), Command Prompt (Windows), or a command line shell of your choice, and run `python --version`. If the return is `Python 3.8.x`, `Python 3.9.x`, or `Python 3.10.x`, you are good to go. If the return is `Python 2.x.x`, you will need to install Python 3.8. Check out the instructions [here](https://realpython.com/installing-python/) for how to install Python 3.8 on your system.
+
+The application is actively developed in macOS, but is cross-platform compatible. The app requires ***Python 3.9 or later*** (Python 2 is no longer supported). To check if you have the minimum required version of Python or later installed, open up a window in Terminal (macOS), Command Prompt (Windows), or a command line shell of your choice, and run `python --version`. If the return value is `Python 3.x.x` where the first `x` is equal to or greater than the minimum required minor version, you are good to go. If the return is `Python 2.x.x`, you will need to install the correct Python 3 version. Check out the instructions [here](https://realpython.com/installing-python/) for how to install Python 3 on your system.
 
 Project dependencies can be viewed in the [`requirements.txt`](requirements.txt) file.
 
@@ -248,14 +246,12 @@ Install [Docker](https://docs.docker.com/get-docker/) for your operating system:
 
 Clone this project to whichever directory you wish to use for this app:
 
-* If you do ***not*** have an existing account on GitHub and do ***not*** wish to create one, then use HTTPS by running: 
-
+* If you do ***not*** have an existing account on GitHub and do ***not*** wish to create one, then use HTTPS by running:
     ```bash
     git clone https://github.com/uberfastman/fantasy-football-metrics-weekly-report.git
     ```
 
 * If you already have an account on [GitHub](https://github.com), then I recommend using [SSH to connect with GitHub](https://help.github.com/en/articles/connecting-to-github-with-ssh) by running:
-
     ```bash
     git clone git@github.com:uberfastman/fantasy-football-metrics-weekly-report.git
     ```
@@ -275,31 +271,31 @@ Clone this project to whichever directory you wish to use for this app:
 
 4. Go to [https://developer.yahoo.com/apps/create/](https://developer.yahoo.com/apps/create/) and create an app (you must be logged into your Yahoo account as stated above). For the app, select the following options:
 
-    1. `Application Name` (**Required**): `yahoo fantasy sports metrics` (you can name your app whatever you want, but this is just an example).
+   1. `Application Name` (**Required**): `yahoo fantasy sports metrics` (you can name your app whatever you want, but this is just an example).
     
-    2. `Application Type` (**Required**): select the `Installed Application` radio button.
+   2. `Application Type` (**Required**): select the `Installed Application` radio button.
     
-    3. `Description` (*Optional*): you *may* write a description of what the app does.
+   3. `Description` (*Optional*): you *may* write a description of what the app does.
     
-    4. `Home Page URL` (*Optional*): if you have a web address related to your app you *may* add it here.
+   4. `Home Page URL` (*Optional*): if you have a web address related to your app you *may* add it here.
     
-    5. `Redirect URI(s)` (**Required**): this field must contain a valid redirect address, so you can use `localhost:8080`
+   5. `Redirect URI(s)` (**Required**): this field must contain a valid redirect address, so you can use `localhost:8080`
     
-    6. `API Permissions` (**Required**): check the `Fantasy Sports` checkbox. You can leave the `Read` option selected (appears in an accordion expansion underneath the `Fantasy Sports` checkbox once you select it).
+   6. `API Permissions` (**Required**): check the `Fantasy Sports` checkbox. You can leave the `Read` option selected (appears in an accordion expansion underneath the `Fantasy Sports` checkbox once you select it).
     
-    7. Click the `Create App` button.
+   7. Click the `Create App` button.
     
-    8. Once the app is created, it should redirect you to a page for your app, which will show both a `Client ID` and a `Client Secret`.
+   8. Once the app is created, it should redirect you to a page for your app, which will show both a `Client ID` and a `Client Secret`.
     
-    9. Copy the file `EXAMPLE-private.json` (located in the `auth/yahoo/` directory), and rename the file copy `private.json` by running the below command in your command line shell:
+   9. Copy the file `private.template.json` (located in the `auth/yahoo/` directory), and rename the file copy `private.json` by running the below command in your command line shell:
     
-        * **macOS**/**Linux**: `cp auth/yahoo/EXAMPLE-private.json private.json auth/yahoo/private.json`
+      * **macOS**/**Linux**: `cp auth/yahoo/private.template.json private.json auth/yahoo/private.json`
         
-        * **Windows**: `copy auth\yahoo\EXAMPLE-private.json auth\yahoo\private.json`
+      * **Windows**: `copy auth\yahoo\private.template.json auth\yahoo\private.json`
     
-    10. Open your new `private.json` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then copy and paste the `Client ID` and `Client Secret` values from your above created Yahoo app to their respective fields (make sure the strings are wrapped regular quotes (`""`), NOT formatted quotes (`“”`)). The path to this file will be needed to point the YFPY API wrapper responsible for data retrieval to your credentials.
+   10. Open your new `private.json` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then copy and paste the `Client ID` and `Client Secret` values from your above created Yahoo app to their respective fields (make sure the strings are wrapped regular quotes (`""`), NOT formatted quotes (`“”`)). The path to this file will be needed to point the YFPY API wrapper responsible for data retrieval to your credentials.
     
-    11. The first time you run the app, it will initialize the OAuth connection between the report generator and your Yahoo account.
+   11. The first time you run the app, it will initialize the OAuth connection between the report generator and your Yahoo account.
     
 **NOTE**: *If your Yahoo league uses FAAB (Free Agent Acquisition Budget) for player waivers, you must set the `initial_faab_budget` value in the `config.ini` file to reflect your league's starting budget, since this information does not seem to be available in the Yahoo API.
 
@@ -350,7 +346,7 @@ Sleeper has a public API, the documentation for which is available [here](https:
 <a name="espn-setup"></a>
 #### ESPN Setup
 
-ESPN has a public API, but it was just changed from v2 to v3, which introduced some variance to its functionality. At the present time it is also undocumented and subject to unexpected and sudden changes. *Please note, some  data required to provide certain information to the report is not currently available in the ESPN API, so a few small things are excluded in the report until such a time as the data becomes available*. That being said, the missing data does not fundamentally limit the capability of the app to generate a complete report.
+ESPN has a public API, but it was changed from v2 to v3 in 2018, which introduced some variance to its functionality. At the present time it is also undocumented and subject to unexpected and sudden changes. *Please note, some  data required to provide certain information to the report is not currently available in the ESPN API, so a few small things are excluded in the report until such a time as the data becomes available*. That being said, the missing data does not fundamentally limit the capability of the app to generate a complete report.
 
 1. Retrieve your ESPN league ID. You can find it by looking at the URL of your league in your browser:
 
@@ -362,33 +358,46 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
 
 4. You can also specify the `year` from the command line by running the report with the `-y <chosen_year>` flag.
 
-5. Public ESPN leagues **do not** require any authentication to access their API at this time, so no additional steps are necessary for those leagues. However, certain data will not be available if you are not authenticated, so it is advised for you to still follow the below authentication steps anyway. For private leagues, you ***must*** complete the following authentication steps:
+5. Public ESPN leagues **do not** require any authentication to access their API at this time, so no additional steps are necessary for those leagues. However, certain data will not be available if you are not authenticated, so it is advised for you to still follow the below authentication steps anyway. For private leagues, you ***must*** complete one of the following authentication processes. 
 
-    1. Steven Morse has done a great deal of fantastic work to help teach people how to use the ESPN fantasy API, and has a useful blog post [here](https://stmorse.github.io/journal/espn-fantasy-3-python.html) detailing how to get your own session cookies. As stated in the aforementioned blog, you can get the cookies following the subsequent steps.
+   1. Allow the app to automatically retrieve your ESPN session cookies for you:
+   
+      1. Copy the file `private.template.json` (located in the `auth/espn/` directory), and rename the file copy `private.json` by running the below command in your command line shell:
+
+          * **macOS**/**Linux**: `cp auth/espn/private.template.json private.json auth/espn/private.json`
+
+          * **Windows**: `copy auth\espn\private.template.json auth\espn\private.json`
+
+      2. Open your new `private.json` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), ***delete*** the `swid` and `espn_s2` fields, and add your ESPN account username and password to their respective fields. This app does not store your credentials anywhere, but it *does* use [Selenium](https://www.selenium.dev) to run a headless browser to log in to ESPN on your behalf, so expect to see an email alerting you to a new device login. The Selenium process will retrieve your ESPN sesssion cookies (`SWID` and `espn_s2`) and copy them into your `private.json` file for reuse with future ESPN API authentication.
+
+   2. Manually retrieve your ESPN session cookies:
+   
+      1. Steven Morse has done a great deal of fantastic work to help teach people how to use the ESPN fantasy API, and has a useful blog post [here](https://stmorse.github.io/journal/espn-fantasy-3-python.html) detailing how to get your own session cookies. As stated in the aforementioned blog, you can get the cookies following the subsequent steps.
         
-    2. *"A lot of the ESPN Fantasy tools are behind a login-wall. Since accounts are free, this is not a huge deal, but becomes slightly annoying for GET requests because now we somehow need to “login” through the request. One way to do this is to send session cookies along with the request. Again this can take us into a gray area, but to my knowledge there is nothing prohibited about using your own cookies for personal use within your own league."*
+      2. *"A lot of the ESPN Fantasy tools are behind a login-wall. Since accounts are free, this is not a huge deal, but becomes slightly annoying for GET requests because now we somehow need to “login” through the request. One way to do this is to send session cookies along with the request. Again this can take us into a gray area, but to my knowledge there is nothing prohibited about using your own cookies for personal use within your own league."*
         
-        *Specifically, our GET request from the previous post is modified to look like, for example:*
+         *Specifically, our GET request from the previous post is modified to look like, for example:*
+         ```shell
+         r = requests.get(
+             'https://games.espn.com/ffl/api/v2/scoreboard', 
+             params={'leagueId': 123456, 'seasonId': 2023, 'matchupPeriodId': 1},
+             cookies={'swid': '{SWID-COOKIE-HERE}', 'espn_s2': 'LONG_ESPN_S2_COOKIE_HERE'}
+         )
+         ```
 
-            r = requests.get(
-                'http://games.espn.com/ffl/api/v2/scoreboard', 
-                params={'leagueId': 123456, 'seasonId': 2017, 'matchupPeriodId': 1},
-                cookies={'swid': '{SWID-COOKIE-HERE}', 'espn_s2': 'LONG_ESPN_S2_COOKIE_HERE'}
-            )
-                 		  
-        *This should return the info you want even for a private league. I saw that the SWID and the ESPN_S2 cookies were the magic tickets based on the similar coding endeavors here and here and here.*
+         *This should return the info you want even for a private league. I saw that the SWID and the ESPN_S2 cookies were the magic tickets based on the similar coding endeavors here and here and here.*
 
-        *You can find these cookies in Safari by opening the Storage tab of Developer tools (you can turn on developer tools in preferences), and looking under espn.com in the Cookies folder. In Chrome, you can go to Preferences -> Advanced -> Content Settings -> Cookies -> See all cookies and site data, and looking for ESPN.*
+         *You can find these cookies in Safari by opening the Storage tab of Developer tools (you can turn on developer tools in preferences), and looking under espn.com in the Cookies folder. In Chrome, you can go to Preferences -> Advanced -> Content Settings -> Cookies -> See all cookies and site data, and looking for ESPN.*
     
-    3. Depending on what web browser (Firefox, Chrome, Edge, Brave, etc.) you are using, the process for viewing your session cookies in the web inspector will be different. I recommend Googling *"how to inspect element in [browser]"* (for your specific browser) to learn how to use that browser's web inspector.
+      3. Depending on what web browser (Firefox, Chrome, Edge, Brave, etc.) you are using, the process for viewing your session cookies in the web inspector will be different. I recommend Googling *"how to inspect element in [browser]"* (for your specific browser) to learn how to use that browser's web inspector.
            
-    4. Copy the file `EXAMPLE-private.json` (located in the `auth/espn/` directory), and rename the file copy `private.json` by running the below command in your command line shell:
+      4. Copy the file `private.template.json` (located in the `auth/espn/` directory), and rename the file copy `private.json` by running the below command in your command line shell:
     
-        * **macOS**/**Linux**: `cp auth/espn/EXAMPLE-private.json private.json auth/espn/private.json`
+         * **macOS**/**Linux**: `cp auth/espn/private.template.json private.json auth/espn/private.json`
         
-        * **Windows**: `copy auth\espn\EXAMPLE-private.json auth\espn\private.json`
+         * **Windows**: `copy auth\espn\private.template.json auth\espn\private.json`
         
-    5. Open your new `private.json` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then copy and paste the above cookies into their respective fields. Please note, the `swid` will be surrounded by curly braces (`{...}`), which must be included.
+      5. Open your new `private.json` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then copy and paste the above cookies into their respective fields. Please note, the `swid` will be surrounded by curly braces (`{...}`), which must be included.
     
 **NOTE**: *Because ESPN made the change to their API between 2018 and 2019, ESPN support in the Fantasy Football Metrics Weekly Report application is currently limited to the 2019 season and later. Support for historical seasons will be implemented at a later time.
 
@@ -407,29 +416,22 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
     docker compose up -d
     ```
 
-    1. *FIRST TIME RUNNING*: The first time you run the above command, you must wait for the Docker image to build. You will output containing numbered steps (such as `Step 1/8 : FROM python:3.8-slim`). Wait until the process completes, and you see the below output:
-    
-        ```bash
-        Successfully built ae1d93516452
-        Successfully tagged fantasy-football-metrics-weekly-report_app:latest
-        WARNING: Image for service app was built because it did not already exist. To rebuild this image you must use `docker compose build` or `docker compose up --build`.
-        Creating fantasy-football-metrics-weekly-report_app_1 ... done
-        ```
+    1. *FIRST TIME RUNNING*: The first time you run the above command, you must wait for the Docker image to be pulled from the [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry). You will see output containing progress bars as the image layers are downloaded.
        
        **NOTE**: If you are running *Docker for Windows* and you see errors when trying to build the Docker container and/or run `docker compose up -d`, please go to the [Docker on Windows](#docker-on-windows) section in [Troubleshooting](#troubleshooting) for workarounds!
 
-    2. *ALL SUBSEQUENT RUNS*: After the initial build of the Docker container, you will not see all the same build output as you did the first time. Instead, simply wait until you see the below output: 
+    2. *ALL RUNS*: After the initial run of the Docker container, you will not see all the image pull output as you did the first time. However, for all runs you will know when the app is ready when you see the below output: 
         
         ```bash
-        Creating fantasy-football-metrics-weekly-report_app_1 ... done
+        fantasy-football-metrics-weekly-report-app-1  | Fantasy Football Metrics Weekly Report app is ready!
         ```
       
-    3. The docker image is now running, and ready for use!
+    3. The docker image is now running and ready for use!
      
 3. Run the report:
 
     ```bash
-    docker exec -it fantasy-football-metrics-weekly-report_app_1 python main.py
+    docker exec -it fantasy-football-metrics-weekly-report-app-1 python main.py
     ```
 
     1. You should see the following prompts: 
@@ -472,9 +474,9 @@ ESPN has a public API, but it was just changed from v2 to v3, which introduced s
 <a name="configuration"></a>
 ### Configuration
 
-The Fantasy Football Metrics Weekly Report application allows certain aspects of the generated report to be configured with a `.ini` file. Included in the repository is `EXAMPLE-config.ini`, containing default values, as well as league settings that point to a public Yahoo league as a "demo" of the app.
+The Fantasy Football Metrics Weekly Report application allows certain aspects of the generated report to be configured with a `.ini` file. Included in the repository is `config.template.ini`, containing default values, as well as league settings that point to a public Yahoo league as a "demo" of the app.
 
-The app ***REQUIRES*** that `config.ini` be present (or that the user has provided an `.ini` configuration file), so it is recommended that you *make a copy* of the `EXAMPLE-config.ini` where it is already located, and then *rename the copy* to just `config.ini`. Then update the values to reflect the league for which you wish to generate a report, as well as any other settings you wish to change from the default values. ***You can also pass your own configuration `.ini` file to the app using the `-c` (`--config-file`) command line argument.***
+The app ***REQUIRES*** that `config.ini` be present (or that the user has provided an `.ini` configuration file), so it is recommended that you *make a copy* of the `config.template.ini` where it is already located, and then *rename the copy* to just `config.ini`. Then update the values to reflect the league for which you wish to generate a report, as well as any other settings you wish to change from the default values. ***You can also pass your own configuration `.ini` file to the app using the `-c` (`--config-file`) command line argument.***
 
 <a name="report-features"></a>
 #### Report Features
@@ -564,7 +566,7 @@ After completing the above setup and configuration steps, you should now be able
 
 | Flag                                       | Description                                                                                                               |
 |:-------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------|
-| `-h`, `--help`                             | Print command line usage message                                                                                          |
+| `-h`, `--help`                             | Display command line usage message                                                                                        |
 | `-a`, `--auto-run`                         | Automatically run the report using the default week.                                                                      |
 | `-f`, `--fantasy-platform` `<platform>`    | Fantasy football platform on which league for report is hosted.                                                           |
 | `-l`, `--league-id` `<league_id>`          | Fantasy Football league ID                                                                                                |
@@ -668,7 +670,7 @@ The following setup steps are ***required*** in order to allow the Google Drive 
 
 25. On the far right of your new credential, click the little arrow that displays `Download OAuth Client` when you hover over it, then click `DOWNLOAD JSON`.
 
-26. Your credentials JSON file will download. Rename it `credentials.json`, and put it in the `auth/google/` directory where `EXAMPLE-credentials.json` is located.
+26. Your credentials JSON file will download. Rename it `credentials.json`, and put it in the `auth/google/` directory where `credentials.template.json` is located.
 
 27. Open a terminal window (makes sure you are inside the `fantasy-football-metrics-weekly-report` directory), and run:
 
@@ -732,17 +734,17 @@ The following setup steps are ***required*** in order to allow the Slack integra
 
 13. From the dropdown menu, select the below scopes:
     
-| OAuth Scope            | Description                                                                         |
-|:-----------------------|:------------------------------------------------------------------------------------|
-| `channels:read`        | View basic information about public channels in the workspace                       |
-| `chat:write`           | Send messages as @ff-report                                                         |
-| `chat:write.customize` | Send messages as @ff-report with a customized username and avatar                   |
-| `chat:write.public`    | Send messages to channels @ff-report isn't a member of                              |
-| `files:write`          | Upload, edit, and delete files as ff-report                                         | 
-| `groups:read`          | View basic information about private channels that ff-report has been added to      |
-| `im:read`              | View basic information about direct messages that ff-report has been added to       |
-| `incoming-webhook`     | Post messages to specific channels in Slack                                         |
-| `mpim:read`            | View basic information about group direct messages that ff-report has been added to |
+    | OAuth Scope            | Description                                                                         |
+    |:-----------------------|:------------------------------------------------------------------------------------|
+    | `channels:read`        | View basic information about public channels in the workspace                       |
+    | `chat:write`           | Send messages as @ff-report                                                         |
+    | `chat:write.customize` | Send messages as @ff-report with a customized username and avatar                   |
+    | `chat:write.public`    | Send messages to channels @ff-report isn't a member of                              |
+    | `files:write`          | Upload, edit, and delete files as ff-report                                         | 
+    | `groups:read`          | View basic information about private channels that ff-report has been added to      |
+    | `im:read`              | View basic information about direct messages that ff-report has been added to       |
+    | `incoming-webhook`     | Post messages to specific channels in Slack                                         |
+    | `mpim:read`            | View basic information about group direct messages that ff-report has been added to |
 
 14. Scroll back up to `OAuth Tokens & Redirect URLs`, and now you should be able to click the `Install App to Workspace` button, so click it.
 
@@ -750,7 +752,7 @@ The following setup steps are ***required*** in order to allow the Slack integra
 
 16. You will now be redirected back to the `OAuth & Permissions` section of your app settings. At the top, you will see a `Bot User OAuth Access Token` field, which will now have a value populated.
 
-17. Copy the file `EXAMPLE-token.json` (located in the `auth/slack/` directory), and rename the file copy `token.json`, then copy and paste the above `Bot user OAuth Access Token` into the field value of `token.json` where it says `"SLACK_APP_OAUTH_ACCESS_TOKEN_STRING"`, replacing that string. Make sure you are using double quotes (`"`) on either side of your token string.
+17. Copy the file `token.template.json` (located in the `auth/slack/` directory), and rename the file copy `token.json`, then copy and paste the above `Bot user OAuth Access Token` into the field value of `token.json` where it says `"SLACK_APP_OAUTH_ACCESS_TOKEN_STRING"`, replacing that string. Make sure you are using double quotes (`"`) on either side of your token string.
 
 18. If you are posting to a *private channel*, you will need to invite the bot to the channel before it can make posts there. Just go to the Slack channel and type `@ff-report`, and then hit enter. Slack will ask if you wish to invite the bot to the channel, so confirm that you wish to add the bot to the channel, and now it should be able to post to the *private channel*. 
 
@@ -770,7 +772,7 @@ The following setup steps are ***required*** in order to allow the Slack integra
 <a name="logs"></a>
 #### Logs
 
-In addition to printing output from the application to the command line, the Fantasy Football Metrics Weekly Report also logs all the same output to [out.log](logs/out.log), which you can view at any time to see output from past runs of the application.
+In addition to displaying output from the application to the command line, the Fantasy Football Metrics Weekly Report also logs all the same output to [out.log](logs/out.log), which you can view at any time to see output from past runs of the application.
 
 <a name="yahoo"></a>
 #### Yahoo
@@ -818,7 +820,7 @@ If you are running Docker on Windows, you might encounter errors when trying to 
 <a name="reportlab"></a>
 #### Reportlab
 
-On macOS 12+ (Monterey) or on Macs using the M1 ARM architecture, you might encounter the following error (or one like it) during dependency installation:
+On macOS 12+ (Monterey) or on Macs using the M1/M2 ARM architecture, you might encounter the following error (or one like it) during dependency installation:
 ```shell
 Symbol not found in flat namespace '_FT_Done_Face' from reportlab with Python@3.9 on macOS 12
 ```

@@ -21,7 +21,7 @@ class HorizontalBarChart3DGenerator(_DrawingEditorMixin, Drawing):
 
     def __init__(self, data: list, font, font_size, x_axis_params, box_width, box_height, chart_width, chart_height,
                  width=550, height=215, *args, **kw):
-        logger.debug("Generating 3D horizontal bar chart with data:\n{0}\n".format(json.dumps(data, indent=2)))
+        logger.debug(f"Generating 3D horizontal bar chart with data:\n{json.dumps(data, indent=2)}\n")
 
         num_teams = len(data)
         sorted_data = sorted(data, key=lambda x: x[3])

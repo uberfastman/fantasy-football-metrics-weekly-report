@@ -84,7 +84,8 @@ class ReportData(object):
         for week, matchups in league.matchups_by_week.items():
             if int(week) > int(week_for_report):
                 remaining_matchups[int(week)] = []
-                for matchup in matchups:  # type: BaseMatchup
+                matchup: BaseMatchup
+                for matchup in matchups:
                     matchup_teams = []
                     for team in matchup.teams:
                         matchup_teams.append(team.team_id)
@@ -116,10 +117,13 @@ class ReportData(object):
         # current median standings data
         self.data_for_current_median_standings = metrics_calculator.get_median_standings_data(league)
 
-        # playoff probabilities data
-        self.data_for_playoff_probs = metrics.get("playoff_probs").calculate(week_counter, week_for_report,
-                                                                             league.standings,
-                                                                             remaining_matchups)
+        if league.num_playoff_slots > 0:
+            # playoff probabilities data
+            self.data_for_playoff_probs = metrics.get("playoff_probs").calculate(week_counter, week_for_report,
+                                                                                 league.standings, remaining_matchups)
+        else:
+            self.data_for_playoff_probs = None
+
         if self.data_for_playoff_probs:
             self.data_for_playoff_probs = metrics_calculator.get_playoff_probs_data(
                 league.standings,
@@ -166,7 +170,8 @@ class ReportData(object):
 
         # teams data and season average points by position data
         self.data_for_teams = []
-        for team_result in self.teams_results.values():  # type: BaseTeam
+        team_result: BaseTeam
+        for team_result in self.teams_results.values():
             self.data_for_teams.append([
                 team_result.team_id,
                 team_result.name,
@@ -297,29 +302,26 @@ class ReportData(object):
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ LOGGER OUTPUT ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 
-        weekly_metrics_output_string = \
-            "\n~~~~~ WEEK {0} METRICS INFO ~~~~~\n" \
-            "              SCORE tie(s): {1}\n" \
-            "COACHING EFFICIENCY tie(s): {2}\n".format(
-                week_counter,
-                self.ties_for_scores,
-                self.ties_for_coaching_efficiency
-            )
+        weekly_metrics_output_string = (
+            f"\n~~~~~ WEEK {week_counter} METRICS INFO ~~~~~\n"
+            f"              SCORE tie(s): {self.ties_for_scores}\n"
+            f"COACHING EFFICIENCY tie(s): {self.ties_for_coaching_efficiency}\n"
+        )
 
         # add line for coaching efficiency disqualifications if applicable
         if self.num_coaching_efficiency_dqs > 0:
             ce_dq_str = ""
             for team_name, ineligible_players_count in self.coaching_efficiency_dqs.items():
                 if ineligible_players_count == -1:
-                    ce_dq_str += "{0} (incomplete active squad), ".format(team_name)
+                    ce_dq_str += f"{team_name} (incomplete active squad), "
                 elif ineligible_players_count == -2:
-                    ce_dq_str += "{0} (manually disqualified), ".format(team_name)
+                    ce_dq_str += f"{team_name} (manually disqualified), "
                 else:
-                    ce_dq_str += "{0} (ineligible bench players: {1}/{2}), ".format(
-                        team_name,
-                        ineligible_players_count,
-                        league.roster_position_counts.get("BN"))  # exclude IR
-            weekly_metrics_output_string += "   COACHING EFFICIENCY DQs: {0}\n".format(ce_dq_str[:-2])
+                    ce_dq_str += (
+                        f"{team_name} (ineligible bench players: "
+                        f"{ineligible_players_count}/{league.roster_position_counts.get('BN')}), "
+                    )  # exclude IR
+            weekly_metrics_output_string += f"   COACHING EFFICIENCY DQs: {ce_dq_str[:-2]}\n"
 
         # output weekly metrics info
         logger.info(weekly_metrics_output_string)

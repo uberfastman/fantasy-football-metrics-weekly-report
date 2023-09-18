@@ -75,7 +75,7 @@ def get_valid_config(config_file="config.ini"):
             logger.debug(
                 "Configuration file \"config.ini\" available. Running Fantasy Football Metrics Weekly Report app...")
             config_template = AppConfigParser()
-            config_template.read(root_directory / "EXAMPLE-config.ini")
+            config_template.read(root_directory / "config.template.ini")
             config.read(config_file_path)
 
             if not set(config_template.sections()).issubset(set(config.sections())):
@@ -87,7 +87,7 @@ def get_valid_config(config_file="config.ini"):
                 logger.error(
                     f"Your local \"config.ini\" file is missing the following sections:\n\n"
                     f"{', '.join(missing_sections)}\n\nPlease update your \"config.ini\" with the above sections from "
-                    f"\"EXAMPLE-config.ini\" and try again."
+                    f"\"config.template.ini\" and try again."
                 )
                 sys.exit("...run aborted.")
             else:
@@ -119,7 +119,7 @@ def get_valid_config(config_file="config.ini"):
                 logger.error(
                     f"Your local \"config.ini\" file is  missing the following keys (from their respective sections):"
                     f"\n\n{missing_keys_str}\n\nPlease update your \"config.ini\" with the above keys from "
-                    f"\"EXAMPLE-config.ini\" and try again."
+                    f"\"config.template.ini\" and try again."
                 )
 
                 sys.exit("...run aborted.")
@@ -154,7 +154,7 @@ def get_valid_config(config_file="config.ini"):
 def create_config_from_template(config: AppConfigParser, root_directory, config_file_path, platform=None,
                                 league_id=None, season=None, current_week=None):
     logger.debug("Creating \"config.ini\" file from template.")
-    config_template_file = Path(root_directory) / "EXAMPLE-config.ini"
+    config_template_file = Path(root_directory) / "config.template.ini"
     config_file_path = shutil.copyfile(config_template_file, config_file_path)
 
     config.read(config_file_path)
@@ -262,7 +262,7 @@ def check_for_updates(auto_run=False):
         last_local_version = None
         tag_ndx = 0
         while not last_local_version:
-            next_tag = version_tags[tag_ndx]  # type: TagReference
+            next_tag: TagReference = version_tags[tag_ndx]
             for commit in project_repo.iter_commits():
                 if next_tag.commit == commit:
                     last_local_version = next_tag
@@ -529,11 +529,7 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, s
         sys.exit("...run aborted.")
 
 
-def add_report_player_stats(config,
-                            season,
-                            metrics,
-                            player,  # type: BasePlayer
-                            bench_positions):
+def add_report_player_stats(config, season, metrics, player: BasePlayer, bench_positions):
     player.bad_boy_crime = str()
     player.bad_boy_points = int()
     player.bad_boy_num_offenders = int()
@@ -544,7 +540,7 @@ def add_report_player_stats(config,
     if player.selected_position not in bench_positions:
 
         if config.getboolean("Report", "league_bad_boy_rankings"):
-            bad_boy_stats = metrics.get("bad_boy_stats")  # type: BadBoyStats
+            bad_boy_stats: BadBoyStats = metrics.get("bad_boy_stats")
             player.bad_boy_crime = bad_boy_stats.get_player_bad_boy_crime(
                 player.first_name, player.last_name, player.nfl_team_abbr, player.primary_position)
             player.bad_boy_points = bad_boy_stats.get_player_bad_boy_points(
@@ -553,12 +549,12 @@ def add_report_player_stats(config,
                 player.first_name, player.last_name, player.nfl_team_abbr, player.primary_position)
 
         if config.getboolean("Report", "league_beef_rankings"):
-            beef_stats = metrics.get("beef_stats")  # type: BeefStats
+            beef_stats: BeefStats = metrics.get("beef_stats")
             player.weight = beef_stats.get_player_weight(player.first_name, player.last_name, player.nfl_team_abbr)
             player.tabbu = beef_stats.get_player_tabbu(player.first_name, player.last_name, player.nfl_team_abbr)
 
         if config.getboolean("Report", "league_covid_risk_rankings") and int(season) >= 2020:
-            covid_risk = metrics.get("covid_risk")  # type: CovidRisk
+            covid_risk: CovidRisk = metrics.get("covid_risk")
             player.covid_risk = covid_risk.get_player_covid_risk(
                 player.full_name, player.nfl_team_abbr, player.primary_position)
 
@@ -692,4 +688,4 @@ if __name__ == "__main__":
     local_config = AppConfigParser()
     local_config.read("../config.ini")
     local_current_nfl_week = get_current_nfl_week(config=local_config, dev_offline=False)
-    print(local_current_nfl_week)
+    logger.info(f"Local current NFL week: {local_current_nfl_week}")

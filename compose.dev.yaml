@@ -1,0 +1,6 @@
+
+services:
+
+  app:
+    volumes:
+      - .:/opt/ffmwr

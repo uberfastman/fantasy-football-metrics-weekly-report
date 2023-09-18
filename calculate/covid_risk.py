@@ -21,12 +21,14 @@ class CovidRisk(object):
     def __init__(self, config, data_dir, season, week, save_data=False, dev_offline=False, refresh=False):
         logger.debug("Initializing COVID-19 risk.")
 
-        self.config = config  # type: AppConfigParser
+        self.config: AppConfigParser = config
 
         self.season = int(season)
         self.week = int(week)
         self.selected_nfl_season_week = datetime.strptime(
-            "{0} {1} 1".format(str(self.season), str(self.week + 36)), "%G %V %u")
+            f"{self.season} {self.week + 36} 1",
+            "%G %V %u"
+        )
 
         self.save_data = save_data
         self.dev_offline = dev_offline
@@ -96,9 +98,8 @@ class CovidRisk(object):
             if not self.covid_data and self.season >= 2020:
                 logger.debug("Retrieving COVID-19 data from the web.")
 
-                football_db_endpoint = "https://www.footballdb.com/transactions/index.html?period={0}&period={1}".format(
-                    str(self.season + 1),
-                    str(self.season)
+                football_db_endpoint = (
+                    f"https://www.footballdb.com/transactions/index.html?period={self.season + 1}&period={self.season}"
                 )
                 headers = {
                     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, " +
@@ -175,8 +176,9 @@ class CovidRisk(object):
         else:
             if not self.covid_data and self.season >= 2020:
                 raise FileNotFoundError(
-                    "FILE {0} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
-                        self.covid_data_file_path))
+                    f"FILE {self.covid_data_file_path} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY "
+                    f"SAVED DATA!"
+                )
 
         if len(self.covid_data) == 0 and self.season >= 2020:
             logger.warning(
@@ -186,7 +188,7 @@ class CovidRisk(object):
         elif self.season < 2020:
             logger.warning("COVID-19 was not a factor during NFL seasons prior to 2020, so metric is being ignored.")
         else:
-            logger.info("{0} players at risk of COVID-19 were loaded".format(len(self.covid_data)))
+            logger.info(f"{len(self.covid_data)} players at risk of COVID-19 were loaded")
 
     def open_covid_data(self):
         logger.debug("Loading saved COVID-19 risk data.")
@@ -272,10 +274,14 @@ class CovidRisk(object):
             covid_risk_score += (self.raw_covid_data.get(team_abbr).get("count") - 1)
 
             selected_nfl_season_week = datetime.strptime(
-                "{0} {1} 1".format(str(self.season), str(self.week + 36)), "%G %V %u")
+                f"{self.season} {self.week + 36} 1",
+                "%G %V %u"
+            )
 
             covid_recency = selected_nfl_season_week - datetime.strptime(
-                self.raw_covid_data.get(team_abbr).get("last_date"), "%B %d, %Y")
+                self.raw_covid_data.get(team_abbr).get("last_date"),
+                "%B %d, %Y"
+            )
             if covid_recency < timedelta(days=14) and not player_on_covid_list_present:
                 # add 10 if a teammate was on the Reserve/COVID-19 list within the past 14 days (COVID-19 risk window)
                 covid_risk_score += 10
@@ -286,9 +292,9 @@ class CovidRisk(object):
 
         else:
             logger.debug(
-                "Team {0} has no Reserve/COVID-19 transactions. Setting player COVID-19 risk to 0. Run report with the "
-                "-r flag (--refresh-web-data) to refresh all external web data and try again.".format(
-                    team_abbr, player_full_name))
+                f"Team {team_abbr} has no Reserve/COVID-19 transactions. Setting player COVID-19 risk to 0. Run report "
+                f"with the -r flag (--refresh-web-data) to refresh all external web data and try again."
+            )
 
         return covid_risk_score
 
