@@ -57,7 +57,7 @@ class BadBoyStats(object):
             os.makedirs(data_dir)
 
         # Load the scoring based on crime categories
-        with open(Path(__file__).parent.parent / "resources" / "files" / "crime-categories.json", mode="r",
+        with open(Path(__file__).parent.parent / "resources" / "files" / "crime_categories.json", mode="r",
                   encoding="utf-8") as crimes:
             self.crime_rankings = json.load(crimes)
             logger.debug("Crime categories loaded.")
@@ -192,15 +192,16 @@ class BadBoyStats(object):
         else:
             if not self.bad_boy_data:
                 raise FileNotFoundError(
-                    "FILE {0} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!".format(
-                        self.bad_boy_data_file_path))
+                    f"FILE {self.bad_boy_data_file_path} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY "
+                    f"SAVED DATA!"
+                )
 
         if len(self.bad_boy_data) == 0:
             logger.warning(
                 "NO bad boy records were loaded, please check your internet connection or the availability of "
                 "\"https://www.usatoday.com/sports/nfl/arrests/\" and try generating a new report.")
         else:
-            logger.info("{0} bad boy records loaded".format(len(self.bad_boy_data)))
+            logger.info(f"{len(self.bad_boy_data)} bad boy records loaded")
 
     def open_bad_boy_data(self):
         logger.debug("Loading saved bay boy data.")
@@ -238,8 +239,8 @@ class BadBoyStats(object):
                 player_pos_type = player_arrest.get("position_type")
                 offense_category = str.upper(player_arrest.get("crime"))
 
-                # Add each crime to output categories for generation of crime-categories-output.json file, which can
-                # be used to replace the existing crime-categories.json file. Each new crime categories will default to
+                # Add each crime to output categories for generation of crime_categories.new.json file, which can
+                # be used to replace the existing crime_categories.json file. Each new crime categories will default to
                 # a score of 0, and must have its score manually assigned within the json file.
                 self.unique_crime_categories_for_output[offense_category] = self.crime_rankings.get(offense_category, 0)
 
@@ -250,7 +251,7 @@ class BadBoyStats(object):
                     offense_points = self.crime_rankings.get(offense_category)
                 else:
                     offense_points = 0
-                    logger.warning("Crime ranking not found: \"%s\". Assigning score of 0." % offense_category)
+                    logger.warning(f"Crime ranking not found: \"{offense_category}\". Assigning score of 0.")
 
                 nfl_player = {
                     "team": team_abbr,
@@ -315,8 +316,9 @@ class BadBoyStats(object):
             return self.bad_boy_data[player_full_name][key_str] if key_str else self.bad_boy_data[player_full_name]
         else:
             logger.debug(
-                "Player not found: {0}. Setting crime category and bad boy points to 0. Run report with the -r flag "
-                "(--refresh-web-data) to refresh all external web data and try again.".format(player_full_name))
+                f"Player not found: {player_full_name}. Setting crime category and bad boy points to 0. Run report "
+                f"with the -r flag (--refresh-web-data) to refresh all external web data and try again."
+            )
 
             self.bad_boy_data[player_full_name] = {
                 "team": player_team,
@@ -346,7 +348,7 @@ class BadBoyStats(object):
 
     def generate_crime_categories_json(self):
         unique_crimes = OrderedDict(sorted(self.unique_crime_categories_for_output.items(), key=lambda k_v: k_v[0]))
-        with open(Path(__file__).parent.parent / "resources" / "files" / "crime-categories-output.json", mode="w",
+        with open(Path(__file__).parent.parent / "resources" / "files" / "crime_categories.new.json", mode="w",
                   encoding="utf-8") as crimes:
             json.dump(unique_crimes, crimes, ensure_ascii=False, indent=2)
 

@@ -1,0 +1,8 @@
+{
+  "username": "ESPN_USERNAME_OR_EMAIL",
+  "password": "ESPN_PASSWORD",
+  "chrome_user_data_dir": "/path/to/Chrome/user/data/directory/",
+  "chrome_user_profile": "Chrome User Profile Name",
+  "swid":"{SWID-COOKIE}",
+  "espn_s2": "THIS_IS_WHERE_THE_VERY_LONG_ESPN_S2_COOKIE_GOES"
+}

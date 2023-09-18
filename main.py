@@ -25,7 +25,7 @@ NFL_SEASON_LENGTH = 18
 
 
 def main(argv):
-    logger.debug("Running fantasy football metrics weekly report app with arguments:\n{0}".format(argv))
+    logger.debug(f"Running fantasy football metrics weekly report app with arguments:\n{argv}")
 
     dependencies = []
     with open(Path(__file__).parent / "requirements.txt", "r") as reqs:
@@ -39,15 +39,17 @@ def main(argv):
         dependency_is_installed = True if installed_dependencies.find(dependency) != -1 else False
         if not dependency_is_installed:
             missing_dependency_count += 1
+            dependency_package = re.split("\\W+", dependency)[0]
             logger.error(
-                "MISSING DEPENDENCY: {0}. Please run `pip install {1}` and retry the report generation.".format(
-                    dependency, re.split("\\W+", dependency)[0]))
+                f"MISSING DEPENDENCY: {dependency_package}. Please run `pip install {dependency_package}` and retry "
+                f"the report generation."
+            )
 
     if missing_dependency_count > 0:
         logger.error(
-            "MISSING {0} ".format(str(missing_dependency_count)) + (
-                "DEPENDENCY" if missing_dependency_count == 1 else "DEPENDENCIES"))
-        sys.exit("...run aborted.")
+            f"MISSING {missing_dependency_count} " + ("DEPENDENCY" if missing_dependency_count == 1 else "DEPENDENCIES")
+        )
+        sys.exit(1)
 
     usage_str = \
         "\n" \
@@ -141,9 +143,10 @@ def select_league(config, auto_run, week, start_week, platform, league_id, game_
                   playoff_prob_sims, break_ties, dq_ce, save_data, dev_offline, test):
     if not league_id:
         time.sleep(0.25)
-        default = input("{0}Generate report for default league? ({1}y{0}/{2}n{0}) -> {3}".format(
-            Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
-        ))
+        default = input(
+            f"{Fore.YELLOW}Generate report for default league? "
+            f"({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
+        )
     else:
         default = "selected"
 
@@ -169,9 +172,9 @@ def select_league(config, auto_run, week, start_week, platform, league_id, game_
                                      test=test)
     elif default == "n":
         league_id = input(
-            "{0}What is the league ID of the league for which you want to generate a report? -> {3}".format(
-                Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
-            ))
+            f"{Fore.YELLOW}What is the league ID of the league for which you want to generate a report? "
+            f"-> {Style.RESET_ALL}"
+        )
 
         if not week:
             week_for_report = select_week(auto_run)
@@ -228,9 +231,10 @@ def select_league(config, auto_run, week, start_week, platform, league_id, game_
 def select_week(auto_run=False):
     if not auto_run:
         time.sleep(0.25)
-        default = input("{0}Generate report for default week? ({1}y{0}/{2}n{0}) -> {3}".format(
-            Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL
-        ))
+        default = input(
+            f"{Fore.YELLOW}Generate report for default week? ({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) "
+            f"-> {Style.RESET_ALL}"
+        )
     else:
         logger.info("Auto-run is set to \"true\". Automatically running the report for the default (most recent) week.")
         default = "y"
@@ -239,9 +243,8 @@ def select_week(auto_run=False):
         return None
     elif default == "n":
         chosen_week = input(
-            "{0}For which week would you like to generate a report? ({1}1{0} - {1}{4}{0}) -> {3}".format(
-                Fore.YELLOW, Fore.GREEN, Fore.RED, Style.RESET_ALL, NFL_SEASON_LENGTH
-            )
+            f"{Fore.YELLOW}For which week would you like to generate a report? "
+            f"({Fore.GREEN}1{Fore.YELLOW} - {Fore.GREEN}{NFL_SEASON_LENGTH}{Fore.YELLOW}) -> {Style.RESET_ALL}"
         )
         if 0 < int(chosen_week) <= NFL_SEASON_LENGTH:
             return chosen_week
@@ -314,13 +317,13 @@ if __name__ == "__main__":
                 slack_response = slack_messenger.upload_file_to_selected_slack_channel(report_pdf)
             else:
                 logger.warning(
-                    "You have configured \"config.ini\" with unsupported Slack setting: post_or_file = {0}. "
-                    "Please choose \"post\" or \"file\" and try again.".format(post_or_file))
+                    f"You have configured \"config.ini\" with unsupported Slack setting: "
+                    f"post_or_file = {post_or_file}. Please choose \"post\" or \"file\" and try again."
+                )
                 sys.exit("...run aborted.")
             if slack_response.get("ok"):
-                logger.info("Report {0} successfully posted to Slack!".format(report_pdf))
+                logger.info(f"Report {report_pdf} successfully posted to Slack!")
             else:
-                logger.error("Report {0} was NOT posted to Slack with error: {1}".format(
-                    report_pdf, slack_response.get("error")))
+                logger.error(f"Report {report_pdf} was NOT posted to Slack with error: {slack_response.get('error')}")
         else:
             logger.info("Test report NOT posted to Slack.")

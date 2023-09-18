@@ -1,0 +1,10 @@
+
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        - PYTHON_VERSION_MAJOR=3
+        - PYTHON_VERSION_MINOR=11

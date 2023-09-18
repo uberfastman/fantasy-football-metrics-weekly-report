@@ -22,7 +22,7 @@
 
 * Make sure your operating system (OS) has Python 3.8 (or later) installed. See the above section on [dependencies](../../README.md#dependencies) for instructions.
 
-* After you've finished installing Python 3.8 (or later), check that it has been successfully installed by running `python3 --version` (or `py -0p` (or `py -3` to see if you can launch Python 3 if `py -0p` fails) if using the [Python launcher for Windows](https://docs.python.org/3/using/windows.html#python-launcher-for-windows) in Windows to list installed Python version with their paths) in the command line again, and confirming that it outputs `Python 3.8.x`, `Python 3.9.x`, or `Python 3.10.x`. If it *does **not***, double check that you followed all Python 3 installation steps correctly.
+* After you've finished installing Python 3.8 (or later), check that it has been successfully installed by running `python3 --version` (or `py -0p` (or `py -3` to see if you can launch Python 3 if `py -0p` fails) if using the [Python launcher for Windows](https://docs.python.org/3/using/windows.html#python-launcher-for-windows) in Windows to list installed Python version with their paths) in the command line again, and confirming that it outputs `Python 3.8.x`, `Python 3.9.x`, `Python 3.10.x`, or `Python 3.11.x`. If it *does **not***, double check that you followed all Python 3 installation steps correctly.
 
 * Open a command line prompt
 
@@ -88,7 +88,7 @@
     Congratulations, you have successfully created a Python 3 virtual environment for the project to run in!
             
         
-* Finally, run `pip install -r requirements.txt`
+* Finally, run `pip install -r requirements.txt -r requirements-dev.txt`.
 
 ---
 

@@ -168,7 +168,7 @@ class GoogleDriveUploader(object):
         return (
             f"\n"
             f"Fantasy Football Report\n"
-            f"Generated {'{:%Y-%b-%d %H:%M:%S}'.format(datetime.datetime.now())}\n"
+            f"Generated {datetime.datetime.now():%Y-%b-%d %H:%M:%S}\n"
             f"*{upload_file['title']}*\n\n"
             f"_Google Drive Link:_\n"
             f"{upload_file['alternateLink']}"
@@ -238,6 +238,8 @@ if __name__ == "__main__":
     local_config.read(Path(__file__).parents[1] / "config.ini")
     reupload_file = local_config.get("Drive", "google_drive_reupload_file")
 
+    logger.info(f"Re-uploading {Path(reupload_file).name} ({Path(reupload_file).parts[2]}) to Google Drive...")
+
     google_drive_uploader = GoogleDriveUploader(reupload_file, local_config)
     upload_message = google_drive_uploader.upload_file()
-    print(upload_message)
+    logger.info(upload_message)

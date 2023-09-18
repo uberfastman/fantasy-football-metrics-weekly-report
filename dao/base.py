@@ -24,7 +24,7 @@ def complex_json_handler(obj):
         try:
             return str(obj, "utf-8")
         except TypeError:
-            raise TypeError("Object of type %s with value of %s is not JSON serializable" % (type(obj), repr(obj)))
+            raise TypeError(f"Object of type {type(obj)} with value of {repr(obj)} is not JSON serializable")
 
 
 class FantasyFootballReportObject(object):
@@ -175,7 +175,8 @@ class BaseLeague(FantasyFootballReportObject):
         """
 
         matchup_list = []
-        for matchup in self.matchups_by_week.get(str(week_for_report)):  # type: BaseMatchup
+        matchup: BaseMatchup
+        for matchup in self.matchups_by_week.get(str(week_for_report)):
             if matchup.complete:
                 if matchup.teams[0].points == matchup.teams[1].points:
                     is_tied = matchup.tied
@@ -191,11 +192,12 @@ class BaseLeague(FantasyFootballReportObject):
                 winning_team = ""
 
             teams = {}
-            for team in matchup.teams:  # type: BaseTeam
+            team: BaseTeam
+            for team in matchup.teams:
                 if matchup.teams.index(team) == 0:
-                    opponent = matchup.teams[1]  # type: BaseTeam
+                    opponent: BaseTeam = matchup.teams[1]
                 else:
-                    opponent = matchup.teams[0]  # type: BaseTeam
+                    opponent: BaseTeam = matchup.teams[0]
                 teams[str(team.team_id)] = {
                     "result": "T" if is_tied else "W" if team.team_id == winning_team else "L",
                     "points_for": team.points,
@@ -269,8 +271,8 @@ class BaseMatchup(FantasyFootballReportObject):
         self.tied = False
         self.division_matchup = False
         self.teams = []
-        self.winner = BaseTeam()  # type: BaseTeam
-        self.loser = BaseTeam()  # type: BaseTeam
+        self.winner: BaseTeam = BaseTeam()
+        self.loser: BaseTeam = BaseTeam()
 
     def __setattr__(self, key, value):
         if key == "complete" and not isinstance(value, bool):
@@ -423,17 +425,17 @@ class BaseRecord(FantasyFootballReportObject):
     @staticmethod
     def _format_record_with_points_for(wins, ties, losses, points_for):
         if ties > 0:
-            record_str = "{0}-{1}-{2} ({3})".format(wins, losses, ties, round(points_for, 2))
+            record_str = f"{wins}-{losses}-{ties} ({round(points_for, 2)})"
         else:
-            record_str = "{0}-{1} ({2})".format(wins, losses, round(points_for, 2))
+            record_str = f"{wins}-{losses} ({round(points_for, 2)})"
         return record_str
 
     @staticmethod
     def _format_record_without_points_for(wins, ties, losses):
         if ties > 0:
-            record_str = "{0}-{1}-{2}".format(wins, losses, ties)
+            record_str = f"{wins}-{losses}-{ties}"
         else:
-            record_str = "{0}-{1}".format(wins, losses)
+            record_str = f"{wins}-{losses}"
         return record_str
 
     def _update_streak(self, streak_type):
@@ -488,7 +490,7 @@ class BaseRecord(FantasyFootballReportObject):
         self._points_against += points
 
     def get_percentage(self):
-        return "%.3f" % self._percentage
+        return f"{self._percentage:.3f}"
 
     def get_record_str(self):
         return self._record_str
@@ -503,7 +505,7 @@ class BaseRecord(FantasyFootballReportObject):
         return self._streak_len
 
     def get_streak_str(self):
-        return "{0}-{1}".format(self._streak_type, self._streak_len)
+        return f"{self._streak_type}-{self._streak_len}"
 
     def _update_division_streak(self, streak_type):
         if self._division_streak_type == streak_type:
@@ -566,7 +568,7 @@ class BaseRecord(FantasyFootballReportObject):
         self._division_points_against += points
 
     def get_division_percentage(self):
-        return "%.3f" % self._division_percentage
+        return f"{self._division_percentage:.3f}"
 
     def get_division_record_str(self):
         return self._division_record_str
@@ -578,7 +580,7 @@ class BaseRecord(FantasyFootballReportObject):
         return self._division_streak_len
 
     def get_division_streak_str(self):
-        return "{0}-{1}".format(self._division_streak_type, self._division_streak_len)
+        return f"{self._division_streak_type}-{self._division_streak_len}"
 
 
 class BaseManager(FantasyFootballReportObject):

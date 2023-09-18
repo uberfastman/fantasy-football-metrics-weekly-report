@@ -19,7 +19,7 @@ class SeasonAverageCalculator(object):
         self.break_ties = break_ties
 
     def get_average(self, data, key, with_percent=False, first_ties=False, reverse=True):
-        logger.debug("Calculating season average from \"{0}\".".format(key))
+        logger.debug(f"Calculating season average from \"{key}\".")
 
         season_average_list = []
         team_index = 0
@@ -28,7 +28,7 @@ class SeasonAverageCalculator(object):
 
             valid_values = [value[1] for value in team if (value[1] is not None and value[1] != "DQ")]
             average = np.mean(valid_values)
-            season_average_value = "{0:.2f}".format(average)
+            season_average_value = f"{average:.2f}"
 
             season_average_list.append([team_name, season_average_value])
             team_index += 1
@@ -46,14 +46,16 @@ class SeasonAverageCalculator(object):
             for team in ordered_average_values:
                 if ordered_team[1] == team[1]:
                     if with_percent:
-                        ordered_team[3] = "{0:.2f}%".format(float(str(ordered_team[3]).replace("%", ""))) if \
-                            ordered_team[3] != "DQ" else "DQ"
+                        ordered_team[3] = (
+                            f"{float(str(ordered_team[3]).replace('%', '')):.2f}%"
+                            if ordered_team[3] != "DQ" else "DQ"
+                        )
                         value = str(team[2])
                     elif key == "data_for_scores":
-                        ordered_team[3] = "{0:.2f}".format(float(str(ordered_team[3])))
+                        ordered_team[3] = f"{float(str(ordered_team[3])):.2f}"
                         value = str(team[2])
                     else:
-                        value = "{0}".format(str(team[2]))
+                        value = f"{str(team[2])}"
 
                     if key == "data_for_scores":
                         ordered_team.insert(-1, value)
