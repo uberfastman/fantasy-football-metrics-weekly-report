@@ -186,7 +186,8 @@ If you wish to update the app yourself manually, you can just type `n` to skip a
 
 <a name="dependencies"></a>
 ### Dependencies
-The application is actively developed in macOS, but is cross-platform compatible. The app requires Python 3.8 or later (Python 2 is no longer supported). To check if you have Python 3.8 or later installed, open up a window in Terminal (macOS), Command Prompt (Windows), or a command line shell of your choice, and run `python --version`. If the return is `Python 3.8.x`, `Python 3.9.x`, `Python 3.10.x`, or `Python 3.10.x`, you are good to go. If the return is `Python 2.x.x`, you will need to install Python 3.8 or later. Check out the instructions [here](https://realpython.com/installing-python/) for how to install Python 3.8 or later on your system.
+
+The application is actively developed in macOS, but is cross-platform compatible. The app requires ***Python 3.9 or later*** (Python 2 is no longer supported). To check if you have the minimum required version of Python or later installed, open up a window in Terminal (macOS), Command Prompt (Windows), or a command line shell of your choice, and run `python --version`. If the return value is `Python 3.x.x` where the first `x` is equal to or greater than the minimum required minor version, you are good to go. If the return is `Python 2.x.x`, you will need to install the correct Python 3 version. Check out the instructions [here](https://realpython.com/installing-python/) for how to install Python 3 on your system.
 
 Project dependencies can be viewed in the [`requirements.txt`](requirements.txt) file.
 
@@ -819,7 +820,7 @@ If you are running Docker on Windows, you might encounter errors when trying to 
 <a name="reportlab"></a>
 #### Reportlab
 
-On macOS 12+ (Monterey) or on Macs using the M1 ARM architecture, you might encounter the following error (or one like it) during dependency installation:
+On macOS 12+ (Monterey) or on Macs using the M1/M2 ARM architecture, you might encounter the following error (or one like it) during dependency installation:
 ```shell
 Symbol not found in flat namespace '_FT_Done_Face' from reportlab with Python@3.9 on macOS 12
 ```
