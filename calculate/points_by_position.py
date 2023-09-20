@@ -14,11 +14,10 @@ class PointsByPosition(object):
         logger.debug("Initializing points by position.")
 
         self.week_for_report = week_for_report
-        self.roster_slot_counts = league.roster_position_counts
+        self.roster_slot_counts = {k: v for k, v in league.roster_position_counts.items() if v != 0}
         self.bench_positions = league.bench_positions
         self.flex_positions_dict = league.get_flex_positions_dict()
         self.flex_types = list(self.flex_positions_dict.keys())
-        # self.flex_types.remove("FLEX_IDP")  # comment/uncomment line to remove/add FLEX_IDP to team points by position
 
     @staticmethod
     def calculate_points_by_position_season_averages(season_average_points_by_position_dict):
@@ -47,7 +46,9 @@ class PointsByPosition(object):
         total_points_by_position = 0
         player: BasePlayer
         for player in players:
-            if position == player.primary_position and player.selected_position not in self.bench_positions:
+            if ((position == player.primary_position
+                 or (player.primary_position in self.flex_positions_dict.get(position, [])))
+                    and player.selected_position not in self.bench_positions):
                 total_points_by_position += float(player.points)
 
         return total_points_by_position
@@ -67,23 +68,20 @@ class PointsByPosition(object):
     def get_weekly_points_by_position(self, teams_results):
         logger.debug("Retrieving weekly points by position.")
 
+        team_roster_slot_counts = copy.deepcopy(self.roster_slot_counts)
+        team_roster_slots = list(team_roster_slot_counts.keys())
+
         weekly_points_by_position_data = []
         team_result: BaseTeam
         for team_result in teams_results.values():
-            team_roster_slot_counts = copy.deepcopy(self.roster_slot_counts)
             for slot in list(team_roster_slot_counts.keys()):
-                if slot in self.flex_types and self.roster_slot_counts.get(slot) != 0:
-                    active_roster_slots = list({k: v for k, v in self.roster_slot_counts.items() if v != 0}.keys())
-
-                    if not set(self.flex_positions_dict.get(slot)).intersection(set(active_roster_slots)):
+                if slot in self.flex_types:
+                    if not set(self.flex_positions_dict.get(slot)).intersection(set(team_roster_slots)):
                         self.flex_types.remove(slot)
                     else:
                         for flex_slot in self.flex_positions_dict.get(slot):
                             if flex_slot not in team_roster_slot_counts:
                                 self.roster_slot_counts[flex_slot] = 1
-
-                if self.roster_slot_counts.get(slot) == 0:
-                    del self.roster_slot_counts[slot]
 
             player_points_by_position = self._execute_points_by_position(team_result.name, team_result.roster)
             weekly_points_by_position_data.append([team_result.team_id, player_points_by_position])

@@ -403,18 +403,18 @@ class LeagueData(object):
                 "flex_positions": ["TE", "WR"]
             },
             "FLEX": {
-                "flex_label": "FLEX_RB_TE_WR",
+                "flex_label": "FLEX",
                 "flex_positions_attribute": "flex_positions_rb_te_wr",
                 "flex_positions": ["RB", "TE", "WR"]
             },
             "SUPER_FLEX": {
-                "flex_label": "FLEX_QB_RB_TE_WR",
+                "flex_label": "SUPERFLEX",
                 "flex_positions_attribute": "flex_positions_qb_rb_te_wr",
                 "flex_positions": ["QB", "RB", "TE", "WR"]
             },
             "IDP_FLEX": {
                 "flex_label": "FLEX_IDP",
-                "flex_positions_attribute": "flex_positions_idp",
+                "flex_positions_attribute": "flex_positions_individual_defensive_player",
                 "flex_positions": ["DB", "DL", "LB"]
             }
         }
@@ -720,7 +720,7 @@ class LeagueData(object):
 
                             available_idp_flex_slots = list(
                                 set(base_player.eligible_positions)
-                                .intersection(set(league.flex_positions_idp))
+                                .intersection(set(league.flex_positions_individual_defensive_player))
                             )
 
                             if len(available_primary_slots) > 0:
@@ -741,13 +741,13 @@ class LeagueData(object):
                                 base_player.selected_position_is_flex = True
                                 team_filled_positions.pop(team_filled_positions.index(base_player.selected_position))
 
-                            elif len(available_flex_slots) > 0 and "FLEX_RB_TE_WR" in team_filled_positions:
-                                base_player.selected_position = "FLEX_RB_TE_WR"
+                            elif len(available_flex_slots) > 0 and "FLEX" in team_filled_positions:
+                                base_player.selected_position = "FLEX"
                                 base_player.selected_position_is_flex = True
                                 team_filled_positions.pop(team_filled_positions.index(base_player.selected_position))
 
-                            elif len(available_super_flex_slots) > 0 and "FLEX_QB_RB_TE_WR" in team_filled_positions:
-                                base_player.selected_position = "FLEX_QB_RB_TE_WR"
+                            elif len(available_super_flex_slots) > 0 and "SUPERFLEX" in team_filled_positions:
+                                base_player.selected_position = "SUPERFLEX"
                                 base_player.selected_position_is_flex = True
                                 team_filled_positions.pop(team_filled_positions.index(base_player.selected_position))
 

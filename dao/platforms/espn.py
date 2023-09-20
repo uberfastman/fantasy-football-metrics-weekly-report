@@ -379,18 +379,18 @@ class LeagueData(object):
                 "flex_positions": ["TE", "WR"]
             },
             "RB/WR/TE": {
-                "flex_label": "FLEX_RB_TE_WR",
+                "flex_label": "FLEX",
                 "flex_positions_attribute": "flex_positions_rb_te_wr",
                 "flex_positions": ["RB", "TE", "WR"]
             },
             "OP": {
-                "flex_label": "FLEX_OFFENSIVE_PLAYER",
-                "flex_positions_attribute": "flex_positions_offensive_player",
+                "flex_label": "FLEX_IOP",
+                "flex_positions_attribute": "flex_positions_individual_offensive_player",
                 "flex_positions": ["QB", "RB", "TE", "WR"]
             },
             "DP": {
                 "flex_label": "FLEX_IDP",
-                "flex_positions_attribute": "flex_positions_idp",
+                "flex_positions_attribute": "flex_positions_individual_defensive_player",
                 "flex_positions": ["CB", "DB", "DE", "DL", "DT", "EDR", "LB", "S"]
             }
         }

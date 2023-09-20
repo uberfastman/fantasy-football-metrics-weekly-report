@@ -20,11 +20,16 @@ WORKDIR /opt/ffmwr
 ## install httparty gem for ruby
 #RUN gem install httparty
 
+# set python environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
 # copy the Python dependencies file to the working directory
 COPY ../requirements.txt .
 
 # install dependencies
-RUN pip install -r requirements.txt
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
 
 ## copy the project root contents to the working directory
 COPY .. .
