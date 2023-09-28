@@ -23,7 +23,7 @@ logger = get_logger(__name__, propagate=False)
 class PlayoffProbabilities(object):
 
     def __init__(self, config: AppConfigParser, simulations, num_weeks, num_playoff_slots, data_dir, num_divisions=0,
-                 save_data=False, recalculate=False, dev_offline=False):
+                 save_data=False, recalculate=False, offline=False):
         logger.debug("Initializing playoff probabilities.")
 
         self.config = config
@@ -35,7 +35,7 @@ class PlayoffProbabilities(object):
         self.num_divisions = num_divisions
         self.save_data = save_data
         self.recalculate = recalculate
-        self.dev_offline = dev_offline
+        self.offline = offline
         self.playoff_probs_data = {}
 
     def calculate(self, week, week_for_report, standings, remaining_matchups):

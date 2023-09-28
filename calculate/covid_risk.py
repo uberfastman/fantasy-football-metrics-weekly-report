@@ -18,7 +18,7 @@ logger = get_logger(__name__, propagate=False)
 
 class CovidRisk(object):
 
-    def __init__(self, config, data_dir, season, week, save_data=False, dev_offline=False, refresh=False):
+    def __init__(self, config, data_dir, season, week, save_data=False, offline=False, refresh=False):
         logger.debug("Initializing COVID-19 risk.")
 
         self.config: AppConfigParser = config
@@ -31,7 +31,7 @@ class CovidRisk(object):
         )
 
         self.save_data = save_data
-        self.dev_offline = dev_offline
+        self.offline = offline
         self.refresh = refresh
 
         nfl_team_abbrev_ref = {
@@ -94,7 +94,7 @@ class CovidRisk(object):
             self.open_covid_data()
 
         # fetch NFL player transactions from the web if not running in offline mode or refresh=True
-        if self.refresh or not self.dev_offline:
+        if self.refresh or not self.offline:
             if not self.covid_data and self.season >= 2020:
                 logger.debug("Retrieving COVID-19 data from the web.")
 

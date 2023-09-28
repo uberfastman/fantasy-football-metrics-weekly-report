@@ -38,7 +38,7 @@ class LeagueData(object):
                  week_validation_function,
                  get_current_nfl_week_function,
                  save_data=True,
-                 dev_offline=False):
+                 offline=False):
 
         logger.debug("Initializing Sleeper league.")
 
@@ -47,7 +47,7 @@ class LeagueData(object):
         self.config = config
         self.data_dir = data_dir
         self.save_data = save_data
-        self.dev_offline = dev_offline
+        self.offline = offline
 
         self.offensive_positions = ["QB", "RB", "WR", "TE", "K", "FLEX", "REC_FLEX", "WRRB_FLEX", "SUPER_FLEX"]
         self.defensive_positions = ["DEF"]
@@ -71,15 +71,17 @@ class LeagueData(object):
         # TODO: figure out how to get league starting week
         self.start_week = start_week or 1
 
-        self.current_week = get_current_nfl_week_function(self.config, self.dev_offline)
+        self.current_week = get_current_nfl_week_function(self.config, self.offline)
 
         # validate user selection of week for which to generate report
         self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week, self.season)
 
         self.num_playoff_slots = self.league_settings.get("playoff_teams")
-        self.num_regular_season_weeks = (int(self.league_settings.get("playoff_week_start")) - 1) \
-            if self.league_settings.get("playoff_week_start") > 0 \
+        self.num_regular_season_weeks = (
+            (int(self.league_settings.get("playoff_week_start")) - 1)
+            if self.league_settings.get("playoff_week_start") > 0
             else self.config.get("Settings", "num_regular_season_weeks")
+        )
         self.roster_positions = dict(Counter(self.league_info.get("roster_positions")))
         self.has_median_matchup = bool(self.league_settings.get("league_average_match"))
         self.median_score_by_week = {}
@@ -258,7 +260,7 @@ class LeagueData(object):
             else:
                 file_modified_timestamp = datetime.fromtimestamp(Path(file_path).stat().st_mtime)
                 if file_modified_timestamp < (datetime.today() - timedelta(days=refresh_days_delay)):
-                    if not self.dev_offline:
+                    if not self.offline:
                         logger.debug(
                             f"Data in {filename} over {refresh_days_delay} day{'s' if refresh_days_delay > 1 else ''} "
                             f"old... refreshing."
@@ -266,7 +268,7 @@ class LeagueData(object):
                     else:
                         logger.debug(
                             f"Data in {filename} over {refresh_days_delay} day{'s' if refresh_days_delay > 1 else ''} "
-                            f"old but dev_offline=True... skipping refresh."
+                            f"old but offline=True... skipping refresh."
                         )
                 else:
                     logger.debug(f"Data in {filename} still recent... skipping refresh.")
@@ -274,7 +276,7 @@ class LeagueData(object):
                     with open(file_path, "r") as saved_data:
                         response_json = json.load(saved_data)
 
-        if not self.dev_offline:
+        if not self.offline:
             if run_query:
                 logger.debug(f"Retrieving Sleeper data from endpoint: {url}")
                 response = requests.get(url)
@@ -362,7 +364,7 @@ class LeagueData(object):
         logger.debug("Mapping Sleeper data to base objects.")
 
         league: BaseLeague = base_league_class(
-            self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data, self.dev_offline
+            self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data, self.offline
         )
 
         league.name = self.league_info.get("name")
@@ -515,8 +517,9 @@ class LeagueData(object):
                         base_team.managers.append(base_manager)
 
                     # base_team.manager_str = ", ".join([manager.name for manager in base_team.managers])
-                    base_team.manager_str = team_info.get("owner").get("display_name") if team_info.get("owner") else \
-                        "N/A"
+                    base_team.manager_str = (
+                        team_info.get("owner").get("display_name") if team_info.get("owner") else "N/A"
+                    )
                     base_team.points = round(float(team.get("points")), 2) if team.get("points") else 0
                     base_team.num_moves = sum(len(self.league_transactions_by_week.get(str(week), {}).get(
                         str(base_team.team_id), {}).get("moves", [])) for week in range(1, int(week) + 1))
@@ -644,14 +647,16 @@ class LeagueData(object):
                             base_player.first_name = player.get("first_name") + " " + player.get("last_name")
                             base_player.full_name = base_player.first_name
                             base_player.nfl_team_name = base_player.first_name
-                            base_player.headshot_url = "https://sleepercdn.com/images/team_logos/nfl/" + \
-                                                       str(base_player.player_id).lower() + ".png"
+                            base_player.headshot_url = (
+                                f"https://sleepercdn.com/images/team_logos/nfl/{str(base_player.player_id).lower()}.png"
+                            )
                         else:
                             base_player.first_name = player.get("first_name")
                             base_player.last_name = player.get("last_name")
                             base_player.full_name = player.get("full_name")
-                            base_player.headshot_url = "https://sleepercdn.com/content/nfl/players/thumb/" + \
-                                                       str(base_player.player_id) + ".jpg"
+                            base_player.headshot_url = (
+                                f"https://sleepercdn.com/content/nfl/players/thumb/{str(base_player.player_id)}.jpg"
+                            )
                         base_player.owner_team_id = None
                         base_player.owner_team_id = None
                         base_player.percent_owned = None
@@ -669,8 +674,9 @@ class LeagueData(object):
                             if str(base_player.player_id) in self.player_season_projected_stats.keys() else []
                         )
 
-                        base_player.position_type = "O" if base_player.display_position in self.offensive_positions \
-                            else "D"
+                        base_player.position_type = (
+                            "O" if base_player.display_position in self.offensive_positions else "D"
+                        )
                         base_player.primary_position = player.get("position")
 
                         eligible_positions = player.get("fantasy_positions")
@@ -681,8 +687,8 @@ class LeagueData(object):
                                 position = flex_mapping[position].get("flex_label")
                             for flex_label, flex_positions in league.get_flex_positions_dict().items():
                                 if position in flex_positions:
-                                    base_player.eligible_positions.append(flex_label)
-                            base_player.eligible_positions.append(position)
+                                    base_player.eligible_positions.add(flex_label)
+                            base_player.eligible_positions.add(position)
 
                         if player["starter"]:
 
@@ -693,33 +699,33 @@ class LeagueData(object):
                                 continue
 
                             available_primary_slots = list(
-                                set(base_player.eligible_positions)
+                                base_player.eligible_positions
                                 .intersection(set(team_filled_positions))
                                 .difference(set([item.get("flex_label") for item in flex_mapping.values()]))
                             )
 
                             available_wrrb_flex_slots = list(
-                                set(base_player.eligible_positions)
+                                base_player.eligible_positions
                                 .intersection(set(league.flex_positions_rb_wr))
                             )
 
                             available_rec_flex_slots = list(
-                                set(base_player.eligible_positions)
+                                base_player.eligible_positions
                                 .intersection(set(league.flex_positions_te_wr))
                             )
 
                             available_flex_slots = list(
-                                set(base_player.eligible_positions)
+                                base_player.eligible_positions
                                 .intersection(set(league.flex_positions_rb_te_wr))
                             )
 
                             available_super_flex_slots = list(
-                                set(base_player.eligible_positions)
+                                base_player.eligible_positions
                                 .intersection(set(league.flex_positions_qb_rb_te_wr))
                             )
 
                             available_idp_flex_slots = list(
-                                set(base_player.eligible_positions)
+                                base_player.eligible_positions
                                 .intersection(set(league.flex_positions_individual_defensive_player))
                             )
 

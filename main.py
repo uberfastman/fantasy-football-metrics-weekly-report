@@ -2,6 +2,7 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
 import getopt
+import os
 import re
 import subprocess
 import sys
@@ -51,38 +52,39 @@ def main(argv):
         )
         sys.exit(1)
 
-    usage_str = \
-        "\n" \
-        "Fantasy Football Report application usage:\n" \
-        "\n" \
-        "    python main.py [optional_parameters]\n" \
-        "\n" \
-        "  Options:\n" \
-        "      -h, --help                            Print command line usage message.\n" \
-        "      -a, --auto-run                        Automatically run the report using the default week.\n" \
-        "\n" \
-        "    Generate report:\n" \
-        "      -f, --fantasy-platform <platform>     Fantasy football platform on which league for report is hosted. Currently supports: \"yahoo\", \"fleaflicker\" \n" \
-        "      -l, --league-id <league_id>           Fantasy Football league ID.\n" \
-        "      -w, --week <chosen_week>              Chosen week for which to generate report.\n" \
-        "      -k, --start-week <league_start_week>  League start week (if league started later than week 1).\n" \
-        "      -g, --game-id <chosen_game_id>        Chosen fantasy game id for which to generate report. Defaults to \"nfl\", which is interpreted as the current season if using Yahoo.\n" \
-        "      -y, --year <chosen_year>              Chosen year (season) of the league for which a report is being generated.\n" \
-        "\n" \
-        "    Configuration:\n" \
-        "      -c, --config-file <config_file_path>  System file path (including file name) for .ini file to be used for configuration.\n" \
-        "      -s, --save-data                       Save all retrieved data locally for faster future report generation.\n" \
-        "      -r, --refresh-web-data                Refresh all web data from external APIs (such as bad boy and beef data).\n" \
-        "      -p, --playoff-prob-sims               Number of Monte Carlo playoff probability simulations to run.\n" \
-        "      -b, --break-ties                      Break ties in metric rankings.\n" \
-        "      -q, --disqualify-ce                   Automatically disqualify teams ineligible for coaching efficiency metric.\n" \
-        "\n" \
-        "    For Developers:\n" \
-        "      -d, --dev-offline                     Run OFFLINE for development. Must have previously run report with -s option.\n" \
+    usage_str = (
+        "\n"
+        "Fantasy Football Report application usage:\n"
+        "\n"
+        "    python main.py [optional_parameters]\n"
+        "\n"
+        "  Options:\n"
+        "      -h, --help                            Print command line usage message.\n"
+        "      -d, --use-default                     Run the report using the default configuration without user input prompts.\n"
+        "\n"
+        "    Generate report:\n"
+        "      -f, --fantasy-platform <platform>     Fantasy football platform on which league for report is hosted. Currently supports: \"yahoo\", \"fleaflicker\" \n"
+        "      -l, --league-id <league_id>           Fantasy Football league ID.\n"
+        "      -w, --week <chosen_week>              Chosen week for which to generate report.\n"
+        "      -k, --start-week <league_start_week>  League start week (if league started later than week 1).\n"
+        "      -g, --game-id <chosen_game_id>        Chosen fantasy game id for which to generate report. Defaults to \"nfl\", which is interpreted as the current season if using Yahoo.\n"
+        "      -y, --year <chosen_year>              Chosen year (season) of the league for which a report is being generated.\n"
+        "\n"
+        "    Configuration:\n"
+        "      -c, --config-file <config_file_path>  System file path (including file name) for .ini file to be used for configuration.\n"
+        "      -s, --save-data                       Save all retrieved data locally for faster future report generation.\n"
+        "      -r, --refresh-web-data                Refresh all web data from external APIs (such as bad boy and beef data).\n"
+        "      -p, --playoff-prob-sims               Number of Monte Carlo playoff probability simulations to run.\n"
+        "      -b, --break-ties                      Break ties in metric rankings.\n"
+        "      -q, --disqualify-ce                   Automatically disqualify teams ineligible for coaching efficiency metric.\n"
+        "\n"
+        "    For Developers:\n"
+        "      -o, --offline                         Run OFFLINE for development. Must have previously run report with -s option.\n"
         "      -t, --test                            Generate TEST report.\n"
+    )
 
     try:
-        opts, args = getopt.getopt(argv, "hac:f:l:w:k:g:y:srp:bqtd")
+        opts, args = getopt.getopt(argv, "hdc:f:l:w:k:g:y:srp:bqto")
     except getopt.GetoptError:
         print(usage_str)
         sys.exit(2)
@@ -94,9 +96,9 @@ def main(argv):
             print(usage_str)
             sys.exit(0)
 
-        # automatically run the report using the default week
-        elif opt in ("-a", "--auto-run"):
-            options_dict["auto_run"] = True
+        # automatically run the report using the default configuration without user input prompts
+        elif opt in ("-d", "--use-default"):
+            options_dict["use_default"] = True
 
         # generate report
         elif opt in ("-f", "--fantasy-platform"):
@@ -133,129 +135,146 @@ def main(argv):
         # for developers
         elif opt in ("-t", "--test"):
             options_dict["test"] = True
-        elif opt in ("-d", "--dev-offline"):
-            options_dict["dev_offline"] = True
+        elif opt in ("-o", "--offline"):
+            options_dict["offline"] = True
 
     return options_dict
 
 
-def select_league(config, auto_run, week, start_week, platform, league_id, game_id, season, refresh_web_data,
-                  playoff_prob_sims, break_ties, dq_ce, save_data, dev_offline, test):
-    if not league_id:
-        time.sleep(0.25)
-        default = input(
-            f"{Fore.YELLOW}Generate report for default league? "
-            f"({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
-        )
-    else:
-        default = "selected"
+def select_league(config, use_default, week, start_week, platform, league_id, game_id, season, refresh_web_data,
+                  playoff_prob_sims, break_ties, dq_ce, save_data, offline, test):
 
-    if default == "y":
+    # set "use default" environment variable for access by fantasy football platforms
+    if use_default:
+        os.environ["USE_DEFAULT"] = "1"
+    
+    if not league_id:
+        if not use_default:
+            time.sleep(0.25)
+            selection = input(
+                f"{Fore.YELLOW}Generate report for default league? "
+                f"({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
+            ).lower()
+        else:
+            logger.info("Use-default is set to \"true\". Automatically running the report for the default league.")
+            selection = "y"
+    else:
+        selection = "selected"
+
+    if selection == "y":
 
         if not week:
-            week_for_report = select_week(auto_run)
+            week_for_report = select_week(use_default)
         else:
             week_for_report = week
 
-        return FantasyFootballReport(week_for_report=week_for_report,
-                                     platform=platform,
-                                     game_id=game_id,
-                                     season=season,
-                                     start_week=start_week,
-                                     config=config,
-                                     refresh_web_data=refresh_web_data,
-                                     playoff_prob_sims=playoff_prob_sims,
-                                     break_ties=break_ties,
-                                     dq_ce=dq_ce,
-                                     save_data=save_data,
-                                     dev_offline=dev_offline,
-                                     test=test)
-    elif default == "n":
+        return FantasyFootballReport(
+            week_for_report=week_for_report,
+            platform=platform,
+            game_id=game_id,
+            season=season,
+            start_week=start_week,
+            config=config,
+            refresh_web_data=refresh_web_data,
+            playoff_prob_sims=playoff_prob_sims,
+            break_ties=break_ties,
+            dq_ce=dq_ce,
+            save_data=save_data,
+            offline=offline,
+            test=test
+        )
+    elif selection == "n":
         league_id = input(
             f"{Fore.YELLOW}What is the league ID of the league for which you want to generate a report? "
             f"-> {Style.RESET_ALL}"
         )
 
         if not week:
-            week_for_report = select_week(auto_run)
+            week_for_report = select_week()
         else:
             week_for_report = week
 
         try:
-            return FantasyFootballReport(week_for_report=week_for_report,
-                                         platform=platform,
-                                         league_id=league_id,
-                                         game_id=game_id,
-                                         season=season,
-                                         start_week=start_week,
-                                         config=config,
-                                         refresh_web_data=refresh_web_data,
-                                         playoff_prob_sims=playoff_prob_sims,
-                                         break_ties=break_ties,
-                                         dq_ce=dq_ce,
-                                         save_data=save_data,
-                                         dev_offline=dev_offline,
-                                         test=test)
+            return FantasyFootballReport(
+                week_for_report=week_for_report,
+                platform=platform,
+                league_id=league_id,
+                game_id=game_id,
+                season=season,
+                start_week=start_week,
+                config=config,
+                refresh_web_data=refresh_web_data,
+                playoff_prob_sims=playoff_prob_sims,
+                break_ties=break_ties,
+                dq_ce=dq_ce,
+                save_data=save_data,
+                offline=offline,
+                test=test
+            )
         except IndexError:
             logger.error("The league ID you have selected is not valid.")
-            select_league(config, auto_run, week, start_week, platform, None, game_id, season, refresh_web_data,
-                          playoff_prob_sims, break_ties, dq_ce, save_data, dev_offline, test)
-    elif default == "selected":
+            select_league(config, use_default, week, start_week, platform, None, game_id, season,
+                          refresh_web_data, playoff_prob_sims, break_ties, dq_ce, save_data, offline, test)
+    elif selection == "selected":
 
         if not week:
-            week_for_report = select_week(auto_run)
+            week_for_report = select_week(use_default)
         else:
             week_for_report = week
 
-        return FantasyFootballReport(week_for_report=week_for_report,
-                                     platform=platform,
-                                     league_id=league_id,
-                                     game_id=game_id,
-                                     season=season,
-                                     start_week=start_week,
-                                     config=config,
-                                     refresh_web_data=refresh_web_data,
-                                     playoff_prob_sims=playoff_prob_sims,
-                                     break_ties=break_ties,
-                                     dq_ce=dq_ce,
-                                     save_data=save_data,
-                                     dev_offline=dev_offline,
-                                     test=test)
+        return FantasyFootballReport(
+            week_for_report=week_for_report,
+            platform=platform,
+            league_id=league_id,
+            game_id=game_id,
+            season=season,
+            start_week=start_week,
+            config=config,
+            refresh_web_data=refresh_web_data,
+            playoff_prob_sims=playoff_prob_sims,
+            break_ties=break_ties,
+            dq_ce=dq_ce,
+            save_data=save_data,
+            offline=offline,
+            test=test
+        )
     else:
         logger.warning("You must select either \"y\" or \"n\".")
         time.sleep(0.25)
-        select_league(config, auto_run, week, start_week, platform, None, game_id, season, refresh_web_data,
-                      playoff_prob_sims, break_ties, dq_ce, save_data, dev_offline, test)
+        select_league(config, use_default, week, start_week, platform, None, game_id, season, refresh_web_data,
+                      playoff_prob_sims, break_ties, dq_ce, save_data, offline, test)
 
 
-def select_week(auto_run=False):
-    if not auto_run:
+def select_week(use_default=False):
+    if not use_default:
         time.sleep(0.25)
-        default = input(
+        selection = input(
             f"{Fore.YELLOW}Generate report for default week? ({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) "
             f"-> {Style.RESET_ALL}"
-        )
+        ).lower()
     else:
-        logger.info("Auto-run is set to \"true\". Automatically running the report for the default (most recent) week.")
-        default = "y"
+        logger.info(
+            "Use-default is set to \"true\". Automatically running the report for the default (most recent) week."
+        )
+        selection = "y"
 
-    if default == "y":
+    if selection == "y":
         return None
-    elif default == "n":
+    elif selection == "n":
         chosen_week = input(
             f"{Fore.YELLOW}For which week would you like to generate a report? "
             f"({Fore.GREEN}1{Fore.YELLOW} - {Fore.GREEN}{NFL_SEASON_LENGTH}{Fore.YELLOW}) -> {Style.RESET_ALL}"
-        )
+        ).lower()
         if 0 < int(chosen_week) <= NFL_SEASON_LENGTH:
             return chosen_week
         else:
             logger.warning(f"Please select a valid week number between 1 and {NFL_SEASON_LENGTH}.")
             time.sleep(0.25)
-            select_week(auto_run)
+            select_week(use_default)
     else:
         logger.warning("You must select either \"y\" or \"n\".")
         time.sleep(0.25)
-        select_week(auto_run)
+        select_week(use_default)
 
 
 # RUN FANTASY FOOTBALL REPORT PROGRAM
@@ -271,11 +290,11 @@ if __name__ == "__main__":
         configuration = get_valid_config()
 
     # check to see if the current app is behind any commits, and provide option to update and re-run if behind
-    up_to_date = check_for_updates(options.get("auto_run", False))
+    up_to_date = check_for_updates(options.get("use_default", False))
 
     report = select_league(
         configuration,
-        options.get("auto_run", False),
+        options.get("use_default", False),
         options.get("week", None),
         options.get("start_week", None),
         options.get("platform", None),
@@ -287,7 +306,7 @@ if __name__ == "__main__":
         options.get("break_ties", False),
         options.get("dq_ce", False),
         options.get("save_data", False),
-        options.get("dev_offline", False),
+        options.get("offline", False),
         options.get("test", False))
     report_pdf = report.create_pdf_report()
 

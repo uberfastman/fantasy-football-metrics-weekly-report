@@ -14,14 +14,14 @@ logger = get_logger(__name__, propagate=False)
 
 class BeefStats(object):
 
-    def __init__(self, data_dir, save_data=False, dev_offline=False, refresh=False):
+    def __init__(self, data_dir, save_data=False, offline=False, refresh=False):
         """
         Initialize class, load data from Sleeper API, and combine defensive player data into team total
         """
         logger.debug("Initializing beef stats.")
 
         self.save_data = save_data
-        self.dev_offline = dev_offline
+        self.offline = offline
         self.refresh = refresh
 
         # nfl team abbreviations
@@ -50,7 +50,7 @@ class BeefStats(object):
             self.open_beef_data()
 
         # fetch weights of players from the web if not running in offline mode or refresh=True
-        if self.refresh or not self.dev_offline:
+        if self.refresh or not self.offline:
             if not self.beef_data:
                 logger.debug("Retrieving beef data from the web.")
 

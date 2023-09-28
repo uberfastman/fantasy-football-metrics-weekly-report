@@ -20,7 +20,7 @@ from requests.exceptions import HTTPError
 from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
 from report.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, propagate=False)
 
 # Suppress Fleaflicker API debug logging
 logger.setLevel(level=logging.INFO)
@@ -39,7 +39,7 @@ class LeagueData(object):
                  week_validation_function,
                  get_current_nfl_week_function,
                  save_data=True,
-                 dev_offline=False):
+                 offline=False):
 
         logger.debug("Initializing Fleaflicker league.")
 
@@ -48,7 +48,7 @@ class LeagueData(object):
         self.config = config
         self.data_dir = data_dir
         self.save_data = save_data
-        self.dev_offline = dev_offline
+        self.offline = offline
 
         self.offensive_positions = ["QB", "RB", "WR", "TE", "K", "RB/WR", "WR/TE", "RB/WR/TE", "RB/WR/TE/QB"]
         self.defensive_positions = ["D/ST"]
@@ -75,7 +75,7 @@ class LeagueData(object):
                 text=re.compile(".*This Week.*"))[-1].parent.findNext("li").text.strip().split(" ")[-1]) - 1
         except (IndexError, AttributeError) as e:
             logger.error(e)
-            self.current_week = get_current_nfl_week_function(self.config, self.dev_offline)
+            self.current_week = get_current_nfl_week_function(self.config, self.offline)
 
         scraped_league_rules = self.scrape(self.league_url + "/rules", Path(
             self.data_dir) / str(self.season) / str(self.league_id), f"{self.league_id}-league-rules.html")
@@ -245,7 +245,7 @@ class LeagueData(object):
 
         file_path = Path(file_dir) / filename
 
-        if not self.dev_offline:
+        if not self.offline:
             logger.debug(f"Retrieving Fleaflicker data from endpoint: {url}")
             response = requests.get(url)
 
@@ -283,11 +283,13 @@ class LeagueData(object):
 
         file_path = Path(file_dir) / filename
 
-        if not self.dev_offline:
+        if not self.offline:
             logger.debug(f"Scraping Fleaflicker data from endpoint: {url}")
 
-            user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 " \
-                         "(KHTML, like Gecko) Version/13.0 Safari/605.1.15"
+            user_agent = (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 "
+                "Safari/605.1.15"
+            )
             headers = {"user-agent": user_agent}
             response = requests.get(url, headers)
 
@@ -317,7 +319,7 @@ class LeagueData(object):
         logger.debug("Mapping Fleaflicker data to base objects.")
 
         league: BaseLeague = base_league_class(
-            self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data, self.dev_offline
+            self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data, self.offline
         )
 
         league.name = self.league_info.get("name")
@@ -460,8 +462,9 @@ class LeagueData(object):
                     base_team.waiver_priority = team_data.get("waiverPosition", 0)
                     league.has_waiver_priorities = base_team.waiver_priority > 0
                     base_team.faab = team_data.get("waiverAcquisitionBudget", {}).get("value", 0)
-                    base_team.url = "https://www.fleaflicker.com/nfl/leagues/" + self.league_id + "/teams/" + \
-                                    str(team_data.get("id"))
+                    base_team.url = (
+                        f"https://www.fleaflicker.com/nfl/leagues/{self.league_id}/teams/{str(team_data.get('id'))}"
+                    )
 
                     if team_data.get("streak").get("value"):
                         if team_data.get("streak").get("value") > 0:
@@ -608,8 +611,8 @@ class LeagueData(object):
                                 position = flex_mapping[position].get("flex_label")
                             for flex_label, flex_positions in league.get_flex_positions_dict().items():
                                 if position in flex_positions:
-                                    base_player.eligible_positions.append(flex_label)
-                            base_player.eligible_positions.append(position)
+                                    base_player.eligible_positions.add(flex_label)
+                            base_player.eligible_positions.add(position)
 
                         selected_position = flea_player_position.get("label")
                         if selected_position in flex_mapping.keys():

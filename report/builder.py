@@ -34,7 +34,7 @@ class FantasyFootballReport(object):
                  break_ties=False,
                  dq_ce=False,
                  save_data=False,
-                 dev_offline=False,
+                 offline=False,
                  test=False):
 
         logger.debug("Instantiating fantasy football report.")
@@ -71,7 +71,7 @@ class FantasyFootballReport(object):
         self.break_ties = break_ties
         self.dq_ce = dq_ce
 
-        self.dev_offline = dev_offline
+        self.offline = offline
         self.test = test
 
         f_str_newline = '\n'
@@ -89,7 +89,7 @@ class FantasyFootballReport(object):
             f"    playoff_prob_sims: {self.playoff_prob_sims}{f_str_newline}"
             f"{f'    break_ties: {self.break_ties}{f_str_newline}'}"
             f"{f'    dq_ce: {self.dq_ce}{f_str_newline}'}"
-            f"{f'    dev_offline: {self.dev_offline}{f_str_newline}'}"
+            f"{f'    offline: {self.offline}{f_str_newline}'}"
             f"{f'    test: {self.test}{f_str_newline}'}"
             f"on {datetime.datetime.now():%b %d, %Y}..."
         )
@@ -97,7 +97,7 @@ class FantasyFootballReport(object):
         begin = datetime.datetime.now()
         logger.info(
             f"Retrieving fantasy football data from "
-            f"{self.platform_str + (' API' if not self.dev_offline else ' saved data')}..."
+            f"{self.platform_str + (' API' if not self.offline else ' saved data')}..."
         )
 
         # retrieve all league data from respective platform API
@@ -112,18 +112,18 @@ class FantasyFootballReport(object):
             base_dir=base_dir,
             data_dir=self.data_dir,
             save_data=self.save_data,
-            dev_offline=self.dev_offline
+            offline=self.offline
         )
 
         delta = datetime.datetime.now() - begin
         logger.info(
             f"...retrieved all fantasy football data from "
-            f"{self.platform_str + (' API' if not self.dev_offline else ' saved data')} in {delta}\n"
+            f"{self.platform_str + (' API' if not self.offline else ' saved data')} in {delta}\n"
         )
 
         if self.league.num_playoff_slots > 0:
             self.playoff_probs = self.league.get_playoff_probs(self.save_data, self.playoff_prob_sims,
-                                                               self.dev_offline, recalculate=True)
+                                                               self.offline, recalculate=True)
         else:
             self.playoff_probs = None
 
@@ -131,13 +131,13 @@ class FantasyFootballReport(object):
             begin = datetime.datetime.now()
             logger.info(
                 f"Retrieving bad boy data from https://www.usatoday.com/sports/nfl/arrests/ "
-                f"{'website' if not self.dev_offline or self.refresh_web_data else 'saved data'}..."
+                f"{'website' if not self.offline or self.refresh_web_data else 'saved data'}..."
             )
-            self.bad_boy_stats = self.league.get_bad_boy_stats(self.save_data, self.dev_offline, self.refresh_web_data)
+            self.bad_boy_stats = self.league.get_bad_boy_stats(self.save_data, self.offline, self.refresh_web_data)
             delta = datetime.datetime.now() - begin
             logger.info(
                 f"...retrieved all bad boy data from https://www.usatoday.com/sports/nfl/arrests/ "
-                f"{'website' if not self.dev_offline else 'saved data'} in {delta}\n"
+                f"{'website' if not self.offline else 'saved data'} in {delta}\n"
             )
         else:
             self.bad_boy_stats = None
@@ -146,13 +146,13 @@ class FantasyFootballReport(object):
             begin = datetime.datetime.now()
             logger.info(
                 f"Retrieving beef data from Sleeper "
-                f"{'API' if not self.dev_offline or self.refresh_web_data else 'saved data'}..."
+                f"{'API' if not self.offline or self.refresh_web_data else 'saved data'}..."
             )
-            self.beef_stats = self.league.get_beef_stats(self.save_data, self.dev_offline, self.refresh_web_data)
+            self.beef_stats = self.league.get_beef_stats(self.save_data, self.offline, self.refresh_web_data)
             delta = datetime.datetime.now() - begin
             logger.info(
                 f"...retrieved all beef data from Sleeper "
-                f"{'API' if not self.dev_offline else 'saved data'} in {delta}\n"
+                f"{'API' if not self.offline else 'saved data'} in {delta}\n"
             )
         else:
             self.beef_stats = None
@@ -161,13 +161,13 @@ class FantasyFootballReport(object):
             begin = datetime.datetime.now()
             logger.info(
                 f"Retrieving COVID-19 risk data from https://sportsdata.usatoday.com/football/nfl/transactions "
-                f"{'website' if not self.dev_offline or self.refresh_web_data else 'saved data'}..."
+                f"{'website' if not self.offline or self.refresh_web_data else 'saved data'}..."
             )
-            self.covid_risk = self.league.get_covid_risk(self.save_data, self.dev_offline, self.refresh_web_data)
+            self.covid_risk = self.league.get_covid_risk(self.save_data, self.offline, self.refresh_web_data)
             delta = datetime.datetime.now() - begin
             logger.info(
                 f"...retrieved all COVID-19 risk data from https://sportsdata.usatoday.com/football/nfl/transactions "
-                f"{'website' if not self.dev_offline else 'saved data'} in {delta}\n"
+                f"{'website' if not self.offline else 'saved data'} in {delta}\n"
             )
         else:
             self.covid_risk = None

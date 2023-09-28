@@ -44,7 +44,7 @@ logger = get_logger(__name__, propagate=False)
 logging.getLogger("PIL.PngImagePlugin").setLevel(level=logging.INFO)
 
 
-def get_player_image(url, data_dir, week, image_quality, width=1.0 * inch, player_name=None, dev_offline=False):
+def get_player_image(url, data_dir, week, image_quality, width=1.0 * inch, player_name=None, offline=False):
     headshots_dir = Path(data_dir) / f"week_{week}" / "player_headshots"
 
     if not Path(headshots_dir).exists():
@@ -57,7 +57,7 @@ def get_player_image(url, data_dir, week, image_quality, width=1.0 * inch, playe
 
         if not Path(local_img_jpg_path).exists():
             if not Path(local_img_path).exists():
-                if not dev_offline:
+                if not offline:
                     logger.debug(f"Retrieving player headshot for \"{player_name}\"")
                     try:
                         urllib.request.urlretrieve(url, local_img_path)
@@ -1157,12 +1157,12 @@ class PdfGenerator(object):
                     best_player_headshot = get_player_image(
                         best_weekly_player.headshot_url, self.data_dir, self.week_for_report,
                         self.config.getint("Report", "image_quality"), 1.5 * inch, best_weekly_player.full_name,
-                        self.report_data.league.dev_offline
+                        self.report_data.league.offline
                     )
                     worst_player_headshot = get_player_image(
                         worst_weekly_player.headshot_url, self.data_dir, self.week_for_report,
                         self.config.getint("Report", "image_quality"), 1.5 * inch, worst_weekly_player.full_name,
-                        self.report_data.league.dev_offline
+                        self.report_data.league.offline
                     )
 
                     data = [

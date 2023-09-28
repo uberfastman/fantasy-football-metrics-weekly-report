@@ -153,6 +153,7 @@ def get_logger(module_name=None, propagate=True):
     log_formatter = StyledFormatter(
         f"%(asctime)s {Fore.RESET}-{Style.RESET_ALL} "
         f"%(name)s {Fore.RESET}-{Style.RESET_ALL} "
+        # f"%(pathname)s {Fore.RESET}-{Style.RESET_ALL} "
         f"%(levelname)s {Fore.RESET}-{Style.RESET_ALL} "
         f"%(message)s"
     )

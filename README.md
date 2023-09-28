@@ -567,7 +567,7 @@ After completing the above setup and configuration steps, you should now be able
 | Flag                                       | Description                                                                                                               |
 |:-------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------|
 | `-h`, `--help`                             | Display command line usage message                                                                                        |
-| `-a`, `--auto-run`                         | Automatically run the report using the default week.                                                                      |
+| `-d`, `--use-default`                      | Automatically run the report using the default configuration without user input prompts.                                  |
 | `-f`, `--fantasy-platform` `<platform>`    | Fantasy football platform on which league for report is hosted.                                                           |
 | `-l`, `--league-id` `<league_id>`          | Fantasy Football league ID                                                                                                |
 | `-w`, `--week` `<week>`                    | Chosen week for which to generate report                                                                                  |
@@ -579,7 +579,7 @@ After completing the above setup and configuration steps, you should now be able
 | `-p`, `--playoff-prob-sims` `<int>`        | Number of Monte Carlo playoff probability simulations to run."                                                            |
 | `-b`, `--break-ties`                       | Break ties in metric rankings                                                                                             |
 | `-q`, `--disqualify-ce`                    | Automatically disqualify teams ineligible for coaching efficiency metric                                                  |
-| `-d`, `--dev-offline`                      | Run ***OFFLINE*** (for development). Must have previously run report with -s option.                                      |
+| `-o`, `--offline`                          | Run ***OFFLINE*** (for development). Must have previously run report with -s option.                                      |
 | `-t`, `--test`                             | Generate TEST report (for development)                                                                                    |
 
 #### NOTE: all command line arguments <ins>***OVERRIDE***</ins> any settings configured in the local config.ini file!

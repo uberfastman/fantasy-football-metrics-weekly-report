@@ -16,7 +16,7 @@ from yfpy.query import YahooFantasySportsQuery
 from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
 from report.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, propagate=False)
 
 # Suppress YFPY debug logging
 logging.getLogger("yfpy.query").setLevel(level=logging.INFO)
@@ -36,7 +36,7 @@ class LeagueData(object):
                  data_dir,
                  week_validation_function,
                  save_data=True,
-                 dev_offline=False):
+                 offline=False):
 
         logger.debug("Initializing Yahoo league.")
 
@@ -45,13 +45,13 @@ class LeagueData(object):
         self.config = config
         self.data_dir = data_dir
         self.save_data = save_data
-        self.dev_offline = dev_offline
+        self.offline = offline
 
         logger.debug("Retrieving Yahoo league data.")
-        self.yahoo_data = Data(self.data_dir, save_data=save_data, dev_offline=dev_offline)
+        self.yahoo_data = Data(self.data_dir, save_data=save_data, dev_offline=offline)
         yahoo_auth_dir = Path(base_dir) / Path(config.get("Yahoo", "yahoo_auth_dir"))
         self.yahoo_query = YahooFantasySportsQuery(
-            yahoo_auth_dir, self.league_id, self.game_id, offline=dev_offline, browser_callback=False
+            yahoo_auth_dir, self.league_id, self.game_id, offline=offline, browser_callback=False
         )
 
         if self.game_id and self.game_id != "nfl":
@@ -249,7 +249,7 @@ class LeagueData(object):
         logger.debug("Mapping Yahoo data to base objects.")
 
         league: BaseLeague = base_league_class(
-            self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data, self.dev_offline
+            self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data, self.offline
         )
 
         league.name = self.league_info.name.decode()
@@ -525,8 +525,8 @@ class LeagueData(object):
                             position = flex_mapping[position].get("flex_label")
                         for flex_label, flex_positions in league.get_flex_positions_dict().items():
                             if position in flex_positions:
-                                base_player.eligible_positions.append(flex_label)
-                        base_player.eligible_positions.append(position)
+                                base_player.eligible_positions.add(flex_label)
+                        base_player.eligible_positions.add(position)
 
                     for stat in player.stats:
                         base_stat = BaseStat()

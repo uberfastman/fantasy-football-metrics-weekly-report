@@ -38,7 +38,7 @@ def test_bad_boy_init():
     bad_boy_stats = BadBoyStats(
         data_dir=test_data_dir,
         save_data=True,
-        dev_offline=False,
+        offline=False,
         refresh=True
     )
     bad_boy_stats.generate_crime_categories_json()
@@ -59,7 +59,7 @@ def test_beef_init():
     beef_stats = BeefStats(
         data_dir=test_data_dir,
         save_data=True,
-        dev_offline=False,
+        offline=False,
         refresh=True
     )
     beef_stats.generate_player_info_json()
@@ -84,7 +84,7 @@ def test_covid_init():
         season=2020,
         week=1,
         save_data=True,
-        dev_offline=False,
+        offline=False,
         refresh=True
     )
     covid_risk.generate_covid_risk_json()

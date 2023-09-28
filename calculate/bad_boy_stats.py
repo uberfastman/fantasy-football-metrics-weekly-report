@@ -19,13 +19,13 @@ logger = get_logger(__name__, propagate=False)
 
 class BadBoyStats(object):
 
-    def __init__(self, data_dir, save_data=False, dev_offline=False, refresh=False):
+    def __init__(self, data_dir, save_data=False, offline=False, refresh=False):
         """ Initialize class, load data from USA Today NFL Arrest DB. Combine defensive player data
         """
         logger.debug("Initializing bad boy stats.")
 
         self.save_data = save_data
-        self.dev_offline = dev_offline
+        self.offline = offline
         self.refresh = refresh
 
         # nfl team abbreviations
@@ -78,7 +78,7 @@ class BadBoyStats(object):
             self.open_bad_boy_data()
 
         # fetch crimes of players from the web if not running in offline mode or if refresh=True
-        if self.refresh or not self.dev_offline:
+        if self.refresh or not self.offline:
             if not self.bad_boy_data:
                 logger.debug("Retrieving bad boy data from the web.")
 

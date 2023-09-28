@@ -245,7 +245,7 @@ def git_ls_remote(url):
     return remote_refs
 
 
-def check_for_updates(auto_run=False):
+def check_for_updates(use_default=False):
     logger.debug("Checking upstream remote for app updates.")
     project_repo = Repo(Path(__file__).parent.parent)
 
@@ -286,7 +286,7 @@ def check_for_updates(auto_run=False):
         target_branch = "main"
         active_branch = project_repo.active_branch.name
         if active_branch != target_branch:
-            if not auto_run:
+            if not use_default:
                 switch_branch = input(
                     f"{Fore.YELLOW}You are {Fore.RED}not{Fore.YELLOW} on the deployment branch "
                     f"({Fore.GREEN}\"{target_branch}\"{Fore.YELLOW}) of the Fantasy Football Metrics Weekly Report "
@@ -303,9 +303,9 @@ def check_for_updates(auto_run=False):
                     )
                 else:
                     logger.warning("You must select either \"y\" or \"n\".")
-                    check_for_updates(auto_run)
+                    check_for_updates(use_default)
             else:
-                logger.info("Auto-run is set to \"true\". Automatically switching to deployment branch \"main\".")
+                logger.info("Use-default is set to \"true\". Automatically switching to deployment branch \"main\".")
                 project_repo.git.checkout(target_branch)
 
         num_commits_behind = len(list(project_repo.iter_commits(f"{target_branch}..origin/{target_branch}")))
@@ -435,13 +435,13 @@ def user_week_input_validation(config, week, retrieved_current_week, season):
     return int(week_for_report)
 
 
-def get_current_nfl_week(config: AppConfigParser, dev_offline):
+def get_current_nfl_week(config: AppConfigParser, offline):
     # api_url = "https://bet.rotoworld.com/api/nfl/calendar/game_count"
     api_url = "https://api.sleeper.app/v1/state/nfl"
 
     current_nfl_week = config.getint("Settings", "current_week")
 
-    if not dev_offline:
+    if not offline:
         logger.debug("Retrieving current NFL week from the Sleeper API.")
 
         try:
@@ -459,7 +459,7 @@ def get_current_nfl_week(config: AppConfigParser, dev_offline):
 
 
 def league_data_factory(week_for_report, platform, league_id, game_id, season, start_week, config, base_dir, data_dir,
-                        save_data, dev_offline):
+                        save_data, offline):
     if platform in supported_platforms:
         if platform == "yahoo":
             yahoo_league = YahooLeagueData(
@@ -472,7 +472,7 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, s
                 data_dir,
                 user_week_input_validation,
                 save_data,
-                dev_offline
+                offline
             )
             return yahoo_league.map_data_to_base(BaseLeague)
 
@@ -487,7 +487,7 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, s
                 user_week_input_validation,
                 get_current_nfl_week,
                 save_data,
-                dev_offline
+                offline
             )
             return fleaflicker_league.map_data_to_base(BaseLeague)
 
@@ -502,7 +502,7 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, s
                 user_week_input_validation,
                 get_current_nfl_week,
                 save_data,
-                dev_offline
+                offline
             )
             return sleeper_league.map_data_to_base(BaseLeague)
 
@@ -517,7 +517,7 @@ def league_data_factory(week_for_report, platform, league_id, game_id, season, s
                 data_dir,
                 user_week_input_validation,
                 save_data,
-                dev_offline
+                offline
             )
             return espn_league.map_data_to_base(BaseLeague)
 
@@ -632,7 +632,7 @@ def get_player_game_time_statuses(week, league: BaseLeague):
     file_dir = Path(league.data_dir) / str(league.season) / str(league.league_id) / f"week_{week}"
     file_path = Path(file_dir) / file_name
 
-    if not league.dev_offline:
+    if not league.offline:
         user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) " \
                      "Version/13.0.2 Safari/605.1.15"
         headers = {
@@ -687,5 +687,5 @@ def patch_http_connection_pool(**constructor_kwargs):
 if __name__ == "__main__":
     local_config = AppConfigParser()
     local_config.read("../config.ini")
-    local_current_nfl_week = get_current_nfl_week(config=local_config, dev_offline=False)
+    local_current_nfl_week = get_current_nfl_week(config=local_config, offline=False)
     logger.info(f"Local current NFL week: {local_current_nfl_week}")

@@ -58,7 +58,7 @@ class LeagueData(object):
                  data_dir,
                  week_validation_function,
                  save_data=True,
-                 dev_offline=False):
+                 offline=False):
 
         logger.debug("Initializing ESPN league.")
 
@@ -67,7 +67,7 @@ class LeagueData(object):
         self.config = config
         self.data_dir = data_dir
         self.save_data = save_data
-        self.dev_offline = dev_offline
+        self.offline = offline
 
         self.offensive_positions = ["QB", "RB", "WR", "TE", "K", "RB/WR", "WR/TE", "RB/WR/TE", "QB/RB/WR/TE", "OP"]
         self.defensive_positions = ["D/ST"]
@@ -87,25 +87,28 @@ class LeagueData(object):
             )
             self.check_auth(no_auth_msg)
 
-        if self.dev_offline:
+        if self.offline:
             self.league = self.save_and_load_data(
                 Path(self.data_dir) / str(self.season) / str(self.league_id),
                 f"{self.league_id}-league_info.json"
             )
         else:
-            if espn_auth_json.get("swid") and espn_auth_json.get("espn_s2"):
-                swid_cookie = espn_auth_json.get("swid")
-                espn_s2_cookie = espn_auth_json.get("espn_s2")
-            else:
-                espn_session_cookies = self._retrieve_session_cookies(espn_auth_json)
-                swid_cookie = espn_session_cookies.get("swid")
-                espn_s2_cookie = espn_session_cookies.get("espn_s2")
-                with open(espn_auth_file, "w") as auth:
-                    espn_auth_json.update({
-                        "swid": swid_cookie,
-                        "espn_s2": espn_s2_cookie
-                    })
-                    json.dump(espn_auth_json, auth, indent=2)
+            swid_cookie = None
+            espn_s2_cookie = None
+            if espn_auth_json:
+                if espn_auth_json.get("swid") and espn_auth_json.get("espn_s2"):
+                    swid_cookie = espn_auth_json.get("swid")
+                    espn_s2_cookie = espn_auth_json.get("espn_s2")
+                else:
+                    espn_session_cookies = self._retrieve_session_cookies(espn_auth_json)
+                    swid_cookie = espn_session_cookies.get("swid")
+                    espn_s2_cookie = espn_session_cookies.get("espn_s2")
+                    with open(espn_auth_file, "w") as auth:
+                        espn_auth_json.update({
+                            "swid": swid_cookie,
+                            "espn_s2": espn_s2_cookie
+                        })
+                        json.dump(espn_auth_json, auth, indent=2)
 
             # TODO: GET SAVE/LOAD WORKING FOR ESPN!
             # self.league = self.save_and_load_data(
@@ -295,11 +298,21 @@ class LeagueData(object):
     def check_auth(self, msg):
         logger.debug(msg)
         time.sleep(0.25)
-        use_credentials = input(f"\n{msg}")
+
+        # skip credentials check for public ESPN league access when use-default is set to true
+        if os.environ.get("USE_DEFAULT"):
+            logger.info(
+                "Use-default is set to \"true\". Automatically running the report for the selected ESPN league without "
+                "credentials. This will only work for public ESPN leagues."
+            )
+            use_credentials = "y"
+        else:
+            use_credentials = input(f"\n{msg}")
+
         if use_credentials.lower() == "y":
-            logger.info(f"\"{Fore.GREEN}y{Style.RESET_ALL}\" -> Continuing...")
+            logger.info(f"\"{Fore.GREEN}y{Fore.WHITE}\" -> Continuing...")
         elif use_credentials.lower() == "n":
-            logger.info(f"\"{Fore.RED}n{Style.RESET_ALL}\" -> Aborting...")
+            logger.info(f"\"{Fore.RED}n{Fore.WHITE}\" -> Aborting...")
             sys.exit(0)
         else:
             incorrect_key_msg = (
@@ -314,7 +327,7 @@ class LeagueData(object):
         file_path = Path(file_dir) / filename
 
         # TODO: get data loading working
-        # if self.dev_offline:
+        # if self.offline:
         #     logger.debug("Loading saved ESPN league data.")
         #     try:
         #         with open(file_path, "r", encoding="utf-8") as data_in:
@@ -339,7 +352,7 @@ class LeagueData(object):
         logger.debug("Mapping ESPN data to base objects.")
 
         league: BaseLeague = base_league_class(
-            self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data, self.dev_offline
+            self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data, self.offline
         )
 
         league.name = self.league_settings.name
@@ -638,7 +651,7 @@ class LeagueData(object):
                             position = "BN"
                         if position in flex_mapping.keys():
                             position = flex_mapping[position].get("flex_label")
-                        base_player.eligible_positions.append(position)
+                        base_player.eligible_positions.add(position)
 
                     if player.slot_position in flex_mapping.keys():
                         base_player.selected_position = flex_mapping[player.slot_position].get("flex_label")
@@ -749,7 +762,9 @@ class LeagueWrapper(League):
         # # # # # # # # # # # # # # # # # # #
         # # # # # # # # # # # # # # # # # # #
 
-        box_data = [BoxScore(matchup, pro_schedule, positional_rankings, scoring_period, self.year) for matchup in schedule]
+        box_data = [
+            BoxScore(matchup, pro_schedule, positional_rankings, scoring_period, self.year) for matchup in schedule
+        ]
 
         for team in self.teams:
             for matchup in box_data:

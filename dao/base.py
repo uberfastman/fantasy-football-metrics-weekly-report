@@ -4,6 +4,7 @@ __email__ = "uberfastman@uberfastman.dev"
 import json
 from collections import defaultdict
 from pathlib import Path
+from typing import Set
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
@@ -67,6 +68,8 @@ class FantasyFootballReportObject(object):
         for a, v in self.clean_data_dict().items():
             if hasattr(v, "serialized"):
                 serializable_dict[a] = v.serialized()
+            elif isinstance(v, set):
+                serializable_dict[a] = list(v)
             else:
                 serializable_dict[a] = v
         return serializable_dict
@@ -81,7 +84,7 @@ class FantasyFootballReportObject(object):
 
 class BaseLeague(FantasyFootballReportObject):
 
-    def __init__(self, week_for_report, league_id, config, data_dir, save_data=True, dev_offline=False):
+    def __init__(self, week_for_report, league_id, config, data_dir, save_data=True, offline=False):
         super().__init__()
 
         # attributes set during instantiation
@@ -90,7 +93,7 @@ class BaseLeague(FantasyFootballReportObject):
         self.data_dir = data_dir
         self.week_for_report = week_for_report
         self.save_data = save_data
-        self.dev_offline = dev_offline
+        self.offline = offline
 
         # attributes mapped directly from platform API data
         self.name = None
@@ -223,8 +226,8 @@ class BaseLeague(FantasyFootballReportObject):
             "FLEX_IDP": self.flex_positions_individual_defensive_player
         }
 
-    def get_playoff_probs(self, save_data=False, playoff_prob_sims=None, dev_offline=False, recalculate=True):
-        # TODO: UPDATE USAGE OF recalculate PARAM (could use self.dev_offline)
+    def get_playoff_probs(self, save_data=False, playoff_prob_sims=None, offline=False, recalculate=True):
+        # TODO: UPDATE USAGE OF recalculate PARAM (could use self.offline)
         return PlayoffProbabilities(
             self.config,
             playoff_prob_sims,
@@ -234,33 +237,33 @@ class BaseLeague(FantasyFootballReportObject):
             num_divisions=self.num_divisions,
             save_data=save_data,
             recalculate=recalculate,
-            dev_offline=dev_offline
+            offline=offline
         )
 
-    def get_bad_boy_stats(self, save_data=False, dev_offline=False, refresh=False):
+    def get_bad_boy_stats(self, save_data=False, offline=False, refresh=False):
         return BadBoyStats(
             Path(self.data_dir) / str(self.season) / self.league_id,
             save_data=save_data,
-            dev_offline=dev_offline,
+            offline=offline,
             refresh=refresh
         )
 
-    def get_beef_stats(self, save_data=False, dev_offline=False, refresh=False):
+    def get_beef_stats(self, save_data=False, offline=False, refresh=False):
         return BeefStats(
             Path(self.data_dir) / str(self.season) / self.league_id,
             save_data=save_data,
-            dev_offline=dev_offline,
+            offline=offline,
             refresh=refresh
         )
 
-    def get_covid_risk(self, save_data=False, dev_offline=False, refresh=False):
+    def get_covid_risk(self, save_data=False, offline=False, refresh=False):
         return CovidRisk(
             self.config,
             Path(self.data_dir) / str(self.season) / self.league_id,
             season=self.season,
             week=self.week_for_report,
             save_data=save_data,
-            dev_offline=dev_offline,
+            offline=offline,
             refresh=refresh
         )
 
@@ -636,7 +639,7 @@ class BasePlayer(FantasyFootballReportObject):
         self.selected_position = None
         self.selected_position_is_flex = False
         self.status = None
-        self.eligible_positions = []
+        self.eligible_positions: Set = set()
         self.stats = []
 
         # custom report attributes
