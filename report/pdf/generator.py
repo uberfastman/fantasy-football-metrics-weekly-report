@@ -378,7 +378,7 @@ class PdfGenerator(object):
             ("FONT", (0, 1), (-1, 1), self.font_italic),
             ("FONTSIZE", (0, 0), (-1, 0), self.font_size + 4),
             ("FONTSIZE", (0, 1), (-1, -2), self.font_size + 2),
-            ("FONTSIZE", (0, -1), (-1, -1), self.font_size + 8),
+            ("FONTSIZE", (0, -1), (-1, -1), self.font_size + 6),
             ("ALIGN", (0, 0), (-1, -1), "CENTER"),
             ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
         ]
@@ -1165,8 +1165,20 @@ class PdfGenerator(object):
                         self.report_data.league.offline
                     )
 
+                    boom_title = choice([
+                        "BOOOOOOOOM", "Certified Stud", "Cash Money", "To the Moon!",
+                        "The King", "O Captain! My Captain!", "STILL HUNGRY...", "Haters gonna hate!",
+                        "Price just went up!", "Future HOFer", "Put Da Team On My Back", "Can't Hold Me Down",
+                        "Unstoppable Force", "Immovable Object", "GOAT", "Showed Up and Showed Out"
+                    ])
+                    bust_title = choice([
+                        "...b... U... s... T", "Better luck next year...", "OUCH...!", "...took an arrow in the knee",
+                        "Future Benchwarmer", "Needs Grip Boost!", "Underachievers Anonymous", "MIA",
+                        "Pennies on the Dollar", "Stoppable Force", "Movable Object", "Over-promise, Under-deliver!",
+                        "La La La I Can't Hear You", "Losing Builds Character!", "Better hit the waiver wire!", "DUD"
+                    ])
                     data = [
-                        ["BOOOOOOOOM", "...b... U... s... T"],
+                        [boom_title, bust_title],
                         [best_weekly_player.full_name + " -- " + (best_weekly_player.nfl_team_name if
                                                                   best_weekly_player.nfl_team_name else "N/A"),
                          worst_weekly_player.full_name + " -- " + (worst_weekly_player.nfl_team_name if
@@ -1175,30 +1187,39 @@ class PdfGenerator(object):
                     ]
                     if (any(player.season_points for player in starting_players)
                             and starting_players[0].week_for_report > 1):
+
+                        if best_weekly_player.season_average_points > 0:
+                            boom_pct_above_avg = round(
+                                ((best_weekly_player.points - best_weekly_player.season_average_points)
+                                 / best_weekly_player.season_average_points) * 100, 2
+                            )
+                        elif best_weekly_player.season_average_points == 0:
+                            boom_pct_above_avg = "∞"
+                        else:
+                            boom_pct_above_avg = round(
+                                ((best_weekly_player.season_average_points - best_weekly_player.points)
+                                 / best_weekly_player.season_average_points) * -100, 2
+                            )
+
+                        if worst_weekly_player.season_average_points > 0:
+                            bust_pct_above_avg = round(
+                                ((worst_weekly_player.season_average_points - worst_weekly_player.points)
+                                 / worst_weekly_player.season_average_points) * 100, 2
+                            )
+                        elif worst_weekly_player.season_average_points == 0:
+                            bust_pct_above_avg = "∞"
+                        else:
+                            bust_pct_above_avg = round(
+                                ((worst_weekly_player.season_average_points - worst_weekly_player.points)
+                                 / worst_weekly_player.season_average_points) * -100, 2
+                            )
+
                         data.append(
                             [
-                                f"""{round(best_weekly_player.points, 2)} 
-                                ({best_weekly_player.season_average_points} 
-                                avg: +{
-                                    round(((best_weekly_player.points - best_weekly_player.season_average_points)
-                                           / best_weekly_player.season_average_points) * 100, 2) 
-                                    if best_weekly_player.season_average_points > 0
-                                    else "∞"
-                                    if best_weekly_player.season_average_points == 0
-                                    else round(((best_weekly_player.season_average_points - best_weekly_player.points)
-                                                / best_weekly_player.season_average_points) * -100, 2)
-                                }%)""",
-                                f"""{round(worst_weekly_player.points, 2)} 
-                                ({worst_weekly_player.season_average_points} 
-                                avg: -{
-                                    round(((worst_weekly_player.season_average_points - worst_weekly_player.points) 
-                                         / worst_weekly_player.season_average_points) * 100, 2)
-                                    if worst_weekly_player.season_average_points > 0
-                                    else "∞"
-                                    if worst_weekly_player.season_average_points == 0
-                                    else round(((worst_weekly_player.season_average_points - worst_weekly_player.points)
-                                                / worst_weekly_player.season_average_points) * -100, 2)
-                                }%)"""
+                                (f"{round(best_weekly_player.points, 2)} "
+                                 f"({best_weekly_player.season_average_points} avg: +{boom_pct_above_avg}%)"),
+                                (f"{round(worst_weekly_player.points, 2)} "
+                                 f"({worst_weekly_player.season_average_points} avg: -{bust_pct_above_avg}%)")
                             ]
                         )
                     else:
