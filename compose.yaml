@@ -2,7 +2,7 @@
 services:
 
   app:
-    image: ghcr.io/uberfastman/fantasy-football-metrics-weekly-report:15.2.1
+    image: ghcr.io/uberfastman/fantasy-football-metrics-weekly-report:16.0.0
     platform: linux/amd64
     ports:
       - "5001:5000"

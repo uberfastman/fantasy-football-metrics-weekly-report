@@ -28,7 +28,7 @@
 
 ---
 
-#### Fantasy Football Platform Support: [Yahoo](#yahoo-setup), [ESPN](#espn-setup), [Sleeper](#sleeper-setup), [Fleaflicker](#fleaflicker-setup)
+#### Fantasy Football Platform Support: [Yahoo](#yahoo-setup), [ESPN](#espn-setup), [Sleeper](#sleeper-setup), [Fleaflicker](#fleaflicker-setup), [CBS](#cbs-setup)
 
 ***You can see an example of what a report looks like [here](resources/files/example_report.pdf)!***
 
@@ -54,13 +54,15 @@
 * [Dependencies](#dependencies)
 * [Setup](#setup)
   * [Command-line](#command-line)
-    * [Git](#git)
-    * [Docker](#docker)
-    * [GitHub](#github)
+  * [Git](#git)
+  * [Docker](#docker)
+  * [GitHub](#github)
+  * [Platforms](#platforms)
     * [Yahoo Setup](#yahoo-setup)
     * [Fleaflicker Setup](#fleaflicker-setup)
     * [Sleeper Setup](#sleeper-setup)
     * [ESPN Setup](#espn-setup)
+    * [CBS Setup](#cbs-setup)
 * [Running the Report Application](#running-the-report-application)
 * [Configuration](#configuration)
   * [Report Features](#report-features)
@@ -157,9 +159,11 @@ Currently supported fantasy football platforms:
 
 * **ESPN**
 
+* **CBS***
+
 *Platforms in development:*
 
-* ***CBS***
+* TBD
 
 *Planned platforms:*
 
@@ -252,8 +256,13 @@ Clone this project to whichever directory you wish to use for this app:
 
 ---
 
+<a name="platforms"></a>
+#### Platforms
+
 <a name="yahoo-setup"></a>
-#### Yahoo Setup
+##### Yahoo Setup
+
+Yahoo Fantasy Sports has a public API documented [here](https://developer.yahoo.com/fantasysports/guide/). The Fantasy Football Metrics Weekly Report application uses my own [YFPY](https://yfpy.uberfastman.com) Python wrapper around this API to retrieve the necessary data to generate reports.
 
 1. Log in to a Yahoo account with access to whatever fantasy football leagues from which you wish to retrieve data.
 
@@ -277,30 +286,30 @@ Clone this project to whichever directory you wish to use for this app:
     
    6. `API Permissions` (**Required**): check the `Fantasy Sports` checkbox. You can leave the `Read` option selected (appears in an accordion expansion underneath the `Fantasy Sports` checkbox once you select it).
     
-   7. Click the `Create App` button.
+5. Click the `Create App` button.
     
-   8. Once the app is created, it should redirect you to a page for your app, which will show both a `Client ID` and a `Client Secret`.
+6. Once the app is created, it should redirect you to a page for your app, which will show both a `Client ID` and a `Client Secret`.
     
-   9. Copy the file `private.template.json` (located in the `auth/yahoo/` directory), and rename the file copy `private.json` by running the below command in your command line shell:
+7. Copy the file `private.template.json` (located in the `auth/yahoo/` directory), and rename the file copy `private.json` by running the below command in your command line shell:
     
-      * **macOS**/**Linux**: `cp auth/yahoo/private.template.json private.json auth/yahoo/private.json`
+   * **macOS**/**Linux**: `cp auth/yahoo/private.template.json private.json auth/yahoo/private.json`
         
-      * **Windows**: `copy auth\yahoo\private.template.json auth\yahoo\private.json`
+   * **Windows**: `copy auth\yahoo\private.template.json auth\yahoo\private.json`
     
-   10. Open your new `private.json` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then copy and paste the `Client ID` and `Client Secret` values from your above created Yahoo app to their respective fields (make sure the strings are wrapped regular quotes (`""`), NOT formatted quotes (`“”`)). The path to this file will be needed to point the YFPY API wrapper responsible for data retrieval to your credentials.
+8. Open your new `private.json` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then copy and paste the `Client ID` and `Client Secret` values from your above created Yahoo app to their respective fields (make sure the strings are wrapped regular quotes (`""`), NOT formatted quotes (`“”`)). The path to this file will be needed to point the YFPY API wrapper responsible for data retrieval to your credentials.
     
-   11. The first time you run the app, it will initialize the OAuth connection between the report generator and your Yahoo account.
+9. The first time you run the app, it will initialize the OAuth connection between the report generator and your Yahoo account.
     
-**NOTE**: *If your Yahoo league uses FAAB (Free Agent Acquisition Budget) for player waivers, you must set the `initial_faab_budget` value in the `config.ini` file to reflect your league's starting budget, since this information does not seem to be available in the Yahoo API.
+**NOTE**: ***If your Yahoo league uses FAAB (Free Agent Acquisition Budget) for player waivers, you must set the `initial_faab_budget` value in the `config.ini` file to reflect your league's starting budget, since this information does not seem to be available in the Yahoo API.***
 
-#### You are now ready to [generate a report!](#running-the-report-application)
+##### You are now ready to [generate a report!](#running-the-report-application)
 
 ---
 
 <a name="fleaflicker-setup"></a>
-#### Fleaflicker Setup
+##### Fleaflicker Setup
 
-Fleaflicker recently implemented a public API, but at the present time it is undocumented and subject to unexpected and sudden changes. *Please note, some data required to provide certain information to the report is not currently available in the Fleaflicker API, so for the time being web-scraping is used to supplement the data gathered from the Fleaflicker API.*
+Fleaflicker has a public API documented [here](https://www.fleaflicker.com/api-docs/index.html). The Fantasy Football Metrics Weekly Report application uses this API to retrieve the necessary data to generate reports. ***Please note, some data required to provide certain information to the report is not currently available in the Fleaflicker API, so for the time being web-scraping is used to supplement the data gathered from the Fleaflicker API.***
 
 1. Retrieve your Fleaflicker league ID. You can find it by looking at the URL of your league in your browser:
 
@@ -314,14 +323,14 @@ Fleaflicker recently implemented a public API, but at the present time it is und
 
 5. Fleaflicker does not require any authentication to access their API at this time, so no additional steps are necessary.
 
-#### You are now ready to [generate a report!](#running-the-report-application)
+##### You are now ready to [generate a report!](#running-the-report-application)
 
 ---
 
 <a name="sleeper-setup"></a>
-#### Sleeper Setup
+##### Sleeper Setup
 
-Sleeper has a public API, the documentation for which is available [here](https://docs.sleeper.app). The Fantasy Football Metrics Weekly Report application uses this API to retrieve the necessary data to generate reports. *Please note, some data required to provide certain information to the report is not currently available in the Sleeper API, so a few small things are excluded in the report until such a time as the data becomes available*. That being said, the missing data does not fundamentally limit the capability of the app to generate a complete report.
+Sleeper has a public API documented [here](https://docs.sleeper.app). The Fantasy Football Metrics Weekly Report application uses this API to retrieve the necessary data to generate reports. ***Please note, some data required to provide certain information to the report is not currently available in the Sleeper API, so a few small things are excluded in the report until such a time as the data becomes available***. That being said, the missing data does not fundamentally limit the capability of the app to generate a complete report.
 
 1. Retrieve your Sleeper league ID. You can find it by looking at the URL of your league in your browser:
 
@@ -329,18 +338,18 @@ Sleeper has a public API, the documentation for which is available [here](https:
     
 2. Change the `league_id` value in `config.ini` to the above located league id.
 
-3. *(Optional)* It is advised that you accurately set the `current_week` configuration value in the `config.ini` file to reflect the current/ongoing NFL week at the time of running the report, as the report will default to this value if retrieving the current NFL week from the Fox Sports API (which the app uses to fetch the current NFL week) is unsuccessful.
+3. *(Optional)* It is advised that you accurately set the `current_week` configuration value in the `config.ini` file to reflect the current/ongoing NFL week at the time of running the report, as the report will default to this value if retrieving the current NFL week from the Sleeper API (which the app uses to fetch the current NFL week) is unsuccessful.
 
-4. Sleeper does not require any authentication to access their API at this time, so no additional steps are necessary.
+4. Set 
 
-#### You are now ready to [generate a report!](#running-the-report-application)
+##### You are now ready to [generate a report!](#running-the-report-application)
 
 ---
 
 <a name="espn-setup"></a>
-#### ESPN Setup
+##### ESPN Setup
 
-ESPN has a public API, but it was changed from v2 to v3 in 2018, which introduced some variance to its functionality. At the present time it is also undocumented and subject to unexpected and sudden changes. *Please note, some  data required to provide certain information to the report is not currently available in the ESPN API, so a few small things are excluded in the report until such a time as the data becomes available*. That being said, the missing data does not fundamentally limit the capability of the app to generate a complete report.
+ESPN has an undocumented public API which changed from v2 to v3 in 2018 and introduced some variance to its functionality, and as such is subject to unexpected and sudden changes. The Fantasy Football Metrics Weekly Report application uses this API to retrieve the necessary data to generate reports. ***Please note, some  data required to provide certain information to the report is not currently available in the ESPN API, so a few small things are excluded in the report until such a time as the data becomes available***. That being said, the missing data does not fundamentally limit the capability of the app to generate a complete report.
 
 1. Retrieve your ESPN league ID. You can find it by looking at the URL of your league in your browser:
 
@@ -362,7 +371,7 @@ ESPN has a public API, but it was changed from v2 to v3 in 2018, which introduce
 
           * **Windows**: `copy auth\espn\private.template.json auth\espn\private.json`
 
-      2. Open your new `private.json` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), ***delete*** the `swid` and `espn_s2` fields, and add your ESPN account username and password to their respective fields. This app does not store your credentials anywhere, but it *does* use [Selenium](https://www.selenium.dev) to run a headless browser to log in to ESPN on your behalf, so expect to see an email alerting you to a new device login. The Selenium process will retrieve your ESPN sesssion cookies (`SWID` and `espn_s2`) and copy them into your `private.json` file for reuse with future ESPN API authentication.
+      2. Open your new `private.json` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), ***delete*** the `swid` and `espn_s2` fields, and add your ESPN account username and password to their respective fields. ***Please note, the FFMWR app does not store any of your credentials, it simply uses them to log in to your account and obtain session cookies.*** The app uses [Selenium](https://www.selenium.dev) to run a headless browser to log in to ESPN on your behalf, so expect to see an email alerting you to a new device login. The Selenium process will retrieve your ESPN session cookies (`SWID` and `espn_s2`) and copy them into your `private.json` file for reuse with future ESPN API authentication.
 
    2. Manually retrieve your ESPN session cookies:
    
@@ -391,11 +400,36 @@ ESPN has a public API, but it was changed from v2 to v3 in 2018, which introduce
         
          * **Windows**: `copy auth\espn\private.template.json auth\espn\private.json`
         
-      5. Open your new `private.json` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then copy and paste the above cookies into their respective fields. Please note, the `swid` will be surrounded by curly braces (`{...}`), which must be included.
+      5. Open your new `private.json` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then copy and paste the above cookies into their respective fields. ***Please note, the `swid` will be surrounded by curly braces (`{...}`), which must be included.***
     
 **NOTE**: *Because ESPN made the change to their API between 2018 and 2019, ESPN support in the Fantasy Football Metrics Weekly Report application is currently limited to the 2019 season and later. Support for historical seasons will be implemented at a later time.
 
-#### You are now ready to [generate a report!](#running-the-report-application)
+##### You are now ready to [generate a report!](#running-the-report-application)
+
+---
+
+<a name="cbs-setup"></a>
+##### CBS Setup
+
+CBS has a public API that was once documented, the last version of which can be viewed using the Wayback machine [here](https://web.archive.org/web/20150906150045/http://developer.cbssports.com/documentation). The Fantasy Football Metrics Weekly Report application uses this API to retrieve the necessary data to generate reports. ***Please note, some data required to provide certain information to the report is not currently available in the CBS API, so a few small things are excluded in the report until such a time as the data becomes available***. That being said, the missing data does not fundamentally limit the capability of the app to generate a complete report.
+``
+1. Retrieve your CBS league ID. You can find it by looking at the URL of your league in your browser:
+
+   ![cbs-fantasy-football-league-id-location.png](resources/images/cbs-fantasy-football-league-id-location.png)
+
+2. Change the `league_id` value in `config.ini` to the above located league id.
+
+3. The CBS API requires authentication to retrieve your league data, so you will need to use your CBS credentials to do so. Copy the file `private.template.json` (located in the `auth/cbs/` directory), and rename the file copy `private.json` by running the below command in your command line shell:
+
+    * **macOS**/**Linux**: `cp auth/cbs/private.template.json private.json auth/cbs/private.json`
+
+    * **Windows**: `copy auth\cbs\private.template.json auth\cbs\private.json`
+
+4. Open your new `private.json` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then update the respective fields with your `league_id`, CBS username, and CBS password. ***Please note, the FFMWR app does not store any of your credentials, it simply uses them to log in to your account and obtain an API access token.*** All values added to `private.json` must be surrounded by regular quotes (`""`), NOT formatted quotes (`“”`)).
+
+5. The first time you run the app, it will retrieve an API access token using your credentials and store it in the `auth/cbs/private.json` file. All subsequent runs of the report will simply use this access token to authenticate with the CBS API instead of your CBS credentials, so if you prefer you can delete your CBS username and CBS password from the file.
+
+##### You are now ready to [generate a report!](#running-the-report-application)
 
 ---
 
@@ -684,7 +718,7 @@ The following setup steps are ***required*** in order to allow the Google Drive 
 
 33. You should then see the command line output "Authentication successful.", as well as a list of 10 files in your Google Drive to confirm it can access your drive. It will also have automatically generated a `token.json` file in `auth/google/`, which you should just leave where it is and do ***NOT*** edit or modify in any way!
 
-34. *You can now upload your reports to Google Drive in one of two ways listed below. Please note, if you wish to specify where the app will upload the report to in Google Drive, change the value of `google_drive_folder_path` in `config.ini` to whatever path you wish to store the reports in Google Drive, for example: `Fantasy_Football/reports`. If you do not put a path in this value the report will default to uploading files to a `Fantasy_Football` directory at the root of your Google Drive.*
+34. You can now upload your reports to Google Drive in one of two ways listed below. ***Please note, if you wish to specify where the app will upload the report to in Google Drive, change the value of `google_drive_folder_path` in `config.ini` to whatever path you wish to store the reports in Google Drive, such as `Fantasy_Football/reports`. If you do not put a path in this value the report will default to uploading files to a `Fantasy_Football` directory at the root of your Google Drive.***
     1. Change `google_drive_upload` to `True` in `config.ini` and generate a new report. You will see a message at the end of the run that indicates the report PDF was successfully uploaded to Google Drive, and provides the direct share link to the file.
        **OR**
     2. Set the value of `google_drive_reupload_file` in `config.ini` to the local filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/drive.py`*. This only works for preexisting reports that you have already generated, and will then upload that report to Google Drive without generating a new one. 

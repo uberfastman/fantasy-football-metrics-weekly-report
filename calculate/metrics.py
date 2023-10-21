@@ -4,34 +4,37 @@ __email__ = "uberfastman@uberfastman.dev"
 import itertools
 from collections import defaultdict, OrderedDict
 from statistics import mean
+from typing import Union, List, Dict, Any
 
 import numpy as np
 
 from dao.base import BaseLeague, BaseTeam, BaseRecord, BasePlayer
 from report.logger import get_logger
+from utilities.config import AppConfigParser
 
 logger = get_logger(__name__, propagate=False)
 
 
 class CalculateMetrics(object):
-    def __init__(self, config, league_id, playoff_slots, playoff_simulations):
+    def __init__(self, config: Union[AppConfigParser, None], league_id: Union[str, None],
+                 playoff_slots: Union[int, None], playoff_simulations: Union[int, None]):
         logger.debug("Initializing metrics calculator.")
 
-        self.config = config
-        self.league_id = league_id
-        self.playoff_slots = playoff_slots
-        self.playoff_simulations = playoff_simulations
-        self.coaching_efficiency_dq_count = 0
+        self.config: AppConfigParser = config
+        self.league_id: str = league_id
+        self.playoff_slots: int = playoff_slots
+        self.playoff_simulations: int = playoff_simulations
+        self.coaching_efficiency_dq_count: int = 0
 
     @staticmethod
-    def decode_byte_string(string):
+    def decode_byte_string(byte_string: Union[bytes, str]) -> Union[bytes, str]:
         try:
-            return string.decode("utf-8")
+            return byte_string.decode("utf-8")
         except (UnicodeDecodeError, AttributeError):
-            return string
+            return byte_string
 
     @staticmethod
-    def get_standings_data(league: BaseLeague):
+    def get_standings_data(league: BaseLeague) -> List[List[Any]]:
         logger.debug("Creating league standings data.")
 
         current_standings_data = []
@@ -41,7 +44,8 @@ class CalculateMetrics(object):
                 team.record.rank,
                 team.name,
                 team.manager_str,
-                f"{team.record.get_wins()}-{team.record.get_losses()}-{team.record.get_ties()} ({team.record.get_percentage()})",
+                (f"{team.record.get_wins()}-{team.record.get_losses()}-{team.record.get_ties()} "
+                 f"({team.record.get_percentage()})"),
                 f"{team.record.get_points_for():.2f}",
                 f"{team.record.get_points_against():.2f}",
                 team.record.get_streak_str(),
@@ -57,7 +61,7 @@ class CalculateMetrics(object):
         return current_standings_data
 
     @staticmethod
-    def get_division_standings_data(league: BaseLeague):
+    def get_division_standings_data(league: BaseLeague) -> List[List[List[Any]]]:
         logger.debug("Creating league division standings data.")
 
         # group teams into divisions
@@ -123,8 +127,10 @@ class CalculateMetrics(object):
                     team_ranks_by_id[team.team_id],
                     team.name + modified_team_names[team.team_id],
                     team.manager_str,
-                    f"{team.record.get_wins()}-{team.record.get_losses()}-{team.record.get_ties()} ({team.record.get_percentage()})",
-                    f"{team.record.get_division_wins()}-{team.record.get_division_losses()}-{team.record.get_division_ties()} ({team.record.get_division_percentage()})",
+                    (f"{team.record.get_wins()}-{team.record.get_losses()}-{team.record.get_ties()} "
+                     f"({team.record.get_percentage()})"),
+                    (f"{team.record.get_division_wins()}-{team.record.get_division_losses()}"
+                     f"-{team.record.get_division_ties()} ({team.record.get_division_percentage()})"),
                     f"{team.record.get_points_for():.2f}",
                     f"{team.record.get_points_against():.2f}",
                     team.record.get_streak_str(),
@@ -142,7 +148,7 @@ class CalculateMetrics(object):
         return current_division_standings_data
 
     @staticmethod
-    def get_median_standings_data(league: BaseLeague):
+    def get_median_standings_data(league: BaseLeague) -> List[List[Any]]:
         logger.debug("Creating league median standings data.")
 
         current_median_standings_data = []
@@ -164,16 +170,16 @@ class CalculateMetrics(object):
                 team.name,
                 team.manager_str,
                 (
-                    str(combined_record.get_wins())
-                    + "-" + str(combined_record.get_losses())
-                    + "-" + str(combined_record.get_ties())
-                    + " (" + str(combined_record.get_percentage()) + ")"
+                        str(combined_record.get_wins())
+                        + "-" + str(combined_record.get_losses())
+                        + "-" + str(combined_record.get_ties())
+                        + " (" + str(combined_record.get_percentage()) + ")"
                 ),
                 (
-                    str(team.current_median_record.get_wins())
-                    + "-" + str(team.current_median_record.get_losses())
-                    + "-" + str(team.current_median_record.get_ties())
-                    + " (" + str(team.current_median_record.get_percentage()) + ")"
+                        str(team.current_median_record.get_wins())
+                        + "-" + str(team.current_median_record.get_losses())
+                        + "-" + str(team.current_median_record.get_ties())
+                        + " (" + str(team.current_median_record.get_percentage()) + ")"
                 ),
                 f"{round(float(team.current_median_record.get_points_for()), 2):.2f}",
                 team.current_median_record.get_streak_str(),
@@ -186,7 +192,8 @@ class CalculateMetrics(object):
         return current_median_standings_data
 
     @staticmethod
-    def get_playoff_probs_data(league_standings, data_for_playoff_probs):
+    def get_playoff_probs_data(league_standings: List[BaseTeam],
+                               data_for_playoff_probs: Dict[str, List[Any]]) -> List[List[Any]]:
         logger.debug("Creating league playoff probabilities data.")
 
         has_divisions = False
@@ -197,7 +204,7 @@ class CalculateMetrics(object):
             # sum rolling place percentages together to get a cumulative percentage chance of achieving that place
             # summed_stats = []
             # ndx = 1
-            team_with_playoff_probs = data_for_playoff_probs[int(team.team_id)]
+            team_with_playoff_probs = data_for_playoff_probs[team.team_id]
             team_playoff_stats = team_with_playoff_probs[2]
             # while ndx <= len(team_playoff_stats):
             #     summed_stats.append(sum(team_playoff_stats[:ndx]))
@@ -208,13 +215,13 @@ class CalculateMetrics(object):
                 team_playoff_stats[-1] = 100.00
 
             team_playoffs_data = [
-                team_with_playoff_probs[0],
-                team.manager_str,
-                str(team.record.get_wins()) + "-" + str(team.record.get_losses()) + "-" +
-                str(team.record.get_ties()) + " (" + str(team.record.get_percentage()) + ")",
-                team_with_playoff_probs[1],
-                team_with_playoff_probs[3]
-            ] + team_playoff_stats
+                                     team_with_playoff_probs[0],
+                                     team.manager_str,
+                                     str(team.record.get_wins()) + "-" + str(team.record.get_losses()) + "-" +
+                                     str(team.record.get_ties()) + " (" + str(team.record.get_percentage()) + ")",
+                                     team_with_playoff_probs[1],
+                                     team_with_playoff_probs[3]
+                                 ] + team_playoff_stats
             # ] + summed_stats
 
             if team.record.division or team.record.division == 0:
@@ -254,7 +261,7 @@ class CalculateMetrics(object):
         return sorted_playoff_probs_data
 
     @staticmethod
-    def get_score_data(score_results):
+    def get_score_data(score_results: List[BaseTeam]) -> List[List[Any]]:
         logger.debug("Creating league score data.")
 
         score_results_data = []
@@ -273,7 +280,7 @@ class CalculateMetrics(object):
 
         return score_results_data
 
-    def get_coaching_efficiency_data(self, coaching_efficiency_results):
+    def get_coaching_efficiency_data(self, coaching_efficiency_results: List[BaseTeam]) -> List[List[Any]]:
         logger.debug("Creating league coaching efficiency data.")
 
         coaching_efficiency_results_data = []
@@ -297,7 +304,7 @@ class CalculateMetrics(object):
         return coaching_efficiency_results_data
 
     @staticmethod
-    def get_luck_data(luck_results):
+    def get_luck_data(luck_results: List[BaseTeam]) -> List[List[Any]]:
         logger.debug("Creating league luck data.")
 
         luck_results_data = []
@@ -315,7 +322,7 @@ class CalculateMetrics(object):
         return luck_results_data
 
     @staticmethod
-    def get_optimal_score_data(score_results):
+    def get_optimal_score_data(score_results: List[BaseTeam]) -> List[List[Any]]:
         logger.debug("Creating league optimal score data.")
 
         optimal_score_results_data = []
@@ -334,7 +341,7 @@ class CalculateMetrics(object):
         return optimal_score_results_data
 
     @staticmethod
-    def get_bad_boy_data(bad_boy_results):
+    def get_bad_boy_data(bad_boy_results: List[BaseTeam]) -> List[List[Any]]:
         logger.debug("Creating league bad boys data.")
 
         bad_boy_results_data = []
@@ -355,7 +362,7 @@ class CalculateMetrics(object):
         return bad_boy_results_data
 
     @staticmethod
-    def get_beef_rank_data(beef_results):
+    def get_beef_rank_data(beef_results: List[BaseTeam]) -> List[List[Any]]:
         logger.debug("Creating league beef data.")
 
         beef_results_data = []
@@ -371,7 +378,7 @@ class CalculateMetrics(object):
         return beef_results_data
 
     @staticmethod
-    def get_covid_risk_rank_data(covid_risk_results):
+    def get_covid_risk_rank_data(covid_risk_results: List[BaseTeam]) -> List[List[Any]]:
         logger.debug("Creating league COVID-19 risk data.")
 
         covid_risk_data = []
@@ -386,7 +393,7 @@ class CalculateMetrics(object):
             ndx += 1
         return covid_risk_data
 
-    def get_ties_count(self, results_data, tie_type, break_ties):
+    def get_ties_count(self, results_data: List[List[Any]], tie_type: str, break_ties: bool) -> int:
 
         if tie_type == "power_ranking":
             groups = [list(group) for key, group in itertools.groupby(results_data, lambda x: x[0])]
@@ -455,7 +462,7 @@ class CalculateMetrics(object):
         return num_ties
 
     @staticmethod
-    def count_ties(groups):
+    def count_ties(groups: List[List[Any]]) -> int:
         num_ties = 0
         for group in groups:
             if len(group) > 1 and "DQ" not in group[0]:
@@ -464,7 +471,7 @@ class CalculateMetrics(object):
         return num_ties
 
     @staticmethod
-    def resolve_score_ties(data_for_scores, break_ties):
+    def resolve_score_ties(data_for_scores: List[List[Any]], break_ties: bool) -> List[List[Any]]:
 
         groups = [list(group) for key, group in itertools.groupby(data_for_scores, lambda x: x[3])]
 
@@ -483,8 +490,10 @@ class CalculateMetrics(object):
         return resolved_score_results_data
 
     @staticmethod
-    def resolve_coaching_efficiency_ties(data_for_coaching_efficiency, ties_for_coaching_efficiency, league: BaseLeague,
-                                         teams_results, week, week_for_report, break_ties):
+    def resolve_coaching_efficiency_ties(data_for_coaching_efficiency: List[List[Any]],
+                                         ties_for_coaching_efficiency: int, league: BaseLeague,
+                                         teams_results: Dict[str, BaseTeam], week: int, week_for_report: int,
+                                         break_ties: bool) -> List[List[Any]]:
 
         logger.debug("Resolving coaching efficiency ties.")
 
@@ -493,7 +502,7 @@ class CalculateMetrics(object):
             bench_positions = league.bench_positions
 
             season_average_points_by_player_dict = defaultdict(list)
-            if break_ties and ties_for_coaching_efficiency > 0 and int(week) == int(week_for_report):
+            if break_ties and ties_for_coaching_efficiency > 0 and week == int(week_for_report):
                 for ce_result in data_for_coaching_efficiency:
                     if ce_result[0] == "1*":
                         players = []
@@ -513,7 +522,7 @@ class CalculateMetrics(object):
                                         weekly_player_points = players_by_week[str(player.player_id)].points
                                     else:
                                         weekly_player_points = league.get_player_data_by_week(
-                                            str(player.player_id), str(week_counter))
+                                            str(player.player_id), week_counter)
 
                                     season_average_points_by_player_dict[player.player_id].append(weekly_player_points)
                                     week_counter += 1
@@ -534,10 +543,10 @@ class CalculateMetrics(object):
 
                                     if player_season_avg_points > 0:
                                         total_percentage_points_players_exceeded_season_avg_points += (
-                                            (
-                                                (player_last_week_points - player_season_avg_points)
-                                                / player_season_avg_points
-                                            ) * 100.0
+                                                (
+                                                        (player_last_week_points - player_season_avg_points)
+                                                        / player_season_avg_points
+                                                ) * 100.0
 
                                         )
                                     else:
@@ -574,7 +583,7 @@ class CalculateMetrics(object):
             return data_for_coaching_efficiency
 
     @staticmethod
-    def resolve_season_average_ties(data_for_season_averages, with_percent):
+    def resolve_season_average_ties(data_for_season_averages: List[List[Any]], with_percent: bool) -> List[List[Any]]:
 
         groups = [list(group) for key, group in itertools.groupby(data_for_season_averages, lambda x: x[2])]
 
@@ -668,7 +677,8 @@ class CalculateMetrics(object):
             # team.power_rank = test_power_rank
 
     @staticmethod
-    def calculate_records(week, league: BaseLeague, custom_weekly_matchups):
+    def calculate_records(week: int, league: BaseLeague,
+                          custom_weekly_matchups: List[Dict[str, Dict[str, Any]]]) -> Dict[str, BaseRecord]:
         logger.debug(f"Calculating league records for week \"{week}\".")
 
         standings = league.standings if league.standings else league.current_standings
@@ -677,11 +687,11 @@ class CalculateMetrics(object):
         team: BaseTeam
         for team in standings:
             if week == league.start_week:
-                record = BaseRecord(int(week), team_id=team.team_id, team_name=team.name, division=team.division)
+                record = BaseRecord(week, team_id=team.team_id, team_name=team.name, division=team.division)
             else:
-                previous_week_record: BaseRecord = league.records_by_week[str(int(week) - 1)][team.team_id]
+                previous_week_record: BaseRecord = league.records_by_week[str(week - 1)][team.team_id]
                 record = BaseRecord(
-                    int(week),
+                    week,
                     wins=previous_week_record.get_wins(),
                     ties=previous_week_record.get_ties(),
                     losses=previous_week_record.get_losses(),
@@ -741,7 +751,8 @@ class CalculateMetrics(object):
         return records
 
     @staticmethod
-    def calculate_luck(week, league: BaseLeague, custom_weekly_matchups):
+    def calculate_luck(week: int, league: BaseLeague, custom_weekly_matchups: List[Dict[str, Dict[str, Any]]]) -> Dict[
+        str, Dict[str, BaseRecord]]:
         logger.debug(f"Calculating luck for week \"{week}\".")
 
         luck_results = defaultdict(defaultdict)
@@ -791,7 +802,8 @@ class CalculateMetrics(object):
         return luck_results
 
     @staticmethod
-    def get_ranks_for_metric(data_for_metric, power_ranked_teams, metric_ranking_key):
+    def get_ranks_for_metric(data_for_metric: List[List[Any]], power_ranked_teams: Dict[str, Dict[str, Any]],
+                             metric_ranking_key: str):
         rank = 1
         for team in data_for_metric:
             for team_rankings in power_ranked_teams.values():
@@ -799,7 +811,9 @@ class CalculateMetrics(object):
                     team_rankings[metric_ranking_key] = rank
             rank += 1
 
-    def calculate_power_rankings(self, teams_results, data_for_scores, data_for_coaching_efficiency, data_for_luck):
+    def calculate_power_rankings(self, teams_results: Dict[str, BaseTeam], data_for_scores: List[List[Any]],
+                                 data_for_coaching_efficiency: List[List[Any]],
+                                 data_for_luck: List[List[Any]]) -> Dict[str, Dict[str, Any]]:
         """ avg of (weekly score rank + weekly coaching efficiency rank + weekly luck rank)
         """
         logger.debug("Calculating power rankings.")
@@ -822,7 +836,7 @@ class CalculateMetrics(object):
         return power_ranked_teams
 
     @staticmethod
-    def calculate_z_scores(weekly_teams_results):
+    def calculate_z_scores(weekly_teams_results: List[Dict[str, BaseTeam]]) -> Dict[str, float]:
         logger.debug("Calculating z-scores.")
 
         results = {}

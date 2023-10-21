@@ -9,6 +9,7 @@ import urllib.request
 from copy import deepcopy
 from pathlib import Path
 from random import choice
+from typing import List, Dict, Tuple, Callable, Any, Union
 from urllib.error import URLError
 
 from PIL import Image
@@ -23,11 +24,9 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import PageBreak
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
-from reportlab.platypus import Spacer
-from reportlab.platypus.flowables import Image as ReportLabImage
-from reportlab.platypus.flowables import KeepTogether
+from reportlab.pdfgen.canvas import Canvas
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, PageBreak, Spacer, Flowable
+from reportlab.platypus.flowables import Image as ReportLabImage, KeepTogether
 
 from dao.base import BaseLeague, BaseTeam, BasePlayer
 from report.data import ReportData
@@ -36,7 +35,8 @@ from report.pdf.charts.bar import HorizontalBarChart3DGenerator
 from report.pdf.charts.line import LineChartGenerator
 from report.pdf.charts.pie import BreakdownPieDrawing
 from resources.documentation import descriptions
-from utils.app_config_parser import AppConfigParser
+from utilities.config import AppConfigParser
+from utilities.utils import truncate_cell_for_display
 
 logger = get_logger(__name__, propagate=False)
 
@@ -44,7 +44,8 @@ logger = get_logger(__name__, propagate=False)
 logging.getLogger("PIL.PngImagePlugin").setLevel(level=logging.INFO)
 
 
-def get_player_image(url, data_dir, week, image_quality, width=1.0 * inch, player_name=None, offline=False):
+def get_player_image(url: str, data_dir: Path, week: int, image_quality: int, width: float = 1.0 * inch,
+                     player_name: str = None, offline: bool = False):
     headshots_dir = Path(data_dir) / f"week_{week}" / "player_headshots"
 
     if not Path(headshots_dir).exists():
@@ -64,14 +65,14 @@ def get_player_image(url, data_dir, week, image_quality, width=1.0 * inch, playe
                     except URLError:
                         logger.error(
                             f"Unable to retrieve player "
-                            f"headshot{(' for player ' + player_name) if player_name else ''} at url {url}"
+                            f"headshot{f' for player {player_name}' if player_name else ''} at url {url}"
                         )
-                        local_img_path = Path("resources") / "images" / "photo-not-available.jpg"
+                        local_img_path = Path("resources") / "images" / "photo-not-available.png"
                 else:
                     logger.error(
                         f"FILE {local_img_jpg_path} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY "
                         f"SAVED DATA!")
-                    sys.exit("...run aborted.")
+                    sys.exit(1)
 
             img = Image.open(local_img_path)
             if img.mode != "RGBA":
@@ -88,8 +89,8 @@ def get_player_image(url, data_dir, week, image_quality, width=1.0 * inch, playe
             local_img_path = local_img_jpg_path
 
     else:
-        logger.error(f"No available URL for player{' ' + player_name if player_name else ''}.")
-        img_name = "photo-not-available.jpg"
+        logger.error(f"No available URL for player{f' {player_name}' if player_name else ''}.")
+        img_name = "photo-not-available.png"
         local_img_path = Path("resources") / "images" / img_name
 
     img_reader = ImageReader(local_img_path)
@@ -109,17 +110,17 @@ class HyperlinkedImage(ReportLabImage, object):
     Adopted from https://stackoverflow.com/a/26294527/304209.
     """
 
-    def __init__(self, filename, hyperlink=None, width=None, height=None, kind='direct',
-                 mask='auto', lazy=1, hAlign='CENTER'):
+    def __init__(self, file_path: Path, hyperlink: str = None, width: int = None, height: int = None,
+                 kind: str = 'direct', mask: str = 'auto', lazy: int = 1, hAlign: str = 'CENTER'):
         """The only variable added to __init__() is hyperlink.
 
         It defaults to None for the if statement used later.
         """
-        super(HyperlinkedImage, self).__init__(filename, width, height, kind, mask, lazy,
+        super(HyperlinkedImage, self).__init__(file_path, width, height, kind, mask, lazy,
                                                hAlign=hAlign)
         self.hyperlink = hyperlink
 
-    def drawOn(self, canvas, x, y, _sW=0):
+    def drawOn(self, canvas: Canvas, x: int, y: int, _sW: int = 0):
         if self.hyperlink:  # If a hyperlink is given, create a canvas.linkURL()
             # This is basically adjusting the x coordinate according to the alignment
             # given to the flowable (RIGHT, LEFT, CENTER)
@@ -134,8 +135,8 @@ class HyperlinkedImage(ReportLabImage, object):
 class PdfGenerator(object):
 
     # noinspection SpellCheckingInspection
-    def __init__(self, config: AppConfigParser, season, league: BaseLeague, playoff_prob_sims, report_title_text,
-                 report_footer_text, report_data: ReportData):
+    def __init__(self, config: AppConfigParser, season: int, league: BaseLeague, playoff_prob_sims: int,
+                 report_title_text: str, report_footer_text: str, report_data: ReportData):
         logger.debug("Instantiating PDF generator.")
 
         # report configuration
@@ -290,27 +291,33 @@ class PdfGenerator(object):
         self.text_style_h2.fontName = self.font
         self.text_style_h3 = self.stylesheet["Heading3"]
         self.text_style_h3.fontName = self.font
-        self.text_style_subtitles = ParagraphStyle(name="subtitles",
-                                                   parent=self.text_style_normal,
-                                                   # fontName=tt2ps(bfn, 1, 1),
-                                                   fontName=self.font_bold_italic,
-                                                   fontSize=self.font_size - 4,
-                                                   leading=10,
-                                                   spaceBefore=0,
-                                                   spaceAfter=0)
-        self.text_style_subsubtitles = ParagraphStyle(name="subsubtitles",
-                                                      parent=self.text_style_normal,
-                                                      # fontName=tt2ps(bfn, 1, 1),
-                                                      fontName=self.font_bold,
-                                                      fontSize=self.font_size - 2,
-                                                      textColor=colors.orangered,
-                                                      leading=10,
-                                                      spaceBefore=0,
-                                                      spaceAfter=0)
-        self.text_style_italics = ParagraphStyle(name="italics",
-                                                 fontSize=10,
-                                                 alignment=TA_CENTER,
-                                                 fontName=self.font_italic)
+        self.text_style_subtitles = ParagraphStyle(
+            name="subtitles",
+            parent=self.text_style_normal,
+            # fontName=tt2ps(bfn, 1, 1),
+            fontName=self.font_bold_italic,
+            fontSize=self.font_size - 4,
+            leading=10,
+            spaceBefore=0,
+            spaceAfter=0
+        )
+        self.text_style_subsubtitles = ParagraphStyle(
+            name="subsubtitles",
+            parent=self.text_style_normal,
+            # fontName=tt2ps(bfn, 1, 1),
+            fontName=self.font_bold,
+            fontSize=self.font_size - 2,
+            textColor=colors.orangered,
+            leading=10,
+            spaceBefore=0,
+            spaceAfter=0
+        )
+        self.text_style_italics = ParagraphStyle(
+            name="italics",
+            fontSize=10,
+            alignment=TA_CENTER,
+            fontName=self.font_italic
+        )
         self.text_style_small = ParagraphStyle(name="small", fontSize=5, alignment=TA_CENTER)
         self.text_style_invisible = ParagraphStyle(name="invisible", fontSize=0, textColor=colors.white)
 
@@ -386,10 +393,11 @@ class PdfGenerator(object):
 
         # report specific document elements
         self.standings_headers = [
-            ["Place", "Team", "Manager", "Record", "Points For", "Points Against", "Streak", "Waiver", "Moves",
-             "Trades"]]
+            ["Place", "Team", "Manager", "Record", "Points For", "Points Against", "Streak", "Waiver", "Moves", "Trades"]
+        ]
         self.median_standings_headers = [
-            ["Place", "Team", "Manager", "Combined Record", "Median Record", "Season +/- Median", "Median Streak"]]
+            ["Place", "Team", "Manager", "Combined Record", "Median Record", "Season +/- Median", "Median Streak"]
+        ]
 
         ordinal_dict = {
             1: "1st", 2: "2nd", 3: "3rd", 4: "4th",
@@ -494,32 +502,37 @@ class PdfGenerator(object):
 
         # dynamically create table styles based on number of ties in metrics
         self.style_efficiency_dqs = None
-        self.style_tied_scores = self.set_tied_values_style(self.report_data.ties_for_scores, table_style_list,
-                                                            "scores")
-        self.style_tied_efficiencies = self.set_tied_values_style(self.report_data.ties_for_coaching_efficiency,
-                                                                  table_style_list,
-                                                                  "coaching_efficiency")
+        self.style_tied_scores = self.set_tied_values_style(
+            self.report_data.ties_for_scores, table_style_list, "scores"
+        )
+        self.style_tied_efficiencies = self.set_tied_values_style(
+            self.report_data.ties_for_coaching_efficiency, table_style_list, "coaching_efficiency"
+        )
         self.style_tied_luck = self.set_tied_values_style(self.report_data.ties_for_luck, table_style_list, "luck")
-        self.style_tied_power_rankings = self.set_tied_values_style(self.report_data.ties_for_power_rankings,
-                                                                    table_style_list,
-                                                                    "power_ranking")
-        self.style_tied_bad_boy = self.set_tied_values_style(self.report_data.ties_for_power_rankings, table_style_list,
-                                                             "bad_boy")
-        self.style_tied_beef = self.set_tied_values_style(self.report_data.ties_for_beef_rankings,
-                                                          style_left_alight_right_col_list, "beef")
+        self.style_tied_power_rankings = self.set_tied_values_style(
+            self.report_data.ties_for_power_rankings, table_style_list, "power_ranking"
+        )
+        self.style_tied_bad_boy = self.set_tied_values_style(
+            self.report_data.ties_for_power_rankings, table_style_list,"bad_boy"
+        )
+        self.style_tied_beef = self.set_tied_values_style(
+            self.report_data.ties_for_beef_rankings, style_left_alight_right_col_list, "beef"
+        )
 
         # table of contents
         self.toc = TableOfContents(self.font, self.font_size, self.config, self.break_ties)
 
         # appendix
-        self.appendix = Appendix("Appendix I: Rankings & Metrics", self.create_title, self.toc.get_current_anchor,
-                                 self.font_size, self.text_style)
+        self.appendix = Appendix(
+            "Appendix I: Rankings & Metrics", self.create_title, self.toc.get_current_anchor, self.font_size,
+            self.text_style
+        )
 
         # team data for use on team specific stats pages
         self.teams_results = report_data.teams_results
 
     # noinspection PyUnusedLocal
-    def add_page_number(self, canvas, doc):
+    def add_page_number(self, canvas: Canvas, doc: SimpleDocTemplate):
         """
         Add the page number
         """
@@ -532,7 +545,7 @@ class PdfGenerator(object):
         self.toc.add_toc_page()
         return PageBreak()
 
-    def set_tied_values_style(self, num_ties, table_style_list, metric_type):
+    def set_tied_values_style(self, num_ties: int, table_style_list: List[Tuple[Any]], metric_type: str):
 
         num_first_places = num_ties
         if metric_type == "scores":
@@ -601,9 +614,12 @@ class PdfGenerator(object):
 
         return TableStyle(tied_values_table_style_list)
 
-    def create_section(self, title_text, headers, data, table_style, table_style_ties, col_widths,
-                       subtitle_text=None, subsubtitle_text=None, header_text=None, footer_text=None, row_heights=None,
-                       tied_metric=False, metric_type=None, section_title_function=None):
+    def create_section(self, title_text: str, headers: List[List[str]], data: Any,
+                       table_style: TableStyle, table_style_ties: Union[TableStyle, None], col_widths: List[float],
+                       subtitle_text: Union[str, List[str]] = None, subsubtitle_text: Union[str, List[str]] = None,
+                       header_text: str = None, footer_text: str = None, row_heights: List[List[float]] = None,
+                       tied_metric: bool = False, metric_type: str = None,
+                       section_title_function: Callable = None) -> KeepTogether:
         logger.debug(
             f"Creating report section: \"{title_text if title_text else metric_type}\" with "
             f"data:\n{json.dumps(data, indent=2)}\n"
@@ -619,10 +635,9 @@ class PdfGenerator(object):
             )
             appendix_anchor = self.appendix.get_last_entry_anchor()
             title = self.create_title(
-                '''<a href = #page.html#''' + appendix_anchor + ''' color=blue>''' +
-                '''<u><b>''' + title_text + '''</b></u></a>''',
+                f"<a href = #page.html#{appendix_anchor} color=blue><u><b>{title_text}</b></u></a>",
                 element_type="section",
-                anchor="<a name = page.html#" + section_anchor + "></a>",
+                anchor=f"<a name = page.html#{section_anchor}></a>",
                 subtitle_text=subtitle_text,
                 subsubtitle_text=subsubtitle_text
             )
@@ -723,7 +738,7 @@ class PdfGenerator(object):
                     beefs.append(half_beef_icon)
 
                 # noinspection PyTypeChecker
-                beefs.insert(0, team[-1] + " ")
+                beefs.insert(0, f"{team[-1]} ")
                 beefs = [beefs]
                 beefs_col_widths = [0.20 * inch] * (num_beefs if num_beefs > 0 else num_cows)
                 beefs_col_widths.insert(0, 0.50 * inch)
@@ -741,8 +756,9 @@ class PdfGenerator(object):
                 tabbu_column_table.setStyle(TableStyle(tabbu_column_table_style_list))
                 team[-1] = tabbu_column_table
 
-        data_table = self.create_data_table(headers, data, table_style, table_style_ties, col_widths, row_heights,
-                                            tied_metric)
+        data_table = self.create_data_table(
+            metric_type, headers, data, table_style, table_style_ties, col_widths, row_heights, tied_metric
+        )
 
         if metric_type == "coaching_efficiency":
             if self.num_coaching_efficiency_dqs > 0:
@@ -755,14 +771,18 @@ class PdfGenerator(object):
             table_content.append([title])
 
         if header_text:
-            table_content.append([Paragraph("<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" +
-                                            header_text + "</i>", self.text_style_subtitles)])
+            table_content.append([Paragraph(
+                f"<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{header_text}</i>",
+                self.text_style_subtitles
+            )])
 
         table_content.append([data_table])
 
         if footer_text:
-            table_content.append([Paragraph("<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" +
-                                            footer_text + "</i>", self.text_style_subtitles)])
+            table_content.append([Paragraph(
+                f"<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{footer_text}</i>",
+                self.text_style_subtitles
+            )])
         if tied_metric:
             tied_metric_footer = self.get_tied_metric_footer(metric_type)
             if tied_metric_footer:
@@ -776,7 +796,7 @@ class PdfGenerator(object):
 
         # elements.append(table_with_info)
 
-    def get_tied_metric_footer(self, metric_type):
+    def get_tied_metric_footer(self, metric_type: str) -> Union[Paragraph, None]:
 
         if metric_type in ["scores", "coaching_efficiency"]:
             if not self.break_ties:
@@ -786,8 +806,8 @@ class PdfGenerator(object):
         else:
             return Paragraph(self.tie_for_first_footer, self.text_style_normal)
 
-    def create_title(self, title_text, title_width=8.5, element_type=None, anchor="", subtitle_text=None,
-                     subsubtitle_text=None):
+    def create_title(self, title_text: str, title_width: float = 8.5, element_type: str = None, anchor: str = "",
+                     subtitle_text: Union[List, str] = None, subsubtitle_text: Union[List, str] = None) -> Table:
 
         if element_type == "document":
             title_text_style = self.text_style_h1
@@ -798,7 +818,7 @@ class PdfGenerator(object):
         else:
             title_text_style = self.text_style_h3
 
-        title = Paragraph('''<para align=center><b>''' + anchor + title_text + '''</b></para>''', title_text_style)
+        title = Paragraph(f"<para align=center><b>{anchor}{title_text}</b></para>", title_text_style)
 
         rows = [[title]]
 
@@ -807,8 +827,7 @@ class PdfGenerator(object):
                 subtitle_text = [subtitle_text]
 
             subtitle_text_str = "<br/>".join(subtitle_text)
-            subtitle = Paragraph(
-                '''<para align=center>''' + subtitle_text_str + '''</para>''', self.text_style_subtitles)
+            subtitle = Paragraph(f"<para align=center>{subtitle_text_str}</para>", self.text_style_subtitles)
             rows.append([subtitle])
 
         if subsubtitle_text:
@@ -817,14 +836,16 @@ class PdfGenerator(object):
 
             subsubtitle_text_str = "<br/>".join(subsubtitle_text)
             subsubtitle = Paragraph(
-                '''<para align=center>''' + subsubtitle_text_str + '''</para>''', self.text_style_subsubtitles)
+                f"<para align=center>{subsubtitle_text_str}</para>", self.text_style_subsubtitles
+            )
             rows.append([subsubtitle])
 
         title_table = Table(rows, colWidths=[title_width * inch] * 1)
         title_table.setStyle(self.title_style)
         return title_table
 
-    def create_anchored_title(self, title_text, title_width=8.5, element_type=None, anchor=""):
+    def create_anchored_title(self, title_text: str, title_width: float = 8.5, element_type: str = None,
+                              anchor: str = "") -> Table:
 
         if element_type == "document":
             title_text_style = self.text_style_h1
@@ -833,23 +854,33 @@ class PdfGenerator(object):
         else:
             title_text_style = self.text_style_h3
 
-        title = Paragraph('''<para align=center><b>''' + anchor + title_text + '''</b></para>''', title_text_style)
+        title = Paragraph(f"<para align=center><b>{anchor}{title_text}</b></para>", title_text_style)
         title_table = Table([[title]], colWidths=[title_width * inch] * 1)
         title_table.setStyle(self.title_style)
         return title_table
 
-    def create_data_table(self, col_headers, data, table_style=None, table_style_for_ties=None, col_widths=None,
-                          row_heights=None, tied_metric=False):
+    def create_data_table(self, metric_type: str, col_headers: List[List[str]], data: Any,
+                          table_style: TableStyle = None, table_style_for_ties: TableStyle = None,
+                          col_widths: List[float] = None, row_heights: List[List[float]] = None,
+                          tied_metric: bool = False) -> Table:
 
         table_data = deepcopy(col_headers)
 
-        max_chars: int = self.config.getint("Report", "max_data_chars")
+        # reduce manager string max characters for standings metric to accommodate narrower column widths
+        manager_header_ndx = None
+        if metric_type == "standings":
+            for header_ndx, header in enumerate(col_headers[0]):
+                if header == "Manager":
+                    manager_header_ndx = header_ndx
+
         for row in data:
             display_row = []
-            for cell in row:
+            for cell_ndx, cell in enumerate(row):
                 if isinstance(cell, str):
                     # truncate data cell contents to specified max characters
-                    display_row.append(f"{cell[:max_chars].strip()}..." if len(cell) > max_chars else cell)
+                    display_row.append(
+                        truncate_cell_for_display(self.config, cell, halve_max_chars=(cell_ndx == manager_header_ndx))
+                    )
                 else:
                     display_row.append(cell)
             table_data.append(display_row)
@@ -871,13 +902,13 @@ class PdfGenerator(object):
             table.setStyle(self.style)
         return table
 
-    def create_line_chart(self, data, data_length, series_names, chart_title, x_axis_title, y_axis_title, y_step):
+    def create_line_chart(self, data: List[Any], data_length: int, series_names: List[str], chart_title: str,
+                          x_axis_title: str, y_axis_title: str, y_step: float) -> LineChartGenerator:
 
-        max_chars: int = self.config.getint("Report", "max_data_chars")
         display_series_names = []
         for name in series_names:
             # truncate series name to specified max characters
-            display_series_names.append(f"{name[:max_chars].strip()}..." if len(str(name)) > max_chars else name)
+            display_series_names.append(truncate_cell_for_display(self.config, str(name)))
 
         series_names = display_series_names
 
@@ -940,18 +971,24 @@ class PdfGenerator(object):
         chart_width = 490
         chart_height = 150
 
-        # fit y-axis of table
-        values = [weeks[1] if weeks[1] != "DQ" else 0.0 for teams in data for weeks in teams]
-        values_min = min(values)
-        values_max = max(values)
+        # fit x-axis of table
+        x_values_flattened = [weeks[0] for teams in data for weeks in teams]
+        x_values_start = x_values_flattened[0] - 1
+        x_values_end = x_values_start + data_length + 1
+        x_step = 1
 
-        points_line_chart = LineChartGenerator(
+        # fit y-axis of table
+        y_values_flattened = [weeks[1] if weeks[1] != "DQ" else 0.0 for teams in data for weeks in teams]
+        y_values_min = min(y_values_flattened)
+        y_values_max = max(y_values_flattened)
+
+        line_chart = LineChartGenerator(
             data,
             self.font,
             self.font_bold,
             chart_title,
-            [x_axis_title, 0, data_length + 1, 1],
-            [y_axis_title, values_min, values_max, y_step],
+            [x_axis_title, x_values_start, x_values_end, x_step],
+            [y_axis_title, y_values_min, y_values_max, y_step],
             series_names,
             series_colors,
             box_width,
@@ -960,9 +997,9 @@ class PdfGenerator(object):
             chart_height
         )
 
-        return points_line_chart
+        return line_chart
 
-    def create_3d_horizontal_bar_chart(self, data, x_axis_title, x_step):
+    def create_3d_horizontal_bar_chart(self, data: List[List[Any]], x_axis_title: str, x_step: int):
 
         data = [[team[0], team[1], team[2], int(team[3])] for team in data]
 
@@ -985,7 +1022,7 @@ class PdfGenerator(object):
         return covid_risk_bar_chart
 
     @staticmethod
-    def get_img(path, width=1 * inch, hyperlink=None):
+    def get_img(path: Union[Path, str], width: int = 1 * inch, hyperlink: str = None) -> ReportLabImage:
         img = ImageReader(path)
         iw, ih = img.getSize()
         aspect = ih / float(iw)
@@ -1002,7 +1039,8 @@ class PdfGenerator(object):
 
         return image
 
-    def create_team_stats_pages(self, doc_elements, weekly_team_data_by_position, season_average_team_data_by_position):
+    def create_team_stats_pages(self, doc_elements: List[Flowable], weekly_team_data_by_position: List[List[Any]],
+                                season_average_team_data_by_position: Dict[str, List[List[float]]]):
         logger.debug("Creating team stats pages.")
 
         # reorganize weekly_team_data_by_position to alphabetical order by team name
@@ -1070,11 +1108,13 @@ class PdfGenerator(object):
                         doc_elements.append(self.create_title("Whodunnit?", 8.5, "section"))
                         doc_elements.append(self.spacer_tenth_inch)
                         bad_boys_table = self.create_data_table(
+                            "bad_boy",
                             [["Starting Player", "Bad Boy Points", "Worst Offense"]],
                             offending_players_data,
                             self.style_red_highlight,
                             self.style_tied_bad_boy,
-                            [2.50 * inch, 2.50 * inch, 2.75 * inch])
+                            [2.50 * inch, 2.50 * inch, 2.75 * inch]
+                        )
                         doc_elements.append(KeepTogether(bad_boys_table))
                         doc_elements.append(self.spacer_tenth_inch)
 
@@ -1084,7 +1124,10 @@ class PdfGenerator(object):
                 if player_info:
                     doc_elements.append(self.create_title("Beefiest Bois", 8.5, "section"))
                     doc_elements.append(self.spacer_tenth_inch)
-                    beefy_players = sorted(player_info, key=lambda x: x.tabbu, reverse=True)
+                    beefy_players = sorted(
+                        [player for player in player_info if player.primary_position != "D/ST"],
+                        key=lambda x: x.tabbu, reverse=True
+                    )
                     beefy_players_data = []
                     num_beefy_bois = 3
                     ndx = 0
@@ -1092,14 +1135,17 @@ class PdfGenerator(object):
                     while count < num_beefy_bois:
                         player: BasePlayer = beefy_players[ndx]
                         if player.last_name:
-                            beefy_players_data.append([player.full_name, player.tabbu, player.weight])
+                            beefy_players_data.append([player.full_name, f"{player.tabbu:.3f}", player.weight])
                             count += 1
                         ndx += 1
-                    beefy_boi_table = self.create_data_table([["Starting Player", "TABBU(s)", "Weight (lbs.)"]],
-                                                             beefy_players_data,
-                                                             self.style_red_highlight,
-                                                             self.style_tied_bad_boy,
-                                                             [2.50 * inch, 2.50 * inch, 2.75 * inch])
+                    beefy_boi_table = self.create_data_table(
+                        "beef",
+                        [["Starting Player", "TABBU(s)", "Weight (lbs.)"]],
+                        beefy_players_data,
+                        self.style_red_highlight,
+                        self.style_tied_bad_boy,
+                        [2.50 * inch, 2.50 * inch, 2.75 * inch]
+                    )
                     doc_elements.append(KeepTogether(beefy_boi_table))
                     doc_elements.append(self.spacer_tenth_inch)
 
@@ -1229,10 +1275,10 @@ class PdfGenerator(object):
                         "Report", "team_boom_or_bust"):
                     doc_elements.append(self.add_page_break())
 
-    def generate_pdf(self, filename_with_path, line_chart_data_list):
+    def generate_pdf(self, filename_with_path: Path, line_chart_data_list: List[List[Any]]) -> str:
         logger.debug("Generating report PDF.")
 
-        elements = []
+        elements: List[Flowable] = []
         # doc = SimpleDocTemplate(filename_with_path, pagesize=LETTER, rightMargin=25, leftMargin=25, topMargin=10,
         #                         bottomMargin=10)
         doc = SimpleDocTemplate(str(filename_with_path), pagesize=LETTER, rightMargin=25, leftMargin=25, topMargin=10,
@@ -1281,8 +1327,10 @@ class PdfGenerator(object):
                         table_title = None
                         table_footer = None
 
-                    table_header = self.report_data.divisions[
-                        division[0][-1]] if self.report_data.divisions else f"Division {division_count}"
+                    table_header = (
+                        self.report_data.divisions[division[0][-1]]
+                        if self.report_data.divisions else f"Division {division_count}"
+                    )
 
                     division_table = self.create_section(
                         table_title,
@@ -1659,7 +1707,7 @@ class PdfGenerator(object):
             # NOTE: MUST USE POINTS DATA FOR COACHING EFFICIENCY DATA LENGTH ARGUMENT IN THE EVENT OF DQs
             elements.append(KeepTogether(
                 self.create_line_chart(efficiency_data, len(points_data[0]), series_names, "Weekly Coaching Efficiency",
-                                       "Weeks", "Coaching Efficiency (%)", 5.00)))
+                                       "Weeks", "Coaching Efficiency (%)", 10.00)))
             elements.append(self.spacer_twentieth_inch)
             elements.append(KeepTogether(
                 self.create_line_chart(luck_data, len(luck_data[0]), series_names, "Weekly Luck", "Weeks", "Luck (%)",
@@ -1674,8 +1722,9 @@ class PdfGenerator(object):
                 "Report", "team_beef_stats") or self.config.getboolean(
                 "Report", "team_boom_or_bust")):
             # dynamically build additional pages for individual team stats
-            self.create_team_stats_pages(elements, self.data_for_weekly_points_by_position,
-                                         self.data_for_season_average_team_points_by_position)
+            self.create_team_stats_pages(
+                elements, self.data_for_weekly_points_by_position, self.data_for_season_average_team_points_by_position
+            )
 
         # add appendix for metrics
         elements.append(self.appendix.get_appendix())

@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Union
 
 import colorama
 from colorama import Fore, Style
@@ -16,7 +17,8 @@ from integrations.drive_integration import GoogleDriveUploader
 from integrations.slack_integration import SlackMessenger
 from report.builder import FantasyFootballReport
 from report.logger import get_logger
-from utils.report_tools import check_for_updates, get_valid_config
+from utilities.config import AppConfigParser
+from utilities.app import check_for_updates, get_valid_config
 
 colorama.init()
 
@@ -110,13 +112,13 @@ def main(argv):
                 logger.error(f"Please select a valid week number from 1 to {NFL_SEASON_LENGTH}.")
                 options_dict["week"] = select_week()
             else:
-                options_dict["week"] = arg
+                options_dict["week"] = int(arg)
         elif opt in ("-k", "--start-week"):
             options_dict["start_week"] = int(arg)
         elif opt in ("-g", "--game-id"):
             options_dict["game_id"] = arg
         elif opt in ("-y", "--year"):
-            options_dict["year"] = arg
+            options_dict["year"] = int(arg)
 
         # report configuration
         elif opt in ("-c", "--config-file"):
@@ -126,7 +128,7 @@ def main(argv):
         elif opt in ("-r", "--refresh-web-data"):
             options_dict["refresh_web_data"] = True
         elif opt in ("-p", "--playoff-prob-sims"):
-            options_dict["playoff_prob_sims"] = arg
+            options_dict["playoff_prob_sims"] = int(arg)
         elif opt in ("-b", "--break-ties"):
             options_dict["break_ties"] = True
         elif opt in ("-q", "--disqualify-ce"):
@@ -141,8 +143,10 @@ def main(argv):
     return options_dict
 
 
-def select_league(config, use_default, week, start_week, platform, league_id, game_id, season, refresh_web_data,
-                  playoff_prob_sims, break_ties, dq_ce, save_data, offline, test):
+def select_league(config: AppConfigParser, use_default: bool, week: int, start_week: int, platform: str,
+                  league_id: Union[str, None], game_id: Union[int, str], season: int, refresh_web_data: bool,
+                  playoff_prob_sims: int, break_ties: bool, dq_ce: bool, save_data: bool,
+                  offline: bool, test: bool) -> FantasyFootballReport:
 
     # set "use default" environment variable for access by fantasy football platforms
     if use_default:
@@ -245,7 +249,7 @@ def select_league(config, use_default, week, start_week, platform, league_id, ga
                       playoff_prob_sims, break_ties, dq_ce, save_data, offline, test)
 
 
-def select_week(use_default=False):
+def select_week(use_default: bool = False) -> Union[int, None]:
     if not use_default:
         time.sleep(0.25)
         selection = input(
@@ -261,11 +265,11 @@ def select_week(use_default=False):
     if selection == "y":
         return None
     elif selection == "n":
-        chosen_week = input(
+        chosen_week = int(input(
             f"{Fore.YELLOW}For which week would you like to generate a report? "
             f"({Fore.GREEN}1{Fore.YELLOW} - {Fore.GREEN}{NFL_SEASON_LENGTH}{Fore.YELLOW}) -> {Style.RESET_ALL}"
-        ).lower()
-        if 0 < int(chosen_week) <= NFL_SEASON_LENGTH:
+        ).lower())
+        if 0 < chosen_week <= NFL_SEASON_LENGTH:
             return chosen_week
         else:
             logger.warning(f"Please select a valid week number between 1 and {NFL_SEASON_LENGTH}.")
@@ -339,7 +343,7 @@ if __name__ == "__main__":
                     f"You have configured \"config.ini\" with unsupported Slack setting: "
                     f"post_or_file = {post_or_file}. Please choose \"post\" or \"file\" and try again."
                 )
-                sys.exit("...run aborted.")
+                sys.exit(1)
             if slack_response.get("ok"):
                 logger.info(f"Report {report_pdf} successfully posted to Slack!")
             else:

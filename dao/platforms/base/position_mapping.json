@@ -1,0 +1,301 @@
+{
+  "base": {
+    "QB": {
+      "type": "offensive",
+      "is_flex": false
+    },
+    "RB": {
+      "type": "offensive",
+      "is_flex": false
+    },
+    "WR": {
+      "type": "offensive",
+      "is_flex": false
+    },
+    "TE": {
+      "type": "offensive",
+      "is_flex": false
+    },
+    "K": {
+      "type": "offensive",
+      "is_flex": false
+    },
+    "D/ST": {
+      "type": "defensive",
+      "is_flex": false
+    },
+    "BN": {
+      "type": "bench",
+      "is_flex": false
+    },
+    "IR": {
+      "type": "bench",
+      "is_flex": false
+    },
+    "FLEX_RB_WR": {
+      "type": "offensive",
+      "is_flex": true,
+      "league_positions_attribute": "flex_positions_rb_wr",
+      "positions": [
+        "RB",
+        "WR"
+      ]
+    },
+    "FLEX_TE_WR": {
+      "type": "offensive",
+      "is_flex": true,
+      "league_positions_attribute": "flex_positions_te_wr",
+      "positions": [
+        "TE",
+        "WR"
+      ]
+    },
+    "FLEX": {
+      "type": "offensive",
+      "is_flex": true,
+      "league_positions_attribute": "flex_positions_rb_te_wr",
+      "positions": [
+        "RB",
+        "TE",
+        "WR"
+      ]
+    },
+    "SUPERFLEX": {
+      "type": "offensive",
+      "is_flex": true,
+      "league_positions_attribute": "flex_positions_qb_rb_te_wr",
+      "positions": [
+        "QB",
+        "RB",
+        "TE",
+        "WR"
+      ]
+    },
+    "FLEX_DB": {
+      "type": "defensive",
+      "is_flex": true,
+      "league_positions_attribute": "flex_positions_db"
+    },
+    "FLEX_DL": {
+      "type": "defensive",
+      "is_flex": true,
+      "league_positions_attribute": "flex_positions_dl"
+    },
+    "FLEX_IDP": {
+      "type": "defensive",
+      "is_flex": true,
+      "league_positions_attribute": "flex_positions_idp"
+    }
+  },
+  "yahoo": {
+    "DEF": {
+      "base": "D/ST"
+    },
+    "W/R": {
+      "base": "FLEX_RB_WR"
+    },
+    "W/T": {
+      "base": "FLEX_TE_WR"
+    },
+    "W/R/T": {
+      "base": "FLEX"
+    },
+    "Q/W/R/T": {
+      "base": "SUPERFLEX"
+    },
+    "DB": {
+      "base": "FLEX_DB",
+      "positions": [
+        "CB",
+        "S"
+      ]
+    },
+    "DL": {
+      "base": "FLEX_DL",
+      "positions": [
+        "DE",
+        "DT"
+      ]
+    },
+    "D": {
+      "base": "FLEX_IDP",
+      "positions": [
+        "CB",
+        "DB",
+        "DE",
+        "DL",
+        "DT",
+        "LB",
+        "S"
+      ]
+    }
+  },
+  "sleeper": {
+    "FB": {
+      "base": "RB"
+    },
+    "DEF": {
+      "base": "D/ST"
+    },
+    "WRRB_FLEX": {
+      "base": "FLEX_RB_WR"
+    },
+    "REC_FLEX": {
+      "base": "FLEX_TE_WR"
+    },
+    "FLEX": {
+      "base": "FLEX"
+    },
+    "SUPER_FLEX": {
+      "base": "SUPERFLEX"
+    },
+    "IDP_FLEX": {
+      "base": "FLEX_IDP",
+      "positions": [
+        "DB",
+        "DL",
+        "LB"
+      ]
+    }
+  },
+  "fleaflicker": {
+    "P": {
+      "type": "offensive",
+      "is_flex": false
+    },
+    "RB/WR": {
+      "base": "FLEX_RB_WR"
+    },
+    "WR/TE": {
+      "base": "FLEX_TE_WR"
+    },
+    "RB/WR/TE": {
+      "base": "FLEX"
+    },
+    "RB/WR/TE/QB": {
+      "base": "SUPERFLEX"
+    },
+    "DB": {
+      "base": "FLEX_DB",
+      "positions": [
+        "CB",
+        "S"
+      ]
+    },
+    "EDR/IL": {
+      "base": "FLEX_DL",
+      "positions": [
+        "EDR",
+        "IL"
+      ]
+    },
+    "DE/DT": {
+      "base": "FLEX_DL",
+      "positions": [
+        "DE",
+        "DT"
+      ]
+    },
+    "DB/EDR/IL/LB": {
+      "base": "FLEX_IDP",
+      "positions": [
+        "CB",
+        "EDR",
+        "IL",
+        "LB",
+        "S"
+      ]
+    },
+    "DB/DE/DT/LB": {
+      "base": "FLEX_IDP",
+      "positions": [
+        "CB",
+        "DE",
+        "DT",
+        "LB",
+        "S"
+      ]
+    },
+    "TAXI": {
+      "type": "any",
+      "is_flex": false
+    }
+  },
+  "espn": {
+    "TQB": {
+      "type": "offensive",
+      "is_flex": false
+    },
+    "P": {
+      "type": "offensive",
+      "is_flex": false
+    },
+    "BE": {
+      "base": "BN"
+    },
+    "RB/WR": {
+      "base": "FLEX_RB_WR"
+    },
+    "WR/TE": {
+      "base": "FLEX_TE_WR"
+    },
+    "RB/WR/TE": {
+      "base": "FLEX"
+    },
+    "OP": {
+      "base": "SUPERFLEX"
+    },
+    "DP": {
+      "base": "FLEX_IDP",
+      "positions": [
+        "CB",
+        "DB",
+        "DE",
+        "DL",
+        "DT",
+        "EDR",
+        "LB",
+        "S"
+      ]
+    },
+    "Rookie": {
+      "type": "any",
+      "is_flex": false
+    },
+    "HC": {
+      "type": "any",
+      "is_flex": false
+    }
+  },
+  "cbs": {
+    "DST": {
+      "base": "D/ST"
+    },
+    "RS": {
+      "base": "BN"
+    },
+    "I": {
+      "base": "IR"
+    },
+    "RB-WR": {
+      "base": "FLEX_RB_WR"
+    },
+    "WR-TE": {
+      "base": "FLEX_TE_WR"
+    },
+    "RB-WR-TE": {
+      "base": "FLEX"
+    },
+    "FLEX": {
+      "base": "SUPERFLEX"
+    },
+    "DL-LB-DB": {
+      "base": "FLEX_IDP",
+      "positions": [
+        "DB",
+        "DL",
+        "LB"
+      ]
+    }
+  }
+}

@@ -6,12 +6,14 @@ __email__ = "uberfastman@uberfastman.dev"
 import datetime
 import logging
 from pathlib import Path
+from typing import List
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
+from pydrive.files import GoogleDriveFile
 
 from report.logger import get_logger
-from utils.app_config_parser import AppConfigParser
+from utilities.config import AppConfigParser
 
 logger = get_logger(__name__, propagate=False)
 
@@ -23,16 +25,16 @@ logging.getLogger("googleapiclient.discovery_cache.file_cache").setLevel(level=l
 
 
 class GoogleDriveUploader(object):
-    def __init__(self, filename, config):
+    def __init__(self, filename: str, config: AppConfigParser):
         logger.debug("Initializing Google Drive uploader.")
 
         project_dir = Path(__file__).parents[1]
 
         logger.debug("Authenticating with Google Drive.")
 
-        self.filename = Path(project_dir) / filename
-        self.config = config
-        self.gauth = GoogleAuth()
+        self.filename: Path = Path(project_dir) / filename
+        self.config: AppConfigParser = config
+        self.gauth: GoogleAuth = GoogleAuth()
 
         auth_token = Path(project_dir) / Path(self.config.get("Drive", "google_drive_auth_token"))
 
@@ -50,7 +52,7 @@ class GoogleDriveUploader(object):
         # Save the current credentials to a file
         self.gauth.SaveCredentialsFile(auth_token)
 
-    def upload_file(self, test=False):
+    def upload_file(self, test: bool = False) -> str:
         logger.debug("Uploading file to Google Drive.")
 
         # Create GoogleDrive instance with authenticated GoogleAuth instance.
@@ -134,7 +136,7 @@ class GoogleDriveUploader(object):
         else:
             all_pdfs = drive.ListFile({"q": "mimeType='application/pdf' and trashed=false"}).GetList()
 
-            report_file_name = self.filename
+            report_file_name = Path(self.filename).parts[-1]
             report_file = self.check_file_existence(report_file_name, all_pdfs, "root")
             league_folder_id = "root"
 
@@ -175,7 +177,7 @@ class GoogleDriveUploader(object):
         )
 
     @staticmethod
-    def check_file_existence(file_name, file_list, parent_id):
+    def check_file_existence(file_name: str, file_list: List[GoogleDriveFile], parent_id: str) -> GoogleDriveFile:
         drive_file_name = file_name
         google_drive_file = None
 
@@ -188,7 +190,7 @@ class GoogleDriveUploader(object):
         return google_drive_file
 
     @staticmethod
-    def make_root_folder(drive, folder, folder_name):
+    def make_root_folder(drive: GoogleDrive, folder: GoogleDriveFile, folder_name: str) -> str:
         if not folder:
             new_root_folder = drive.CreateFile(
                 {
@@ -211,7 +213,7 @@ class GoogleDriveUploader(object):
         return root_folder_id
 
     @staticmethod
-    def make_parent_folder(drive, folder, folder_name, parent_folder_id):
+    def make_parent_folder(drive: GoogleDrive, folder: GoogleDriveFile, folder_name: str, parent_folder_id: str) -> str:
         if not folder:
             new_parent_folder = drive.CreateFile(
                 {

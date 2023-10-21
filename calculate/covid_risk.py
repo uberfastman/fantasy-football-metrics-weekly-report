@@ -6,12 +6,14 @@ import json
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Dict
 
 import requests
 from bs4 import BeautifulSoup
 
+from report.constants import nfl_team_abbreviations, nfl_team_abbreviation_conversions
 from report.logger import get_logger
-from utils.app_config_parser import AppConfigParser
+from utilities.config import AppConfigParser
 
 logger = get_logger(__name__, propagate=False)
 
@@ -34,7 +36,7 @@ class CovidRisk(object):
         self.offline = offline
         self.refresh = refresh
 
-        nfl_team_abbrev_ref = {
+        nfl_team_abbreviations_ref: Dict[str, str] = {
             "Arizona Cardinals": "ARI",
             "Atlanta Falcons": "ATL",
             "Baltimore Ravens": "BAL",
@@ -66,21 +68,7 @@ class CovidRisk(object):
             "Seattle Seahawks": "SEA",
             "Tampa Bay Buccaneers": "TB",
             "Tennessee Titans": "TEN",
-            "Washington Football Team": "WAS"
-        }
-
-        # nfl team abbreviations
-        self.nfl_team_abbreviations = [
-            "ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE",
-            "DAL", "DEN", "DET", "GB", "HOU", "IND", "JAX", "KC",
-            "LAR", "LAC", "LV", "MIA", "MIN", "NE", "NO", "NYG",
-            "NYJ", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS"
-        ]
-
-        # small reference dict to convert between commonly used alternate team abbreviations
-        self.team_abbrev_conversion_dict = {
-            "JAC": "JAX",
-            "LA": "LAR"
+            "Washington Commanders": "WAS"
         }
 
         self.raw_covid_data = {}
@@ -117,7 +105,7 @@ class CovidRisk(object):
 
                     if "covid" in str(transactions_html.text).lower():
                         transaction_date = row.findPrevious(attrs={"class": "stacktable-title"}).text
-                        transaction_team = nfl_team_abbrev_ref.get(row.b.text)
+                        transaction_team = nfl_team_abbreviations_ref.get(row.b.text)
 
                         if datetime.strptime(transaction_date, "%B %d, %Y") <= self.selected_nfl_season_week:
                             for transaction in str(transactions_html).split("."):
@@ -242,9 +230,9 @@ class CovidRisk(object):
     def get_player_covid_risk(self, player_full_name, player_team_abbr, player_pos):
 
         team_abbr = player_team_abbr.upper() if player_team_abbr else "?"
-        if team_abbr not in self.nfl_team_abbreviations:
-            if team_abbr in self.team_abbrev_conversion_dict.keys():
-                team_abbr = self.team_abbrev_conversion_dict[team_abbr]
+        if team_abbr not in nfl_team_abbreviations:
+            if team_abbr in nfl_team_abbreviation_conversions.keys():
+                team_abbr = nfl_team_abbreviation_conversions[team_abbr]
 
         covid_risk_score = 0
         player_on_covid_list_past = False
