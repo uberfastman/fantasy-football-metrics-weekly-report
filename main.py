@@ -36,10 +36,10 @@ def main(argv):
             if not line.startswith("#"):
                 dependencies.append(line.strip())
 
+    installed_dependencies = subprocess.check_output(["pip", "freeze"]).decode("utf-8")
     missing_dependency_count = 0
     for dependency in dependencies:
-        installed_dependencies = subprocess.check_output(["pip", "freeze"]).decode("utf-8")
-        dependency_is_installed = True if installed_dependencies.find(dependency) != -1 else False
+        dependency_is_installed = installed_dependencies.find(dependency) != -1
         if not dependency_is_installed:
             missing_dependency_count += 1
             dependency_package = re.split("\\W+", dependency)[0]
