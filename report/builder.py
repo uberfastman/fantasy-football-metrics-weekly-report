@@ -48,10 +48,10 @@ class FantasyFootballReport(object):
         self.data_dir = base_dir / Path(self.config.get("Configuration", "data_dir"))
         if platform:
             self.platform: str = platform
-            self.platform_display: str = format_platform_display(platform)
+            self.platform_display: str = format_platform_display(self.platform)
         else:
             self.platform: str = self.config.get("Settings", "platform")
-            self.platform_display: str = format_platform_display(platform)
+            self.platform_display: str = format_platform_display(self.platform)
         if league_id:
             self.league_id = str(league_id)
         else:
