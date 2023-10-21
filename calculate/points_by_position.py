@@ -2,6 +2,7 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
 import copy
+from typing import Dict, List, Any
 
 from dao.base import BaseLeague, BaseTeam, BasePlayer
 from report.logger import get_logger
@@ -10,20 +11,21 @@ logger = get_logger(__name__, propagate=False)
 
 
 class PointsByPosition(object):
-    def __init__(self, league: BaseLeague, week_for_report):
+    def __init__(self, league: BaseLeague, week_for_report: int):
         logger.debug("Initializing points by position.")
 
-        self.week_for_report = week_for_report
-        self.roster_slot_counts = {k: v for k, v in league.roster_position_counts.items() if v != 0}
-        self.bench_positions = league.bench_positions
-        self.flex_positions_dict = league.get_flex_positions_dict()
-        self.flex_types = list(self.flex_positions_dict.keys())
+        self.week_for_report: int = week_for_report
+        self.roster_slot_counts: Dict[str, int] = {k: v for k, v in league.roster_position_counts.items() if v != 0}
+        self.bench_positions: List[str] = league.bench_positions
+        self.flex_positions_dict: Dict[str, List[str]] = league.get_flex_positions_dict()
+        self.flex_types: List[str] = list(self.flex_positions_dict.keys())
 
     @staticmethod
-    def calculate_points_by_position_season_averages(season_average_points_by_position_dict):
+    def calculate_points_by_position_season_averages(
+            season_average_points_by_position_dict: Dict[str, List[List[float]]]) -> Dict[str, List[List[float]]]:
         logger.debug("Calculating points by position season averages.")
 
-        for team in list(season_average_points_by_position_dict.keys()):
+        for team in season_average_points_by_position_dict:
             points_by_position = season_average_points_by_position_dict.get(team)
             season_average_points_by_position = {}
             for week in points_by_position:
@@ -42,7 +44,7 @@ class PointsByPosition(object):
 
         return season_average_points_by_position_dict
 
-    def _get_points_for_position(self, players, position):
+    def _get_points_for_position(self, players: List[BasePlayer], position: str) -> float:
         total_points_by_position = 0
         player: BasePlayer
         for player in players:
@@ -53,7 +55,7 @@ class PointsByPosition(object):
 
         return total_points_by_position
 
-    def _execute_points_by_position(self, team_name, roster):
+    def _execute_points_by_position(self, team_name: str, roster: List[BasePlayer]) -> List[List[Any]]:
         logger.debug(f"Calculating points by position for team \"{team_name}\".")
 
         player_points_by_position = []
@@ -65,7 +67,7 @@ class PointsByPosition(object):
         player_points_by_position = sorted(player_points_by_position, key=lambda x: x[0])
         return player_points_by_position
 
-    def get_weekly_points_by_position(self, teams_results):
+    def get_weekly_points_by_position(self, teams_results: Dict[str, BaseTeam]) -> List[List[Any]]:
         logger.debug("Retrieving weekly points by position.")
 
         team_roster_slot_counts = copy.deepcopy(self.roster_slot_counts)

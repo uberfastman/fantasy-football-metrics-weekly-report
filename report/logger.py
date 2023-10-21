@@ -12,7 +12,7 @@ from pathlib import Path
 import colorama
 from colorama import Fore, Style
 
-from utils.app_config_parser import AppConfigParser
+from utilities.config import AppConfigParser
 
 colorama.init()
 
@@ -153,7 +153,7 @@ def get_logger(module_name=None, propagate=True):
     log_formatter = StyledFormatter(
         f"%(asctime)s {Fore.RESET}-{Style.RESET_ALL} "
         f"%(name)s {Fore.RESET}-{Style.RESET_ALL} "
-        # f"%(pathname)s {Fore.RESET}-{Style.RESET_ALL} "
+        # f"%(pathname)s {Fore.RESET}-{Style.RESET_ALL} "  # uncomment to debug third-party logging
         f"%(levelname)s {Fore.RESET}-{Style.RESET_ALL} "
         f"%(message)s"
     )

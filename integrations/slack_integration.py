@@ -5,13 +5,16 @@ import datetime
 import json
 import logging
 import os
+from asyncio import Future
 from pathlib import Path
+from typing import Union
 
 from slack.errors import SlackApiError
+from slack.web.base_client import SlackResponse
 from slack.web.client import WebClient
 
 from report.logger import get_logger
-from utils.app_config_parser import AppConfigParser
+from utilities.config import AppConfigParser
 
 logger = get_logger(__name__, propagate=False)
 
@@ -45,7 +48,7 @@ class SlackMessenger(object):
         except SlackApiError as e:
             logger.error(f"Slack client error: {e}")
 
-    def list_channels(self):
+    def list_channels(self) -> Union[Future, SlackResponse]:
         """Required Slack app scopes: channels:read, groups:read, mpim:read, im:read
         """
         logger.debug("Listing Slack channels.")
@@ -54,12 +57,12 @@ class SlackMessenger(object):
         except SlackApiError as e:
             logger.error(f"Slack client error: {e}")
 
-    def get_channel_id(self, channel_name):
+    def get_channel_id(self, channel_name: str) -> str:
         for channel in self.list_channels().get("channels"):
             if channel.get("name") == channel_name:
                 return channel.get("id")
 
-    def test_post_to_slack(self, message):
+    def test_post_to_slack(self, message: str):
         logger.debug("Testing message posting to Slack.")
 
         try:
@@ -76,7 +79,7 @@ class SlackMessenger(object):
         except SlackApiError as e:
             logger.error(f"Slack client error: {e}")
 
-    def test_post_to_private_slack(self, message):
+    def test_post_to_private_slack(self, message: str):
         logger.debug("Testing message posting to private Slack channels.")
 
         try:
@@ -93,7 +96,7 @@ class SlackMessenger(object):
         except SlackApiError as e:
             logger.error(f"Slack client error: {e}")
 
-    def test_file_upload_to_slack(self, upload_file):
+    def test_file_upload_to_slack(self, upload_file: Path) -> Union[Future, SlackResponse]:
         logger.debug("Testing file uploads to Slack.")
 
         try:
@@ -115,7 +118,7 @@ class SlackMessenger(object):
         except SlackApiError as e:
             logger.error(f"Slack client error: {e}")
 
-    def test_file_upload_to_private_slack(self, upload_file):
+    def test_file_upload_to_private_slack(self, upload_file: Path) -> Union[Future, SlackResponse]:
         logger.debug("Testing file uploads to private Slack channels.")
 
         try:
@@ -136,7 +139,7 @@ class SlackMessenger(object):
         except SlackApiError as e:
             logger.error(f"Slack client error: {e}")
 
-    def post_to_selected_slack_channel(self, message):
+    def post_to_selected_slack_channel(self, message: str) -> Union[Future, SlackResponse]:
         logger.debug(f"Posting message to Slack: \n{message}")
 
         try:
@@ -149,7 +152,7 @@ class SlackMessenger(object):
         except SlackApiError as e:
             logger.error(f"Slack client error: {e}")
 
-    def upload_file_to_selected_slack_channel(self, upload_file):
+    def upload_file_to_selected_slack_channel(self, upload_file: str) -> Union[Future, SlackResponse]:
         logger.debug(f"Uploading file to Slack: \n{upload_file}")
 
         try:

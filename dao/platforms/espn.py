@@ -7,10 +7,9 @@ import os
 import re
 import sys
 import time
-from copy import deepcopy
 from pathlib import Path
 from statistics import median
-from typing import List
+from typing import List, Callable
 
 import colorama
 from colorama import Fore, Style
@@ -24,11 +23,13 @@ from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
 
-from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
+from dao.base import BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
+from dao.platforms.base.base import BaseLeagueData
 from report.logger import get_logger
+from utilities.config import AppConfigParser
 
 colorama.init()
 
@@ -46,31 +47,26 @@ logging.getLogger("selenium.webdriver.remote.remote_connection").setLevel(level=
 
 
 # noinspection DuplicatedCode
-class LeagueData(object):
+class LeagueData(BaseLeagueData):
 
-    def __init__(self,
-                 week_for_report,
-                 league_id,
-                 season,
-                 start_week,
-                 config,
-                 base_dir,
-                 data_dir,
-                 week_validation_function,
-                 save_data=True,
-                 offline=False):
-
-        logger.debug("Initializing ESPN league.")
-
-        self.league_id = league_id
-        self.season = season
-        self.config = config
-        self.data_dir = data_dir
-        self.save_data = save_data
-        self.offline = offline
-
-        self.offensive_positions = ["QB", "RB", "WR", "TE", "K", "RB/WR", "WR/TE", "RB/WR/TE", "QB/RB/WR/TE", "OP"]
-        self.defensive_positions = ["D/ST"]
+    def __init__(self, config: AppConfigParser, base_dir: Path, data_dir: Path, league_id: str, season: int,
+                 start_week: int, week_for_report: int, get_current_nfl_week_function: Callable,
+                 week_validation_function: Callable, save_data: bool = True, offline: bool = False):
+        super().__init__(
+            "ESPN",
+            "https://fantasy.espn.com",
+            config,
+            base_dir,
+            data_dir,
+            league_id,
+            season,
+            start_week,
+            week_for_report,
+            get_current_nfl_week_function,
+            week_validation_function,
+            save_data,
+            offline
+        )
 
         espn_auth_json = None
         espn_auth_file = Path(base_dir) / config.get("ESPN", "espn_auth_dir") / "private.json"
@@ -85,139 +81,24 @@ class LeagueData(object):
                 f"ESPN credentials. Press \"y\" to CONTINUE or \"n\" to ABORT. "
                 f"({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
             )
-            self.check_auth(no_auth_msg)
+            self._check_auth(no_auth_msg)
 
-        if self.offline:
-            self.league = self.save_and_load_data(
-                Path(self.data_dir) / str(self.season) / str(self.league_id),
-                f"{self.league_id}-league_info.json"
-            )
-        else:
-            swid_cookie = None
-            espn_s2_cookie = None
-            if espn_auth_json:
-                if espn_auth_json.get("swid") and espn_auth_json.get("espn_s2"):
-                    swid_cookie = espn_auth_json.get("swid")
-                    espn_s2_cookie = espn_auth_json.get("espn_s2")
-                else:
-                    espn_session_cookies = self._retrieve_session_cookies(espn_auth_json)
-                    swid_cookie = espn_session_cookies.get("swid")
-                    espn_s2_cookie = espn_session_cookies.get("espn_s2")
-                    with open(espn_auth_file, "w") as auth:
-                        espn_auth_json.update({
-                            "swid": swid_cookie,
-                            "espn_s2": espn_s2_cookie
-                        })
-                        json.dump(espn_auth_json, auth, indent=2)
-
-            # TODO: GET SAVE/LOAD WORKING FOR ESPN!
-            # self.league = self.save_and_load_data(
-            #     Path(self.data_dir) / str(self.season) / str(self.league_id),
-            #     str(self.league_id) + "-league_info.json",
-            #     data=LeagueWrapper(
-            #         league_id=self.league_id,
-            #         year=int(self.season),
-            #         espn_s2=espn_auth_json.get("espn_s2"),
-            #         swid=espn_auth_json.get("swid")
-            #     )
-            # )
-            logger.debug("Retrieving ESPN league data.")
-
-            self.league: LeagueWrapper = LeagueWrapper(
-                league_id=self.league_id,
-                year=int(self.season),
-                espn_s2=espn_s2_cookie,
-                swid=swid_cookie
-            )
-
-            self.save_and_load_data(
-                Path(self.data_dir) / str(self.season) / str(self.league_id),
-                str(self.league_id) + "-league_info.json",
-                data=self.league.league_json
-            )
-            self.save_and_load_data(
-                Path(self.data_dir) / str(self.season) / str(self.league_id),
-                str(self.league_id) + "-box_info.json",
-                data=self.league.box_data_json
-            )
-
-        self.league_settings = self.league.settings
-        self.league_settings_json = self.league.settings_json
-        self.league_standings = self.league.standings()
-
-        self.season = self.league.year
-        # TODO: figure out how to get league starting week
-        self.start_week = start_week or 1
-        self.current_week = self.league.current_week
-        self.num_playoff_slots = int(self.league_settings.playoff_team_count)
-        self.num_regular_season_weeks = int(self.league.settings.reg_season_count)
-        self.divisions = {
-            str(division.get("id")): division.get("name")
-            for division in self.league_settings_json.get("scheduleSettings").get("divisions")
-        }
-        self.num_divisions = len(self.divisions) if len(self.divisions) > 1 else 0
-        # only ESPN (out of the supported Yahoo, Sleeper, Fleaflicker, and ESPN platforms) offers home field advantage
-        if self.league_settings_json.get("scoringSettings").get("homeTeamBonus"):
-            self.home_field_advantage = self.league.settings_json.get("scoringSettings").get("homeTeamBonus")
-        else:
-            self.home_field_advantage = 0
-
-        # use hijacked raw json since roster settings are not exposed in the API wrapper
-        self.roster_positions = {
-            POSITION_MAP[int(pos_id)]: pos_count for pos_id, pos_count in
-            self.league_settings_json.get("rosterSettings").get("lineupSlotCounts").items()
-            if pos_count > 0
-        }
-        # TODO: ESPN does not currently offer a built-in median game
-        self.has_median_matchup = False
-        self.median_score_by_week = {}
-
-        # validate user selection of week for which to generate report
-        self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week, self.season)
-
-        logger.debug("Getting ESPN matchups by week data.")
-        self.matchups_by_week = {}
-        self.matchups_json_by_week = {}
-        for week_for_matchups in range(1, self.num_regular_season_weeks + 1):
-            self.matchups_by_week[str(week_for_matchups)] = self.league.box_scores(int(week_for_matchups))
-            self.matchups_json_by_week[str(week_for_matchups)] = self.league.box_data_json
-
-            if int(week_for_matchups) <= int(self.week_for_report):
-                scores = []
-                matchup: BoxScore
-                for matchup in self.matchups_by_week[str(week_for_matchups)]:
-                    team: Team
-                    for team in [matchup.home_team, matchup.away_team]:
-                        team_score = team.scores[week_for_matchups - 1]
-                        if team_score:
-                            scores.append(team_score)
-
-                weekly_median = round(median(scores), 2) if scores else None
-
-                if weekly_median:
-                    self.median_score_by_week[str(week_for_matchups)] = weekly_median
-                else:
-                    self.median_score_by_week[str(week_for_matchups)] = 0
-
-        logger.debug("Getting ESPN rosters by week data.")
-        self.rosters_by_week = {}
-        self.rosters_json_by_week = {}
-        for week_for_rosters in range(1, int(self.week_for_report) + 1):
-            team_rosters = {}
-            for matchup in self.matchups_by_week[str(week_for_rosters)]:
-                team_rosters[matchup.home_team.team_id] = matchup.home_lineup
-                team_rosters[matchup.away_team.team_id] = matchup.away_lineup
-            self.rosters_by_week[str(week_for_rosters)] = team_rosters
-
-            team_rosters_json = {}
-            for matchup_json in self.matchups_json_by_week[str(week_for_rosters)]:
-                team_rosters_json[matchup_json["home"]["teamId"]] = matchup_json[
-                    "home"]["rosterForCurrentScoringPeriod"]["entries"]
-                team_rosters_json[matchup_json["away"]["teamId"]] = matchup_json[
-                    "away"]["rosterForCurrentScoringPeriod"]["entries"]
-            self.rosters_json_by_week[str(week_for_rosters)] = team_rosters_json
-
-        self.teams_json = self.league.teams_json
+        self.swid_cookie = None
+        self.espn_s2_cookie = None
+        if espn_auth_json:
+            if espn_auth_json.get("swid") and espn_auth_json.get("espn_s2"):
+                self.swid_cookie = espn_auth_json.get("swid")
+                self.espn_s2_cookie = espn_auth_json.get("espn_s2")
+            else:
+                espn_session_cookies = self._retrieve_session_cookies(espn_auth_json)
+                self.swid_cookie = espn_session_cookies.get("swid")
+                self.espn_s2_cookie = espn_session_cookies.get("espn_s2")
+                with open(espn_auth_file, "w") as auth:
+                    espn_auth_json.update({
+                        "swid": self.swid_cookie,
+                        "espn_s2": self.espn_s2_cookie
+                    })
+                    json.dump(espn_auth_json, auth, indent=2)
 
     @staticmethod
     def _get_espn_session_cookies(web_driver: Chrome):
@@ -260,7 +141,7 @@ class LeagueData(object):
 
             # wait for the modal iframe to appear
             block = WebDriverWait(driver, 2)
-            block.until(EC.visibility_of_element_located((By.ID, "oneid-wrapper")))
+            block.until(expected_conditions.visibility_of_element_located((By.ID, "oneid-wrapper")))
 
             # switch driver to modal iframe
             driver.switch_to.frame("oneid-iframe")
@@ -285,7 +166,6 @@ class LeagueData(object):
                 f"Already logged in to Chrome with user profile \"{espn_auth_json.get('chrome_user_profile')}\".\n"
             )
 
-
         # retrieve and display session cookies needed for ESPN FF API authentication and extract their values
         espn_session_cookies = WebDriverWait(
             driver, timeout=60
@@ -295,7 +175,7 @@ class LeagueData(object):
 
         return espn_session_cookies
 
-    def check_auth(self, msg):
+    def _check_auth(self, msg):
         logger.debug(msg)
         time.sleep(0.25)
 
@@ -321,9 +201,9 @@ class LeagueData(object):
                 f"({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
             )
             logger.debug(incorrect_key_msg)
-            self.check_auth(incorrect_key_msg)
+            self._check_auth(incorrect_key_msg)
 
-    def save_and_load_data(self, file_dir, filename, data=None):
+    def _save_and_load_data(self, file_dir, filename, data=None):
         file_path = Path(file_dir) / filename
 
         # TODO: get data loading working
@@ -336,9 +216,9 @@ class LeagueData(object):
         #         logger.error(
         #             f"FILE {file_path} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!"
         #         )
-        #         sys.exit("...run aborted.")
+        #         sys.exit(1)
 
-        if self.save_data:
+        if self.league.save_data:
             logger.debug("Saving ESPN league data.")
             if not Path(file_dir).exists():
                 os.makedirs(file_dir)
@@ -348,111 +228,146 @@ class LeagueData(object):
 
         return data
 
-    def map_data_to_base(self, base_league_class):
-        logger.debug("Mapping ESPN data to base objects.")
+    def map_data_to_base(self):
+        logger.debug(f"Retrieving {self.platform_display} league data and mapping it to base objects.")
 
-        league: BaseLeague = base_league_class(
-            self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data, self.offline
+        # TODO: GET SAVE/LOAD WORKING FOR ALL ESPN DATA!
+        espn_league: LeagueWrapper = LeagueWrapper(
+            league_id=int(self.league.league_id),
+            year=self.league.season,
+            espn_s2=self.espn_s2_cookie,
+            swid=self.swid_cookie
         )
 
-        league.name = self.league_settings.name
-        league.week = int(self.current_week)
-        league.start_week = int(self.start_week)
-        league.season = self.season
-        league.num_teams = int(self.league_settings.team_count)
-        league.num_playoff_slots = int(self.num_playoff_slots)
-        league.num_regular_season_weeks = int(self.num_regular_season_weeks)
-        league.num_divisions = self.num_divisions
-        if league.num_divisions > 0:
-            league.has_divisions = True
-        league.has_median_matchup = self.has_median_matchup
-        league.median_score = 0
+        self._save_and_load_data(
+            Path(self.league.data_dir) / str(self.league.season) / self.league.league_id,
+            f"{self.league.league_id}-league_info.json",
+            data=espn_league.league_json
+        )
+        self._save_and_load_data(
+            Path(self.league.data_dir) / str(self.league.season) / self.league.league_id,
+            f"{self.league.league_id}-box_info.json",
+            data=espn_league.box_data_json
+        )
+
+        # not currently needed
+        # league_standings = espn_league.standings()
+
+        self.league.name = espn_league.settings.name
+        self.league.week = int(espn_league.current_week) or self.current_week
+        # TODO: figure out how to get league starting week
+        self.league.start_week = self.start_week
+        self.league.num_teams = int(espn_league.settings.team_count)
+        self.league.num_playoff_slots = int(espn_league.settings.playoff_team_count)
+        self.league.num_regular_season_weeks = int(espn_league.settings.reg_season_count)
+
+        self.league.divisions = {
+            str(division.get("id")): division.get("name")
+            for division in espn_league.settings_json.get("scheduleSettings").get("divisions")
+        }
+        self.league.num_divisions = len(self.league.divisions) if len(self.league.divisions) > 1 else 0
+        self.league.has_divisions = self.league.num_divisions > 0
+
+        # TODO: ESPN does not currently offer a built-in median game
+        self.league.has_median_matchup = False
+        self.league.median_score = 0
+
         # use hijacked raw json since acquisition settings are not exposed in the API wrapper
-        league.is_faab = bool(self.league_settings_json.get("acquisitionSettings").get("isUsingAcquisitionBudget"))
-        if league.is_faab:
-            league.faab_budget = int(self.league_settings_json.get("acquisitionSettings").get("acquisitionBudget", 0))
+        self.league.is_faab = bool(espn_league.settings_json.get("acquisitionSettings").get("isUsingAcquisitionBudget"))
+        if self.league.is_faab:
+            self.league.faab_budget = int(
+                espn_league.settings_json.get("acquisitionSettings").get("acquisitionBudget", 0)
+            )
+
         # league.url = self.league.ENDPOINT
-        league.url = f"https://fantasy.espn.com/football/league?leagueId={self.league_id}"
+        self.league.url = f"{self.base_url}/football/league?leagueId={self.league.league_id}"
 
         # TODO: set up with ESPN player endpoint
-        # league.player_data_by_week_function = self.league.player_map
-        # league.player_data_by_week_key = "player_points_value"
+        # self.league.player_data_by_week_function = self.league.player_map
+        # self.league.player_data_by_week_key = "player_points_value"
 
-        league.bench_positions = ["BN", "IR"]  # ESPN uses "BE" for the bench slot, but this app adjusts it to "BN"
-
-        flex_mapping = {
-            "RB/WR": {
-                "flex_label": "FLEX_RB_WR",
-                "flex_positions_attribute": "flex_positions_rb_wr",
-                "flex_positions": ["RB", "WR"]
-            },
-            "WR/TE": {
-                "flex_label": "FLEX_TE_WR",
-                "flex_positions_attribute": "flex_positions_te_wr",
-                "flex_positions": ["TE", "WR"]
-            },
-            "RB/WR/TE": {
-                "flex_label": "FLEX",
-                "flex_positions_attribute": "flex_positions_rb_te_wr",
-                "flex_positions": ["RB", "TE", "WR"]
-            },
-            "OP": {
-                "flex_label": "FLEX_IOP",
-                "flex_positions_attribute": "flex_positions_individual_offensive_player",
-                "flex_positions": ["QB", "RB", "TE", "WR"]
-            },
-            "DP": {
-                "flex_label": "FLEX_IDP",
-                "flex_positions_attribute": "flex_positions_individual_defensive_player",
-                "flex_positions": ["CB", "DB", "DE", "DL", "DT", "EDR", "LB", "S"]
-            }
+        # use hijacked raw json since roster settings are not exposed in the API wrapper
+        roster_positions = {
+            POSITION_MAP[int(pos_id)]: pos_count for pos_id, pos_count in
+            espn_league.settings_json.get("rosterSettings").get("lineupSlotCounts").items()
+            if pos_count > 0
         }
 
-        for position, count in self.roster_positions.items():
-            pos_name = deepcopy(position)
+        for position, count in roster_positions.items():
+            pos_attributes = self.position_mapping.get(position)
+            pos_name = pos_attributes.get("base")
+            pos_count = int(count)
 
-            if pos_name == "BE":
-                pos_name = "BN"
-
-            if pos_name in flex_mapping.keys():
-                league.__setattr__(
-                    flex_mapping[pos_name].get("flex_positions_attribute"),
-                    flex_mapping[pos_name].get("flex_positions")
+            if pos_attributes.get("is_flex"):
+                self.league.__setattr__(
+                    pos_attributes.get("league_positions_attribute"),
+                    pos_attributes.get("positions")
                 )
-                pos_name = flex_mapping[pos_name].get("flex_label")
 
-            pos_counter = deepcopy(int(count))
-            while pos_counter > 0:
-                if pos_name not in league.bench_positions:
-                    league.active_positions.append(pos_name)
-                pos_counter -= 1
+            self.league.roster_positions.append(pos_name)
+            self.league.roster_position_counts[pos_name] = pos_count
+            self.league.roster_active_slots.extend(
+                [pos_name] * pos_count
+                if pos_name not in self.league.bench_positions
+                else []
+            )
 
-            league.roster_positions.append(pos_name)
-            league.roster_position_counts[pos_name] = int(count)
+        # only ESPN (ouf of supported platforms) offers home field advantage
+        home_field_advantage = (
+            espn_league.settings_json.get("scoringSettings").get("homeTeamBonus")
+            if espn_league.settings_json.get("scoringSettings").get("homeTeamBonus")
+            else 0
+        )
+
+        logger.debug("Getting ESPN matchups by week data.")
+        matchups_by_week = {}
+        matchups_json_by_week = {}
+        median_score_by_week = {}
+        for week_for_matchups in range(1, int(espn_league.settings.reg_season_count) + 1):
+            matchups_by_week[str(week_for_matchups)] = espn_league.box_scores(int(week_for_matchups))
+            matchups_json_by_week[str(week_for_matchups)] = espn_league.box_data_json
+
+            if int(week_for_matchups) <= self.league.week_for_report:
+                scores = []
+                matchup: BoxScore
+                for matchup in matchups_by_week[str(week_for_matchups)]:
+                    team: Team
+                    for team in [matchup.home_team, matchup.away_team]:
+                        team_score = team.scores[week_for_matchups - 1]
+                        if team_score:
+                            scores.append(team_score)
+
+                weekly_median = round(median(scores), 2) if scores else None
+
+                if weekly_median:
+                    median_score_by_week[str(week_for_matchups)] = weekly_median
+                else:
+                    median_score_by_week[str(week_for_matchups)] = 0
 
         league_median_records_by_team = {}
-        for week, matchups in self.matchups_by_week.items():
-            league.teams_by_week[str(week)] = {}
-            league.matchups_by_week[str(week)] = []
+        for week, matchups in matchups_by_week.items():
+            self.league.teams_by_week[str(week)] = {}
+            self.league.matchups_by_week[str(week)] = []
             matchup: BoxScore
             for matchup in matchups:
                 base_matchup = BaseMatchup()
 
                 base_matchup.week = int(week)
-                base_matchup.complete = True if int(week) != int(self.current_week) else False
-                base_matchup.tied = True if (matchup.home_score == matchup.away_score) else False
+                base_matchup.complete = int(week) < self.league.week
+                base_matchup.tied = matchup.home_score == matchup.away_score
 
                 matchup_teams = {
                     "home": matchup.home_team,
                     "away": matchup.away_team
                 }
                 for key, matchup_team in matchup_teams.items():
-                    team_json = self.teams_json[str(matchup_team.team_id)]
+                    team_json = espn_league.teams_json[str(matchup_team.team_id)]
                     base_team = BaseTeam()
 
                     opposite_key = "away" if key == "home" else "home"
-                    team_division = matchup_team.division_id if self.num_divisions > 0 else None
-                    opponent_division = matchup_teams[opposite_key].division_id if self.num_divisions > 0 else None
+                    team_division = matchup_team.division_id if self.league.num_divisions > 0 else None
+                    opponent_division = matchup_teams[
+                        opposite_key].division_id if self.league.num_divisions > 0 else None
                     if team_division and opponent_division and team_division == opponent_division:
                         base_matchup.division_matchup = True
 
@@ -461,17 +376,19 @@ class LeagueData(object):
                     base_team.num_moves = team_json["transactionCounter"].get("acquisitions", 0)
                     base_team.num_trades = team_json["transactionCounter"].get("trades", 0)
 
-                    if isinstance(matchup_team.owner, list):
-                        team_managers = matchup_team.owner
-                    else:
-                        team_managers = [matchup_team.owner]
+                    primary_manager = espn_league.managers_json.get(team_json["primaryOwner"])
+                    team_managers = [primary_manager]
+                    for manager_id in team_json["owners"]:
+                        if manager_id != primary_manager["id"]:
+                            team_managers.append(espn_league.managers_json.get(manager_id))
 
                     for manager in team_managers:
                         base_manager = BaseManager()
 
-                        base_manager.manager_id = None
+                        base_manager.manager_id = manager["id"]
                         base_manager.email = None
-                        base_manager.name = re.sub(r"\W+", " ", manager)
+                        base_manager.name = re.sub(r"\W+", " ", f"{manager['firstName']} {manager['lastName']}")
+                        base_manager.nickname = manager["displayName"]
 
                         base_team.managers.append(base_manager)
 
@@ -481,19 +398,22 @@ class LeagueData(object):
                     team_is_home = False
                     if int(base_team.team_id) == int(matchup.home_team.team_id):
                         team_is_home = True
-                        base_team.home_field_advantage = self.home_field_advantage
-                        base_team.points = float(matchup.home_score + base_team.home_field_advantage)
+                        base_team.home_field_advantage_points = home_field_advantage
+                        base_team.points = float(matchup.home_score + base_team.home_field_advantage_points)
                     else:
                         base_team.points = float(matchup.away_score)
 
                     base_team.projected_points = None
                     base_team.waiver_priority = team_json["waiverRank"]
-                    league.has_waiver_priorities = base_team.waiver_priority > 0
-                    if league.is_faab:
-                        base_team.faab = int(league.faab_budget) - int(
-                            team_json["transactionCounter"].get("acquisitionBudgetSpent", 0))
+                    self.league.has_waiver_priorities = base_team.waiver_priority > 0
+                    if self.league.is_faab:
+                        base_team.faab = (
+                                self.league.faab_budget
+                                - int(team_json["transactionCounter"].get("acquisitionBudgetSpent", 0))
+                        )
                     base_team.url = (
-                        f"https://fantasy.espn.com/football/team?leagueId=48153503&teamId={base_team.team_id}"
+                        f"https://fantasy.espn.com/football/team"
+                        f"?leagueId={self.league.league_id}&teamId={base_team.team_id}"
                     )
 
                     if matchup_team.streak_type == "WIN":
@@ -536,7 +456,7 @@ class LeagueData(object):
                         base_team.division_streak_str = base_team.current_record.get_division_streak_str()
 
                     # get median for week
-                    week_median = self.median_score_by_week.get(str(week))
+                    week_median = median_score_by_week.get(str(week))
 
                     median_record: BaseRecord = league_median_records_by_team.get(str(base_team.team_id))
                     if not median_record:
@@ -566,28 +486,46 @@ class LeagueData(object):
                     base_matchup.teams.append(base_team)
 
                     # add team to league teams by week
-                    league.teams_by_week[str(week)][str(base_team.team_id)] = base_team
+                    self.league.teams_by_week[str(week)][str(base_team.team_id)] = base_team
 
                     # no winner/loser if matchup is tied
                     if team_is_home:
-                        if (matchup.home_score + self.home_field_advantage) > matchup.away_score:
+                        if (matchup.home_score + home_field_advantage) > matchup.away_score:
                             base_matchup.winner = base_team
-                        elif (matchup.home_score + self.home_field_advantage) < matchup.away_score:
+                        elif (matchup.home_score + home_field_advantage) < matchup.away_score:
                             base_matchup.loser = base_team
                     else:
-                        if (matchup.home_score + self.home_field_advantage) > matchup.away_score:
+                        if (matchup.home_score + home_field_advantage) > matchup.away_score:
                             base_matchup.loser = base_team
-                        elif (matchup.home_score + self.home_field_advantage) < matchup.away_score:
+                        elif (matchup.home_score + home_field_advantage) < matchup.away_score:
                             base_matchup.winner = base_team
 
                 # add matchup to league matchups by week
-                league.matchups_by_week[str(week)].append(base_matchup)
+                self.league.matchups_by_week[str(week)].append(base_matchup)
 
-        for week, rosters in self.rosters_by_week.items():
-            league.players_by_week[str(week)] = {}
+        logger.debug("Getting ESPN rosters by week data.")
+        rosters_by_week = {}
+        rosters_json_by_week = {}
+        for week_for_rosters in range(1, self.league.week_for_report + 1):
+            team_rosters = {}
+            for matchup in matchups_by_week[str(week_for_rosters)]:
+                team_rosters[matchup.home_team.team_id] = matchup.home_lineup
+                team_rosters[matchup.away_team.team_id] = matchup.away_lineup
+            rosters_by_week[str(week_for_rosters)] = team_rosters
+
+            team_rosters_json = {}
+            for matchup_json in matchups_json_by_week[str(week_for_rosters)]:
+                team_rosters_json[matchup_json["home"]["teamId"]] = matchup_json[
+                    "home"]["rosterForCurrentScoringPeriod"]["entries"]
+                team_rosters_json[matchup_json["away"]["teamId"]] = matchup_json[
+                    "away"]["rosterForCurrentScoringPeriod"]["entries"]
+            rosters_json_by_week[str(week_for_rosters)] = team_rosters_json
+
+        for week, rosters in rosters_by_week.items():
+            self.league.players_by_week[str(week)] = {}
             for team_id, roster in rosters.items():
-                team_json = self.rosters_json_by_week[str(week)][int(team_id)]
-                league_team: BaseTeam = league.teams_by_week.get(str(week)).get(str(team_id))
+                team_json = rosters_json_by_week[str(week)][int(team_id)]
+                league_team: BaseTeam = self.league.teams_by_week.get(str(week)).get(str(team_id))
 
                 player: BoxPlayer
                 for player in roster:
@@ -603,21 +541,13 @@ class LeagueData(object):
                     base_player.player_id = str(player.playerId)
                     # TODO: missing bye
                     base_player.bye_week = None
-                    base_player.display_position = player.position
+                    base_player.display_position = self.get_mapped_position(player.position)
                     base_player.nfl_team_id = player_json["proTeamId"]
-                    # TODO: change back once ESPN fixes their API to not use "WSH"" instead of "WAS" for the
-                    #  Washington Football Team
-                    # base_player.nfl_team_abbr = player.proTeam
-                    base_player.nfl_team_abbr = player.proTeam if player.proTeam != "WSH" else "WAS"
+                    base_player.nfl_team_abbr = player.proTeam
                     base_player.nfl_team_name = player.proTeam
 
                     if base_player.display_position == "D/ST":
-                        # TODO: change back once ESPN fixes their API to not use "WSH"" instead of "WAS" for the
-                        #  Washington Football Team
-                        # base_player.first_name = player_json["firstName"]
-                        base_player.first_name = (
-                            player_json["firstName"] if player_json["firstName"] != "Washington" else "Football Team"
-                        )
+                        base_player.first_name = player_json["firstName"]
                         base_player.full_name = base_player.first_name
                         base_player.nfl_team_name = base_player.first_name
                         base_player.headshot_url = (
@@ -637,30 +567,17 @@ class LeagueData(object):
                     base_player.points = float(player.points)
                     base_player.projected_points = float(player.projected_points)
 
+                    for position in player.eligibleSlots:
+                        base_player.eligible_positions.add(self.get_mapped_position(position))
+
+                    base_player.primary_position = self.get_mapped_position(player.position)
                     base_player.position_type = (
-                        "O" if base_player.display_position in self.offensive_positions else "D"
+                        "O" if base_player.display_position in self.league.offensive_positions else "D"
                     )
-                    if player.position in flex_mapping.keys():
-                        base_player.primary_position = flex_mapping[player.position].get("flex_label")
-                    else:
-                        base_player.primary_position = player.position
 
-                    eligible_positions = player.eligibleSlots
-                    for position in eligible_positions:
-                        if position == "BE":
-                            position = "BN"
-                        if position in flex_mapping.keys():
-                            position = flex_mapping[position].get("flex_label")
-                        base_player.eligible_positions.add(position)
-
-                    if player.slot_position in flex_mapping.keys():
-                        base_player.selected_position = flex_mapping[player.slot_position].get("flex_label")
-                    elif player.slot_position == "BE":
-                        base_player.selected_position = "BN"
-                    else:
-                        base_player.selected_position = player.slot_position
+                    base_player.selected_position = self.get_mapped_position(player.slot_position)
                     base_player.selected_position_is_flex = (
-                        True if "/" in player.slot_position and player.slot_position != "D/ST" else False
+                        self.position_mapping.get(player.slot_position).get("is_flex")
                     )
 
                     base_player.status = player_json.get("injuryStatus")
@@ -679,13 +596,14 @@ class LeagueData(object):
                     league_team.roster.append(base_player)
 
                     # add player to league players by week
-                    league.players_by_week[str(week)][base_player.player_id] = base_player
+                    self.league.players_by_week[str(week)][base_player.player_id] = base_player
 
-        league.current_standings = sorted(
-            league.teams_by_week.get(str(self.week_for_report)).values(), key=lambda x: x.current_record.rank)
+        self.league.current_standings = sorted(
+            self.league.teams_by_week.get(str(self.league.week_for_report)).values(),
+            key=lambda x: x.current_record.rank)
 
-        league.current_median_standings = sorted(
-            league.teams_by_week.get(str(self.week_for_report)).values(),
+        self.league.current_median_standings = sorted(
+            self.league.teams_by_week.get(str(self.league.week_for_report)).values(),
             key=lambda x: (
                 x.current_median_record.get_wins(),
                 -x.current_median_record.get_losses(),
@@ -695,7 +613,7 @@ class LeagueData(object):
             reverse=True
         )
 
-        return league
+        return self.league
 
 
 # noinspection DuplicatedCode
@@ -720,6 +638,9 @@ class LeagueWrapper(League):
         # # # # # # # # # # # # # # # # # # #
         self.league_json = data
         self.settings_json = data["settings"]
+        self.managers_json = {}
+        for manager in data["members"]:
+            self.managers_json[manager["id"]] = manager
         self.teams_json = {}
         for team in data["teams"]:
             self.teams_json[str(team["id"])] = team
@@ -746,7 +667,7 @@ class LeagueWrapper(League):
             'scoringPeriodId': scoring_period,
         }
 
-        filters = {"schedule":{"filterMatchupPeriodIds":{"value":[matchup_period]}}}
+        filters = {"schedule": {"filterMatchupPeriodIds": {"value": [matchup_period]}}}
         headers = {'x-fantasy-filter': json.dumps(filters)}
         data = self.espn_request.league_get(params=params, headers=headers)
 

@@ -3,6 +3,8 @@ import os
 import re
 from collections import defaultdict
 from configparser import ConfigParser, NoOptionError, NoSectionError
+from pathlib import Path
+from typing import Dict, Iterable, Union
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +25,7 @@ class AppConfigParser(ConfigParser):
         self.comment_map = defaultdict(dict)
 
     # noinspection PyShadowingBuiltins
-    def get(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
+    def get(self, section: str, option: str, *, raw=False, vars=None, fallback=_UNSET):
         """Get an option value for a given section.
 
         If `vars' is provided, it must be a dictionary. The option is looked up
@@ -51,10 +53,10 @@ class AppConfigParser(ConfigParser):
         except KeyError:
 
             if fallback is _UNSET:
-                if section == "Report" and \
-                        (str(option).startswith("league") or
-                         str(option).startswith("report") or
-                         str(option).startswith("team")):
+                if (section == "Report"
+                    and (str(option).startswith("league")
+                         or str(option).startswith("report")
+                         or str(option).startswith("team"))):
                     logger.warning(
                         f"MISSING CONFIGURATION VALUE: \"{section}: {option}\"! Setting to default value of \"False\". "
                         f"To include this section, update \"config.ini\" and try again."
@@ -70,7 +72,7 @@ class AppConfigParser(ConfigParser):
         else:
             return self._interpolation.before_get(self, section, option, value, d)
 
-    def read(self, filenames, encoding=None):
+    def read(self, filenames: Union[str, Path, Iterable[str]], encoding: str = None):
         """Read and parse a filename or an iterable of filenames.
 
         Files that cannot be opened are silently ignored; this is
@@ -112,7 +114,7 @@ class AppConfigParser(ConfigParser):
             read_ok.append(filename)
         return read_ok
 
-    def _write_section(self, fp, section_name, section_items, delimiter):
+    def _write_section(self, fp, section_name: str, section_items: Dict[str, str], delimiter: str):
         """Write a single section to the specified `fp`."""
         fp.write(f"[{section_name}]\n")
         section_comments_map = self.comment_map.get(section_name)

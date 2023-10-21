@@ -60,7 +60,7 @@ class CoachingEfficiency(object):
 
         self.league: BaseLeague = league
         self.roster_slot_counts: Dict[str, int] = self.league.roster_position_counts
-        self.roster_active_slots: List[str] = self.league.active_positions
+        self.roster_active_slots: List[str] = self.league.roster_active_slots
         self.roster_bench_slots: List[str] = self.league.bench_positions
         self.flex_positions_dict: Dict[str, List[str]] = self.league.get_flex_positions_dict()
         self.roster_primary_slots: Set[str] = set(self.roster_active_slots).difference(self.flex_positions_dict.keys())
@@ -121,7 +121,6 @@ class CoachingEfficiency(object):
                     for player_ndx, player in enumerate(optimal_lineup.get(pos).assigned_players):
                         # check if any players in position match the potentially replaceable player
                         if assigned_player["assigned_player"].player_id == player.player_id:
-
                             # remove the replaceable player from their current optimal lineup position
                             movable_player = optimal_lineup.get(pos).remove_player(player_ndx)
                             # replace the replaceable player with the unassigned player
@@ -146,7 +145,7 @@ class CoachingEfficiency(object):
         )
 
         assigned_pos = None
-        point_diffs: Dict[str, int] = {}
+        point_diffs: Dict[str, float] = {}
         players_with_eligible_open_slots: Dict[str, List[Dict[str, Union[BasePlayer, List[str]]]]] = defaultdict(list)
         for eligible_pos in eligible_primary_positions + eligible_flex_positions:
 

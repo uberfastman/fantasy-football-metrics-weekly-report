@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
@@ -11,34 +13,117 @@ import random
 import traceback
 from copy import deepcopy
 from pathlib import Path
+from typing import Dict, List, Tuple, Any, Union, TYPE_CHECKING
 
 import numpy as np
 
 from report.logger import get_logger
-from utils.app_config_parser import AppConfigParser
+from utilities.config import AppConfigParser
+
+if TYPE_CHECKING:
+    from dao.base import BaseTeam, BaseMatchup
 
 logger = get_logger(__name__, propagate=False)
 
 
+class TeamWithPlayoffProbs(object):
+
+    def __init__(self, team_id, name, manager, wins, losses, ties, points_for, playoff_slots, simulations,
+                 division=None, division_wins=0, division_losses=0, division_ties=0, division_points_for=0):
+        self.team_id = team_id
+        self.name = name
+        self.manager = manager
+        self.division = division
+        self.base_wins = wins
+        self.wins = wins
+        self.base_division_wins = division_wins
+        self.division_wins = division_wins
+        self.base_losses = losses
+        self.losses = losses
+        self.base_division_losses = division_losses
+        self.division_losses = division_losses
+        self.ties = ties
+        self.division_ties = division_ties
+        self.points_for = float(points_for)
+        self.division_points_for = float(division_points_for)
+        self.division_leader_tally = 0
+        self.division_qualifier_tally = 0
+        self.is_predicted_division_leader = False
+        self.is_predicted_division_qualifier = False
+        self.playoff_tally = 0
+        self.playoff_stats = [0] * int(playoff_slots)
+        self.simulations = int(simulations)
+
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __repr__(self):
+        return str(self.__dict__)
+
+    def add_win(self):
+        self.wins += 1
+
+    def add_division_win(self):
+        self.division_wins += 1
+
+    def add_loss(self):
+        self.losses += 1
+
+    def add_division_loss(self):
+        self.division_losses += 1
+
+    def add_division_leader_tally(self):
+        self.division_leader_tally += 1
+
+    def add_division_qualifier_tally(self):
+        self.division_qualifier_tally += 1
+
+    def add_playoff_tally(self):
+        self.playoff_tally += 1
+
+    def add_playoff_stats(self, place):
+        self.playoff_stats[place - 1] += 1
+
+    def get_wins_with_points(self):
+        return self.wins + (self.points_for / 1000000)
+
+    def get_division_wins_with_points(self):
+        return self.division_wins + (self.division_points_for / 1000000)
+
+    def get_playoff_chance_percentage(self):
+        return round((self.playoff_tally / self.simulations) * 100.0, 2)
+
+    def get_playoff_stats(self):
+        return [round((stat / self.simulations) * 100.0, 2) for stat in self.playoff_stats]
+
+    def reset_to_base_record(self):
+        self.wins = self.base_wins
+        self.losses = self.base_losses
+        self.division_wins = self.base_division_wins
+        self.division_losses = self.base_division_losses
+
+
 class PlayoffProbabilities(object):
 
-    def __init__(self, config: AppConfigParser, simulations, num_weeks, num_playoff_slots, data_dir, num_divisions=0,
-                 save_data=False, recalculate=False, offline=False):
+    def __init__(self, config: AppConfigParser, simulations: int, num_weeks: int, num_playoff_slots: int,
+                 data_dir: Path, num_divisions: int = 0, save_data: bool = False, recalculate: bool = False,
+                 offline: bool = False):
         logger.debug("Initializing playoff probabilities.")
 
-        self.config = config
-        self.simulations = int(simulations) if simulations is not None else self.config.getint(
-            "Settings", "num_playoff_simulations", fallback=100000)
-        self.num_weeks = int(num_weeks)
-        self.num_playoff_slots = int(num_playoff_slots)
-        self.data_dir = data_dir
-        self.num_divisions = num_divisions
-        self.save_data = save_data
-        self.recalculate = recalculate
-        self.offline = offline
-        self.playoff_probs_data = {}
+        self.config: AppConfigParser = config
+        self.simulations: int = simulations or self.config.getint("Settings", "num_playoff_simulations",
+                                                                  fallback=100000)
+        self.num_weeks: int = num_weeks
+        self.num_playoff_slots: int = int(num_playoff_slots)
+        self.data_dir: Path = data_dir
+        self.num_divisions: int = num_divisions
+        self.save_data: bool = save_data
+        self.recalculate: bool = recalculate
+        self.offline: bool = offline
+        self.playoff_probs_data: Dict[str, List[Any]] = {}
 
-    def calculate(self, week, week_for_report, standings, remaining_matchups):
+    def calculate(self, week: int, week_for_report: int, standings: List[BaseTeam],
+                  remaining_matchups: Dict[str, List[Tuple[BaseMatchup]]]) -> Union[None, Dict[str, List[Any]]]:
         logger.debug("Calculating playoff probabilities.")
 
         # with open("playoff_prob_standings.json", "w") as pps:
@@ -68,7 +153,7 @@ class PlayoffProbabilities(object):
             )
 
         try:
-            if int(week) == int(week_for_report):
+            if week == week_for_report:
                 if self.recalculate:
                     logger.info(
                         f"Running {self.simulations:,} Monte Carlo playoff "
@@ -81,7 +166,7 @@ class PlayoffProbabilities(object):
                     while sim_count <= self.simulations:
                         # create random binary results representing the rest of the season matchups and add them to the
                         # existing wins
-                        for week, matchups in remaining_matchups.items():
+                        for wk, matchups in remaining_matchups.items():
                             for matchup in matchups:
                                 team_1 = teams_for_playoff_probs[matchup[0]]
                                 team_2 = teams_for_playoff_probs[matchup[1]]
@@ -180,7 +265,8 @@ class PlayoffProbabilities(object):
                         else:
                             # sort the teams
                             sorted_teams = sorted(
-                                teams_for_playoff_probs.values(), key=lambda x: x.get_wins_with_points(), reverse=True)
+                                teams_for_playoff_probs.values(), key=lambda x: x.get_wins_with_points(), reverse=True
+                            )
 
                             # pick the teams making the playoffs
                             playoff_count = 1
@@ -234,7 +320,7 @@ class PlayoffProbabilities(object):
                         else:
                             needed_wins = 0
 
-                        self.playoff_probs_data[int(team.team_id)] = [
+                        self.playoff_probs_data[team.team_id] = [
                             team.name + modified_team_names[team.team_id],
                             team.get_playoff_chance_percentage(),
                             team.get_playoff_stats(),
@@ -263,7 +349,7 @@ class PlayoffProbabilities(object):
                     logger.info("Using saved Monte Carlo playoff simulations for playoff probabilities.")
 
                     playoff_probs_data_file_path = (
-                        Path(self.data_dir) / f"week_{week_for_report}" / "playoff_probs_data.json"
+                            Path(self.data_dir) / f"week_{week_for_report}" / "playoff_probs_data.json"
                     )
                     if Path(playoff_probs_data_file_path).exists():
                         with open(playoff_probs_data_file_path, "r") as pp_in:
@@ -285,7 +371,9 @@ class PlayoffProbabilities(object):
             logger.error(f"COULDN'T CALCULATE PLAYOFF PROBS WITH EXCEPTION: {e}\n{traceback.format_exc()}")
             return None
 
-    def group_by_division(self, teams_for_playoff_probs):
+    def group_by_division(
+            self, teams_for_playoff_probs: Dict[str, TeamWithPlayoffProbs]
+    ) -> Dict[str, List[TeamWithPlayoffProbs]]:
         # group teams into divisions
         division_groups = [
             list(group) for key, group in itertools.groupby(
@@ -296,7 +384,7 @@ class PlayoffProbabilities(object):
         # sort the teams
         sorted_divisions = {}
         for division_num in range(1, self.num_divisions + 1):
-            sorted_divisions[division_num] = sorted(
+            sorted_divisions[str(division_num)] = sorted(
                 division_groups[division_num - 1],
                 key=lambda x: (
                     x.get_wins_with_points(),
@@ -318,83 +406,6 @@ class PlayoffProbabilities(object):
         return json.dumps(self.__dict__, indent=2, ensure_ascii=False)
 
 
-class TeamWithPlayoffProbs(object):
-
-    def __init__(self, team_id, name, manager, wins, losses, ties, points_for, playoff_slots, simulations,
-                 division=None, division_wins=0, division_losses=0, division_ties=0, division_points_for=0):
-        self.team_id = team_id
-        self.name = name
-        self.manager = manager
-        self.division = division
-        self.base_wins = wins
-        self.wins = wins
-        self.base_division_wins = division_wins
-        self.division_wins = division_wins
-        self.base_losses = losses
-        self.losses = losses
-        self.base_division_losses = division_losses
-        self.division_losses = division_losses
-        self.ties = ties
-        self.division_ties = division_ties
-        self.points_for = float(points_for)
-        self.division_points_for = float(division_points_for)
-        self.division_leader_tally = 0
-        self.division_qualifier_tally = 0
-        self.is_predicted_division_leader = False
-        self.is_predicted_division_qualifier = False
-        self.playoff_tally = 0
-        self.playoff_stats = [0] * int(playoff_slots)
-        self.simulations = int(simulations)
-
-    def __str__(self):
-        return str(self.__dict__)
-
-    def __repr__(self):
-        return str(self.__dict__)
-
-    def add_win(self):
-        self.wins += 1
-
-    def add_division_win(self):
-        self.division_wins += 1
-
-    def add_loss(self):
-        self.losses += 1
-
-    def add_division_loss(self):
-        self.division_losses += 1
-
-    def add_division_leader_tally(self):
-        self.division_leader_tally += 1
-
-    def add_division_qualifier_tally(self):
-        self.division_qualifier_tally += 1
-
-    def add_playoff_tally(self):
-        self.playoff_tally += 1
-
-    def add_playoff_stats(self, place):
-        self.playoff_stats[place - 1] += 1
-
-    def get_wins_with_points(self):
-        return self.wins + (self.points_for / 1000000)
-
-    def get_division_wins_with_points(self):
-        return self.division_wins + (self.division_points_for / 1000000)
-
-    def get_playoff_chance_percentage(self):
-        return round((self.playoff_tally / self.simulations) * 100.0, 2)
-
-    def get_playoff_stats(self):
-        return [round((stat / self.simulations) * 100.0, 2) for stat in self.playoff_stats]
-
-    def reset_to_base_record(self):
-        self.wins = self.base_wins
-        self.losses = self.base_losses
-        self.division_wins = self.base_division_wins
-        self.division_losses = self.base_division_losses
-
-
 if __name__ == "__main__":
     local_config = AppConfigParser()
     local_config.read(Path(__file__).parent.parent / "config.ini")
@@ -404,7 +415,7 @@ if __name__ == "__main__":
         simulations=100,
         num_weeks=13,
         num_playoff_slots=6,
-        data_dir="."
+        data_dir=Path(".")
     )
 
     # playoff_probs.calculate(week=8, week_for_report=7,)

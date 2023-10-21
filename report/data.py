@@ -2,30 +2,33 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
 import itertools
+from typing import List
 
 from calculate.metrics import CalculateMetrics
 from calculate.points_by_position import PointsByPosition
 from dao.base import BaseLeague, BaseMatchup, BaseTeam
 from report.logger import get_logger
-from utils.report_tools import add_report_team_stats, get_player_game_time_statuses
+from utilities.app import add_report_team_stats, get_player_game_time_statuses
+from utilities.config import AppConfigParser
 
 logger = get_logger(__name__, propagate=False)
 
 
 class ReportData(object):
 
-    def __init__(self, config, league: BaseLeague, season_weekly_teams_results, week_counter, week_for_report,
-                 season, metrics_calculator: CalculateMetrics, metrics, break_ties=False, dq_ce=False, testing=False):
+    def __init__(self, config: AppConfigParser, league: BaseLeague, season_weekly_teams_results, week_counter: int,
+                 week_for_report: int, season: int, metrics_calculator: CalculateMetrics, metrics,
+                 break_ties: bool = False, dq_ce: bool = False, testing: bool = False):
         logger.debug("Instantiating report data.")
 
-        self.league = league
-        self.break_ties = break_ties
-        self.dq_ce = dq_ce
-        self.week = league.week
-        self.bench_positions = league.bench_positions
-        self.has_divisions = league.has_divisions
-        self.has_waiver_priorities = league.has_waiver_priorities
-        self.is_faab = league.is_faab
+        self.league: BaseLeague = league
+        self.break_ties: bool = break_ties
+        self.dq_ce: bool = dq_ce
+        self.week: int = league.week
+        self.bench_positions: List[str] = league.bench_positions
+        self.has_divisions: bool = league.has_divisions
+        self.has_waiver_priorities: bool = league.has_waiver_priorities
+        self.is_faab: bool = league.is_faab
 
         inactive_players = []
         if dq_ce:
@@ -66,7 +69,7 @@ class ReportData(object):
 
         # option to disqualify manually configured team(s) (in config.ini) for current week of coaching efficiency
         self.coaching_efficiency_dqs = {}
-        if int(week_counter) == int(week_for_report):
+        if week_counter == week_for_report:
             disqualified_teams = config.get("Settings", "coaching_efficiency_disqualified_teams")
             if disqualified_teams:
                 for team in disqualified_teams.split(","):
@@ -82,14 +85,14 @@ class ReportData(object):
         # get remaining matchups for Monte Carlo playoff simulations
         remaining_matchups = {}
         for week, matchups in league.matchups_by_week.items():
-            if int(week) > int(week_for_report):
-                remaining_matchups[int(week)] = []
+            if int(week) > week_for_report:
+                remaining_matchups[str(week)] = []
                 matchup: BaseMatchup
                 for matchup in matchups:
                     matchup_teams = []
                     for team in matchup.teams:
                         matchup_teams.append(team.team_id)
-                    remaining_matchups[int(week)].append(tuple(matchup_teams))
+                    remaining_matchups[str(week)].append(tuple(matchup_teams))
 
         # calculate z-scores (dependent on all previous weeks scores)
         z_score_results = metrics_calculator.calculate_z_scores(season_weekly_teams_results + [self.teams_results])
@@ -119,8 +122,9 @@ class ReportData(object):
 
         if league.num_playoff_slots > 0:
             # playoff probabilities data
-            self.data_for_playoff_probs = metrics.get("playoff_probs").calculate(week_counter, week_for_report,
-                                                                                 league.standings, remaining_matchups)
+            self.data_for_playoff_probs = metrics.get("playoff_probs").calculate(
+                week_counter, week_for_report, league.standings, remaining_matchups
+            )
         else:
             self.data_for_playoff_probs = None
 
@@ -242,7 +246,7 @@ class ReportData(object):
         if self.ties_for_coaching_efficiency > 0:
             self.data_for_coaching_efficiency = metrics_calculator.resolve_coaching_efficiency_ties(
                 self.data_for_coaching_efficiency, self.ties_for_coaching_efficiency, league, self.teams_results,
-                week_counter, week_for_report, self.break_ties)
+                int(week_counter), int(week_for_report), self.break_ties)
         self.num_first_place_for_coaching_efficiency = len(
             [list(group) for key, group in itertools.groupby(self.data_for_coaching_efficiency, lambda x: x[0])][0])
 

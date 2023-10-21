@@ -10,7 +10,7 @@ from pytest import mark
 module_dir = Path(__file__).parent.parent
 sys.path.append(str(module_dir))
 
-from utils.app_config_parser import AppConfigParser
+from utilities.config import AppConfigParser
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats

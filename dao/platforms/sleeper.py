@@ -4,20 +4,18 @@ __email__ = "uberfastman@uberfastman.dev"
 import datetime
 import json
 import logging
-import os
-import sys
 from collections import defaultdict, Counter
 from copy import deepcopy
 from datetime import datetime, timedelta
 from itertools import groupby
 from pathlib import Path
 from statistics import median
+from typing import Union, Callable
 
-import requests
-from requests.exceptions import HTTPError
-
-from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
+from dao.base import BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
+from dao.platforms.base.base import BaseLeagueData
 from report.logger import get_logger
+from utilities.config import AppConfigParser
 
 logger = get_logger(__name__, propagate=False)
 
@@ -26,137 +24,142 @@ logger.setLevel(level=logging.INFO)
 
 
 # noinspection DuplicatedCode
-class LeagueData(object):
+class LeagueData(BaseLeagueData):
 
-    def __init__(self,
-                 week_for_report,
-                 league_id,
-                 season,
-                 start_week,
-                 config,
-                 data_dir,
-                 week_validation_function,
-                 get_current_nfl_week_function,
-                 save_data=True,
-                 offline=False):
-
-        logger.debug("Initializing Sleeper league.")
-
-        self.league_id = league_id
-        self.season = season
-        self.config = config
-        self.data_dir = data_dir
-        self.save_data = save_data
-        self.offline = offline
-
-        self.offensive_positions = ["QB", "RB", "WR", "TE", "K", "FLEX", "REC_FLEX", "WRRB_FLEX", "SUPER_FLEX"]
-        self.defensive_positions = ["DEF"]
-
-        # create full directory path if any directories in it do not already exist
-        if not Path(self.data_dir).exists():
-            os.makedirs(self.data_dir)
-
-        self.base_url = "https://api.sleeper.app/v1/"
-        self.base_stat_url = "https://api.sleeper.app/"
-
-        self.league_info = self.query(
-            self.base_url + "league/" + str(self.league_id),
-            Path(self.data_dir) / str(self.season) / str(self.league_id),
-            f"{self.league_id}-league_info.json"
+    def __init__(self, config: AppConfigParser, base_dir: Union[Path, None], data_dir: Path, league_id: str,
+                 season: int, start_week: int, week_for_report: int, get_current_nfl_week_function: Callable,
+                 week_validation_function: Callable, save_data: bool = True, offline: bool = False):
+        super().__init__(
+            "Sleeper",
+            f"https://api.sleeper.app",
+            config,
+            base_dir,
+            data_dir,
+            league_id,
+            season,
+            start_week,
+            week_for_report,
+            get_current_nfl_week_function,
+            week_validation_function,
+            save_data,
+            offline
         )
 
-        self.league_settings = self.league_info.get("settings")
-        self.league_scoring = self.league_info.get("scoring_settings")
+        self.api_base_url = f"{self.base_url}/v1"
+        self.api_stats_and_projections_base_url = self.base_url
 
-        # TODO: figure out how to get league starting week
-        self.start_week = start_week or 1
+        self.league_scoring = None
+        self.standings = None
+        self.player_data = None
+        self.player_stats_data_by_week = None
+        self.player_projected_stats_data_by_week = None
 
-        self.current_week = get_current_nfl_week_function(self.config, self.offline)
+    def query_with_delayed_refresh(self, url: str, save_file: Path, check_for_saved_data: bool = False,
+                                   refresh_days_delay: int = 1):
+        if check_for_saved_data:
+            if not Path(save_file).exists():
+                logger.debug(f"File {save_file.name} does not exist... attempting data retrieval.")
+            else:
+                file_modified_timestamp = datetime.fromtimestamp(Path(save_file).stat().st_mtime)
+                if file_modified_timestamp < (datetime.today() - timedelta(days=refresh_days_delay)):
+                    if not self.league.offline:
+                        logger.debug(
+                            f"Data in {save_file.name} over {refresh_days_delay} "
+                            f"day{'s' if refresh_days_delay > 1 else ''} old... refreshing."
+                        )
+                    else:
+                        logger.debug(
+                            f"Data in {save_file.name} over {refresh_days_delay} "
+                            f"day{'s' if refresh_days_delay > 1 else ''} old but offline=True... skipping refresh."
+                        )
+                else:
+                    logger.debug(f"Data in {save_file.name} still recent... skipping refresh.")
+                    with open(save_file, "r") as saved_data:
+                        response_json = json.load(saved_data)
+                    return response_json
 
-        # validate user selection of week for which to generate report
-        self.week_for_report = week_validation_function(self.config, week_for_report, self.current_week, self.season)
+        response_json = self.query(url, save_file)
+        return response_json
 
-        self.num_playoff_slots = self.league_settings.get("playoff_teams")
-        self.num_regular_season_weeks = (
-            (int(self.league_settings.get("playoff_week_start")) - 1)
-            if self.league_settings.get("playoff_week_start") > 0
-            else self.config.get("Settings", "num_regular_season_weeks")
+    def _fetch_player_data(self, player_id, week, starter=False):
+        # handle the move of the Raiders from Oakland (OAK) to Las Vegas (LV) between the 2019 and 2020 seasons
+        if player_id == "OAK":
+            player_id = "LV"
+        player = deepcopy(self.player_data.get(str(player_id)))
+        if int(week) <= self.league.week_for_report:
+            player["stats"] = deepcopy(self.player_stats_data_by_week.get(str(week)).get(str(player_id)))
+            player["projected"] = deepcopy(self.player_projected_stats_data_by_week[str(week)].get(str(player_id)))
+            player["starter"] = starter
+        return player
+
+    def _map_player_data_to_matchup(self, matchup, week):
+        for team in matchup:
+            for ranked_team in self.standings:
+                if ranked_team.get("roster_id") == team.get("roster_id"):
+                    team["info"] = {
+                        k: v for k, v in ranked_team.items() if k not in ["taxi", "starters", "reserve", "players"]
+                    }
+
+            if team["starters"] and team["players"]:
+                team["roster"] = [
+                    self._fetch_player_data(player_id, week, True) if player_id in team["starters"] else
+                    self._fetch_player_data(player_id, week) for player_id in team["players"]
+                ]
+            elif not team["starters"] and team["players"]:
+                team["roster"] = [
+                    self._fetch_player_data(player_id, week) for player_id in team["players"]
+                ]
+            else:
+                team["roster"] = []
+
+        return matchup
+
+    def _get_player_points(self, stats, projected_stats):
+        points = 0
+        if stats:
+            for stat, value in stats.items():
+                if stat in self.league_scoring.keys():
+                    points += (value * self.league_scoring.get(stat))
+
+        projected_points = 0
+        if projected_stats:
+            for stat, value in projected_stats.items():
+                if stat in self.league_scoring.keys():
+                    projected_points += (value * self.league_scoring.get(stat))
+
+        return round(points, 2), round(projected_points, 2)
+
+    def map_data_to_base(self):
+        logger.debug(f"Retrieving {self.platform_display} league data and mapping it to base objects.")
+
+        league_info = self.query_with_delayed_refresh(
+            f"{self.api_base_url}/league/{self.league.league_id}",
+            (Path(self.league.data_dir) / str(self.league.season) / str(self.league.league_id)
+             / f"{self.league.league_id}-league_info.json")
         )
-        self.roster_positions = dict(Counter(self.league_info.get("roster_positions")))
-        self.has_median_matchup = bool(self.league_settings.get("league_average_match"))
-        self.median_score_by_week = {}
 
-        self.player_data = self.query(
-            self.base_url + "players/nfl",
-            Path(self.data_dir) / str(self.season) / str(self.league_id),
-            str(self.league_id) + "-player_data.json",
-            check_for_saved_data=True,
-            refresh_days_delay=7
+        league_settings = league_info.get("settings")
+        self.league_scoring = league_info.get("scoring_settings")
+
+        num_regular_season_weeks: int = (
+            (int(league_settings.get("playoff_week_start")) - 1)
+            if league_settings.get("playoff_week_start") > 0
+            else int(self.league.config.get("Settings", "num_regular_season_weeks"))
         )
 
-        self.player_stats_data_by_week = {}
-        self.player_projected_stats_data_by_week = {}
-        for week_for_player_stats in range(1, int(self.num_regular_season_weeks) + 1):
-            if int(week_for_player_stats) <= int(self.week_for_report):
-                self.player_stats_data_by_week[str(week_for_player_stats)] = {
-                    player["player_id"]: player["stats"] for player in self.query(
-                        self.base_stat_url + "stats/nfl/" + str(season) + "/" + str(week_for_player_stats) +
-                        "?season_type=regular",
-                        Path(self.data_dir) / str(self.season) / str(self.league_id) / f"week_{week_for_player_stats}",
-                        f"week_{week_for_player_stats}-player_stats_by_week.json",
-                        check_for_saved_data=True,
-                        refresh_days_delay=1
-                    )
-                }
-
-            self.player_projected_stats_data_by_week[str(week_for_player_stats)] = {
-                player["player_id"]: player["stats"] for player in self.query(
-                    self.base_stat_url + "projections/nfl/" + str(season) + "/" + str(week_for_player_stats) +
-                    "?season_type=regular",
-                    Path(self.data_dir) / str(self.season) / str(self.league_id) / f"week_{week_for_player_stats}",
-                    f"week_{week_for_player_stats}-player_projected_stats_by_week.json",
-                    check_for_saved_data=True,
-                    refresh_days_delay=1
-                )
-            }
-
-        self.player_season_stats = {
-            player["player_id"]: player["stats"] for player in self.query(
-                self.base_stat_url + "stats/nfl/" + str(self.season) + "?season_type=regular",
-                Path(self.data_dir) / str(self.season) / str(self.league_id),
-                f"{league_id}-player_season_stats.json",
-                check_for_saved_data=True,
-                refresh_days_delay=1
-            )
-        }
-
-        self.player_season_projected_stats = {
-            player["player_id"]: player["stats"] for player in self.query(
-                self.base_stat_url + "projections/nfl/" + str(self.season) + "?season_type=regular",
-                Path(self.data_dir) / str(self.season) / str(self.league_id),
-                f"{league_id}-player_season_projected_stats.json",
-                check_for_saved_data=True,
-                refresh_days_delay=1
-            )
-        }
-
-        # with open(Path(
-        #         self.data_dir) / str(self.season) / str(self.league_id) / "player_stats_by_week.json"), "w") as out:
-        #     json.dump(self.player_stats_data_by_week, out, ensure_ascii=False, indent=2)
-
-        self.league_managers = {
-            manager.get("user_id"): manager for manager in self.query(
-                self.base_url + "league/" + self.league_id + "/users",
-                Path(self.data_dir) / str(self.season) / str(self.league_id),
-                f"{league_id}-league_managers.json"
+        league_managers = {
+            manager.get("user_id"): manager for manager in self.query_with_delayed_refresh(
+                f"{self.api_base_url}/league/{self.league.league_id}/users",
+                (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
+                 / f"{self.league.league_id}-league_managers.json")
             )
         }
 
         self.standings = sorted(
-            self.query(
-                self.base_url + "league/" + league_id + "/rosters",
-                Path(self.data_dir) / str(self.season) / str(self.league_id),
-                f"{self.league_id}-league_standings.json"
+            self.query_with_delayed_refresh(
+                f"{self.api_base_url}/league/{self.league.league_id}/rosters",
+                (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
+                 / f"{self.league.league_id}-league_standings.json")
             ),
             key=lambda x: (
                 x.get("settings").get("wins"),
@@ -169,19 +172,55 @@ class LeagueData(object):
         )
 
         for team in self.standings:
-            team["owner"] = self.league_managers.get(team.get("owner_id"))
-            team["co_owners"] = [self.league_managers.get(co_owner) for co_owner in team.get("co_owners")] if team.get(
+            team["owner"] = league_managers.get(team.get("owner_id"))
+            team["co_owners"] = [league_managers.get(co_owner) for co_owner in team.get("co_owners")] if team.get(
                 "co_owners") else []
 
-        self.matchups_by_week = {}
-        for week_for_matchups in range(1, int(self.num_regular_season_weeks) + 1):
-            self.matchups_by_week[str(week_for_matchups)] = [
-                self.map_player_data_to_matchup(list(group), week_for_matchups) for key, group in groupby(
+        self.player_data = self.query_with_delayed_refresh(
+            f"{self.api_base_url}/players/nfl",
+            (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
+             / f"{self.league.league_id}-player_data.json"),
+            check_for_saved_data=True,
+            refresh_days_delay=7
+        )
+
+        self.player_stats_data_by_week = {}
+        self.player_projected_stats_data_by_week = {}
+        for week_for_player_stats in range(self.start_week, num_regular_season_weeks + 1):
+            if int(week_for_player_stats) <= self.league.week_for_report:
+                self.player_stats_data_by_week[str(week_for_player_stats)] = {
+                    player["player_id"]: player["stats"] for player in self.query_with_delayed_refresh(
+                        (f"{self.api_stats_and_projections_base_url}"
+                         f"/stats/nfl/{self.league.season}/{week_for_player_stats}?season_type=regular"),
+                        (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
+                         / f"week_{week_for_player_stats}" / f"week_{week_for_player_stats}-player_stats_by_week.json"),
+                        check_for_saved_data=True,
+                        refresh_days_delay=1
+                    )
+                }
+
+            self.player_projected_stats_data_by_week[str(week_for_player_stats)] = {
+                player["player_id"]: player["stats"] for player in self.query_with_delayed_refresh(
+                    (f"{self.api_stats_and_projections_base_url}"
+                     f"/projections/nfl/{self.league.season}/{week_for_player_stats}?season_type=regular"),
+                    (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
+                     / f"week_{week_for_player_stats}"
+                     / f"week_{week_for_player_stats}-player_projected_stats_by_week.json"),
+                    check_for_saved_data=True,
+                    refresh_days_delay=1
+                )
+            }
+
+        matchups_by_week = {}
+        median_score_by_week = {}
+        for week_for_matchups in range(self.start_week, num_regular_season_weeks + 1):
+            matchups_by_week[str(week_for_matchups)] = [
+                self._map_player_data_to_matchup(list(group), week_for_matchups) for key, group in groupby(
                     sorted(
-                        self.query(
-                            self.base_url + "league/" + league_id + "/matchups/" + str(week_for_matchups),
-                            Path(self.data_dir) / str(self.season) / str(self.league_id) / f"week_{week_for_matchups}",
-                            f"week_{week_for_matchups}-matchups_by_week.json"
+                        self.query_with_delayed_refresh(
+                            f"{self.api_base_url}/league/{self.league.league_id}/matchups/{week_for_matchups}",
+                            (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
+                             / f"week_{week_for_matchups}" / f"week_{week_for_matchups}-matchups_by_week.json")
                         ),
                         key=lambda x: x["matchup_id"]
                     ),
@@ -189,9 +228,9 @@ class LeagueData(object):
                 )
             ]
 
-            if int(week_for_matchups) <= int(self.week_for_report):
+            if int(week_for_matchups) <= self.league.week_for_report:
                 scores = []
-                for matchup in self.matchups_by_week[str(week_for_matchups)]:
+                for matchup in matchups_by_week[str(week_for_matchups)]:
                     for team in matchup:
 
                         team_custom_points = team["custom_points"]
@@ -212,26 +251,26 @@ class LeagueData(object):
                 weekly_median = round(median(scores), 2) if scores else None
 
                 if weekly_median:
-                    self.median_score_by_week[str(week_for_matchups)] = weekly_median
+                    median_score_by_week[str(week_for_matchups)] = weekly_median
                 else:
-                    self.median_score_by_week[str(week_for_matchups)] = 0
+                    median_score_by_week[str(week_for_matchups)] = 0
 
-        self.rosters_by_week = {}
-        for week_for_rosters in range(1, int(self.week_for_report) + 1):
+        rosters_by_week = {}
+        for week_for_rosters in range(self.start_week, self.league.week_for_report + 1):
             team_rosters = {}
-            for matchup in self.matchups_by_week[str(week_for_rosters)]:
+            for matchup in matchups_by_week[str(week_for_rosters)]:
                 for team in matchup:
                     team_rosters[team["roster_id"]] = team["roster"]
 
-            self.rosters_by_week[str(week_for_rosters)] = team_rosters
+            rosters_by_week[str(week_for_rosters)] = team_rosters
 
-        self.league_transactions_by_week = {}
-        for week_for_transactions in range(1, int(self.week_for_report) + 1):
-            self.league_transactions_by_week[str(week_for_transactions)] = defaultdict(lambda: defaultdict(list))
-            weekly_transactions = self.query(
-                self.base_url + "league/" + league_id + "/transactions/" + str(week_for_transactions),
-                Path(self.data_dir) / str(self.season) / str(self.league_id) / f"week_{week_for_transactions}",
-                f"week_{week_for_transactions}-transactions_by_week.json"
+        league_transactions_by_week = {}
+        for week_for_transactions in range(self.start_week, self.league.week_for_report + 1):
+            league_transactions_by_week[str(week_for_transactions)] = defaultdict(lambda: defaultdict(list))
+            weekly_transactions = self.query_with_delayed_refresh(
+                f"{self.api_base_url}/league/{self.league.league_id}/transactions/{week_for_transactions}",
+                (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
+                 / f"week_{week_for_transactions}" / f"week_{week_for_transactions}-transactions_by_week.json")
             )
 
             for transaction in weekly_transactions:
@@ -240,212 +279,82 @@ class LeagueData(object):
                     if transaction_type in ["waiver", "free_agent", "trade"]:
                         for team_roster_id in transaction.get("consenter_ids"):
                             if transaction_type == "waiver":
-                                self.league_transactions_by_week[str(week_for_transactions)][str(team_roster_id)][
+                                league_transactions_by_week[str(week_for_transactions)][str(team_roster_id)][
                                     "moves"].append(transaction)
                             elif transaction_type == "free_agent":
-                                self.league_transactions_by_week[str(week_for_transactions)][str(team_roster_id)][
+                                league_transactions_by_week[str(week_for_transactions)][str(team_roster_id)][
                                     "moves"].append(transaction)
                             elif transaction_type == "trade":
-                                self.league_transactions_by_week[str(week_for_transactions)][str(team_roster_id)][
+                                league_transactions_by_week[str(week_for_transactions)][str(team_roster_id)][
                                     "trades"].append(transaction)
 
-    def query(self, url, file_dir, filename, check_for_saved_data=False, refresh_days_delay=1):
-
-        file_path = Path(file_dir) / filename
-
-        run_query = True
-        if check_for_saved_data:
-            if not Path(file_path).exists():
-                logger.debug(f"File {filename} does not exist... attempting data retrieval.")
-            else:
-                file_modified_timestamp = datetime.fromtimestamp(Path(file_path).stat().st_mtime)
-                if file_modified_timestamp < (datetime.today() - timedelta(days=refresh_days_delay)):
-                    if not self.offline:
-                        logger.debug(
-                            f"Data in {filename} over {refresh_days_delay} day{'s' if refresh_days_delay > 1 else ''} "
-                            f"old... refreshing."
-                        )
-                    else:
-                        logger.debug(
-                            f"Data in {filename} over {refresh_days_delay} day{'s' if refresh_days_delay > 1 else ''} "
-                            f"old but offline=True... skipping refresh."
-                        )
-                else:
-                    logger.debug(f"Data in {filename} still recent... skipping refresh.")
-                    run_query = False
-                    with open(file_path, "r") as saved_data:
-                        response_json = json.load(saved_data)
-
-        if not self.offline:
-            if run_query:
-                logger.debug(f"Retrieving Sleeper data from endpoint: {url}")
-                response = requests.get(url)
-
-                try:
-                    response.raise_for_status()
-                except HTTPError as e:
-                    # log error and terminate query if status code is not 200
-                    logger.error(f"REQUEST FAILED WITH STATUS CODE: {response.status_code} - {e}")
-                    sys.exit("...run aborted.")
-
-                response_json = response.json()
-                logger.debug(f"Response (JSON): {response_json}")
-        else:
-            try:
-                logger.debug(f"Loading saved Sleeper data for endpoint: {url}")
-                with open(file_path, "r", encoding="utf-8") as data_in:
-                    response_json = json.load(data_in)
-            except FileNotFoundError:
-                logger.error(
-                    f"FILE {file_path} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!"
-                )
-                sys.exit("...run aborted.")
-
-        if self.save_data or check_for_saved_data:
-            if run_query:
-                logger.debug(f"Saving Sleeper data retrieved from endpoint: {url}")
-                if not Path(file_dir).exists():
-                    os.makedirs(file_dir)
-
-                with open(file_path, "w", encoding="utf-8") as data_out:
-                    json.dump(response_json, data_out, ensure_ascii=False, indent=2)
-
-        return response_json
-
-    def fetch_player_data(self, player_id, week, starter=False):
-        # handle the move of the Raiders from Oakland (OAK) to Las Vegas (LV) between the 2019 and 2020 seasons
-        if player_id == "OAK":
-            player_id = "LV"
-        player = deepcopy(self.player_data.get(str(player_id)))
-        if int(week) <= int(self.week_for_report):
-            player["stats"] = deepcopy(self.player_stats_data_by_week.get(str(week)).get(str(player_id)))
-            player["projected"] = deepcopy(self.player_projected_stats_data_by_week[str(week)].get(str(player_id)))
-            player["starter"] = starter
-        return player
-
-    def map_player_data_to_matchup(self, matchup, week):
-        for team in matchup:
-            for ranked_team in self.standings:
-                if ranked_team.get("roster_id") == team.get("roster_id"):
-                    team["info"] = {
-                        k: v for k, v in ranked_team.items() if k not in ["taxi", "starters", "reserve", "players"]
-                    }
-
-            if team["starters"] and team["players"]:
-                team["roster"] = [
-                    self.fetch_player_data(player_id, week, True) if player_id in team["starters"] else
-                    self.fetch_player_data(player_id, week) for player_id in team["players"]
-                ]
-            elif not team["starters"] and team["players"]:
-                team["roster"] = [
-                    self.fetch_player_data(player_id, week) for player_id in team["players"]
-                ]
-            else:
-                team["roster"] = []
-
-        return matchup
-
-    def get_player_points(self, stats, projected_stats):
-        points = 0
-        if stats:
-            for stat, value in stats.items():
-                if stat in self.league_scoring.keys():
-                    points += (value * self.league_scoring.get(stat))
-
-        projected_points = 0
-        if projected_stats:
-            for stat, value in projected_stats.items():
-                if stat in self.league_scoring.keys():
-                    projected_points += (value * self.league_scoring.get(stat))
-
-        return round(points, 2), round(projected_points, 2)
-
-    def map_data_to_base(self, base_league_class):
-        logger.debug("Mapping Sleeper data to base objects.")
-
-        league: BaseLeague = base_league_class(
-            self.week_for_report, self.league_id, self.config, self.data_dir, self.save_data, self.offline
-        )
-
-        league.name = self.league_info.get("name")
-        league.week = int(self.current_week)
-        league.start_week = int(self.start_week)
-        league.season = self.league_info.get("season")
-        league.num_teams = int(self.league_settings.get("num_teams"))
-        league.num_playoff_slots = int(self.num_playoff_slots)
-        league.num_regular_season_weeks = int(self.num_regular_season_weeks)
-        league.num_divisions = int(self.league_settings.get("divisions", 0))
-        # TODO: missing division names
-        league.divisions = None
-        if league.num_divisions > 0:
-            league.has_divisions = True
-        league.has_median_matchup = self.has_median_matchup
-        league.median_score = 0
-        league.faab_budget = int(self.league_settings.get("waiver_budget"))
-        if league.faab_budget > 0:
-            league.is_faab = True
-        # league.url = self.base_url + "league/" + str(self.league_id)
-        league.url = "https://sleeper.app/leagues/" + str(self.league_id)
-
-        # TODO: hook up to collected player stats by week
-        league.player_data_by_week_function = None
-        league.player_data_by_week_key = None
-
-        league.bench_positions = ["BN", "IR"]
-
-        flex_mapping = {
-            "WRRB_FLEX": {
-                "flex_label": "FLEX_RB_WR",
-                "flex_positions_attribute": "flex_positions_rb_wr",
-                "flex_positions": ["RB", "WR"]
-            },
-            "REC_FLEX": {
-                "flex_label": "FLEX_TE_WR",
-                "flex_positions_attribute": "flex_positions_te_wr",
-                "flex_positions": ["TE", "WR"]
-            },
-            "FLEX": {
-                "flex_label": "FLEX",
-                "flex_positions_attribute": "flex_positions_rb_te_wr",
-                "flex_positions": ["RB", "TE", "WR"]
-            },
-            "SUPER_FLEX": {
-                "flex_label": "SUPERFLEX",
-                "flex_positions_attribute": "flex_positions_qb_rb_te_wr",
-                "flex_positions": ["QB", "RB", "TE", "WR"]
-            },
-            "IDP_FLEX": {
-                "flex_label": "FLEX_IDP",
-                "flex_positions_attribute": "flex_positions_individual_defensive_player",
-                "flex_positions": ["DB", "DL", "LB"]
-            }
+        player_season_stats = {
+            player["player_id"]: player["stats"] for player in self.query_with_delayed_refresh(
+                f"{self.api_stats_and_projections_base_url}/stats/nfl/{self.league.season}?season_type=regular",
+                (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
+                 / f"{self.league.league_id}-player_season_stats.json"),
+                check_for_saved_data=True,
+                refresh_days_delay=1
+            )
         }
 
-        for position, count in self.roster_positions.items():
-            pos_name = position
+        player_season_projected_stats = {
+            player["player_id"]: player["stats"] for player in self.query_with_delayed_refresh(
+                (f"{self.api_stats_and_projections_base_url}/projections/nfl/{self.league.season}"
+                 f"?season_type=regular"),
+                (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
+                 / f"{self.league.league_id}-player_season_projected_stats.json"),
+                check_for_saved_data=True,
+                refresh_days_delay=1
+            )
+        }
+
+        self.league.name = league_info.get("name")
+        self.league.week = self.current_week
+        # TODO: figure out how to get league starting week
+        self.league.start_week = self.start_week
+        self.league.season = int(league_info.get("season"))  # this gets set already in BaseLeague by the run parameters
+        self.league.num_teams = int(league_settings.get("num_teams"))
+        self.league.num_playoff_slots = int(league_settings.get("playoff_teams"))
+        self.league.num_regular_season_weeks = num_regular_season_weeks
+        self.league.num_divisions = int(league_settings.get("divisions", 0))
+        # TODO: missing division names
+        self.league.divisions = {}
+        self.league.has_divisions = self.league.num_divisions > 0
+        self.league.has_median_matchup = bool(league_settings.get("league_average_match"))
+        self.league.median_score = 0
+        self.league.faab_budget = int(league_settings.get("waiver_budget"))
+        self.league.is_faab = self.league.faab_budget > 0
+        self.league.url = f"https://sleeper.app/leagues/{self.league.league_id}"
+
+        # TODO: hook up to collected player stats by week
+        # self.league.player_data_by_week_function = None
+        # self.league.player_data_by_week_key = None
+
+        for position, count in dict(Counter(league_info.get("roster_positions"))).items():
+            pos_attributes = self.position_mapping.get(position)
+            pos_name = pos_attributes.get("base")
             pos_count = count
 
-            if pos_name in flex_mapping.keys():
-                league.__setattr__(
-                    flex_mapping[pos_name].get("flex_positions_attribute"),
-                    flex_mapping[pos_name].get("flex_positions")
+            if pos_attributes.get("is_flex"):
+                self.league.__setattr__(
+                    pos_attributes.get("league_positions_attribute"),
+                    pos_attributes.get("positions")
                 )
-                pos_name = flex_mapping[pos_name].get("flex_label")
 
-            pos_counter = deepcopy(pos_count)
-            while pos_counter > 0:
-                if pos_name not in league.bench_positions:
-                    league.active_positions.append(pos_name)
-                pos_counter -= 1
-
-            league.roster_positions.append(pos_name)
-            league.roster_position_counts[pos_name] = pos_count
+            self.league.roster_positions.append(pos_name)
+            self.league.roster_position_counts[pos_name] = pos_count
+            self.league.roster_active_slots.extend(
+                [pos_name] * pos_count
+                if pos_name not in self.league.bench_positions
+                else []
+            )
 
         league_median_records_by_team = {}
-        for week, matchups in self.matchups_by_week.items():
+        for week, matchups in matchups_by_week.items():
             matchups_week = str(week)
-            league.teams_by_week[str(week)] = {}
-            league.matchups_by_week[str(week)] = []
+            self.league.teams_by_week[str(week)] = {}
+            self.league.matchups_by_week[str(week)] = []
 
             for matchup in matchups:
                 base_matchup = BaseMatchup()
@@ -454,14 +363,13 @@ class LeagueData(object):
                 # TODO: because Sleeper doesn't tell current week of selected season, check current vs. previous season
                 #  and use month to determine if it's first or second year within same season and mark matchups from
                 #  previous years complete by default for the sake of this functionality working
-                # base_matchup.complete = True if int(week) <= int(self.current_week) else False
                 current_date = datetime.today()
-                if current_date.month < 9 and int(league.season) < (current_date.year - 1):
+                if current_date.month < 9 and self.league.season < (current_date.year - 1):
                     base_matchup.complete = True
-                elif int(league.season) < current_date.year:
+                elif self.league.season < current_date.year:
                     base_matchup.complete = True
                 else:
-                    base_matchup.complete = True if int(week) <= int(self.current_week) else False
+                    base_matchup.complete = int(week) <= self.league.week
                 base_matchup.tied = True if matchup[0].get("points") and matchup[1].get("points") and float(
                     matchup[0].get("points")) == float(matchup[1].get("points")) else False
 
@@ -484,7 +392,7 @@ class LeagueData(object):
                             opposite_team_standings_info = roster
 
                     team_division = None
-                    if league.has_divisions:
+                    if self.league.has_divisions:
                         team_division = team_standings_info.get("settings").get("division")
                         opponent_division = opposite_team_standings_info.get("settings").get("division")
                         if team_division and opponent_division and team_division == opponent_division:
@@ -521,14 +429,24 @@ class LeagueData(object):
                         team_info.get("owner").get("display_name") if team_info.get("owner") else "N/A"
                     )
                     base_team.points = round(float(team.get("points")), 2) if team.get("points") else 0
-                    base_team.num_moves = sum(len(self.league_transactions_by_week.get(str(week), {}).get(
-                        str(base_team.team_id), {}).get("moves", [])) for week in range(1, int(week) + 1))
-                    base_team.num_trades = sum(len(self.league_transactions_by_week.get(str(week), {}).get(
-                        str(base_team.team_id), {}).get("trades", [])) for week in range(1, int(week) + 1))
+                    base_team.num_moves = sum(
+                        len(league_transactions_by_week
+                            .get(str(week), {})
+                            .get(str(base_team.team_id), {})
+                            .get("moves", []))
+                        for week in range(self.start_week, int(week) + 1)
+                    )
+                    base_team.num_trades = sum(
+                        len(league_transactions_by_week
+                            .get(str(week), {})
+                            .get(str(base_team.team_id), {})
+                            .get("trades", []))
+                        for week in range(self.start_week, int(week) + 1)
+                    )
 
                     base_team.waiver_priority = team_settings.get("waiver_position")
-                    league.has_waiver_priorities = base_team.waiver_priority > 0
-                    base_team.faab = league.faab_budget - int(team_settings.get("waiver_budget_used", 0))
+                    self.league.has_waiver_priorities = base_team.waiver_priority > 0
+                    base_team.faab = self.league.faab_budget - int(team_settings.get("waiver_budget_used", 0))
                     base_team.url = None
 
                     base_team.division = team_division
@@ -537,21 +455,28 @@ class LeagueData(object):
                         losses=int(team_settings.get("losses")),
                         ties=int(team_settings.get("ties")),
                         percentage=(
-                            round(float(int(team_settings.get("wins")) / (
-                                int(team_settings.get("wins")) + int(team_settings.get("losses")) +
-                                int(team_settings.get("ties"))
-                            )), 3)
-                            if int(team_settings.get("wins")) +
-                            int(team_settings.get("losses")) +
-                            int(team_settings.get("ties")) > 0 else 0.0
+                            round(
+                                float(
+                                    int(team_settings.get("wins")) /
+                                    (int(team_settings.get("wins"))
+                                     + int(team_settings.get("losses"))
+                                     + int(team_settings.get("ties")))
+                                ), 3
+                            )
+                            if (int(team_settings.get("wins"))
+                                + int(team_settings.get("losses"))
+                                + int(team_settings.get("ties"))) > 0
+                            else 0.0
                         ),
-                        points_for=float(str(team_settings.get("fpts")) + "." + (
-                            str(team_settings.get("fpts_decimal")) if team_settings.get("fpts_decimal") else "0")),
+                        points_for=float(
+                            f"{team_settings.get('fpts')}.{team_settings.get('fpts_decimal')}"
+                            if team_settings.get("fpts_decimal")
+                            else "0"
+                        ),
                         points_against=float(
-                            (str(team_settings.get("fpts_against")) if
-                             team_settings.get("fpts_against") else "0") + "." +
-                            (str(team_settings.get("fpts_against_decimal")) if
-                             team_settings.get("fpts_against_decimal") else "0")
+                            f"{team_settings.get('fpts_against') if team_settings.get('fpts_against') else '0'}"
+                            f"."
+                            f"{team_settings.get('fpts_against_decimal') if team_settings.get('fpts_against_decimal') else '0'}"
                         ),
                         streak_type=None,
                         streak_len=0,
@@ -559,16 +484,16 @@ class LeagueData(object):
                         team_name=base_team.name,
                         rank=team_rank
                     )
-                    if league.has_divisions:
+                    if self.league.has_divisions:
                         base_team.current_record.division = base_team.division
 
                     base_team.streak_str = base_team.current_record.get_streak_str()
-                    if league.has_divisions:
+                    if self.league.has_divisions:
                         if base_matchup.division_matchup:
                             base_team.division_streak_str = base_team.current_record.get_division_streak_str()
 
                     # get median for week
-                    week_median = self.median_score_by_week.get(matchups_week)
+                    week_median = median_score_by_week.get(matchups_week)
 
                     median_record: BaseRecord = league_median_records_by_team.get(str(base_team.team_id))
                     if not median_record:
@@ -598,7 +523,7 @@ class LeagueData(object):
                     base_matchup.teams.append(base_team)
 
                     # add team to league teams by week
-                    league.teams_by_week[str(week)][str(base_team.team_id)] = base_team
+                    self.league.teams_by_week[str(week)][str(base_team.team_id)] = base_team
 
                     # no winner/loser if matchup is tied
                     if not base_matchup.tied:
@@ -616,19 +541,17 @@ class LeagueData(object):
                                 base_matchup.loser = base_team
 
                 # add matchup to league matchups by week
-                league.matchups_by_week[str(week)].append(base_matchup)
+                self.league.matchups_by_week[str(week)].append(base_matchup)
 
-        for week, rosters in self.rosters_by_week.items():
-            league.players_by_week[str(week)] = {}
+        for week, rosters in rosters_by_week.items():
+            self.league.players_by_week[str(week)] = {}
             team_count = 1
             for team_id, roster in rosters.items():
-                league_team: BaseTeam = league.teams_by_week.get(str(week)).get(str(team_id))
+                league_team: BaseTeam = self.league.teams_by_week.get(str(week)).get(str(team_id))
 
-                team_filled_positions = [
-                    position if position not in flex_mapping.keys()
-                    else flex_mapping[position].get("flex_label")
-                    for position in self.league_info.get("roster_positions")
-                ]
+                team_filled_positions = []
+                for position in league_info.get("roster_positions"):
+                    team_filled_positions.append(self.get_mapped_position(position))
 
                 for player in roster:
                     if player:
@@ -638,13 +561,13 @@ class LeagueData(object):
                         base_player.player_id = player.get("player_id")
                         # TODO: use week WITHOUT projections (Ex.: 11: null) to determine player bye week
                         base_player.bye_week = None
-                        base_player.display_position = player.get("position")
+                        base_player.display_position = self.get_mapped_position(player.get("position"))
                         base_player.nfl_team_id = None
                         base_player.nfl_team_abbr = player.get("team")
                         # TODO: no full team name for player
                         base_player.nfl_team_name = player.get("team")
-                        if base_player.display_position == "DEF":
-                            base_player.first_name = player.get("first_name") + " " + player.get("last_name")
+                        if base_player.display_position == "D/ST":
+                            base_player.first_name = f"{player.get('first_name')} {player.get('last_name')}"
                             base_player.full_name = base_player.first_name
                             base_player.nfl_team_name = base_player.first_name
                             base_player.headshot_url = (
@@ -662,38 +585,37 @@ class LeagueData(object):
                         base_player.percent_owned = None
 
                         player_stats = player.get("stats")
-                        base_player.points, base_player.projected_points = self.get_player_points(
+                        base_player.points, base_player.projected_points = self._get_player_points(
                             stats=player_stats,
                             projected_stats=player.get("projected")
                         )
 
-                        base_player.season_points, base_player.season_projected_points = self.get_player_points(
-                            stats=self.player_season_stats[str(base_player.player_id)]
-                            if str(base_player.player_id) in self.player_season_stats.keys() else [],
-                            projected_stats=self.player_season_projected_stats[str(base_player.player_id)]
-                            if str(base_player.player_id) in self.player_season_projected_stats.keys() else []
+                        base_player.season_points, base_player.season_projected_points = self._get_player_points(
+                            stats=player_season_stats[str(base_player.player_id)]
+                            if str(base_player.player_id) in player_season_stats.keys() else [],
+                            projected_stats=player_season_projected_stats[str(base_player.player_id)]
+                            if str(base_player.player_id) in player_season_projected_stats.keys() else []
                         )
 
                         base_player.position_type = (
-                            "O" if base_player.display_position in self.offensive_positions else "D"
+                            "O" if base_player.display_position in self.league.offensive_positions else "D"
                         )
-                        base_player.primary_position = player.get("position")
+                        base_player.primary_position = self.get_mapped_position(player.get("position"))
 
                         eligible_positions = player.get("fantasy_positions")
                         if len(eligible_positions) > 1:
                             player["multiple_non_flex_positions"] = True
                         for position in eligible_positions:
-                            if position in flex_mapping.keys():
-                                position = flex_mapping[position].get("flex_label")
-                            for flex_label, flex_positions in league.get_flex_positions_dict().items():
-                                if position in flex_positions:
-                                    base_player.eligible_positions.add(flex_label)
-                            base_player.eligible_positions.add(position)
+                            base_position = self.get_mapped_position(position)
+                            base_player.eligible_positions.add(base_position)
+                            for flex_position, positions in self.league.get_flex_positions_dict().items():
+                                if base_position in positions:
+                                    base_player.eligible_positions.add(flex_position)
 
                         if player["starter"]:
 
-                            if not player.get("roster_assignation_delayed", False) and player.get(
-                                    "multiple_non_flex_positions", False):
+                            if (not player.get("roster_assignation_delayed", False)
+                                    and player.get("multiple_non_flex_positions", False)):
                                 player["roster_assignation_delayed"] = True
                                 roster.append(player)
                                 continue
@@ -701,32 +623,36 @@ class LeagueData(object):
                             available_primary_slots = list(
                                 base_player.eligible_positions
                                 .intersection(set(team_filled_positions))
-                                .difference(set([item.get("flex_label") for item in flex_mapping.values()]))
+                                .difference(set([
+                                    pos.get("base")
+                                    for pos in self.position_mapping.values()
+                                    if pos.get("is_flex")
+                                ]))
                             )
 
                             available_wrrb_flex_slots = list(
                                 base_player.eligible_positions
-                                .intersection(set(league.flex_positions_rb_wr))
+                                .intersection(set(self.league.flex_positions_rb_wr))
                             )
 
                             available_rec_flex_slots = list(
                                 base_player.eligible_positions
-                                .intersection(set(league.flex_positions_te_wr))
+                                .intersection(set(self.league.flex_positions_te_wr))
                             )
 
                             available_flex_slots = list(
                                 base_player.eligible_positions
-                                .intersection(set(league.flex_positions_rb_te_wr))
+                                .intersection(set(self.league.flex_positions_rb_te_wr))
                             )
 
                             available_super_flex_slots = list(
                                 base_player.eligible_positions
-                                .intersection(set(league.flex_positions_qb_rb_te_wr))
+                                .intersection(set(self.league.flex_positions_qb_rb_te_wr))
                             )
 
                             available_idp_flex_slots = list(
                                 base_player.eligible_positions
-                                .intersection(set(league.flex_positions_individual_defensive_player))
+                                .intersection(set(self.league.flex_positions_idp))
                             )
 
                             if len(available_primary_slots) > 0:
@@ -786,16 +712,17 @@ class LeagueData(object):
                         league_team.roster.append(base_player)
 
                         # add player to league players by week
-                        league.players_by_week[str(week)][base_player.player_id] = base_player
+                        self.league.players_by_week[str(week)][base_player.player_id] = base_player
 
                 team_count += 1
 
-        league.current_standings = sorted(
-            league.teams_by_week.get(str(self.week_for_report)).values(), key=lambda x: x.current_record.rank
+        self.league.current_standings = sorted(
+            self.league.teams_by_week.get(str(self.league.week_for_report)).values(),
+            key=lambda x: x.current_record.rank
         )
 
-        league.current_median_standings = sorted(
-            league.teams_by_week.get(str(self.week_for_report)).values(),
+        self.league.current_median_standings = sorted(
+            self.league.teams_by_week.get(str(self.league.week_for_report)).values(),
             key=lambda x: (
                 x.current_median_record.get_wins(),
                 -x.current_median_record.get_losses(),
@@ -805,4 +732,4 @@ class LeagueData(object):
             reverse=True
         )
 
-        return league
+        return self.league

@@ -1,6 +1,8 @@
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
+from typing import List, Any
+
 import numpy as np
 
 from calculate.metrics import CalculateMetrics
@@ -11,14 +13,15 @@ logger = get_logger(__name__, propagate=False)
 
 
 class SeasonAverageCalculator(object):
-    def __init__(self, team_names, report_data: ReportData, break_ties):
+    def __init__(self, team_names: List[str], report_data: ReportData, break_ties: bool):
         logger.debug("Initializing season averages.")
 
-        self.team_names = team_names
-        self.report_data = report_data
-        self.break_ties = break_ties
+        self.team_names: List[str] = team_names
+        self.report_data: ReportData = report_data
+        self.break_ties: bool = break_ties
 
-    def get_average(self, data, key, with_percent=False, first_ties=False, reverse=True):
+    def get_average(self, data: List[List[List[Any]]], key: str, with_percent: bool = False, first_ties: bool = False,
+                    reverse: bool = True) -> List[List[Any]]:
         logger.debug(f"Calculating season average from \"{key}\".")
 
         season_average_list = []
@@ -38,8 +41,9 @@ class SeasonAverageCalculator(object):
             ordered_average_values[ordered_average_values.index(team)] = [index, team[0], team[1]]
             index += 1
 
-        ordered_average_values = CalculateMetrics(None, None, None, None).resolve_season_average_ties(
-            ordered_average_values, with_percent)
+        ordered_average_values = CalculateMetrics(
+            None, None, None, None
+        ).resolve_season_average_ties(ordered_average_values, with_percent)
 
         ordered_season_average_list = []
         for ordered_team in getattr(self.report_data, key):
