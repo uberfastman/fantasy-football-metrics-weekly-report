@@ -13,8 +13,8 @@ from typing import Dict, List, Any, Union
 import requests
 from bs4 import BeautifulSoup
 
-from report.constants import nfl_team_abbreviations, nfl_team_abbreviation_conversions
-from report.logger import get_logger
+from utilities.constants import nfl_team_abbreviations, nfl_team_abbreviation_conversions
+from utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)
 

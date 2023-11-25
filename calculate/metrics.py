@@ -9,18 +9,16 @@ from typing import Union, List, Dict, Any
 import numpy as np
 
 from dao.base import BaseLeague, BaseTeam, BaseRecord, BasePlayer
-from report.logger import get_logger
-from utilities.config import AppConfigParser
+from utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)
 
 
 class CalculateMetrics(object):
-    def __init__(self, config: Union[AppConfigParser, None], league_id: Union[str, None],
-                 playoff_slots: Union[int, None], playoff_simulations: Union[int, None]):
+    def __init__(self, league_id: Union[str, None], playoff_slots: Union[int, None],
+                 playoff_simulations: Union[int, None]):
         logger.debug("Initializing metrics calculator.")
 
-        self.config: AppConfigParser = config
         self.league_id: str = league_id
         self.playoff_slots: int = playoff_slots
         self.playoff_simulations: int = playoff_simulations
@@ -376,22 +374,6 @@ class CalculateMetrics(object):
             beef_results_data.append([place, ranked_team_name, ranked_team_manager, ranked_beef_points])
             place += 1
         return beef_results_data
-
-    @staticmethod
-    def get_covid_risk_rank_data(covid_risk_results: List[BaseTeam]) -> List[List[Any]]:
-        logger.debug("Creating league COVID-19 risk data.")
-
-        covid_risk_data = []
-        ndx = 0
-        team: BaseTeam
-        for team in covid_risk_results:
-            ranked_team_name = team.name
-            ranked_team_manager = team.manager_str
-            ranked_covid_risk = str(team.total_covid_risk)
-
-            covid_risk_data.append([ndx, ranked_team_name, ranked_team_manager, ranked_covid_risk])
-            ndx += 1
-        return covid_risk_data
 
     def get_ties_count(self, results_data: List[List[Any]], tie_type: str, break_ties: bool) -> int:
 

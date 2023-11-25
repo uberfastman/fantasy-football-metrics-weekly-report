@@ -7,7 +7,7 @@ import numpy as np
 
 from calculate.metrics import CalculateMetrics
 from report.data import ReportData
-from report.logger import get_logger
+from utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)
 
@@ -42,7 +42,7 @@ class SeasonAverageCalculator(object):
             index += 1
 
         ordered_average_values = CalculateMetrics(
-            None, None, None, None
+            None, None, None
         ).resolve_season_average_ties(ordered_average_values, with_percent)
 
         ordered_season_average_list = []

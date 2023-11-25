@@ -7,16 +7,16 @@ from typing import List
 from calculate.metrics import CalculateMetrics
 from calculate.points_by_position import PointsByPosition
 from dao.base import BaseLeague, BaseMatchup, BaseTeam
-from report.logger import get_logger
 from utilities.app import add_report_team_stats, get_player_game_time_statuses
-from utilities.config import AppConfigParser
+from utilities.logger import get_logger
+from utilities.settings import settings
 
 logger = get_logger(__name__, propagate=False)
 
 
 class ReportData(object):
 
-    def __init__(self, config: AppConfigParser, league: BaseLeague, season_weekly_teams_results, week_counter: int,
+    def __init__(self, league: BaseLeague, season_weekly_teams_results, week_counter: int,
                  week_for_report: int, season: int, metrics_calculator: CalculateMetrics, metrics,
                  break_ties: bool = False, dq_ce: bool = False, testing: bool = False):
         logger.debug("Instantiating report data.")
@@ -43,11 +43,9 @@ class ReportData(object):
 
         self.teams_results = {
             team.team_id: add_report_team_stats(
-                config,
                 team,
                 league,
                 week_counter,
-                season,
                 metrics_calculator,
                 metrics,
                 dq_ce,
@@ -67,16 +65,14 @@ class ReportData(object):
             )
         )
 
-        # option to disqualify manually configured team(s) (in config.ini) for current week of coaching efficiency
+        # option to disqualify team(s) manually entered in the .env file for current week of coaching efficiency
         self.coaching_efficiency_dqs = {}
         if week_counter == week_for_report:
-            disqualified_teams = config.get("Settings", "coaching_efficiency_disqualified_teams")
-            if disqualified_teams:
-                for team in disqualified_teams.split(","):
-                    self.coaching_efficiency_dqs[team] = -2
-                    for team_result in self.teams_results.values():
-                        if team == team_result.name:
-                            team_result.coaching_efficiency = "DQ"
+            for team in settings.coaching_efficiency_disqualified_teams:
+                self.coaching_efficiency_dqs[team] = -2
+                for team_result in self.teams_results.values():
+                    if team == team_result.name:
+                        team_result.coaching_efficiency = "DQ"
 
         # used only for testing what happens when different metrics are tied; requires uncommenting lines in method
         if testing:
@@ -215,10 +211,6 @@ class ReportData(object):
         # beef rank data
         self.data_for_beef_rankings = metrics_calculator.get_beef_rank_data(
             sorted(self.teams_results.values(), key=lambda x: x.tabbu, reverse=True))
-
-        # covid risk data
-        self.data_for_covid_risk_rankings = metrics_calculator.get_covid_risk_rank_data(
-            sorted(self.teams_results.values(), key=lambda x: str(x.name).lower(), reverse=True))
 
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ COUNT METRIC TIES ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~

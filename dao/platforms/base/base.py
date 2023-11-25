@@ -13,8 +13,7 @@ import requests
 from requests.exceptions import HTTPError
 
 from dao.base import BaseLeague
-from report.logger import get_logger
-from utilities.config import AppConfigParser
+from utilities.logger import get_logger
 from utilities.utils import format_platform_display
 
 logger = get_logger(__name__, propagate=False)
@@ -29,7 +28,6 @@ class BaseLeagueData(ABC):
     def __init__(self,
                  platform: str,
                  base_url: Union[str, None],
-                 config: AppConfigParser,
                  base_dir: Path,
                  data_dir: Path,
                  league_id: str,
@@ -50,13 +48,13 @@ class BaseLeagueData(ABC):
         self.start_week = start_week or 1
 
         # retrieve current NFL week
-        self.current_week: int = get_current_nfl_week_function(config, offline)
+        self.current_week: int = get_current_nfl_week_function(offline)
 
         # validate user selection of week for which to generate report
-        week_for_report = week_validation_function(config, week_for_report, self.current_week, season)
+        week_for_report = week_validation_function(week_for_report, self.current_week, season)
 
         logger.debug(f"Initializing {self.platform_display} league.")
-        self.league: BaseLeague = BaseLeague(config, data_dir, league_id, season, week_for_report, save_data, offline)
+        self.league: BaseLeague = BaseLeague(data_dir, league_id, season, week_for_report, save_data, offline)
 
         # create full directory path if any directories in it do not already exist
         if not Path(self.league.data_dir).exists():

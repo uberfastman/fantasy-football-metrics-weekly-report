@@ -16,9 +16,9 @@ from colorama import Fore, Style
 from integrations.drive_integration import GoogleDriveUploader
 from integrations.slack_integration import SlackMessenger
 from report.builder import FantasyFootballReport
-from report.logger import get_logger
-from utilities.config import AppConfigParser
-from utilities.app import check_for_updates, get_valid_config
+from utilities.app import check_for_updates
+from utilities.logger import get_logger
+from utilities.settings import settings
 
 colorama.init()
 
@@ -60,9 +60,9 @@ def main(argv):
         "\n"
         "    python main.py [optional_parameters]\n"
         "\n"
-        "  Options:\n"
+        "    Options:\n"
         "      -h, --help                            Print command line usage message.\n"
-        "      -d, --use-default                     Run the report using the default configuration without user input prompts.\n"
+        "      -d, --use-default                     Run the report using the default settings without user input prompts.\n"
         "\n"
         "    Generate report:\n"
         "      -f, --fantasy-platform <platform>     Fantasy football platform on which league for report is hosted. Currently supports: \"yahoo\", \"fleaflicker\" \n"
@@ -72,8 +72,7 @@ def main(argv):
         "      -g, --game-id <chosen_game_id>        Chosen fantasy game id for which to generate report. Defaults to \"nfl\", which is interpreted as the current season if using Yahoo.\n"
         "      -y, --year <chosen_year>              Chosen year (season) of the league for which a report is being generated.\n"
         "\n"
-        "    Configuration:\n"
-        "      -c, --config-file <config_file_path>  System file path (including file name) for .ini file to be used for configuration.\n"
+        "    Settings:\n"
         "      -s, --save-data                       Save all retrieved data locally for faster future report generation.\n"
         "      -r, --refresh-web-data                Refresh all web data from external APIs (such as bad boy and beef data).\n"
         "      -p, --playoff-prob-sims               Number of Monte Carlo playoff probability simulations to run.\n"
@@ -86,7 +85,7 @@ def main(argv):
     )
 
     try:
-        opts, args = getopt.getopt(argv, "hdc:f:l:w:k:g:y:srp:bqto")
+        opts, args = getopt.getopt(argv, "hdf:l:w:k:g:y:srp:bqot")
     except getopt.GetoptError:
         print(usage_str)
         sys.exit(2)
@@ -98,7 +97,7 @@ def main(argv):
             print(usage_str)
             sys.exit(0)
 
-        # automatically run the report using the default configuration without user input prompts
+        # automatically run the report using the default settings without user input prompts
         elif opt in ("-d", "--use-default"):
             options_dict["use_default"] = True
 
@@ -120,9 +119,7 @@ def main(argv):
         elif opt in ("-y", "--year"):
             options_dict["year"] = int(arg)
 
-        # report configuration
-        elif opt in ("-c", "--config-file"):
-            options_dict["config_file"] = arg
+        # report settings
         elif opt in ("-s", "--save-data"):
             options_dict["save_data"] = True
         elif opt in ("-r", "--refresh-web-data"):
@@ -143,15 +140,14 @@ def main(argv):
     return options_dict
 
 
-def select_league(config: AppConfigParser, use_default: bool, week: int, start_week: int, platform: str,
+def select_league(use_default: bool, week: int, start_week: int, platform: str,
                   league_id: Union[str, None], game_id: Union[int, str], season: int, refresh_web_data: bool,
                   playoff_prob_sims: int, break_ties: bool, dq_ce: bool, save_data: bool,
                   offline: bool, test: bool) -> FantasyFootballReport:
-
     # set "use default" environment variable for access by fantasy football platforms
     if use_default:
         os.environ["USE_DEFAULT"] = "1"
-    
+
     if not league_id:
         if not use_default:
             time.sleep(0.25)
@@ -178,7 +174,6 @@ def select_league(config: AppConfigParser, use_default: bool, week: int, start_w
             game_id=game_id,
             season=season,
             start_week=start_week,
-            config=config,
             refresh_web_data=refresh_web_data,
             playoff_prob_sims=playoff_prob_sims,
             break_ties=break_ties,
@@ -206,7 +201,6 @@ def select_league(config: AppConfigParser, use_default: bool, week: int, start_w
                 game_id=game_id,
                 season=season,
                 start_week=start_week,
-                config=config,
                 refresh_web_data=refresh_web_data,
                 playoff_prob_sims=playoff_prob_sims,
                 break_ties=break_ties,
@@ -217,8 +211,10 @@ def select_league(config: AppConfigParser, use_default: bool, week: int, start_w
             )
         except IndexError:
             logger.error("The league ID you have selected is not valid.")
-            select_league(config, use_default, week, start_week, platform, None, game_id, season,
-                          refresh_web_data, playoff_prob_sims, break_ties, dq_ce, save_data, offline, test)
+            select_league(
+                use_default, week, start_week, platform, None, game_id, season, refresh_web_data,
+                playoff_prob_sims, break_ties, dq_ce, save_data, offline, test
+            )
     elif selection == "selected":
 
         if not week:
@@ -233,7 +229,6 @@ def select_league(config: AppConfigParser, use_default: bool, week: int, start_w
             game_id=game_id,
             season=season,
             start_week=start_week,
-            config=config,
             refresh_web_data=refresh_web_data,
             playoff_prob_sims=playoff_prob_sims,
             break_ties=break_ties,
@@ -245,8 +240,10 @@ def select_league(config: AppConfigParser, use_default: bool, week: int, start_w
     else:
         logger.warning("You must select either \"y\" or \"n\".")
         time.sleep(0.25)
-        select_league(config, use_default, week, start_week, platform, None, game_id, season, refresh_web_data,
-                      playoff_prob_sims, break_ties, dq_ce, save_data, offline, test)
+        select_league(
+            use_default, week, start_week, platform, None, game_id, season, refresh_web_data,
+            playoff_prob_sims, break_ties, dq_ce, save_data, offline, test
+        )
 
 
 def select_week(use_default: bool = False) -> Union[int, None]:
@@ -285,19 +282,12 @@ def select_week(use_default: bool = False) -> Union[int, None]:
 if __name__ == "__main__":
 
     options = main(sys.argv[1:])
-    logger.debug(f"Fantasy football metrics weekly report app run configuration options:\n{options}")
-
-    # set local config (check for existence & access, create config.ini if it does not exist/stop app if inaccessible)
-    if options.get("config_file"):
-        configuration = get_valid_config(options.get("config_file"))
-    else:
-        configuration = get_valid_config()
+    logger.debug(f"Fantasy football metrics weekly report app settings options:\n{options}")
 
     # check to see if the current app is behind any commits, and provide option to update and re-run if behind
     up_to_date = check_for_updates(options.get("use_default", False))
 
     report = select_league(
-        configuration,
         options.get("use_default", False),
         options.get("week", None),
         options.get("start_week", None),
@@ -314,23 +304,23 @@ if __name__ == "__main__":
         options.get("test", False))
     report_pdf = report.create_pdf_report()
 
-    upload_file_to_google_drive = configuration.getboolean("Drive", "google_drive_upload")
+    upload_file_to_google_drive = settings.integration_settings.google_drive_upload_bool
     upload_message = ""
     if upload_file_to_google_drive:
         if not options.get("test", False):
             # upload pdf to google drive
-            google_drive_uploader = GoogleDriveUploader(report_pdf, configuration)
+            google_drive_uploader = GoogleDriveUploader(report_pdf)
             upload_message = google_drive_uploader.upload_file()
             logger.info(upload_message)
         else:
             logger.info("Test report NOT uploaded to Google Drive.")
 
-    post_to_slack = configuration.getboolean("Slack", "post_to_slack")
+    post_to_slack = settings.integration_settings.slack_post_bool
     if post_to_slack:
         if not options.get("test", False):
             # post pdf or link to pdf to slack
-            slack_messenger = SlackMessenger(configuration)
-            post_or_file = configuration.get("Slack", "post_or_file")
+            slack_messenger = SlackMessenger()
+            post_or_file = settings.integration_settings.slack_post_or_file
 
             if post_or_file == "post":
                 # post shareable link to uploaded Google Drive pdf on slack
@@ -340,8 +330,8 @@ if __name__ == "__main__":
                 slack_response = slack_messenger.upload_file_to_selected_slack_channel(report_pdf)
             else:
                 logger.warning(
-                    f"You have configured \"config.ini\" with unsupported Slack setting: "
-                    f"post_or_file = {post_or_file}. Please choose \"post\" or \"file\" and try again."
+                    f"The \".env\" file contains unsupported Slack setting: "
+                    f"SLACK_POST_OR_FILE={post_or_file}. Please choose \"post\" or \"file\" and try again."
                 )
                 sys.exit(1)
             if slack_response.get("ok"):

@@ -9,8 +9,8 @@ import requests
 
 from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseManager, BaseRecord, BasePlayer, BaseStat
 from dao.platforms.base.base import BaseLeagueData
-from report.logger import get_logger
-from utilities.config import AppConfigParser
+from utilities.logger import get_logger
+from utilities.settings import settings
 
 logger = get_logger(__name__, propagate=False)
 
@@ -22,13 +22,12 @@ logging.getLogger("git.cmd.cmd.execute").setLevel(level=logging.WARNING)
 # noinspection DuplicatedCode
 class LeagueData(BaseLeagueData):
 
-    def __init__(self, config: AppConfigParser, base_dir: Path, data_dir: Path, league_id: str, season: int,
+    def __init__(self, base_dir: Path, data_dir: Path, league_id: str, season: int,
                  start_week: int, week_for_report: int, get_current_nfl_week_function: Callable,
                  week_validation_function: Callable, save_data: bool = True, offline: bool = False):
         super().__init__(
             "CBS",
             f"https://{league_id}.football.cbssports.com",
-            config,
             base_dir,
             data_dir,
             league_id,
@@ -60,9 +59,7 @@ class LeagueData(BaseLeagueData):
     def check_auth(self) -> str:
 
         auth_json = None
-        cbs_auth_file = (
-                Path(self.base_dir) / self.league.config.get("CBS", "cbs_auth_dir") / "private.json"
-        )
+        cbs_auth_file = Path(self.base_dir) / settings.platform_settings.cbs_auth_dir_local_path / "private.json"
         if Path(cbs_auth_file).is_file():
             with open(cbs_auth_file, "r") as auth_file:
                 auth_json = json.load(auth_file)
@@ -105,8 +102,8 @@ class LeagueData(BaseLeagueData):
             return f"{self.api_base_url}{route}?{api_url_query_parameters}"
 
     @staticmethod
-    def extract_integer(input_str_with_embedded_int: str):
-        return int("".join(filter(str.isdigit, input_str_with_embedded_int)))
+    def extract_integer(input_with_embedded_int: Any):
+        return int("".join(filter(str.isdigit, str(input_with_embedded_int))))
 
     def map_data_to_base(self) -> BaseLeague:
         logger.debug(f"Retrieving {self.platform_display} league data and mapping it to base objects.")

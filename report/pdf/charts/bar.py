@@ -4,15 +4,15 @@ __email__ = "uberfastman@uberfastman.dev"
 # code snippets: http://www.reportlab.com/chartgallery/
 
 import json
+from typing import List, Any
 
 from reportlab.graphics.charts.barcharts import HorizontalBarChart3D
 from reportlab.graphics.charts.textlabels import Label
 # noinspection PyProtectedMember
 from reportlab.graphics.shapes import Drawing, _DrawingEditorMixin
 from reportlab.lib.colors import PCMYKColor
-from typing import List, Any
 
-from report.logger import get_logger
+from utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)
 

@@ -4,20 +4,19 @@ import os
 import re
 import sys
 import time
-from configparser import NoSectionError
 # from logging.handlers import RotatingFileHandler
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
 import colorama
 from colorama import Fore, Style
+from dotenv import load_dotenv
 
-from utilities.config import AppConfigParser
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 colorama.init()
 
-config = AppConfigParser()
-config.read(Path(__file__).parent.parent / "config.ini")
+PROJECT_ROOT = Path(__file__).parent.parent
 
 
 class StyledFormatter(logging.Formatter):
@@ -138,14 +137,10 @@ def get_logger(module_name=None, propagate=True):
         "critical": logging.CRITICAL
     }
 
-    try:
-        log_level = log_level_mapping[config.get("Configuration", "log_level")]
-    except (KeyError, NoSectionError):
-        log_level = logging.INFO
+    log_level = log_level_mapping.get(os.environ.get("LOG_LEVEL", "info") or "info")
 
-    log_file_dir = "logs"
-    log_file_name = "out.log"
-    log_file = Path(log_file_dir) / log_file_name
+    log_file_dir = PROJECT_ROOT / "logs"
+    log_file = log_file_dir / "out.log"
 
     if not Path(log_file_dir).exists():
         os.makedirs(log_file_dir)
@@ -207,7 +202,7 @@ if __name__ == "__main__":
     handler = SizedTimedRotatingFileHandler(
         log_filename,
         when="s",  # s = seconds, m = minutes, h = hours, midnight = at midnight, etc.
-        interval=3,  # how many increments of the "when" configuration to wait before creating next log file
+        interval=3,  # how many increments of the "when" parameter value to wait before creating next log file
         maxBytes=100,
         backupCount=5,
         # encoding='bz2',  # uncomment for bz2 compression

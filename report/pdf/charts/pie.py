@@ -13,7 +13,7 @@ from reportlab.graphics.shapes import Drawing, _DrawingEditorMixin
 from reportlab.lib.colors import HexColor, black
 from reportlab.lib.colors import white
 
-from report.logger import get_logger
+from utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)
 
