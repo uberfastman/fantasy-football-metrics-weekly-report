@@ -16,7 +16,7 @@ from reportlab.graphics.widgets.markers import makeMarker
 from reportlab.lib.colors import PCMYKColor, black
 from reportlab.lib.validators import Auto
 
-from report.logger import get_logger
+from utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)
 

@@ -10,8 +10,6 @@ from typing import Set, Union, List, Dict, Any, Callable
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
-from calculate.covid_risk import CovidRisk
-from utilities.config import AppConfigParser
 from calculate.playoff_probabilities import PlayoffProbabilities
 
 
@@ -87,12 +85,11 @@ class FantasyFootballReportObject(object):
 
 class BaseLeague(FantasyFootballReportObject):
 
-    def __init__(self, config: AppConfigParser, data_dir: Path, league_id: str, season: int, week_for_report: int,
+    def __init__(self, data_dir: Path, league_id: str, season: int, week_for_report: int,
                  save_data: bool = True, offline: bool = False):
         super().__init__()
 
         # attributes set during instantiation
-        self.config: AppConfigParser = config
         self.data_dir: Path = data_dir
         self.league_id: str = league_id
         self.season: int = season
@@ -235,7 +232,6 @@ class BaseLeague(FantasyFootballReportObject):
                           recalculate: bool = True) -> PlayoffProbabilities:
         # TODO: UPDATE USAGE OF recalculate PARAM (could use self.offline)
         return PlayoffProbabilities(
-            self.config,
             playoff_prob_sims,
             self.num_regular_season_weeks,
             self.num_playoff_slots,
@@ -257,17 +253,6 @@ class BaseLeague(FantasyFootballReportObject):
     def get_beef_stats(self, save_data: bool = False, offline: bool = False, refresh: bool = False) -> BeefStats:
         return BeefStats(
             Path(self.data_dir) / str(self.season) / self.league_id,
-            save_data=save_data,
-            offline=offline,
-            refresh=refresh
-        )
-
-    def get_covid_risk(self, save_data: bool = False, offline: bool = False, refresh: bool = False) -> CovidRisk:
-        return CovidRisk(
-            self.config,
-            Path(self.data_dir) / str(self.season) / self.league_id,
-            season=self.season,
-            week=self.week_for_report,
             save_data=save_data,
             offline=offline,
             refresh=refresh
@@ -327,7 +312,6 @@ class BaseTeam(FantasyFootballReportObject):
         self.worst_offense_score: int = 0
         self.total_weight: float = 0.0
         self.tabbu: float = 0
-        self.total_covid_risk: int = 0
         self.positions_filled_active: List[str] = []
         self.coaching_efficiency: Union[float, str] = 0.0
         self.luck: float = 0
@@ -648,7 +632,6 @@ class BasePlayer(FantasyFootballReportObject):
         self.bad_boy_num_offenders: int = 0
         self.weight: int = 0
         self.tabbu: float = 0.0
-        self.covid_risk: float = 0.0
 
 
 class BaseStat(FantasyFootballReportObject):

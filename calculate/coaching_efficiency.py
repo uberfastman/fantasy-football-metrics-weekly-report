@@ -7,7 +7,8 @@ from collections import defaultdict
 from typing import List, Dict, Set, Union
 
 from dao.base import BasePlayer, BaseLeague
-from report.logger import get_logger
+from utilities.constants import prohibited_statuses
+from utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)
 
@@ -49,13 +50,11 @@ class RosterSlot(object):
 
 class CoachingEfficiency(object):
 
-    def __init__(self, config, league):
+    def __init__(self, league):
         logger.debug("Initializing coaching efficiency.")
 
-        self.config = config
-
         self.inactive_statuses: List[str] = [
-            str(status) for status in self.config.get("Configuration", "prohibited_statuses").split(",")
+            status for status in prohibited_statuses
         ]
 
         self.league: BaseLeague = league

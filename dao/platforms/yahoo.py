@@ -14,8 +14,8 @@ from yfpy.query import YahooFantasySportsQuery
 
 from dao.base import BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
 from dao.platforms.base.base import BaseLeagueData
-from report.logger import get_logger
-from utilities.config import AppConfigParser
+from utilities.logger import get_logger
+from utilities.settings import settings
 
 logger = get_logger(__name__, propagate=False)
 
@@ -27,14 +27,13 @@ logging.getLogger("yfpy.data").setLevel(level=logging.INFO)
 # noinspection DuplicatedCode
 class LeagueData(BaseLeagueData):
 
-    def __init__(self, config: AppConfigParser, base_dir: Path, data_dir: Path, game_id: Union[str, int],
+    def __init__(self, base_dir: Path, data_dir: Path, game_id: Union[str, int],
                  league_id: str, season: int, start_week: int, week_for_report: int,
                  get_current_nfl_week_function: Callable, week_validation_function: Callable, save_data: bool = True,
                  offline: bool = False):
         super().__init__(
             "Yahoo",
             None,
-            config,
             base_dir,
             data_dir,
             league_id,
@@ -47,14 +46,14 @@ class LeagueData(BaseLeagueData):
             offline
         )
 
-        self.game_id = game_id if game_id else self.league.config.get("Settings", "game_id")
+        self.game_id = game_id or settings.platform_settings.yahoo_game_id
 
         self.yahoo_data = Data(self.league.data_dir, save_data=self.league.save_data, dev_offline=self.league.offline)
 
-        yahoo_auth_dir = Path(self.base_dir) / Path(self.league.config.get("Yahoo", "yahoo_auth_dir"))
+        yahoo_auth_dir = Path(self.base_dir) / settings.platform_settings.yahoo_auth_dir_local_path
         self.yahoo_query = YahooFantasySportsQuery(
-            yahoo_auth_dir, self.league.league_id, game_id=self.game_id, offline=self.league.offline,
-            browser_callback=False
+            yahoo_auth_dir, self.league.league_id, game_code=self.game_id, game_id=self.game_id,
+            offline=self.league.offline, browser_callback=False
         )
 
     def get_player_data(self, player_key: str, week: int = None):
@@ -128,7 +127,7 @@ class LeagueData(BaseLeagueData):
         self.league.median_score = 0
         self.league.is_faab = bool(league_info.settings.uses_faab)
         if self.league.is_faab:
-            self.league.faab_budget = self.league.config.getint("Settings", "initial_faab_budget", fallback=100)
+            self.league.faab_budget = settings.platform_settings.yahoo_initial_faab_budget or 100
         self.league.url = league_info.url
 
         self.league.player_data_by_week_function = self.get_player_data

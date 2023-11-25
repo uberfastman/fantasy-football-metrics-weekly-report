@@ -13,9 +13,10 @@ from calculate.points_by_position import PointsByPosition
 from calculate.season_averages import SeasonAverageCalculator
 from dao.base import BaseLeague, BaseTeam
 from report.data import ReportData
-from report.logger import get_logger
 from report.pdf.generator import PdfGenerator
 from utilities.app import league_data_factory, patch_http_connection_pool
+from utilities.logger import get_logger
+from utilities.settings import settings
 from utilities.utils import format_platform_display
 
 logger = get_logger(__name__, propagate=False)
@@ -29,7 +30,6 @@ class FantasyFootballReport(object):
                  game_id=None,
                  season=None,
                  start_week=None,
-                 config=None,
                  refresh_web_data=False,
                  playoff_prob_sims=None,
                  break_ties=False,
@@ -42,29 +42,28 @@ class FantasyFootballReport(object):
 
         patch_http_connection_pool(maxsize=100)
 
-        # config vars
-        self.config = config
+        # settings
         base_dir = Path(__file__).parent.parent
-        self.data_dir = base_dir / Path(self.config.get("Configuration", "data_dir"))
+        self.data_dir = base_dir / settings.data_dir_local_path
         if platform:
             self.platform: str = platform
             self.platform_display: str = format_platform_display(self.platform)
         else:
-            self.platform: str = self.config.get("Settings", "platform")
+            self.platform: str = settings.platform
             self.platform_display: str = format_platform_display(self.platform)
         if league_id:
-            self.league_id = str(league_id)
+            self.league_id: str = str(league_id)
         else:
-            self.league_id = str(self.config.get("Settings", "league_id"))
+            self.league_id: str = settings.league_id
         # TODO: game_id for Yahoo Fantasy Football can be int or str (YFPY expects int, with str for game_code)
         if game_id:
             self.game_id = game_id
         else:
-            self.game_id = self.config.get("Settings", "game_id")
+            self.game_id = settings.platform_settings.yahoo_game_id
         if season:
-            self.season = int(season)
+            self.season: int = int(season)
         else:
-            self.season = int(self.config.get("Settings", "season"))
+            self.season: int = settings.season
 
         self.save_data = save_data
         # refresh data pulled from external web sources: bad boy data from USA Today, beef data from Sleeper API
@@ -103,7 +102,6 @@ class FantasyFootballReport(object):
 
         # retrieve all league data from respective platform API
         self.league: BaseLeague = league_data_factory(
-            config=self.config,
             base_dir=base_dir,
             data_dir=self.data_dir,
             platform=self.platform,
@@ -128,7 +126,7 @@ class FantasyFootballReport(object):
         else:
             self.playoff_probs = None
 
-        if self.config.getboolean("Report", "league_bad_boy_rankings"):
+        if settings.report_settings.league_bad_boy_rankings_bool:
             begin = datetime.datetime.now()
             logger.info(
                 f"Retrieving bad boy data from https://www.usatoday.com/sports/nfl/arrests/ "
@@ -143,7 +141,7 @@ class FantasyFootballReport(object):
         else:
             self.bad_boy_stats = None
 
-        if self.config.getboolean("Report", "league_beef_rankings"):
+        if settings.report_settings.league_beef_rankings_bool:
             begin = datetime.datetime.now()
             logger.info(
                 f"Retrieving beef data from Sleeper "
@@ -157,21 +155,6 @@ class FantasyFootballReport(object):
             )
         else:
             self.beef_stats = None
-
-        if self.config.getboolean("Report", "league_covid_risk_rankings") and int(self.season) >= 2020:
-            begin = datetime.datetime.now()
-            logger.info(
-                f"Retrieving COVID-19 risk data from https://sportsdata.usatoday.com/football/nfl/transactions "
-                f"{'website' if not self.offline or self.refresh_web_data else 'saved data'}..."
-            )
-            self.covid_risk = self.league.get_covid_risk(self.save_data, self.offline, self.refresh_web_data)
-            delta = datetime.datetime.now() - begin
-            logger.info(
-                f"...retrieved all COVID-19 risk data from https://sportsdata.usatoday.com/football/nfl/transactions "
-                f"{'website' if not self.offline else 'saved data'} in {delta}\n"
-            )
-        else:
-            self.covid_risk = None
 
         # output league info for verification
         logger.info(
@@ -204,13 +187,11 @@ class FantasyFootballReport(object):
         while week_counter <= self.league.week_for_report:
 
             week_for_report = self.league.week_for_report
-            metrics_calculator = CalculateMetrics(self.config, self.league_id, self.league.num_playoff_slots,
-                                                  self.playoff_prob_sims)
+            metrics_calculator = CalculateMetrics(self.league_id, self.league.num_playoff_slots, self.playoff_prob_sims)
 
             custom_weekly_matchups = self.league.get_custom_weekly_matchups(week_counter)
 
             report_data = ReportData(
-                config=self.config,
                 league=self.league,
                 season_weekly_teams_results=season_weekly_teams_results,
                 week_counter=week_counter,
@@ -218,7 +199,7 @@ class FantasyFootballReport(object):
                 season=self.season,
                 metrics_calculator=metrics_calculator,
                 metrics={
-                    "coaching_efficiency": CoachingEfficiency(self.config, self.league),
+                    "coaching_efficiency": CoachingEfficiency(self.league),
                     "luck": metrics_calculator.calculate_luck(
                         week_counter,
                         self.league,
@@ -231,8 +212,7 @@ class FantasyFootballReport(object):
                     ),
                     "playoff_probs": self.playoff_probs,
                     "bad_boy_stats": self.bad_boy_stats,
-                    "beef_stats": self.beef_stats,
-                    "covid_risk": self.covid_risk
+                    "beef_stats": self.beef_stats
                 },
                 break_ties=self.break_ties,
                 dq_ce=self.dq_ce,
@@ -380,14 +360,14 @@ class FantasyFootballReport(object):
         filename = self.league.name.replace(" ", "-") + "(" + str(self.league_id) + ")_week-" + str(
             self.league.week_for_report) + "_report.pdf"
         report_save_dir = (
-            Path(self.config.get("Configuration", "output_dir")) / str(self.league.season) / f"{self.league.name.replace(' ', '-')}({self.league_id})"
+                settings.output_dir_local_path / str(self.league.season)
+                / f"{self.league.name.replace(' ', '-')}({self.league_id})"
         )
-        report_title_text = \
-            self.league.name + " (" + str(self.league_id) + ") Week " + \
-            str(self.league.week_for_report) + " Report"
+        report_title_text = f"{self.league.name} ({self.league_id}) Week {self.league.week_for_report} Report"
         report_footer_text = (
             f"<para alignment='center'>"
-            f"Report generated {datetime.datetime.now():%Y-%b-%d %H:%M:%S} for {self.platform_display} Fantasy Football league \"{self.league.name}\" with id {self.league_id} "
+            f"Report generated {datetime.datetime.now():%Y-%b-%d %H:%M:%S} for {self.platform_display} "
+            f"Fantasy Football league \"{self.league.name}\" with id {self.league_id} "
             f"(<a href=\"{self.league.url}\" color=blue><u>{self.league.url}</u></a>)."
             f"<br></br><br></br><br></br>"
             f"If you enjoy using the Fantasy Football Metrics Weekly Report app, please feel free help support its "
@@ -401,11 +381,10 @@ class FantasyFootballReport(object):
         if not self.test:
             filename_with_path = Path(report_save_dir) / filename
         else:
-            filename_with_path = Path(self.config.get("Configuration", "output_dir")) / "test_report.pdf"
+            filename_with_path = settings.output_dir_local_path / "test_report.pdf"
 
         # instantiate pdf generator
         pdf_generator = PdfGenerator(
-            config=self.config,
             season=self.season,
             league=self.league,
             playoff_prob_sims=self.playoff_prob_sims,

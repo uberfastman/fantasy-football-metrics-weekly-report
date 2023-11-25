@@ -22,4 +22,4 @@ XXXXXX...
 macOS/Windows/Linux
 
 #### Other
-Any other setup/environment/configuration information you might deem potentially relevant.
+Any other setup/environment/settings information you might deem potentially relevant.

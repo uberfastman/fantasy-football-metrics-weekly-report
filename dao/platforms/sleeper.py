@@ -14,8 +14,8 @@ from typing import Union, Callable
 
 from dao.base import BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
 from dao.platforms.base.base import BaseLeagueData
-from report.logger import get_logger
-from utilities.config import AppConfigParser
+from utilities.logger import get_logger
+from utilities.settings import settings
 
 logger = get_logger(__name__, propagate=False)
 
@@ -26,13 +26,12 @@ logger.setLevel(level=logging.INFO)
 # noinspection DuplicatedCode
 class LeagueData(BaseLeagueData):
 
-    def __init__(self, config: AppConfigParser, base_dir: Union[Path, None], data_dir: Path, league_id: str,
+    def __init__(self, base_dir: Union[Path, None], data_dir: Path, league_id: str,
                  season: int, start_week: int, week_for_report: int, get_current_nfl_week_function: Callable,
                  week_validation_function: Callable, save_data: bool = True, offline: bool = False):
         super().__init__(
             "Sleeper",
             f"https://api.sleeper.app",
-            config,
             base_dir,
             data_dir,
             league_id,
@@ -144,7 +143,7 @@ class LeagueData(BaseLeagueData):
         num_regular_season_weeks: int = (
             (int(league_settings.get("playoff_week_start")) - 1)
             if league_settings.get("playoff_week_start") > 0
-            else int(self.league.config.get("Settings", "num_regular_season_weeks"))
+            else settings.num_regular_season_weeks
         )
 
         league_managers = {

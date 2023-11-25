@@ -9,7 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from report.logger import get_logger
+from utilities.logger import get_logger
 
 logger = get_logger(__file__)
 
@@ -79,13 +79,13 @@ def main():
     except (TimeoutException, NoSuchElementException):
         logger.info(f"Already logged in to Chrome with user profile \"{auth_json.get('chrome_user_profile')}\".")
 
-
     # retrieve and display session cookies needed for ESPN FF API authentication and extract their values
     swid_cookie, espn_s2_cookie = WebDriverWait(driver, timeout=60).until(lambda d: extract_espn_session_cookies(d))
     logger.info(f"\"SWID\" session cookie: {swid_cookie}")
     logger.info(f"\"espn_s2\" session cookie: {espn_s2_cookie}")
 
     driver.quit()
+
 
 if __name__ == "__main__":
     main()

@@ -16,8 +16,8 @@ from bs4 import BeautifulSoup
 
 from dao.base import BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
 from dao.platforms.base.base import BaseLeagueData
-from report.logger import get_logger
-from utilities.config import AppConfigParser
+from utilities.logger import get_logger
+from utilities.settings import settings
 
 logger = get_logger(__name__, propagate=False)
 
@@ -28,13 +28,12 @@ logger.setLevel(level=logging.INFO)
 # noinspection DuplicatedCode
 class LeagueData(BaseLeagueData):
 
-    def __init__(self, config: AppConfigParser, base_dir: Union[Path, None], data_dir: Path, league_id: str,
+    def __init__(self, base_dir: Union[Path, None], data_dir: Path, league_id: str,
                  season: int, start_week: int, week_for_report: int, get_current_nfl_week_function: Callable,
                  week_validation_function: Callable, save_data: bool = True, offline: bool = False):
         super().__init__(
             "Fleaflicker",
             f"https://www.fleaflicker.com",
-            config,
             base_dir,
             data_dir,
             league_id,
@@ -134,15 +133,11 @@ class LeagueData(BaseLeagueData):
                     # TODO: figure out how to get total number of regular season weeks when league has no playoffs
                     self.league.num_regular_season_weeks = 18 if int(self.league.season) > 2020 else 17
                 else:
-                    self.league.num_regular_season_weeks = self.league.config.getint(
-                        "Settings", "num_regular_season_weeks", fallback=14
-                    )
+                    self.league.num_regular_season_weeks = settings.num_regular_season_weeks
                 break
             else:
-                self.league.num_playoff_slots = self.league.config.getint("Settings", "num_playoff_slots", fallback=6)
-                self.league.num_regular_season_weeks = self.league.config.getint(
-                    "Settings", "num_regular_season_weeks", fallback=14
-                )
+                self.league.num_playoff_slots = settings.num_playoff_slots
+                self.league.num_regular_season_weeks = settings.num_regular_season_weeks
 
         # TODO: how to get league rules for LAST YEAR from Fleaflicker API
         league_rules = self.query(

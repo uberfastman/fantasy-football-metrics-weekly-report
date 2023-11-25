@@ -9,6 +9,7 @@
 **.pytest_cache
 
 # environment
+.env*
 .venv
 
 # auth secrets
@@ -18,10 +19,6 @@
 !**token.template.json
 **credentials*.json
 !**credentials.template.json
-
-# configuration
-config*.ini
-!config.template.ini
 
 # output
 **logs/

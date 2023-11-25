@@ -17,8 +17,8 @@ from typing import Dict, List, Tuple, Any, Union, TYPE_CHECKING
 
 import numpy as np
 
-from report.logger import get_logger
-from utilities.config import AppConfigParser
+from utilities.logger import get_logger
+from utilities.settings import settings
 
 if TYPE_CHECKING:
     from dao.base import BaseTeam, BaseMatchup
@@ -105,14 +105,12 @@ class TeamWithPlayoffProbs(object):
 
 class PlayoffProbabilities(object):
 
-    def __init__(self, config: AppConfigParser, simulations: int, num_weeks: int, num_playoff_slots: int,
-                 data_dir: Path, num_divisions: int = 0, save_data: bool = False, recalculate: bool = False,
-                 offline: bool = False):
+    def __init__(self, simulations: int, num_weeks: int, num_playoff_slots: int, data_dir: Path, num_divisions: int = 0,
+                 save_data: bool = False, recalculate: bool = False, offline: bool = False):
         logger.debug("Initializing playoff probabilities.")
 
-        self.config: AppConfigParser = config
-        self.simulations: int = simulations or self.config.getint("Settings", "num_playoff_simulations",
-                                                                  fallback=100000)
+        self.simulations: int = simulations or settings.num_playoff_simulations
+
         self.num_weeks: int = num_weeks
         self.num_playoff_slots: int = int(num_playoff_slots)
         self.data_dir: Path = data_dir
@@ -189,8 +187,7 @@ class PlayoffProbabilities(object):
                         if self.num_divisions > 0:
                             sorted_divisions = self.group_by_division(teams_for_playoff_probs)
 
-                            num_playoff_slots_per_division_without_leader = self.config.getint(
-                                "Settings", "num_playoff_slots_per_division", fallback=1) - 1
+                            num_playoff_slots_per_division_without_leader = settings.num_playoff_slots_per_division - 1
 
                             # pick the teams making the playoffs
                             division_winners = []
@@ -245,7 +242,7 @@ class PlayoffProbabilities(object):
                                         f"Specified number of playoff qualifiers per division "
                                         f"({num_playoff_slots_per_division_without_leader + 1}) exceeds available "
                                         f"league playoff spots. Please correct the value of "
-                                        f"\"num_playoff_slots_per_division\" in \"config.ini\"."
+                                        f"\"NUM_PLAYOFF_SLOTS_PER_DIVISION\" in \".env\" file."
                                     )
 
                             if (len(division_winners) + len(division_qualifiers)) < self.num_playoff_slots:
@@ -288,8 +285,7 @@ class PlayoffProbabilities(object):
                     if self.num_divisions > 0:
                         sorted_divisions = self.group_by_division(teams_for_playoff_probs)
 
-                        num_playoff_slots_per_division_without_leader = self.config.getint(
-                            "Settings", "num_playoff_slots_per_division", fallback=1) - 1
+                        num_playoff_slots_per_division_without_leader = settings.num_playoff_slots_per_division - 1
 
                         for division in sorted_divisions.values():
                             ranked_division = sorted(
@@ -407,11 +403,7 @@ class PlayoffProbabilities(object):
 
 
 if __name__ == "__main__":
-    local_config = AppConfigParser()
-    local_config.read(Path(__file__).parent.parent / "config.ini")
-
     playoff_probs = PlayoffProbabilities(
-        local_config,
         simulations=100,
         num_weeks=13,
         num_playoff_slots=6,

@@ -13,8 +13,8 @@ from slack.errors import SlackApiError
 from slack.web.base_client import SlackResponse
 from slack.web.client import WebClient
 
-from report.logger import get_logger
-from utilities.config import AppConfigParser
+from utilities.logger import get_logger
+from utilities.settings import settings
 
 logger = get_logger(__name__, propagate=False)
 
@@ -24,16 +24,14 @@ logging.getLogger("slack.web.base_client").setLevel(level=logging.INFO)
 
 
 class SlackMessenger(object):
-    def __init__(self, config):
+    def __init__(self):
         logger.debug("Initializing Slack messenger.")
 
-        self.project_dir = Path(__file__).parent.parent
-
-        self.config: AppConfigParser = config
+        self.project_dir: Path = Path(__file__).parent.parent
 
         logger.debug("Authenticating with Slack.")
 
-        auth_token = Path(self.project_dir) / self.config.get("Slack", "slack_auth_token")
+        auth_token = self.project_dir / settings.integration_settings.slack_auth_token_local_path
 
         with open(auth_token, "r") as token_file:
             # more information at https://api.slack.com/web#authentication
@@ -144,7 +142,7 @@ class SlackMessenger(object):
 
         try:
             return self.sc.chat_postMessage(
-                channel=self.get_channel_id(self.config.get("Slack", "slack_channel")),
+                channel=self.get_channel_id(settings.integration_settings.slack_channel),
                 text="<!here|here>\n" + message,
                 username="ff-report",
                 # icon_emoji=":football:"
@@ -164,17 +162,17 @@ class SlackMessenger(object):
                 f"\nFantasy Football Report for {league_name}\nGenerated {datetime.datetime.now():%Y-%b-%d %H:%M:%S}\n"
             )
 
-            upload_file = Path(self.project_dir) / upload_file
+            upload_file = self.project_dir / upload_file
             with open(upload_file, "rb") as uf:
 
-                if self.config.getboolean("Slack", "notify_channel"):
+                if settings.integration_settings.slack_channel_notify_bool:
                     # post message with no additional content to trigger @here
                     self.post_to_selected_slack_channel("")
 
                 file_to_upload = uf.read()
                 # noinspection PyTypeChecker
                 response = self.sc.files_upload(
-                    channels=self.get_channel_id(self.config.get("Slack", "slack_channel")),
+                    channels=self.get_channel_id(settings.integration_settings.slack_channel),
                     filename=file_name,
                     filetype=file_type,
                     file=file_to_upload,
@@ -187,11 +185,9 @@ class SlackMessenger(object):
 
 
 if __name__ == "__main__":
-    local_config = AppConfigParser()
-    local_config.read(Path(__file__).parent.parent / "config.ini")
-    repost_file = Path(__file__).parent.parent / local_config.get("Slack", "repost_file")
+    repost_file = Path(__file__).parent.parent / settings.integration_settings.slack_repost_file_local_path
 
-    post_to_slack = SlackMessenger(local_config)
+    post_to_slack = SlackMessenger()
 
     # general slack integration testing
     logger.info(f"{json.dumps(post_to_slack.api_test().data, indent=2)}")

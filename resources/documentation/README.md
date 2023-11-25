@@ -105,7 +105,7 @@
   
   *before running the report **EVERY TIME** you open a new command line prompt to run the application!*
 
-* Make sure you have updated the default league ID (`league_id` value) in the `config.ini` file to your own league id. Please see the respective setup instructions for your chosen platform for directions on how to find your league ID.
+* Make sure you have updated the default league ID (`league_id` value) in the `.env` file to your own league id. Please see the respective setup instructions for your chosen platform for directions on how to find your league ID.
 
 * Run `python main.py`. You should see the following prompts: 
 
@@ -129,7 +129,7 @@
       
     * Assuming the above went as expected, the application should now generate a report for your fantasy league for the selected NFL week.
     
-***NOTE***: You can also specify a large number of configuration options directly in the command line. Please see the [usage section](../../README.md#usage) for more information.
+***NOTE***: You can also specify a large number of settings directly in the command line. Please see the [usage section](../../README.md#usage) for more information.
 
 <a name="macos-launch-script"></a>
 ##### macOS Launch Script

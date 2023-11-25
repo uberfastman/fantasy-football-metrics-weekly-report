@@ -2,17 +2,13 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
 import os
-import pkgutil
 import re
-import shutil
 import socket
 import sys
 import time
-from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Union, Any
-from calculate.metrics import CalculateMetrics
 
 import colorama
 import requests
@@ -23,16 +19,15 @@ from urllib3 import connectionpool, poolmanager
 
 from calculate.bad_boy_stats import BadBoyStats
 from calculate.beef_stats import BeefStats
-from calculate.covid_risk import CovidRisk
-from dao import platforms
+from calculate.metrics import CalculateMetrics
 from dao.base import BaseLeague, BaseTeam, BasePlayer
 from dao.platforms.cbs import LeagueData as CbsLeagueData
 from dao.platforms.espn import LeagueData as EspnLeagueData
 from dao.platforms.fleaflicker import LeagueData as FleaflickerLeagueData
 from dao.platforms.sleeper import LeagueData as SleeperLeagueData
 from dao.platforms.yahoo import LeagueData as YahooLeagueData
-from report.logger import get_logger
-from utilities.config import AppConfigParser
+from utilities.logger import get_logger
+from utilities.settings import settings
 from utilities.utils import format_platform_display
 
 logger = get_logger(__name__, propagate=False)
@@ -46,12 +41,12 @@ current_year = current_date.year
 current_month = current_date.month
 
 
-def user_week_input_validation(config: AppConfigParser, week: int, retrieved_current_week: int, season: int) -> int:
+def user_week_input_validation(week: int, retrieved_current_week: int, season: int) -> int:
     # user input validation
     if week:
         week_for_report = week
     else:
-        week_for_report = config.get("Settings", "week_for_report")
+        week_for_report = settings.week_for_report
 
     # only validate user week if report is being run for current season
     if current_year == int(season) or (current_year == (int(season) + 1) and current_month < 9):
@@ -98,11 +93,11 @@ def user_week_input_validation(config: AppConfigParser, week: int, retrieved_cur
     return int(week_for_report)
 
 
-def get_current_nfl_week(config: AppConfigParser, offline: bool) -> int:
+def get_current_nfl_week(offline: bool) -> int:
     # api_url = "https://bet.rotoworld.com/api/nfl/calendar/game_count"
     api_url = "https://api.sleeper.app/v1/state/nfl"
 
-    current_nfl_week = int(config.getint("Settings", "current_week"))
+    current_nfl_week = settings.current_nfl_week
 
     if not offline:
         logger.debug("Retrieving current NFL week from the Sleeper API.")
@@ -111,23 +106,22 @@ def get_current_nfl_week(config: AppConfigParser, offline: bool) -> int:
             nfl_weekly_info = requests.get(api_url).json()
             current_nfl_week = nfl_weekly_info.get("week")
         except (KeyError, ValueError) as e:
-            logger.warning("Unable to retrieve current NFL week. Defaulting to value set in \"config.ini\".")
+            logger.warning("Unable to retrieve current NFL week. Defaulting to value set in \".env\" file.")
             logger.debug(e)
 
     else:
         logger.debug("The Fantasy Football Metrics Weekly Report app is being run in offline mode. "
-                     "The current NFL week will default to the value set in \"config.ini\".")
+                     "The current NFL week will default to the value set in \".env\" file.")
 
     return current_nfl_week
 
 
-def league_data_factory(config: AppConfigParser, base_dir: Path, data_dir: Path, platform: str,
+def league_data_factory(base_dir: Path, data_dir: Path, platform: str,
                         game_id: Union[str, int], league_id: str, season: int, start_week: int, week_for_report: int,
                         save_data: bool, offline: bool) -> BaseLeague:
-    if platform in get_supported_platforms():
+    if platform in settings.supported_platforms:
         if platform == "yahoo":
             yahoo_league = YahooLeagueData(
-                config,
                 base_dir,
                 data_dir,
                 game_id,
@@ -144,7 +138,6 @@ def league_data_factory(config: AppConfigParser, base_dir: Path, data_dir: Path,
 
         elif platform == "fleaflicker":
             fleaflicker_league = FleaflickerLeagueData(
-                config,
                 None,
                 data_dir,
                 league_id,
@@ -160,7 +153,6 @@ def league_data_factory(config: AppConfigParser, base_dir: Path, data_dir: Path,
 
         elif platform == "sleeper":
             sleeper_league = SleeperLeagueData(
-                config,
                 None,
                 data_dir,
                 league_id,
@@ -176,7 +168,6 @@ def league_data_factory(config: AppConfigParser, base_dir: Path, data_dir: Path,
 
         elif platform == "espn":
             espn_league = EspnLeagueData(
-                config,
                 base_dir,
                 data_dir,
                 league_id,
@@ -192,7 +183,6 @@ def league_data_factory(config: AppConfigParser, base_dir: Path, data_dir: Path,
 
         elif platform == "cbs":
             cbs_league = CbsLeagueData(
-                config,
                 base_dir,
                 data_dir,
                 league_id,
@@ -209,23 +199,22 @@ def league_data_factory(config: AppConfigParser, base_dir: Path, data_dir: Path,
     else:
         logger.error(
             f"Generating fantasy football reports for the \"{format_platform_display(platform)}\" fantasy football "
-            f"platform is not currently supported. Please change your settings in config.ini and try again."
+            f"platform is not currently supported. Please change the settings in your .env file and try again."
         )
         sys.exit(1)
 
 
-def add_report_player_stats(config: AppConfigParser, season: int, metrics: Dict[str, Any], player: BasePlayer,
+def add_report_player_stats(metrics: Dict[str, Any], player: BasePlayer,
                             bench_positions: List[str]) -> BasePlayer:
     player.bad_boy_crime = str()
     player.bad_boy_points = int()
     player.bad_boy_num_offenders = int()
     player.weight = float()
     player.tabbu = float()
-    player.covid_risk = int()
 
     if player.selected_position not in bench_positions:
 
-        if config.getboolean("Report", "league_bad_boy_rankings"):
+        if settings.report_settings.league_bad_boy_rankings_bool:
             bad_boy_stats: BadBoyStats = metrics.get("bad_boy_stats")
             player.bad_boy_crime = bad_boy_stats.get_player_bad_boy_crime(
                 player.first_name, player.last_name, player.nfl_team_abbr, player.primary_position
@@ -237,27 +226,21 @@ def add_report_player_stats(config: AppConfigParser, season: int, metrics: Dict[
                 player.first_name, player.last_name, player.nfl_team_abbr, player.primary_position
             )
 
-        if config.getboolean("Report", "league_beef_rankings"):
+        if settings.report_settings.league_beef_rankings_bool:
             beef_stats: BeefStats = metrics.get("beef_stats")
             player.weight = beef_stats.get_player_weight(player.first_name, player.last_name, player.nfl_team_abbr)
             player.tabbu = beef_stats.get_player_tabbu(player.first_name, player.last_name, player.nfl_team_abbr)
 
-        if config.getboolean("Report", "league_covid_risk_rankings") and int(season) >= 2020:
-            covid_risk: CovidRisk = metrics.get("covid_risk")
-            player.covid_risk = covid_risk.get_player_covid_risk(
-                player.full_name, player.nfl_team_abbr, player.primary_position)
-
     return player
 
 
-def add_report_team_stats(config: AppConfigParser, team: BaseTeam, league: BaseLeague, week_counter: int, season: int,
-                          metrics_calculator: CalculateMetrics, metrics: Dict[str, Any], dq_ce: bool,
-                          inactive_players: List[str]) -> BaseTeam:
+def add_report_team_stats(team: BaseTeam, league: BaseLeague, week_counter: int, metrics_calculator: CalculateMetrics,
+                          metrics: Dict[str, Any], dq_ce: bool, inactive_players: List[str]) -> BaseTeam:
     team.name = metrics_calculator.decode_byte_string(team.name)
     bench_positions = league.bench_positions
 
     for player in team.roster:
-        add_report_player_stats(config, season, metrics, player, bench_positions)
+        add_report_player_stats(metrics, player, bench_positions)
 
     starting_lineup_points = round(
         sum([p.points for p in team.roster if p.selected_position not in bench_positions]), 2)
@@ -270,7 +253,7 @@ def add_report_team_stats(config: AppConfigParser, team: BaseTeam, league: BaseL
 
     team.bench_points = round(sum([p.points for p in team.roster if p.selected_position in bench_positions]), 2)
 
-    if config.getboolean("Report", "league_bad_boy_rankings"):
+    if settings.report_settings.league_bad_boy_rankings_bool:
         team.bad_boy_points = 0
         team.worst_offense = None
         team.num_offenders = 0
@@ -287,12 +270,9 @@ def add_report_team_stats(config: AppConfigParser, team: BaseTeam, league: BaseL
                         team.worst_offense = p.bad_boy_crime
                         team.worst_offense_score = p.bad_boy_points
 
-    if config.getboolean("Report", "league_beef_rankings"):
+    if settings.report_settings.league_beef_rankings_bool:
         team.total_weight = sum([p.weight for p in team.roster if p.selected_position not in bench_positions])
         team.tabbu = sum([p.tabbu for p in team.roster if p.selected_position not in bench_positions])
-
-    if config.getboolean("Report", "league_covid_risk_rankings") and int(season) >= 2020:
-        team.total_covid_risk = sum([p.covid_risk for p in team.roster if p.selected_position not in bench_positions])
 
     team.positions_filled_active = [p.selected_position for p in team.roster if
                                     p.selected_position not in bench_positions]
@@ -317,13 +297,16 @@ def add_report_team_stats(config: AppConfigParser, team: BaseTeam, league: BaseL
 
 
 def get_player_game_time_statuses(week: int, league: BaseLeague):
-    file_name = "week_" + str(week) + "-player_status_data.html"
+    file_name = f"week_{week}-player_status_data.html"
     file_dir = Path(league.data_dir) / str(league.season) / str(league.league_id) / f"week_{week}"
     file_path = Path(file_dir) / file_name
 
     if not league.offline:
-        user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) " \
-                     "Version/13.0.2 Safari/605.1.15"
+        user_agent = (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) "
+            "AppleWebKit/605.1.15 (KHTML, like Gecko) "
+            "Version/13.0.2 Safari/605.1.15"
+        )
         headers = {
             "user-agent": user_agent
         }
@@ -333,7 +316,9 @@ def get_player_game_time_statuses(week: int, league: BaseLeague):
             "type": "reg"
         }
 
-        response = requests.get("https://www.footballdb.com/transactions/injuries.html", headers=headers, params=params)
+        response = requests.get(
+            "https://www.footballdb.com/transactions/injuries.html", headers=headers, params=params
+        )
 
         html_soup = BeautifulSoup(response.text, "html.parser")
         logger.debug(f"Response URL: {response.url}")
@@ -356,13 +341,6 @@ def get_player_game_time_statuses(week: int, league: BaseLeague):
             data_out.write(html_soup.prettify())
 
     return html_soup
-
-
-def get_supported_platforms() -> List[str]:
-    supported_platforms = []
-    for module in pkgutil.iter_modules(platforms.__path__):
-        supported_platforms.append(module.name)
-    return supported_platforms
 
 
 # function taken from https://stackoverflow.com/a/33117579 (written by 7h3rAm)
@@ -396,180 +374,6 @@ def patch_http_connection_pool(**constructor_kwargs):
     poolmanager.pool_classes_by_scheme['https'] = MyHTTPSConnectionPool
 
 
-def get_valid_config(config_file: str = "config.ini") -> AppConfigParser:
-    config = AppConfigParser()
-
-    root_directory = Path(__file__).parent.parent
-
-    config_file_path = root_directory / Path(config_file)
-
-    # set local config file (check for existence and access, stop app if it does not exist or cannot access)
-    if config_file_path.is_file():
-        if os.access(config_file_path, mode=os.R_OK):
-            logger.debug(
-                "Configuration file \"config.ini\" available. Running Fantasy Football Metrics Weekly Report app...")
-            config_template = AppConfigParser()
-            config_template.read(root_directory / "config.template.ini")
-            config.read(config_file_path)
-
-            if not set(config_template.sections()).issubset(set(config.sections())):
-                missing_sections = []
-                for section in config_template.sections():
-                    if section not in config.sections():
-                        missing_sections.append(section)
-
-                logger.error(
-                    f"Your local \"config.ini\" file is missing the following sections:\n\n"
-                    f"{', '.join(missing_sections)}\n\nPlease update your \"config.ini\" with the above sections from "
-                    f"\"config.template.ini\" and try again."
-                )
-                sys.exit(1)
-            else:
-                logger.debug("All required local \"config.ini\" sections present.")
-
-            config_map = defaultdict(set)
-            for section in config.sections():
-                section_keys = set()
-                for (k, v) in config.items(section):
-                    section_keys.add(k)
-                config_map[section] = section_keys
-
-            missing_keys_map = defaultdict(set)
-            for section in config_template.sections():
-                if section in config.sections():
-                    for (k, v) in config_template.items(section):
-                        if k not in config_map.get(section):
-                            missing_keys_map[section].add(k)
-
-            if missing_keys_map:
-                missing_keys_str = ""
-                for section, keys in missing_keys_map.items():
-                    missing_keys_str += f"Section: {section}\n"
-                    for key in keys:
-                        missing_keys_str += f"  {key}\n"
-                    missing_keys_str += "\n"
-                missing_keys_str = missing_keys_str.strip()
-
-                logger.error(
-                    f"Your local \"config.ini\" file is  missing the following keys (from their respective sections):"
-                    f"\n\n{missing_keys_str}\n\nPlease update your \"config.ini\" with the above keys from "
-                    f"\"config.template.ini\" and try again."
-                )
-
-                sys.exit(1)
-            else:
-                logger.debug("All required local \"config.ini\" keys present.")
-
-            return config
-        else:
-            logger.error(
-                "Unable to access configuration file \"config.ini\". "
-                "Please check that file permissions are properly set.")
-            sys.exit(1)
-    else:
-        logger.debug("Configuration file \"config.ini\" not found.")
-        create_config = input(
-            f"{Fore.RED}Configuration file \"config.ini\" not found. {Fore.GREEN}Do you wish to create one? "
-            f"{Fore.YELLOW}({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
-        )
-        if create_config == "y":
-            return create_config_from_template(config, root_directory, config_file_path)
-        if create_config == "n":
-            logger.error(
-                "Configuration file \"config.ini\" not found. "
-                "Please make sure that it exists in project root directory.")
-            sys.exit(1)
-        else:
-            logger.warning("Please only select \"y\" or \"n\".")
-            time.sleep(0.25)
-            get_valid_config(config_file)
-
-
-def create_config_from_template(config: AppConfigParser, root_directory: Path, config_file_path: Path,
-                                platform: str = None, league_id: str = None, season: int = None,
-                                current_week: int = None) -> AppConfigParser:
-    logger.debug("Creating \"config.ini\" file from template.")
-    config_template_file = Path(root_directory) / "config.template.ini"
-    config_file_path = shutil.copyfile(config_template_file, config_file_path)
-
-    config.read(config_file_path)
-
-    if not platform:
-        supported_platforms = get_supported_platforms()
-        platform = input(
-            f"{Fore.GREEN}For which fantasy football platform are you generating a report? "
-            f"({'/'.join(supported_platforms)}) -> {Style.RESET_ALL}"
-        )
-        if platform not in supported_platforms:
-            logger.warning(
-                f"Please only select one of the following platforms: "
-                f"{', or '.join([', '.join(supported_platforms[:-1]), supported_platforms[-1]])}"
-            )
-            time.sleep(0.25)
-            config = create_config_from_template(config, root_directory, config_file_path)
-        logger.debug(f"Retrieved fantasy football platform for \"config.ini\": {platform}")
-
-    config.set("Settings", "platform", platform)
-
-    if not league_id:
-        league_id = input(f"{Fore.GREEN}What is your league ID? -> {Style.RESET_ALL}")
-        logger.debug(f"Retrieved fantasy football league ID for \"config.ini\": {league_id}")
-
-    config.set("Settings", "league_id", league_id)
-
-    if not season:
-        season = input(
-            f"{Fore.GREEN}For which NFL season (starting year of season) are you generating reports? -> "
-            f"{Style.RESET_ALL}"
-        )
-        try:
-            if int(season) > current_year:
-                logger.warning("This report cannot predict the future. Please only input a current or past NFL season.")
-                time.sleep(0.25)
-                config = create_config_from_template(config, root_directory, config_file_path, platform=platform,
-                                                     league_id=league_id)
-            elif int(season) < 2019 and platform == "espn":
-                logger.warning("ESPN leagues prior to 2019 are not supported. Please select a later NFL season.")
-                time.sleep(0.25)
-                config = create_config_from_template(config, root_directory, config_file_path, platform=platform,
-                                                     league_id=league_id)
-
-        except ValueError:
-            logger.warning("You must input a valid year in the format YYYY.")
-            time.sleep(0.25)
-            config = create_config_from_template(config, root_directory, config_file_path, platform=platform,
-                                                 league_id=league_id)
-        logger.debug(f"Retrieved fantasy football season for \"config.ini\": {season}")
-
-    config.set("Settings", "season", season)
-
-    if not current_week:
-        current_week = input(
-            f"{Fore.GREEN}What is the current week of the NFL season? (week following the last complete week) -> "
-            f"{Style.RESET_ALL}"
-        )
-        try:
-            if int(current_week) < 0 or int(current_week) > NFL_SEASON_LENGTH:
-                logger.warning(
-                    f"Week {current_week} is not a valid NFL week. Please select a week from 1 to {NFL_SEASON_LENGTH}.")
-                time.sleep(0.25)
-                config = create_config_from_template(config, root_directory, config_file_path, platform=platform,
-                                                     league_id=league_id, season=season)
-        except ValueError:
-            logger.warning("You must input a valid integer to represent the current NFL week.")
-            time.sleep(0.25)
-            config = create_config_from_template(config, root_directory, config_file_path, platform=platform,
-                                                 league_id=league_id, season=season)
-        logger.debug(f"Retrieved current NFL week for \"config.ini\": {current_week}")
-
-    config.set("Settings", "current_week", current_week)
-
-    with open(config_file_path, "w") as cf:
-        config.write(cf, space_around_delimiters=True)
-
-    return config
-
-
 # function taken from https://stackoverflow.com/a/35585837 (written by morxa)
 def git_ls_remote(url: str):
     remote_refs = {}
@@ -584,12 +388,17 @@ def check_for_updates(use_default: bool = False):
     logger.debug("Checking upstream remote for app updates.")
     project_repo = Repo(Path(__file__).parent.parent)
 
+    project_repo.remote().update()
+
     if not active_network_connection():
         logger.info(
             "No active network connection found. Unable to check for updates for the Fantasy Football Metrics Weekly "
             "Report app."
         )
     else:
+        project_repo.remote(name="origin").update()
+        project_repo.remote(name="origin").fetch(prune=True)
+
         version_tags = sorted(
             [tag_ref for tag_ref in project_repo.tags if hasattr(tag_ref.tag, "tagged_date")],
             key=lambda x: x.tag.tagged_date,
@@ -722,7 +531,5 @@ def update_app(repository: Repo):
 
 
 if __name__ == "__main__":
-    local_config = AppConfigParser()
-    local_config.read("../config.ini")
-    local_current_nfl_week = get_current_nfl_week(config=local_config, offline=False)
+    local_current_nfl_week = get_current_nfl_week(offline=False)
     logger.info(f"Local current NFL week: {local_current_nfl_week}")

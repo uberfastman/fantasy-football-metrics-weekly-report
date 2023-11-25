@@ -5,7 +5,7 @@ import copy
 from typing import Dict, List, Any
 
 from dao.base import BaseLeague, BaseTeam, BasePlayer
-from report.logger import get_logger
+from utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)
 

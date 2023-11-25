@@ -6,7 +6,7 @@ from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
 
-from report.logger import get_logger
+from utilities.logger import get_logger
 
 logger = get_logger(__file__)
 

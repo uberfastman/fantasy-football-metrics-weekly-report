@@ -28,8 +28,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from dao.base import BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
 from dao.platforms.base.base import BaseLeagueData
-from report.logger import get_logger
-from utilities.config import AppConfigParser
+from utilities.logger import get_logger
+from utilities.settings import settings
 
 colorama.init()
 
@@ -49,13 +49,12 @@ logging.getLogger("selenium.webdriver.remote.remote_connection").setLevel(level=
 # noinspection DuplicatedCode
 class LeagueData(BaseLeagueData):
 
-    def __init__(self, config: AppConfigParser, base_dir: Path, data_dir: Path, league_id: str, season: int,
+    def __init__(self, base_dir: Path, data_dir: Path, league_id: str, season: int,
                  start_week: int, week_for_report: int, get_current_nfl_week_function: Callable,
                  week_validation_function: Callable, save_data: bool = True, offline: bool = False):
         super().__init__(
             "ESPN",
             "https://fantasy.espn.com",
-            config,
             base_dir,
             data_dir,
             league_id,
@@ -69,7 +68,7 @@ class LeagueData(BaseLeagueData):
         )
 
         espn_auth_json = None
-        espn_auth_file = Path(base_dir) / config.get("ESPN", "espn_auth_dir") / "private.json"
+        espn_auth_file = Path(base_dir) / settings.platform_settings.espn_auth_dir_local_path / "private.json"
         if Path(espn_auth_file).is_file():
             with open(espn_auth_file, "r") as auth:
                 espn_auth_json = json.load(auth)
@@ -323,8 +322,8 @@ class LeagueData(BaseLeagueData):
         matchups_by_week = {}
         matchups_json_by_week = {}
         median_score_by_week = {}
-        for week_for_matchups in range(1, int(espn_league.settings.reg_season_count) + 1):
-            matchups_by_week[str(week_for_matchups)] = espn_league.box_scores(int(week_for_matchups))
+        for week_for_matchups in range(self.start_week, int(espn_league.settings.reg_season_count) + 1):
+            matchups_by_week[str(week_for_matchups)] = espn_league.box_scores(week_for_matchups)
             matchups_json_by_week[str(week_for_matchups)] = espn_league.box_data_json
 
             if int(week_for_matchups) <= self.league.week_for_report:
@@ -506,7 +505,7 @@ class LeagueData(BaseLeagueData):
         logger.debug("Getting ESPN rosters by week data.")
         rosters_by_week = {}
         rosters_json_by_week = {}
-        for week_for_rosters in range(1, self.league.week_for_report + 1):
+        for week_for_rosters in range(self.start_week, self.league.week_for_report + 1):
             team_rosters = {}
             for matchup in matchups_by_week[str(week_for_rosters)]:
                 team_rosters[matchup.home_team.team_id] = matchup.home_lineup
