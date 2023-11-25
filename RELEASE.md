@@ -57,3 +57,5 @@
    ```shell
    git push
    ```
+
+14. Go to the [FFMWR Releases page](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases) and draft a new release using the above git tag.
