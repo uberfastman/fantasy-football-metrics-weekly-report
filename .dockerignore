@@ -10,7 +10,9 @@
 
 # environment
 .env*
+env*
 .venv
+venv
 
 # auth secrets
 **private*.json
@@ -29,8 +31,3 @@ resources/files/crime_categories.new.json
 
 # testing
 tests/*.json
-
-# Docker
-compose*.yaml
-.dockerignore
-docker/Dockerfile

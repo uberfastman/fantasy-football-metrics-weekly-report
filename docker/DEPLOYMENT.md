@@ -10,13 +10,6 @@ The Fantasy Football Metrics Weekly Report can be used within Docker for a more 
     docker compose -f compose.yaml -f compose.build.yaml build
     ```
 
-## Develop (optional)
-
-1. Run the Docker container for local development (mount all local code into container):
-    ```shell
-    docker compose -f compose.yaml -f compose.dev.yaml up
-    ```
-
 ## Deploy
 
 1. Authenticate with GitHub Personal Access Token (PAT):

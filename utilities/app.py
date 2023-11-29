@@ -385,17 +385,21 @@ def git_ls_remote(url: str):
 
 
 def check_for_updates(use_default: bool = False):
-    logger.debug("Checking upstream remote for app updates.")
-    project_repo = Repo(Path(__file__).parent.parent)
-
-    project_repo.remote().update()
-
     if not active_network_connection():
         logger.info(
             "No active network connection found. Unable to check for updates for the Fantasy Football Metrics Weekly "
             "Report app."
         )
     else:
+        logger.debug("Checking upstream remote for app updates.")
+        project_repo = Repo(Path(__file__).parent.parent)
+
+        origin_url = str(project_repo.remotes.origin.url)
+        # convert git remote URL from SSH to HTTPS if necessary
+        if "https" not in origin_url:
+            origin_url = f"https://github.com/{str(project_repo.remotes.origin.url).split(':')[1]}"
+            project_repo.remote(name="origin").set_url(origin_url)
+
         project_repo.remote(name="origin").update()
         project_repo.remote(name="origin").fetch(prune=True)
 
@@ -415,11 +419,7 @@ def check_for_updates(use_default: bool = False):
             if not last_local_version:
                 tag_ndx += 1
 
-        origin_url = str(project_repo.remotes.origin.url)
-        if "https" not in origin_url:
-            origin_url = f"https://github.com/{str(project_repo.remotes.origin.url).split(':')[1]}"
         ls_remote = git_ls_remote(origin_url)
-
         regex = re.compile("[^0-9.]")
         remote_tags = sorted(
             set([(regex.sub("", ref), ref.replace("^{}", "").replace("refs/tags/", ""))
