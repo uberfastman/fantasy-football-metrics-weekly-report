@@ -395,10 +395,11 @@ def check_for_updates(use_default: bool = False):
         project_repo = Repo(Path(__file__).parent.parent)
 
         origin_url = str(project_repo.remotes.origin.url)
-        # convert git remote URL from SSH to HTTPS if necessary
+        origin_url_with_https = None
+        # temporarily convert git remote URL from SSH to HTTPS if necessary
         if "https" not in origin_url:
-            origin_url = f"https://github.com/{str(project_repo.remotes.origin.url).split(':')[1]}"
-            project_repo.remote(name="origin").set_url(origin_url)
+            origin_url_with_https = f"https://github.com/{str(project_repo.remotes.origin.url).split(':')[1]}"
+            project_repo.remote(name="origin").set_url(origin_url_with_https)
 
         project_repo.remote(name="origin").update()
         project_repo.remote(name="origin").fetch(prune=True)
@@ -419,7 +420,7 @@ def check_for_updates(use_default: bool = False):
             if not last_local_version:
                 tag_ndx += 1
 
-        ls_remote = git_ls_remote(origin_url)
+        ls_remote = git_ls_remote(origin_url_with_https or origin_url)
         regex = re.compile("[^0-9.]")
         remote_tags = sorted(
             set([(regex.sub("", ref), ref.replace("^{}", "").replace("refs/tags/", ""))
@@ -449,7 +450,8 @@ def check_for_updates(use_default: bool = False):
                     )
                 else:
                     logger.warning("You must select either \"y\" or \"n\".")
-                    check_for_updates(use_default)
+                    project_repo.remote(name="origin").set_url(origin_url)
+                    return check_for_updates(use_default)
             else:
                 logger.info("Use-default is set to \"true\". Automatically switching to deployment branch \"main\".")
                 project_repo.git.checkout(target_branch)
@@ -494,10 +496,12 @@ def check_for_updates(use_default: bool = False):
                     logger.info("The Fantasy Football Metrics Weekly Report app has been successfully updated!")
                 else:
                     logger.warning(not_up_to_date_status_message)
+                project_repo.remote(name="origin").set_url(origin_url)
                 return up_to_date
 
             if confirm_update == "n":
                 logger.warning(not_up_to_date_status_message)
+                project_repo.remote(name="origin").set_url(origin_url)
                 return False
             else:
                 logger.warning("Please only select \"y\" or \"n\".")
@@ -508,6 +512,7 @@ def check_for_updates(use_default: bool = False):
                 f"The Fantasy Football Metrics Weekly Report app is {Fore.GREEN}up to date{Fore.WHITE} and running "
                 f"{Fore.GREEN}{last_local_version}{Fore.WHITE}."
             )
+            project_repo.remote(name="origin").set_url(origin_url)
             return True
 
 
