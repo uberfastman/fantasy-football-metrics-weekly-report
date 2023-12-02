@@ -544,12 +544,12 @@ For those of you who wish for the report to include a custom subset of the avail
 The report can also have some of its visual formatting set. The following formatting options are available:
 
     FONT=helvetica
-    SUPPORTED_FONTS=helvetica,times,symbola,opensansemoji,sketchcollege,leaguegothic
+    SUPPORTED_FONTS_LIST=helvetica,times,symbola,opensansemoji,sketchcollege,leaguegothic
     FONT_SIZE=12
     IMAGE_QUALITY=75
     MAX_DATA_CHARS=24
 
-The values seen in the `SUPPORTED_FONTS` environment variable are the currently supported fonts for the app.
+The values seen in the `SUPPORTED_FONTS_LIST` environment variable are the currently supported fonts for the app.
 
 The player headshots retrieved for individual team pages can come in varying resolutions, and when they are extremely high resolution, they can inflate the size of the report PDF. In order to allow the user to reduce the size of the final report PDF if desired, the following option is available:
 
@@ -564,29 +564,29 @@ Once the initial images have been retrieved and quality has been adjusted, the r
 
 In addition to turning on/off the features of the report PDF itself, there are additional setting, which are as follows:
 
-|                                   Option | Description                                                                                                                                |
-|-----------------------------------------:|:-------------------------------------------------------------------------------------------------------------------------------------------|
-|                               `PLATFORM` | Fantasy football platform for which you are generating a report.                                                                           |
-|                    `SUPPORTED_PLATFORMS` | Comma-delimited list of currently supported fantasy football platforms.                                                                    |
-|                              `LEAGUE_ID` | The league id of the fantasy football for which you are running the report.                                                                |
-|                    `DATA_DIR_LOCAL_PATH` | Directory where saved data is stored.                                                                                                      |
-|                  `OUTPUT_DIR_LOCAL_PATH` | Directory where generated reports are created.                                                                                             |
-|                        `WEEK_FOR_REPORT` | Selected NFL season week for which to generate a report.                                                                                   |
-|                `NUM_PLAYOFF_SIMULATIONS` | Number of Monte Carlo simulations to run for playoff predictions. The more sims, the longer the report will take to generate.              |
-|               `NUM_REGULAR_SEASON_WEEKS` | Number of regular season weeks in selected league.                                                                                         |
-|                      `NUM_PLAYOFF_SLOTS` | Number of playoff slots in selected league.                                                                                                |
-|         `NUM_PLAYOFF_SLOTS_PER_DIVISION` | Numbers of teams per division that qualify for the playoffs.                                                                               |
-| `COACHING_EFFICIENCY_DISQUALIFIED_TEAMS` | Teams manually DQed from coaching efficiency rankings (if any).                                                                            |
-|               `GOOGLE_DRIVE_UPLOAD_BOOL` | Turn on (`True`) or off (`False`) the Google Drive upload functionality.                                                                   |
-|     `GOOGLE_DRIVE_AUTH_TOKEN_LOCAL_PATH` | Google OAuth refresh token.                                                                                                                |
-|               `GOOGLE_DRIVE_FOLDER_PATH` | Online folder in Google Drive where reports are uploaded.                                                                                  |
-|  `GOOGLE_DRIVE_REUPLOAD_FILE_LOCAL_PATH` | File path of selected report that you wish to re-upload to Google Drive by running `upload_to_google_drive.py` as a standalone script.     |
-|                        `SLACK_POST_BOOL` | Turn on (`True`) or off (`False`) the Slack upload functionality.                                                                          |
-|            `SLACK_AUTH_TOKEN_LOCAL_PATH` | Slack authentication token.                                                                                                                |
-|                     `SLACK_POST_OR_FILE` | Choose whether you post a link to the generated report on Slack (set to `post`), or upload the report PDF itself to Slack (set to `file`). |
-|                          `SLACK_CHANNEL` | Selected Slack channel where reports are uploaded.                                                                                         |
-|              `SLACK_CHANNEL_NOTIFY_BOOL` | Turn on (`True`) or off (`False`) using the `@here` slack tag to notify chosen Slack channel of a posted report file.                      |
-|           `SLACK_REPOST_FILE_LOCAL_PATH` | File path of selected report that you wish to repost to Slack.                                                                             | 
+|                                        Option | Description                                                                                                                                             |
+|----------------------------------------------:|:--------------------------------------------------------------------------------------------------------------------------------------------------------|
+|                                    `PLATFORM` | Fantasy football platform for which you are generating a report.                                                                                        |
+|                    `SUPPORTED_PLATFORMS_LIST` | Comma-delimited list (with no spaces between items) of currently supported fantasy football platforms.                                                  |
+|                                   `LEAGUE_ID` | The league id of the fantasy football for which you are running the report.                                                                             |
+|                         `DATA_DIR_LOCAL_PATH` | Directory where saved data is stored.                                                                                                                   |
+|                       `OUTPUT_DIR_LOCAL_PATH` | Directory where generated reports are created.                                                                                                          |
+|                             `WEEK_FOR_REPORT` | Selected NFL season week for which to generate a report.                                                                                                |
+|                     `NUM_PLAYOFF_SIMULATIONS` | Number of Monte Carlo simulations to run for playoff predictions. The more sims, the longer the report will take to generate.                           |
+|                    `NUM_REGULAR_SEASON_WEEKS` | Number of regular season weeks in selected league.                                                                                                      |
+|                           `NUM_PLAYOFF_SLOTS` | Number of playoff slots in selected league.                                                                                                             |
+|              `NUM_PLAYOFF_SLOTS_PER_DIVISION` | Numbers of teams per division that qualify for the playoffs.                                                                                            |
+| `COACHING_EFFICIENCY_DISQUALIFIED_TEAMS_LIST` | Comma-delimited list (with no spaces between items and surrounded by quotes) of teams manually disqualified from coaching efficiency rankings (if any). |
+|                    `GOOGLE_DRIVE_UPLOAD_BOOL` | Turn on (`True`) or off (`False`) the Google Drive upload functionality.                                                                                |
+|          `GOOGLE_DRIVE_AUTH_TOKEN_LOCAL_PATH` | Google OAuth refresh token.                                                                                                                             |
+|                    `GOOGLE_DRIVE_FOLDER_PATH` | Online folder in Google Drive where reports are uploaded.                                                                                               |
+|       `GOOGLE_DRIVE_REUPLOAD_FILE_LOCAL_PATH` | File path of selected report that you wish to re-upload to Google Drive by running `upload_to_google_drive.py` as a standalone script.                  |
+|                             `SLACK_POST_BOOL` | Turn on (`True`) or off (`False`) the Slack upload functionality.                                                                                       |
+|                 `SLACK_AUTH_TOKEN_LOCAL_PATH` | Slack authentication token.                                                                                                                             |
+|                          `SLACK_POST_OR_FILE` | Choose whether you post a link to the generated report on Slack (set to `post`), or upload the report PDF itself to Slack (set to `file`).              |
+|                               `SLACK_CHANNEL` | Selected Slack channel where reports are uploaded.                                                                                                      |
+|                   `SLACK_CHANNEL_NOTIFY_BOOL` | Turn on (`True`) or off (`False`) using the `@here` slack tag to notify chosen Slack channel of a posted report file.                                   |
+|                `SLACK_REPOST_FILE_LOCAL_PATH` | File path of selected report that you wish to repost to Slack.                                                                                          | 
 
 ---
 

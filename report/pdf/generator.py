@@ -214,11 +214,11 @@ class PdfGenerator(object):
         # set text styles
         self.font_size = settings.report_settings.font_size
         font_key = settings.report_settings.font
-        supported_fonts = settings.report_settings.supported_fonts
-        if font_key not in supported_fonts:
+        supported_fonts_list = settings.report_settings.supported_fonts_list
+        if font_key not in supported_fonts_list:
             logger.warning(
                 f"The {font_key} font is not supported at this time. Report formatting has defaulted to Helvetica. "
-                f"Please try again with one of the following supported font keys: {supported_fonts}"
+                f"Please try again with one of the following supported font keys: {supported_fonts_list}"
             )
         font_dict = {
             "helvetica": 1,

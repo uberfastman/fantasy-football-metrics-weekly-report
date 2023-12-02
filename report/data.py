@@ -68,7 +68,7 @@ class ReportData(object):
         # option to disqualify team(s) manually entered in the .env file for current week of coaching efficiency
         self.coaching_efficiency_dqs = {}
         if week_counter == week_for_report:
-            for team in settings.coaching_efficiency_disqualified_teams:
+            for team in settings.coaching_efficiency_disqualified_teams_list:
                 self.coaching_efficiency_dqs[team] = -2
                 for team_result in self.teams_results.values():
                     if team == team_result.name:
@@ -298,26 +298,34 @@ class ReportData(object):
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ LOGGER OUTPUT ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 
-        weekly_metrics_output_string = (
+        weekly_metrics_info = (
             f"\n~~~~~ WEEK {week_counter} METRICS INFO ~~~~~\n"
             f"              SCORE tie(s): {self.ties_for_scores}\n"
             f"COACHING EFFICIENCY tie(s): {self.ties_for_coaching_efficiency}\n"
         )
 
         # add line for coaching efficiency disqualifications if applicable
+        ce_dq_str = None
         if self.num_coaching_efficiency_dqs > 0:
-            ce_dq_str = ""
+            ce_dqs = []
             for team_name, ineligible_players_count in self.coaching_efficiency_dqs.items():
                 if ineligible_players_count == -1:
-                    ce_dq_str += f"{team_name} (incomplete active squad), "
+                    ce_dqs.append(f"{team_name} (incomplete active squad)")
                 elif ineligible_players_count == -2:
-                    ce_dq_str += f"{team_name} (manually disqualified), "
+                    ce_dqs.append(f"{team_name} (manually disqualified)")
                 else:
-                    ce_dq_str += (
+                    ce_dqs.append(
                         f"{team_name} (ineligible bench players: "
-                        f"{ineligible_players_count}/{league.roster_position_counts.get('BN')}), "
+                        f"{ineligible_players_count}/{league.roster_position_counts.get('BN')})"
                     )  # exclude IR
-            weekly_metrics_output_string += f"   COACHING EFFICIENCY DQs: {ce_dq_str[:-2]}\n"
 
-        # output weekly metrics info
-        logger.info(weekly_metrics_output_string)
+            ce_dq_str = ', '.join(ce_dqs)
+            weekly_metrics_info += f"   COACHING EFFICIENCY DQs: {ce_dq_str}\n"
+
+        # log weekly metrics info
+        logger.debug(weekly_metrics_info)
+        logger.info(
+            f"Week {week_counter} data processed"
+            f"{f' with the following coaching efficiency DQs: {ce_dq_str})' if ce_dq_str else ''}"
+            f"."
+        )

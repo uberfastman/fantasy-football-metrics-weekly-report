@@ -119,7 +119,7 @@ def get_current_nfl_week(offline: bool) -> int:
 def league_data_factory(base_dir: Path, data_dir: Path, platform: str,
                         game_id: Union[str, int], league_id: str, season: int, start_week: int, week_for_report: int,
                         save_data: bool, offline: bool) -> BaseLeague:
-    if platform in settings.supported_platforms:
+    if platform in settings.supported_platforms_list:
         if platform == "yahoo":
             yahoo_league = YahooLeagueData(
                 base_dir,

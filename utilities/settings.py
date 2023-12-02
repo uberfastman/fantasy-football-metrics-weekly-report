@@ -39,7 +39,7 @@ class CustomSettingsSource(EnvSettingsSource):
                 return int(value)
             except (ValueError, TypeError):
                 return value
-        if field_name in ["supported_platforms", "supported_fonts", "coaching_efficiency_disqualified_teams"]:
+        if field_name.endswith("_list"):
             return value.split(",") if value else []
         if field_name.endswith("_bool"):
             return str(value).lower() == "true"
@@ -160,10 +160,10 @@ class ReportSettings(CustomSettings):
         title=__qualname__,
         description="set font for report (defaults to Helvetica)"
     )
-    supported_fonts: List[str] = Field(
+    supported_fonts_list: List[str] = Field(
         ["helvetica", "times", "symbola", "opensansemoji", "sketchcollege", "leaguegothic"],
         title=__qualname__,
-        description="supported fonts (comma-delimited list with no spaces)"
+        description="supported fonts (comma-delimited list with no spaces between items)"
     )
     font_size: int = Field(
         12,
@@ -257,11 +257,11 @@ class AppSettings(CustomSettings):
         title=__qualname__,
         description="fantasy football platform for which you are running the report"
     )
-    supported_platforms: List[str] = Field(
+    supported_platforms_list: List[str] = Field(
         ["yahoo", "espn", "sleeper", "fleaflicker", "cbs"],
         validate_default=False,
         title=__qualname__,
-        description="supported fantasy football platforms"
+        description="supported fantasy football platforms (comma-delimited list with no spaces between items)"
     )
     league_id: Optional[str] = Field(
         None,
@@ -301,12 +301,13 @@ class AppSettings(CustomSettings):
         title=__qualname__,
         description="SLEEPER/FLEAFLICKER: default if number of regular season weeks cannot be scraped/retrieved"
     )
-    coaching_efficiency_disqualified_teams: List[str] = Field(
+    coaching_efficiency_disqualified_teams_list: List[str] = Field(
         [],
         title=__qualname__,
         description=(
             "multiple teams can be manually disqualified from coaching efficiency eligibility (comma-delimited list "
-            "with no spaces), for example: COACHING_EFFICIENCY_DISQUALIFIED_TEAMS=Team One,Team Two"
+            "with no spaces between items and surrounded by quotes), for example: "
+            "COACHING_EFFICIENCY_DISQUALIFIED_TEAMS_LIST=\"Team One,Team Two\""
         )
     )
 
@@ -374,15 +375,15 @@ def create_env_file_from_settings(env_fields: Set[Tuple[str, str, str]], env_fil
     app_settings.convert_to_default_values()
 
     if not platform:
-        supported_platforms = app_settings.supported_platforms
+        supported_platforms_list = app_settings.supported_platforms_list
         platform = input(
             f"{Fore.GREEN}For which fantasy football platform are you generating a report? "
-            f"({'/'.join(supported_platforms)}) -> {Style.RESET_ALL}"
+            f"({'/'.join(supported_platforms_list)}) -> {Style.RESET_ALL}"
         ).lower()
-        if platform not in supported_platforms:
+        if platform not in supported_platforms_list:
             logger.warning(
                 f"Please only select one of the following platforms: "
-                f"{', or '.join([', '.join(supported_platforms[:-1]), supported_platforms[-1]])}"
+                f"{', or '.join([', '.join(supported_platforms_list[:-1]), supported_platforms_list[-1]])}"
             )
             sleep(0.25)
             create_env_file_from_settings(env_fields, env_file_path)
