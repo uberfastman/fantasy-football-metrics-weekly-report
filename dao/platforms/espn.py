@@ -54,7 +54,7 @@ class LeagueData(BaseLeagueData):
                  week_validation_function: Callable, save_data: bool = True, offline: bool = False):
         super().__init__(
             "ESPN",
-            "https://fantasy.espn.com",
+            "https://lm-api-reads.fantasy.espn.com",
             base_dir,
             data_dir,
             league_id,
@@ -411,7 +411,7 @@ class LeagueData(BaseLeagueData):
                                 - int(team_json["transactionCounter"].get("acquisitionBudgetSpent", 0))
                         )
                     base_team.url = (
-                        f"https://fantasy.espn.com/football/team"
+                        f"https://lm-api-reads.fantasy.espn.com/football/team"
                         f"?leagueId={self.league.league_id}&teamId={base_team.team_id}"
                     )
 
