@@ -530,6 +530,7 @@ For those of you who wish for the report to include a custom subset of the avail
     LEAGUE_BAD_BOY_RANKINGS_BOOL=True
     LEAGUE_BEEF_RANKINGS_BOOL=True
     LEAGUE_WEEKLY_TOP_SCORERS_BOOL=True
+    LEAGUE_WEEKLY_LOW_SCORERS_BOOL=True
     LEAGUE_WEEKLY_HIGHEST_CE_BOOL=True
     REPORT_TIME_SERIES_CHARTS_BOOL=True
     REPORT_TEAM_STATS_BOOL=True
