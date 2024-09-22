@@ -158,7 +158,7 @@ class ReportData(object):
                     [
                         z_score_rank,
                         team.name,
-                        team.manager_str,
+                        team.managers,
                         z_score
                     ]
                 )
