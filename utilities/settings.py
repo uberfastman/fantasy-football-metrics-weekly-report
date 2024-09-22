@@ -147,6 +147,7 @@ class ReportSettings(CustomSettings):
     league_bad_boy_rankings_bool: bool = Field(True, title=__qualname__)
     league_beef_rankings_bool: bool = Field(True, title=__qualname__)
     league_weekly_top_scorers_bool: bool = Field(True, title=__qualname__)
+    league_weekly_low_scorers_bool: bool = Field(True, title=__qualname__)
     league_weekly_highest_ce_bool: bool = Field(True, title=__qualname__)
     report_time_series_charts_bool: bool = Field(True, title=__qualname__)
     report_team_stats_bool: bool = Field(True, title=__qualname__)
