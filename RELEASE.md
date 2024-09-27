@@ -58,21 +58,21 @@
     git add .
     git commit -m 'commit message'
     ```
-   
-13. *(Optional)* View git tags:
-    ```shell
-    git tag -l --sort=v:refname -n99
-    ```
     
-14. Update the git tag (format: `git tag -a [tag_name/version] -m [message]`):
+13. Update the git tag (format: `git tag -a [tag_name/version] -m [message]`):
    ```shell
    git tag -a v1.0.0 -m 'first release'
    git push origin --tags
    ```
 
+14. *(Optional)* View git tags:
+    ```shell
+    git tag -l --sort=v:refname -n99
+    ```
+
 15. Update `fantasy-football-metrics-weekly-report` GitHub repository:
    ```shell
-   git push
+   git push -u origin release/vX.X.X
    ```
 
 16. Go to the [FFMWR Releases page](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases) and draft a new release using the above git tag.
