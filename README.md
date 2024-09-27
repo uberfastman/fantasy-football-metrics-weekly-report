@@ -388,13 +388,7 @@ ESPN has an undocumented public API which changed from v2 to v3 in 2018 and intr
 
       3. Depending on what web browser (Firefox, Chrome, Edge, Brave, etc.) you are using, the process for viewing your session cookies in the web inspector will be different. I recommend Googling *"how to inspect element in [browser]"* (for your specific browser) to learn how to use that browser's web inspector.
 
-      4. Copy the file `private.template.json` (located in the `auth/espn/` directory), and rename the file copy `private.json` by running the below command in your command line shell:
-
-          * **macOS**/**Linux**: `cp auth/espn/private.template.json private.json auth/espn/private.json`
-
-          * **Windows**: `copy auth\espn\private.template.json auth\espn\private.json`
-
-      5. Open your `.env` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then copy and paste the above cookies into their respective environment variables (`ESPN_COOKIE_SWID` and `ESPN_COOKIE_ESPN_S2`). ***Please note, the `swid` will be surrounded by curly braces (`{...}`), which must be included.***
+      4. Open your `.env` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then copy and paste the above cookies into their respective environment variables (`ESPN_COOKIE_SWID` and `ESPN_COOKIE_ESPN_S2`). ***Please note, the `swid` will be surrounded by curly braces (`{...}`), which must be included.***
 
 **NOTE**: *Because ESPN made the change to their API between 2018 and 2019, ESPN support in the Fantasy Football Metrics Weekly Report application is currently limited to the 2019 season and later. Support for historical seasons will (hopefully) be implemented at a later time.
 
