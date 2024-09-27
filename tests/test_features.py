@@ -8,10 +8,10 @@ from pathlib import Path
 module_dir = Path(__file__).parent.parent
 sys.path.append(str(module_dir))
 
-from calculate.bad_boy_stats import BadBoyStats
-from calculate.beef_stats import BeefStats
+from calculate.bad_boy_stats import BadBoyStats  # noqa: E402
+from calculate.beef_stats import BeefStats  # noqa: E402
 
-from utilities.logger import get_logger
+from utilities.logger import get_logger  # noqa: E402
 
 logger = get_logger(__file__)
 

@@ -14,7 +14,7 @@ import colorama
 from colorama import Fore, Style
 
 from integrations.drive_integration import GoogleDriveUploader
-from integrations.slack_integration import SlackMessenger
+from integrations.slack_integration import SlackUploader
 from report.builder import FantasyFootballReport
 from utilities.app import check_for_updates
 from utilities.logger import get_logger
@@ -302,7 +302,7 @@ if __name__ == "__main__":
         options.get("save_data", False),
         options.get("offline", False),
         options.get("test", False))
-    report_pdf = report.create_pdf_report()
+    report_pdf: Path = report.create_pdf_report()
 
     upload_file_to_google_drive = settings.integration_settings.google_drive_upload_bool
     upload_message = ""
@@ -319,15 +319,15 @@ if __name__ == "__main__":
     if post_to_slack:
         if not options.get("test", False):
             # post pdf or link to pdf to slack
-            slack_messenger = SlackMessenger()
+            slack_messenger = SlackUploader()
             post_or_file = settings.integration_settings.slack_post_or_file
 
             if post_or_file == "post":
                 # post shareable link to uploaded Google Drive pdf on slack
-                slack_response = slack_messenger.post_to_selected_slack_channel(upload_message)
+                slack_response = slack_messenger.post_to_configured_slack_channel(upload_message)
             elif post_or_file == "file":
                 # upload pdf report directly to slack
-                slack_response = slack_messenger.upload_file_to_selected_slack_channel(report_pdf)
+                slack_response = slack_messenger.upload_file_to_configured_slack_channel(report_pdf)
             else:
                 logger.warning(
                     f"The \".env\" file contains unsupported Slack setting: "
@@ -335,8 +335,10 @@ if __name__ == "__main__":
                 )
                 sys.exit(1)
             if slack_response.get("ok"):
-                logger.info(f"Report {report_pdf} successfully posted to Slack!")
+                logger.info(f"Report {str(report_pdf)} successfully posted to Slack!")
             else:
-                logger.error(f"Report {report_pdf} was NOT posted to Slack with error: {slack_response.get('error')}")
+                logger.error(
+                    f"Report {str(report_pdf)} was NOT posted to Slack with error: {slack_response.get('error')}"
+                )
         else:
             logger.info("Test report NOT posted to Slack.")

@@ -10,7 +10,7 @@ from typing import List, Dict, Set, Tuple, Type, Any, Union, Optional
 from camel_converter import to_snake
 from colorama import Fore, Style
 from dotenv import dotenv_values
-from pydantic import Field
+from pydantic import Field, computed_field
 from pydantic.fields import FieldInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict, EnvSettingsSource, PydanticBaseSettingsSource
 
@@ -29,29 +29,56 @@ current_month = current_date.month
 
 class CustomSettingsSource(EnvSettingsSource):
 
-    def prepare_field_value(self, field_name: str, field: FieldInfo, value: Any, value_is_complex: bool) -> Any:
-        if value is None:
-            return None
-        if field_name == "league_id":
-            return str(value)
-        if field_name == "week_for_report":
-            try:
-                return int(value)
-            except (ValueError, TypeError):
-                return value
-        if field_name.endswith("_list"):
-            return value.split(",") if value else []
-        if field_name.endswith("_bool"):
-            return str(value).lower() == "true"
-        if field_name.endswith("_local_path"):
-            return Path(value)
-        if isinstance(value, str):
-            return value or None
+    @classmethod
+    def convert_env_field_value_to_settings(cls, field_key: str, field_value: Any) -> Any:
+
+        if field_key.endswith("_int"):
+            settings_field_value = int(field_value)
+        elif field_key.endswith("_bool"):
+            settings_field_value = str(field_value).lower() == "true"
+        elif field_key.endswith("_list"):
+            settings_field_value = field_value.split(",") if field_value else []
+        elif field_key.endswith("_json"):
+            settings_field_value = json.loads(field_value) if field_value else {}
+        elif field_key.endswith("_path"):
+            settings_field_value = Path(field_value) if field_value else None
+        elif isinstance(field_value, str):
+            settings_field_value = field_value or None
         else:
-            return json.loads(value)
+            settings_field_value = json.loads(field_value)
+
+        return settings_field_value
+
+    def prepare_field_value(self, field_name: str, field: FieldInfo, value: Any, value_is_complex: bool) -> Any:
+
+        if value is None:
+            settings_field_value = None
+        elif field_name == "league_id":
+            settings_field_value = str(value)
+        elif field_name == "week_for_report":
+            try:
+                settings_field_value = int(value)
+            except (ValueError, TypeError):
+                settings_field_value = value
+        else:
+            settings_field_value = self.__class__.convert_env_field_value_to_settings(field_name, value)
+
+        return settings_field_value
 
 
 class CustomSettings(BaseSettings):
+
+    def __repr__(self):
+        properties = ", ".join([f"{k}={v}" for k, v in self.__dict__.items()])
+        return f"{self.__class__.__name__}({properties})"
+
+    def __str__(self):
+        properties = ", ".join([f"{k}={v}" for k, v in self.__dict__.items()])
+        return f"{self.__class__.__name__}({properties})"
+
+    def __setattr__(self, key, value):
+        value = CustomSettingsSource.convert_env_field_value_to_settings(key, value)
+        super().__setattr__(key, value)
 
     @classmethod
     def settings_customise_sources(
@@ -64,20 +91,13 @@ class CustomSettings(BaseSettings):
     ) -> Tuple[PydanticBaseSettingsSource, ...]:
         return (CustomSettingsSource(settings_cls),)
 
-    def __repr__(self):
-        properties = ", ".join([f"{k}={v}" for k, v in self.__dict__.items()])
-        return f"{self.__class__.__name__}({properties})"
-
-    def __str__(self):
-        properties = ", ".join([f"{k}={v}" for k, v in self.__dict__.items()])
-        return f"{self.__class__.__name__}({properties})"
-
     @classmethod
     def get_fields(cls, parent_cls=None) -> Set[Tuple[str, str, str]]:
         settings_field_keys = set()
         for k, v in cls.model_fields.items():
             try:
                 if issubclass(v.annotation, CustomSettings):
+                    field: Tuple[str, str, str]
                     settings_field_keys.update(
                         [(str(field[0]).upper(), field[1], field[2]) for field in v.annotation.get_fields(cls.__name__)]
                     )
@@ -88,29 +108,76 @@ class CustomSettings(BaseSettings):
 
         return settings_field_keys
 
-    def convert_to_default_values(self):
-        for field_key, field in self.model_fields.items():
-            setattr(self, field_key, field.default)
-
     def get_fields_by_title_group(self) -> Dict[str, Dict[str, Field]]:
 
-        fields_by_title = {}
-        field_values = self.model_dump()
+        fields_by_title: Dict = {}
         for field_key, field in self.model_fields.items():
             if isclass(field.annotation) and issubclass(field.annotation, CustomSettings):
-                fields_by_title.update(**field.default.get_fields_by_title_group())
+                settings_field: CustomSettings = getattr(self, field_key)
+                fields_by_title.update(**settings_field.get_fields_by_title_group())
             else:
                 field_title_key = to_snake(field.title)
+                field_value = getattr(self, field_key)
+                if not isinstance(field_value, bool) and not field_value:
+                    field_value = field.default
                 if field_title_key in fields_by_title.keys():
-                    fields_by_title[field_title_key][field_key] = (field_values[field_key], field.description)
+                    fields_by_title[field_title_key][field_key] = (field_value, field.description)
                 else:
-                    fields_by_title[field_title_key] = {field_key: (field_values[field_key], field.description)}
+                    fields_by_title[field_title_key] = {field_key: (field_value, field.description)}
 
         return fields_by_title
+
+    @staticmethod
+    def convert_field_value_to_env(field_value: Any) -> str:
+
+        if isinstance(field_value, int):
+            env_field_value = str(field_value)
+        elif isinstance(field_value, bool):
+            env_field_value = str(field_value)
+        elif isinstance(field_value, list):
+            env_field_value = ",".join([val for val in field_value])
+        elif isinstance(field_value, dict) and field_value:
+            # use nested json.dumps() to escape double quotes in output string
+            env_field_value = json.dumps(json.dumps(field_value))
+        elif isinstance(field_value, Path):
+            env_field_value = str(field_value)
+        elif field_value:
+            env_field_value = str(field_value)
+        else:
+            env_field_value = ""
+
+        if (" " in env_field_value
+                and not (env_field_value.startswith("\"") or env_field_value.startswith("'"))
+                and not (env_field_value.endswith("\"") or env_field_value.endswith("'"))):
+            env_field_value = f"\"{env_field_value}\""
+
+        return env_field_value
+
+    def write_settings_to_env_file(self, env_file_path: Path) -> None:
+
+        with open(env_file_path, "w") as ef:
+
+            for field_type, fields in self.get_fields_by_title_group().items():
+                ef.write(f"\n# # # # # {field_type.replace('_', ' ').upper()} # # # # #\n\n")
+
+                for field_key, (field_value, field_description) in fields.items():
+
+                    if field_description:
+                        ef.write(f"# {field_description}\n")
+                    ef.write(
+                        f"{str(field_key).upper()}={self.convert_field_value_to_env(field_value)}\n"
+                    )
+
+    def replace_field_values_with_default(self):
+        for field_key, field in self.model_fields.items():
+            setattr(self, field_key, field.default)
 
 
 class PlatformSettings(CustomSettings):
     # yahoo
+    yahoo_consumer_key: str = Field(None, title=__qualname__)
+    yahoo_consumer_secret: str = Field(None, title=__qualname__)
+    yahoo_access_token_json: Optional[Dict[str, Any]] = Field(None, title=__qualname__)
     yahoo_game_id: Union[str, int] = Field(
         "nfl",
         title=__qualname__,
@@ -120,7 +187,6 @@ class PlatformSettings(CustomSettings):
             "(2018 NFL season), or 390 (2019 nfl season)"
         )
     )
-    yahoo_auth_dir_local_path: Path = Field(Path("auth/yahoo"), title=__qualname__)
     yahoo_initial_faab_budget: int = Field(
         100,
         title=__qualname__,
@@ -128,10 +194,27 @@ class PlatformSettings(CustomSettings):
     )
 
     # espn
-    espn_auth_dir_local_path: Path = Field(Path("auth/espn"), title=__qualname__)
+    espn_username: Optional[str] = Field(None, title=__qualname__)
+    espn_password: Optional[str] = Field(None, title=__qualname__)
+    espn_chrome_user_profile_path: Optional[Path] = Field(None, title=__qualname__)
+
+    @computed_field
+    @property
+    def espn_chrome_user_data_dir(self) -> str:
+        return str(self.espn_chrome_user_profile_path.parent)
+
+    @computed_field
+    @property
+    def espn_chrome_user_profile(self) -> str:
+        return self.espn_chrome_user_profile_path.name
+
+    espn_cookie_swid: Optional[str] = Field(None, title=__qualname__)
+    espn_cookie_espn_s2: Optional[str] = Field(None, title=__qualname__)
 
     # cbs
-    cbs_auth_dir_local_path: Path = Field(Path("auth/cbs"), title=__qualname__)
+    cbs_username: Optional[str] = Field(None, title=__qualname__)
+    cbs_password: Optional[str] = Field(None, title=__qualname__)
+    cbs_auth_token: Optional[str] = Field(None, title=__qualname__)
 
 
 class ReportSettings(CustomSettings):
@@ -194,13 +277,15 @@ class IntegrationSettings(CustomSettings):
             "change GOOGLE_DRIVE_UPLOAD_BOOL to True/False to turn on/off uploading of the report to Google Drive"
         )
     )
-    google_drive_auth_token_local_path: Path = Field(Path("auth/google/token.json"), title=__qualname__)
-    google_drive_reupload_file_local_path: Optional[Path] = Field(
+    google_drive_client_id: Optional[str] = Field(None, title=__qualname__)
+    google_drive_client_secret: Optional[str] = Field(None, title=__qualname__)
+    google_drive_auth_token_json: Optional[Dict[str, Any]] = Field(None, title=__qualname__)
+    google_drive_reupload_file_path: Optional[Path] = Field(
         "resources/files/example_report.pdf",
         title=__qualname__
     )
-    google_drive_default_folder_path: str = Field("Fantasy_Football", title=__qualname__)
-    google_drive_folder_path: Optional[str] = Field(None, title=__qualname__)
+    google_drive_default_folder: str = Field("Fantasy_Football", title=__qualname__)
+    google_drive_folder: Optional[str] = Field(None, title=__qualname__)
 
     # slack
     slack_post_bool: bool = Field(
@@ -208,8 +293,8 @@ class IntegrationSettings(CustomSettings):
         title=__qualname__,
         description="change SLACK_POST_BOOL to True/False to turn on/off posting of the report to Slack"
     )
-    slack_auth_token_local_path: Path = Field(Path("auth/slack/token.json"), title=__qualname__)
-    slack_repost_file_local_path: Optional[Path] = Field(
+    slack_auth_token: Optional[str] = Field(None, title=__qualname__)
+    slack_repost_file_path: Optional[Path] = Field(
         "resources/files/example_report.pdf",
         title=__qualname__
     )
@@ -239,12 +324,12 @@ class AppSettings(CustomSettings):
         description="logger output level: notset, debug, info, warning, error, critical"
     )
     # output directories can be set to store your saved data and generated reports wherever you want
-    data_dir_local_path: Path = Field(
+    data_dir_path: Path = Field(
         Path("output/data"),
         title=__qualname__,
         description="output directory can be set to store your saved data wherever you want"
     )
-    output_dir_local_path: Path = Field(
+    output_dir_path: Path = Field(
         Path("output/reports"),
         title=__qualname__,
         description="output directory can be set to store your generated reports wherever you want"
@@ -252,7 +337,6 @@ class AppSettings(CustomSettings):
 
     platform: Optional[str] = Field(
         None,
-        env="PLATFORM",
         validate_default=False,
         title=__qualname__,
         description="fantasy football platform for which you are running the report"
@@ -372,7 +456,7 @@ def create_env_file_from_settings(env_fields: Set[Tuple[str, str, str]], env_fil
         _env_file=env_file_path,
         _env_file_encoding="utf-8"
     )
-    app_settings.convert_to_default_values()
+    app_settings.replace_field_values_with_default()
 
     if not platform:
         supported_platforms_list = app_settings.supported_platforms_list
@@ -450,22 +534,7 @@ def create_env_file_from_settings(env_fields: Set[Tuple[str, str, str]], env_fil
 
     app_settings.current_nfl_week = int(current_week)
 
-    with open(env_file_path, "w") as ef:
-
-        for field_type, fields in app_settings.get_fields_by_title_group().items():
-            ef.write(f"\n# # # # # {field_type.replace('_', ' ').upper()} # # # # #\n\n")
-
-            for field_key, (field_value, field_description) in fields.items():
-
-                if isinstance(field_value, list):
-                    field_env_var_value = ",".join([val for val in field_value])
-                elif isinstance(field_value, bool) or field_value:
-                    field_env_var_value = field_value
-                else:
-                    field_env_var_value = ""
-                if field_description:
-                    ef.write(f"# {field_description}\n")
-                ef.write(f"{str(field_key).upper()}={field_env_var_value}\n")
+    app_settings.write_settings_to_env_file(env_file_path)
 
     return app_settings
 

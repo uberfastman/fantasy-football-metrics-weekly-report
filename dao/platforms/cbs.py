@@ -6,6 +6,7 @@ from statistics import median
 from typing import Callable, Dict, Any
 
 import requests
+from colorama import Fore, Style
 
 from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseManager, BaseRecord, BasePlayer, BaseStat
 from dao.platforms.base.base import BaseLeagueData
@@ -47,50 +48,63 @@ class LeagueData(BaseLeagueData):
         # the new API uses the league ID and sport in the base URL
         self.api_base_url = f"{self.base_url}/api"
 
-        self.access_token = self.check_auth()
+        self._authenticate()
 
         self.query_headers = {
             "User-Agent": "Fantasy FB/5 CFNetwork/1410.0.3 Darwin/22.6.0",
             "Content-Type": "application/json",
             "Accept": "*/*",
-            "Authorization": self.access_token
+            "Authorization": settings.platform_settings.cbs_auth_token
         }
 
-    def check_auth(self) -> str:
+    def _authenticate(self) -> None:
 
-        auth_json = None
-        cbs_auth_file = Path(self.base_dir) / settings.platform_settings.cbs_auth_dir_local_path / "private.json"
-        if Path(cbs_auth_file).is_file():
-            with open(cbs_auth_file, "r") as auth_file:
-                auth_json = json.load(auth_file)
+        if not settings.platform_settings.cbs_auth_token:
 
-        if auth_json.get("access_token"):
-            return auth_json.get("access_token")
-        else:
-            auth_query_headers = {
-                "User-Agent": "Fantasy FB/5 CFNetwork/1410.0.3 Darwin/22.6.0",
-                "Content-Type": "application/json",
-                "Accept": "*/*"
-            }
+            input(
+                f"{Fore.YELLOW}"
+                f"Your .env file is missing the required authentication access token for CBS leagues.\n"
+                f"Type any other key to authenticate with your CBS credentials. -> {Style.RESET_ALL}"
+            )
 
-            auth_query_data = json.dumps({
-                "client_id": "cbssports",
-                "client_secret": "sportsallthetime",
-                "user_id": auth_json.get("user_id"),
-                "password": auth_json.get("password")
-            })
+            if not settings.platform_settings.cbs_username:
+                settings.platform_settings.cbs_username = input(
+                    f"{Fore.GREEN}What is your CBS username? -> {Style.RESET_ALL}"
+                )
+                settings.write_settings_to_env_file(self.base_dir / ".env")
 
-            auth_url = f"{self.auth_base_url}/general/oauth/mobile/login?response_format=json"
+            if not settings.platform_settings.cbs_password:
+                settings.platform_settings.cbs_password = input(
+                    f"{Fore.GREEN}What is your CBS password? -> {Style.RESET_ALL}"
+                )
+                settings.write_settings_to_env_file(self.base_dir / ".env")
 
-            response_json = requests.post(auth_url, headers=auth_query_headers, data=auth_query_data).json()
+            logger.info("Retrieving your CBS access token using your configured CBS credentials...")
 
-            access_token = response_json.get("body").get("access_token")
-            auth_json["access_token"] = access_token
+            settings.platform_settings.cbs_auth_token = self._retrieve_access_token()
+            settings.write_settings_to_env_file(self.base_dir / ".env")
 
-            with open(cbs_auth_file, "w") as auth_file:
-                json.dump(auth_json, auth_file, indent=2)
+            logger.info("...CBS access token retrieved and written to your .env file.")
 
-            return access_token
+    def _retrieve_access_token(self) -> str:
+        auth_query_headers = {
+            "User-Agent": "Fantasy FB/5 CFNetwork/1410.0.3 Darwin/22.6.0",
+            "Content-Type": "application/json",
+            "Accept": "*/*"
+        }
+
+        auth_query_data = json.dumps({
+            "client_id": "cbssports",
+            "client_secret": "sportsallthetime",
+            "user_id": settings.platform_settings.cbs_username,
+            "password": settings.platform_settings.cbs_password
+        })
+
+        auth_url = f"{self.auth_base_url}/general/oauth/mobile/login?response_format=json"
+
+        response_json = requests.post(auth_url, headers=auth_query_headers, data=auth_query_data).json()
+
+        return response_json.get("body").get("access_token")
 
     def build_api_url(self, route: str, additional_parameters: Dict[str, Any] = None):
         api_url_query_parameters = f"version=3.0&response_format=json&sport=football&league_id={self.league.league_id}"
@@ -103,6 +117,7 @@ class LeagueData(BaseLeagueData):
 
     @staticmethod
     def extract_integer(input_with_embedded_int: Any):
+        # noinspection PyTypeChecker
         return int("".join(filter(str.isdigit, str(input_with_embedded_int))))
 
     def map_data_to_base(self) -> BaseLeague:
@@ -587,3 +602,21 @@ class LeagueData(BaseLeagueData):
         )
 
         return self.league
+
+
+if __name__ == '__main__':
+
+    root_directory = Path(__file__).parent.parent.parent
+
+    cbs_platform = LeagueData(
+        root_directory,
+        Path(__file__).parent.parent.parent / 'data',
+        settings.league_id,
+        settings.season,
+        2,
+        settings.week_for_report,
+        lambda *args: None,
+        lambda *args: None
+    )
+    # noinspection PyProtectedMember
+    logger.info(cbs_platform._authenticate())
