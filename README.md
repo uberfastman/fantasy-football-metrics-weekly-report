@@ -1,6 +1,6 @@
 # Fantasy Football Metrics Weekly Report [![Stars](https://img.shields.io/github/stars/uberfastman/fantasy-football-metrics-weekly-report?style=social&label=Stars)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/stargazers) [![Forks](https://img.shields.io/github/forks/uberfastman/fantasy-football-metrics-weekly-report?style=social&label=Forks)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/network/members)
 
-[![Build Status](https://travis-ci.com/uberfastman/fantasy-football-metrics-weekly-report.svg?branch=main)](https://travis-ci.com/uberfastman/fantasy-football-metrics-weekly-report)
+[![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/uberfastman/fantasy-football-metrics-weekly-report/python-build.yml?color=brightgreen&label=build)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/actions/workflows/python-build.yml)
 [![License](https://img.shields.io/github/license/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/blob/main/LICENSE)
 
 ---
@@ -76,16 +76,14 @@
 * [Troubleshooting](#troubleshooting)
     * [Logs](#logs)
     * [Yahoo](#yahoo)
+    * [ESPN](#espn)
     * [Docker on Windows](#docker-on-windows)
+    * [Reportlab](#reportlab)
 
 ---
 
 <a name="quickstart-guide"></a>
 ## *Quickstart Guide*
-
-```diff
-+ NEW (AND EASIER) APPLICATION SETUP BELOW!
-```
 
 1. Open a command-line interface (see the [Command-line](#command-line) section for more details) on your computer.
 
@@ -122,7 +120,7 @@
     cd fantasy-football-metrics-weekly-report
     ```
 
-6. Follow the required setup instructions for whichever fantasy football platform you use: [Yahoo](#yahoo-setup), [ESPN](#espn-setup), [Sleeper](#sleeper-setup), or [Fleaflicker](#fleaflicker-setup)
+6. Follow the required setup instructions for whichever fantasy football platform you use: [Yahoo](#yahoo-setup), [ESPN](#espn-setup), [Sleeper](#sleeper-setup), [Fleaflicker](#fleaflicker-setup), or [CBS](#cbs-setup).
 
 7. Update the values in the `.env` file (see the [Settings](#settings) section for more details).
 
@@ -136,7 +134,7 @@
         docker compose up -d
         ```
 
-      If you wish to see the Docker logs, then run `docker compose up`.
+      If you wish to see the Docker logs, then run `docker compose up` without the `-d` flag.
 
     * Wait for the above command to complete, then run:
 
@@ -165,14 +163,6 @@ Currently supported fantasy football platforms:
 
 * **CBS**
 
-*Platforms in development:*
-
-* TBD
-
-*Planned platforms:*
-
-* ***MyFantasyLeague***
-
 <a name="example-report"></a>
 #### Example Report
 
@@ -190,7 +180,7 @@ If you wish to update the app yourself manually, you can just type `n` to skip a
 <a name="dependencies"></a>
 ### Dependencies
 
-The application is actively developed in macOS, but is cross-platform compatible. The app requires ***Python 3.9 or later***. To check if you have the minimum required version (or later) of Python installed, open up a window in Terminal (macOS), Command Prompt (Windows), or a command line shell of your choice, and run `python --version`. If the return value is `Python 3.x.x` where the first `x` is equal to or greater than the minimum required minor version, you are good to go. If the return is `Python 2.x.x`, you will need to install the correct Python 3 version. Check out the instructions [here](https://realpython.com/installing-python/) for how to install Python 3 on your system.
+The application is actively developed in macOS, but is cross-platform compatible. The app requires ***Python 3.10 or later***. To check if you have the minimum required version (or later) of Python installed, open up a window in Terminal (macOS), Command Prompt (Windows), or a command line shell of your choice, and run `python --version`. If the return value is `Python 3.x.x` where the first `x` is equal to or greater than the minimum required minor version, you are good to go. If the return is `Python 2.x.x`, you will need to install the correct Python 3 version. Check out the instructions [here](https://realpython.com/installing-python/) for how to install Python 3 on your system.
 
 Project dependencies can be viewed in the [`requirements.txt`](requirements.txt) file.
 
@@ -255,7 +245,7 @@ Clone this project to whichever directory you wish to use for this app:
     git clone https://github.com/uberfastman/fantasy-football-metrics-weekly-report.git
     ```
 
-* If you already have an account on [GitHub](https://github.com), then I recommend using [SSH to connect with GitHub](https://help.github.com/en/articles/connecting-to-github-with-ssh) by running:
+* If you already have an account on [GitHub](https://github.com), then it is recommended you use [SSH to connect with GitHub](https://help.github.com/en/articles/connecting-to-github-with-ssh) by running:
 
     ```bash
     git clone git@github.com:uberfastman/fantasy-football-metrics-weekly-report.git
@@ -297,15 +287,9 @@ Yahoo Fantasy Sports has a public API documented [here](https://developer.yahoo.
 
 6. Once the app is created, it should redirect you to a page for your app, which will show both a `Client ID` and a `Client Secret`.
 
-7. Copy the file `private.template.json` (located in the `auth/yahoo/` directory) and rename the file copy `private.json` by running the below command in your command line shell:
+7. Open your `.env` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then copy and paste the above values into their respective environment variables (`YAHOO_CONSUMER_KEY` and `YAHOO_CONSUMER_SECRET`) as explained in [Settings](#settings).
 
-   * **macOS**/**Linux**: `cp auth/yahoo/private.template.json private.json auth/yahoo/private.json`
-
-   * **Windows**: `copy auth\yahoo\private.template.json auth\yahoo\private.json`
-
-8. Open your new `private.json` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then copy and paste the `Client ID` and `Client Secret` values from your above created Yahoo app to their respective fields (make sure the strings are wrapped regular quotes (`""`), NOT formatted quotes (`“”`)). The path to this file will be needed to point the YFPY API wrapper responsible for data retrieval to your credentials.
-
-9. The first time you run the app, it will initialize the OAuth connection between the report generator and your Yahoo account.
+8. The first time you run the app, it will initialize the OAuth connection between the report generator and your Yahoo account.
 
 **NOTE**:***If your Yahoo league uses FAAB (Free Agent Acquisition Budget) for player waivers, you must set the `YAHOO_INITIAL_FAAB_BUDGET` value in the `.env` file to reflect your league's starting budget, since this information does not seem to be available in the Yahoo API.***
 
@@ -370,13 +354,17 @@ ESPN has an undocumented public API which changed from v2 to v3 in 2018 and intr
 
    1. Allow the app to automatically retrieve your ESPN session cookies for you:
 
-      1. Copy the file `private.template.json` (located in the `auth/espn/` directory), and rename the file copy `private.json` by running the below command in your command line shell:
+      1. The first time you run the app for your private ESPN league, it will prompt you for the values of the below environment variable, and then automatically save them to your `.env` file:
 
-         * **macOS**/**Linux**: `cp auth/espn/private.template.json private.json auth/espn/private.json`
+         1. `ESPN_USERNAME`: This environment variable is your ESPN account username.
+   
+         2. `ESPN_PASSWORD`: This environment variable is your ESPN account password.
+   
+         3. `ESPN_CHROME_USER_PROFILE_PATH`: This environment variable is the value of the `Profile Path` field in your Google Chrome version info, which can be retrieved by opening Google Chrome and navigating to [chrome://version](chrome://version), where you will see the `Profile Path` field.
+   
+         ***Please note, the FFMWR app only stores your credentials locally on your own computer so that it can use them to log in to your account and obtain session cookies.*** The app uses [Selenium](https://www.selenium.dev) to run a headless browser to log in to ESPN on your behalf, so expect to see an email alerting you to a new device login. The Selenium process will retrieve your ESPN session cookies (`SWID` and `espn_s2`) and copy them into your `.env` file for reuse with future ESPN API authentication.
 
-         * **Windows**: `copy auth\espn\private.template.json auth\espn\private.json`
-
-      2. Open your new `private.json` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), ***delete*** the `swid` and `espn_s2` fields, and add your ESPN account username and password to their respective fields. ***Please note, the FFMWR app does not store any of your credentials, it simply uses them to log in to your account and obtain session cookies.*** The app uses [Selenium](https://www.selenium.dev) to run a headless browser to log in to ESPN on your behalf, so expect to see an email alerting you to a new device login. The Selenium process will retrieve your ESPN session cookies (`SWID` and `espn_s2`) and copy them into your `private.json` file for reuse with future ESPN API authentication.
+         **If you run into any issues during this automated credentials retrieval process, please check the [ESPN troubleshooting section](#espn).**
 
    2. Manually retrieve your ESPN session cookies:
 
@@ -400,13 +388,7 @@ ESPN has an undocumented public API which changed from v2 to v3 in 2018 and intr
 
       3. Depending on what web browser (Firefox, Chrome, Edge, Brave, etc.) you are using, the process for viewing your session cookies in the web inspector will be different. I recommend Googling *"how to inspect element in [browser]"* (for your specific browser) to learn how to use that browser's web inspector.
 
-      4. Copy the file `private.template.json` (located in the `auth/espn/` directory), and rename the file copy `private.json` by running the below command in your command line shell:
-
-          * **macOS**/**Linux**: `cp auth/espn/private.template.json private.json auth/espn/private.json`
-
-          * **Windows**: `copy auth\espn\private.template.json auth\espn\private.json`
-
-      5. Open your new `private.json` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then copy and paste the above cookies into their respective fields. ***Please note, the `swid` will be surrounded by curly braces (`{...}`), which must be included.***
+      4. Open your `.env` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then copy and paste the above cookies into their respective environment variables (`ESPN_COOKIE_SWID` and `ESPN_COOKIE_ESPN_S2`). ***Please note, the `swid` will be surrounded by curly braces (`{...}`), which must be included.***
 
 **NOTE**: *Because ESPN made the change to their API between 2018 and 2019, ESPN support in the Fantasy Football Metrics Weekly Report application is currently limited to the 2019 season and later. Support for historical seasons will (hopefully) be implemented at a later time.
 
@@ -425,15 +407,11 @@ CBS has a public API that was once documented, the last version of which can be 
 
 2. Change the `LEAGUE_ID` value in the `.env` file to the above located league id.
 
-3. The CBS API requires authentication to retrieve your league data, so you will need to use your CBS credentials to do so. Copy the file `private.template.json` (located in the `auth/cbs/` directory), and rename the file copy `private.json` by running the below command in your command line shell:
+3. The CBS API requires authentication to retrieve your league data, so you will need to use your CBS credentials to do so. The first time you run the app for your CBS league, it will prompt you for the values of your CBS account username and password, and then automatically save them to their respective environment variables (`CBS_USERNAME` and `CBS_PASSWORD`) in your `.env` file.
 
-   * **macOS**/**Linux**: `cp auth/cbs/private.template.json private.json auth/cbs/private.json`
+    ***Please note, the FFMWR app only stores your credentials locally on your own computer so it can use them to log in to your account and obtain an API access token.***
 
-   * **Windows**: `copy auth\cbs\private.template.json auth\cbs\private.json`
-
-4. Open your new `private.json` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then update the respective fields with your `LEAGUE_ID`, CBS username, and CBS password. ***Please note, the FFMWR app does not store any of your credentials, it simply uses them to log in to your account and obtain an API access token.*** All values added to `private.json` must be surrounded by regular quotes (`""`), NOT formatted quotes (`“”`)).
-
-5. The first time you run the app, it will retrieve an API access token using your credentials and store it in the `auth/cbs/private.json` file. All subsequent runs of the report will simply use this access token to authenticate with the CBS API instead of your CBS credentials, so if you prefer you can delete your CBS username and CBS password from the file.
+4. The first time you run the app, it will retrieve an API access token using your credentials and save it to your `.env` file. All subsequent runs of the report will simply use this access token to authenticate with the CBS API instead of your CBS credentials, so if you prefer you can delete your CBS username and CBS password from your `.env` file.
 
 ##### You are now ready to [generate a report!](#running-the-report-application)
 
@@ -516,39 +494,12 @@ The app ***REQUIRES*** that a `.env` be present, so it is recommended that you a
 <a name="report-features"></a>
 #### Report Features
 
-For those of you who wish for the report to include a custom subset of the available features (for instance, if you want league stats but not team pages, or if you want score rankings but not coaching efficiency), the `REPORT SETTINGS` section in the `.env` file allows all features to be turned on or off. You must use a boolean value (`True` or `False`) to turn on/off any of the available report features, which are the following:
-
-    LEAGUE_STANDINGS_BOOL=True
-    LEAGUE_PLAYOFF_PROBS_BOOL=True
-    LEAGUE_MEDIAN_STANDINGS_BOOL=True
-    LEAGUE_POWER_RANKINGS_BOOL=True
-    LEAGUE_Z_SCORE_RANKINGS_BOOL=True
-    LEAGUE_SCORE_RANKINGS_BOOL=True
-    LEAGUE_COACHING_EFFICIENCY_RANKINGS_BOOL=True
-    LEAGUE_LUCK_RANKINGS_BOOL=True
-    LEAGUE_OPTIMAL_SCORE_RANKINGS_BOOL=True
-    LEAGUE_BAD_BOY_RANKINGS_BOOL=True
-    LEAGUE_BEEF_RANKINGS_BOOL=True
-    LEAGUE_WEEKLY_TOP_SCORERS_BOOL=True
-    LEAGUE_WEEKLY_LOW_SCORERS_BOOL=True
-    LEAGUE_WEEKLY_HIGHEST_CE_BOOL=True
-    REPORT_TIME_SERIES_CHARTS_BOOL=True
-    REPORT_TEAM_STATS_BOOL=True
-    TEAM_POINTS_BY_POSITION_CHARTS_BOOL=True
-    TEAM_BAD_BOY_STATS_BOOL=True
-    TEAM_BEEF_STATS_BOOL=True
-    TEAM_BOOM_OR_BUST_BOOL=True
+For those of you who wish for the report to include a custom subset of the available features (for instance, if you want league stats but not team pages, or if you want score rankings but not coaching efficiency), the `REPORT SETTINGS` section in the `.env` file allows all features to be turned on or off. You must use a boolean value (`True` or `False`) to turn on/off any of the available report features. Please reference the `REPORT SETTINGS` section of your generated `.env` file for the available features.
 
 <a name="report-formatting"></a>
 #### Report Formatting
 
-The report can also have some of its visual formatting set. The following formatting options are available:
-
-    FONT=helvetica
-    SUPPORTED_FONTS_LIST=helvetica,times,symbola,opensansemoji,sketchcollege,leaguegothic
-    FONT_SIZE=12
-    IMAGE_QUALITY=75
-    MAX_DATA_CHARS=24
+The report can also have some of its visual formatting set. Please reference the `REPORT SETTINGS` section of your generated `.env` file for the available features.
 
 The values seen in the `SUPPORTED_FONTS_LIST` environment variable are the currently supported fonts for the app.
 
@@ -563,31 +514,7 @@ Once the initial images have been retrieved and quality has been adjusted, the r
 <a name="report-settings"></a>
 #### Report Settings
 
-In addition to turning on/off the features of the report PDF itself, there are additional setting, which are as follows:
-
-|                                        Option | Description                                                                                                                                             |
-|----------------------------------------------:|:--------------------------------------------------------------------------------------------------------------------------------------------------------|
-|                                    `PLATFORM` | Fantasy football platform for which you are generating a report.                                                                                        |
-|                    `SUPPORTED_PLATFORMS_LIST` | Comma-delimited list (with no spaces between items) of currently supported fantasy football platforms.                                                  |
-|                                   `LEAGUE_ID` | The league id of the fantasy football for which you are running the report.                                                                             |
-|                         `DATA_DIR_LOCAL_PATH` | Directory where saved data is stored.                                                                                                                   |
-|                       `OUTPUT_DIR_LOCAL_PATH` | Directory where generated reports are created.                                                                                                          |
-|                             `WEEK_FOR_REPORT` | Selected NFL season week for which to generate a report.                                                                                                |
-|                     `NUM_PLAYOFF_SIMULATIONS` | Number of Monte Carlo simulations to run for playoff predictions. The more sims, the longer the report will take to generate.                           |
-|                    `NUM_REGULAR_SEASON_WEEKS` | Number of regular season weeks in selected league.                                                                                                      |
-|                           `NUM_PLAYOFF_SLOTS` | Number of playoff slots in selected league.                                                                                                             |
-|              `NUM_PLAYOFF_SLOTS_PER_DIVISION` | Numbers of teams per division that qualify for the playoffs.                                                                                            |
-| `COACHING_EFFICIENCY_DISQUALIFIED_TEAMS_LIST` | Comma-delimited list (with no spaces between items and surrounded by quotes) of teams manually disqualified from coaching efficiency rankings (if any). |
-|                    `GOOGLE_DRIVE_UPLOAD_BOOL` | Turn on (`True`) or off (`False`) the Google Drive upload functionality.                                                                                |
-|          `GOOGLE_DRIVE_AUTH_TOKEN_LOCAL_PATH` | Google OAuth refresh token.                                                                                                                             |
-|                    `GOOGLE_DRIVE_FOLDER_PATH` | Online folder in Google Drive where reports are uploaded.                                                                                               |
-|       `GOOGLE_DRIVE_REUPLOAD_FILE_LOCAL_PATH` | File path of selected report that you wish to re-upload to Google Drive by running `upload_to_google_drive.py` as a standalone script.                  |
-|                             `SLACK_POST_BOOL` | Turn on (`True`) or off (`False`) the Slack upload functionality.                                                                                       |
-|                 `SLACK_AUTH_TOKEN_LOCAL_PATH` | Slack authentication token.                                                                                                                             |
-|                          `SLACK_POST_OR_FILE` | Choose whether you post a link to the generated report on Slack (set to `post`), or upload the report PDF itself to Slack (set to `file`).              |
-|                               `SLACK_CHANNEL` | Selected Slack channel where reports are uploaded.                                                                                                      |
-|                   `SLACK_CHANNEL_NOTIFY_BOOL` | Turn on (`True`) or off (`False`) using the `@here` slack tag to notify chosen Slack channel of a posted report file.                                   |
-|                `SLACK_REPOST_FILE_LOCAL_PATH` | File path of selected report that you wish to repost to Slack.                                                                                          | 
+In addition to turning on/off the features of the report PDF itself, there are additional setting. For an overview of the available settings and what they do, please reference your generated `.env` file.
 
 ---
 
@@ -740,34 +667,18 @@ The Fantasy Football Metrics Weekly Report application includes integration with
 The following setup steps are ***required*** in order to allow the Slack integration to function properly:
 
 1. Sign in to your slack workspace [here](https://slack.com/signin).
-
 2. Once logged in, you need to [create a new app](https://api.slack.com/apps?new_app=1) for your workspace.
-
-3. After the popup appears, fill in the fields as follows:
-
-    * i. `App Name`: `ff-report` (this name can be anything you want)
-
-    * ii. `Development Slack Workspace`: Select your chosen Slack workspace from the dropdown menu.
-
-4. Click `Create App`. You should now be taken to the page for your new app, where you can set things like the app title card color, the icon, the description, as well as a whole host of other features (see [here](https://api.slack.com/slack-apps) for more information).
-
-5. Select `Basic Information` from the menu on the left.
-
+3. After the popup appears, select `From scratch` and fill in the fields as follows:
+    * i. `App Name`: `ffmw-report` (this name can be anything you want)
+    * ii. `Pick a workspace to develop your app in:`: Select your chosen Slack workspace from the dropdown menu.
+4. Click `Create App`. You should now be taken to the page for your new app, where you can set things like the app title card color, the icon, the description, as well as a whole host of other features (see [here](https://api.slack.com/docs/apps) for more information).
+5. Select `Basic Information` from the `Settings` section in the menu on the left.
 6. Scroll down to `Display Information` and set up your Slack app with whatever display settings you want.
-
-7. Scroll up to `Building Apps for Slack` and click `Bots`.
-
-8. You will be taken to the `App Home` section of the menu on the left.
-
-9. Click the `Review Scopes to Add` button.
-
-10. You will be taken to the `OAuth & Permissions` section of the menu on the left.
-
-11. Scroll down to `Scopes`.
-
-12. Under `Bot Token Scopes`, click the `Add an OAuth Scope` button.
-
-13. From the dropdown menu, select the below scopes:
+7. Click `Save Changes`.
+8. Select `OAuth & Permissions` from the `Features` section in the menu on the left. 
+9. Scroll down to `Scopes`. 
+10. Under `Bot Token Scopes`, click the `Add an OAuth Scope` button. 
+11. From the dropdown menu, select the below scopes:
 
     | OAuth Scope            | Description                                                                         |
         |:-----------------------|:------------------------------------------------------------------------------------|
@@ -781,22 +692,14 @@ The following setup steps are ***required*** in order to allow the Slack integra
     | `incoming-webhook`     | Post messages to specific channels in Slack                                         |
     | `mpim:read`            | View basic information about group direct messages that ff-report has been added to |
 
-14. Scroll back up to `OAuth Tokens & Redirect URLs`, and now you should be able to click the `Install App to Workspace` button, so click it.
-
-15. You will be redirected to a screen saying your app is asking for permission to access the Slack workspace, and presenting you with a dropdown to select a channel for your app to post to. Select your desired channel, and hit `Allow`.
-
-16. You will now be redirected back to the `OAuth & Permissions` section of your app settings. At the top, you will see a `Bot User OAuth Access Token` field, which will now have a value populated.
-
-17. Copy the file `token.template.json` (located in the `auth/slack/` directory), and rename the file copy `token.json`, then copy and paste the above `Bot user OAuth Access Token` into the field value of `token.json` where it says `"SLACK_APP_OAUTH_ACCESS_TOKEN_STRING"`, replacing that string. Make sure you are using double quotes (`"`) on either side of your token string.
-
-18. If you are posting to a *private channel*, you will need to invite the bot to the channel before it can make posts there. Just go to the Slack channel and type `@ff-report`, and then hit enter. Slack will ask if you wish to invite the bot to the channel, so confirm that you wish to add the bot to the channel, and now it should be able to post to the *private channel*.
-
-19. *You can now upload your reports to Slack, either by updating the following values in the `.env` file:*
-
+12. Select `Install App` from the `Settings` section in the menu on the left and click the `Install to [Workspace]` (with your selected workspace) button. 
+13. You will be redirected to a screen saying your app is asking for permission to access the Slack workspace, and presenting you with a dropdown to select a channel for your app to post to. Select your desired channel, and hit `Allow`. 
+14. You will now be redirected back to the `Installed App Settings` section of your app settings. At the top, you will see a `Bot User OAuth Token` field, which will now have a value populated. 
+15. Copy the file `token.template.json` (located in the `auth/slack/` directory), and rename the file copy `token.json`, then copy and paste the value of the above `Bot user OAuth Token` into the field value of `token.json` where it says `"SLACK_APP_OAUTH_ACCESS_TOKEN_STRING"`, replacing that string. Make sure you are using double quotes (`"`) on either side of your token string. 
+16. If you are posting to a *private channel*, you will need to invite the bot to the channel before it can make posts there. Just go to the Slack channel and type `@ffmw-report` (or whatever name you gave your app), and then hit enter. Slack will ask if you wish to invite the bot to the channel, so confirm that you wish to add the bot to the channel, and now it should be able to post to the *private channel*.
+17. *You can now upload your reports to Slack, either by updating the following values in the `.env` file:*
     * i. `SLACK_POST_BOOL=True`
-
-    * ii. `SLACK_CHANNEL=channel-name` (this can be set to whichever channel you wish to post (as long as the user who created the app has access to that channel)
-
+    * ii. `SLACK_CHANNEL=channel-name` (this can be set to whichever channel you wish to post as long as the user who created the app has access to that channel)
     *Or by setting the value of `SLACK_REPOST_FILE_LOCAL_PATH` in the `.env` file to the filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/slack.py`*.
 
 ---
@@ -822,6 +725,37 @@ Occasionally when you use the Yahoo fantasy football API, there are hangups on t
     IndexError: list index out of range
 
 Typically, when the above error (or a similar error) occurs, it simply means that one of the Yahoo Fantasy Football API calls failed and so no data was retrieved. This can be fixed by simply re-running data query.
+
+<a name="espn"></a>
+#### ESPN
+
+If you are trying to automatically retrieve your ESPN session cookies for authentication with an ESPN private league, you might encounter an error similar to the following:
+
+    selenium.common.exceptions.SessionNotCreatedException: Message: session not created: Chrome failed to start: exited normally.
+    (session not created: DevToolsActivePort file doesn't exist)
+    (The process started from chrome location /Applications/Google Chrome.app/Contents/MacOS/Google Chrome is no longer running, so ChromeDriver is assuming that Chrome has crashed.)
+    Stacktrace:
+    0   chromedriver                        0x0000000104998274 cxxbridge1$str$ptr + 1907280
+    1   chromedriver                        0x000000010499075c cxxbridge1$str$ptr + 1875768
+    2   chromedriver                        0x00000001045a4260 cxxbridge1$string$len + 89488
+    3   chromedriver                        0x00000001045d4d04 cxxbridge1$string$len + 288820
+    4   chromedriver                        0x00000001045d16b8 cxxbridge1$string$len + 274920
+    5   chromedriver                        0x0000000104612184 cxxbridge1$string$len + 539828
+    6   chromedriver                        0x0000000104611ac4 cxxbridge1$string$len + 538100
+    7   chromedriver                        0x00000001045dd12c cxxbridge1$string$len + 322652
+    8   chromedriver                        0x00000001045ddd7c cxxbridge1$string$len + 325804
+    9   chromedriver                        0x0000000104960504 cxxbridge1$str$ptr + 1678560
+    10  chromedriver                        0x0000000104964e6c cxxbridge1$str$ptr + 1697352
+    11  chromedriver                        0x0000000104945618 cxxbridge1$str$ptr + 1568244
+    12  chromedriver                        0x000000010496573c cxxbridge1$str$ptr + 1699608
+    13  chromedriver                        0x0000000104936bbc cxxbridge1$str$ptr + 1508248
+    14  chromedriver                        0x0000000104981854 cxxbridge1$str$ptr + 1814576
+    15  chromedriver                        0x00000001049819ac cxxbridge1$str$ptr + 1814920
+    16  chromedriver                        0x00000001049903fc cxxbridge1$str$ptr + 1874904
+    17  libsystem_pthread.dylib             0x000000018cff2f94 _pthread_start + 136
+    18  libsystem_pthread.dylib             0x000000018cfedd34 thread_start + 8
+
+In the case of the above, it typically occurs when the app is using Selenium to log in to your ESPN account within Chrome, but you already have Chrome open. Chrome does not allow two processes to use the same user profile, and since this automation is configured to use your user profile it will cause a conflict. You can remedy this by simply quitting Google Chrome and then trying again.
 
 <a name="docker-on-windows"></a>
 #### Docker on Windows
