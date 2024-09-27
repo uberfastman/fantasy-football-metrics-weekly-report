@@ -101,6 +101,7 @@ class ReportData(object):
         # create attributes for later updating
         self.data_for_season_avg_points_by_position = None
         self.data_for_season_weekly_top_scorers = None
+        self.data_for_season_weekly_low_scorers = None
         self.data_for_season_weekly_highest_ce = None
 
         # current standings data
