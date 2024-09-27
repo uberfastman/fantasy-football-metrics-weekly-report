@@ -1282,7 +1282,7 @@ class PdfGenerator(object):
                         or settings.report_settings.team_boom_or_bust_bool):
                     doc_elements.append(self.add_page_break())
 
-    def generate_pdf(self, filename_with_path: Path, line_chart_data_list: List[List[Any]]) -> str:
+    def generate_pdf(self, filename_with_path: Path, line_chart_data_list: List[List[Any]]) -> Path:
         logger.debug("Generating report PDF.")
 
         elements: List[Flowable] = []
@@ -1712,7 +1712,7 @@ class PdfGenerator(object):
         # doc.build(elements, onFirstPage=self.add_page_number, onLaterPages=self.add_page_number)
         doc.build(elements, onLaterPages=self.add_page_number)
 
-        return doc.filename
+        return Path(doc.filename)
 
 
 class TableOfContents(object):

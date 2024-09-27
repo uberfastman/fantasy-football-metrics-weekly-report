@@ -44,7 +44,7 @@ class FantasyFootballReport(object):
 
         # settings
         base_dir = Path(__file__).parent.parent
-        self.data_dir = base_dir / settings.data_dir_local_path
+        self.data_dir = base_dir / settings.data_dir_path
         if platform:
             self.platform: str = platform
             self.platform_display: str = format_platform_display(self.platform)
@@ -162,7 +162,7 @@ class FantasyFootballReport(object):
             f"\"{self.league.name.upper()}\" ({self.league_id}) week {self.league.week_for_report} report.\n"
         )
 
-    def create_pdf_report(self) -> str:
+    def create_pdf_report(self) -> Path:
         logger.debug("Creating fantasy football report PDF.")
 
         report_data = None
@@ -360,7 +360,7 @@ class FantasyFootballReport(object):
         filename = self.league.name.replace(" ", "-") + "(" + str(self.league_id) + ")_week-" + str(
             self.league.week_for_report) + "_report.pdf"
         report_save_dir = (
-                settings.output_dir_local_path / str(self.league.season)
+                settings.output_dir_path / str(self.league.season)
                 / f"{self.league.name.replace(' ', '-')}({self.league_id})"
         )
         report_title_text = f"{self.league.name} ({self.league_id}) Week {self.league.week_for_report} Report"
@@ -381,7 +381,7 @@ class FantasyFootballReport(object):
         if not self.test:
             filename_with_path = Path(report_save_dir) / filename
         else:
-            filename_with_path = settings.output_dir_local_path / "test_report.pdf"
+            filename_with_path = settings.output_dir_path / "test_report.pdf"
 
         # instantiate pdf generator
         pdf_generator = PdfGenerator(
@@ -394,7 +394,7 @@ class FantasyFootballReport(object):
         )
 
         # generate pdf of report
-        file_for_upload = pdf_generator.generate_pdf(filename_with_path, line_chart_data_list)
+        file_for_upload: Path = pdf_generator.generate_pdf(filename_with_path, line_chart_data_list)
 
         logger.info(f"...SUCCESS! Generated PDF: {file_for_upload}\n")
         logger.debug(

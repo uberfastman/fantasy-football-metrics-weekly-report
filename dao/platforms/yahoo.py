@@ -49,11 +49,35 @@ class LeagueData(BaseLeagueData):
         self.game_id = game_id or settings.platform_settings.yahoo_game_id
 
         self.yahoo_data = Data(self.league.data_dir, save_data=self.league.save_data, dev_offline=self.league.offline)
+        self.yahoo_query = None
 
-        yahoo_auth_dir = Path(self.base_dir) / settings.platform_settings.yahoo_auth_dir_local_path
+        self._authenticate()
+
+    def _authenticate(self) -> None:
+
         self.yahoo_query = YahooFantasySportsQuery(
-            yahoo_auth_dir, self.league.league_id, game_code=self.game_id, game_id=self.game_id,
-            offline=self.league.offline, browser_callback=False
+            self.league.league_id,
+            game_code=f"{self.game_id}",
+            game_id=self.game_id,
+            # only provide Yahoo consumer key if no saved Yahoo access token data
+            yahoo_consumer_key=(
+                settings.platform_settings.yahoo_consumer_key
+                if not settings.platform_settings.yahoo_access_token_json
+                else None
+            ),
+            # only provide Yahoo consumer secret if no saved Yahoo access token data
+            yahoo_consumer_secret=(
+                settings.platform_settings.yahoo_consumer_secret
+                if not settings.platform_settings.yahoo_access_token_json
+                else None
+            ),
+            yahoo_access_token_json=settings.platform_settings.yahoo_access_token_json,
+            browser_callback=False,
+            offline=self.league.offline
+        )
+        self.yahoo_query.save_access_token_data_to_env_file(
+            env_file_location=self.base_dir,
+            save_json_to_var_only=True
         )
 
     def get_player_data(self, player_key: str, week: int = None):

@@ -14,7 +14,7 @@ The Fantasy Football Metrics Weekly Report can be used within Docker for a more 
 
 1. Authenticate with GitHub Personal Access Token (PAT):
     ```shell
-    jq -r .github_personal_access_token.value auth/github/private.json | docker login ghcr.io -u uberfastman --password-stdin
+    jq -r .github_personal_access_token.value private-github.json | docker login ghcr.io -u uberfastman --password-stdin
     ```
 
 2. Deploy the newly-built Docker image with respective major, minor, and patch version numbers to the GitHub Container Registry:

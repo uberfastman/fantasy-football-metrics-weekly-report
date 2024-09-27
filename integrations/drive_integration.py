@@ -4,13 +4,16 @@ __email__ = "uberfastman@uberfastman.dev"
 # code snippets taken from: http://stackoverflow.com/questions/24419188/automating-pydrive-verification-process
 
 import datetime
+import json
 import logging
 from pathlib import Path
+from time import sleep
 from typing import List, Union
 
-from pydrive.auth import GoogleAuth
-from pydrive.drive import GoogleDrive
-from pydrive.files import GoogleDriveFile
+from colorama import Fore, Style
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
+from pydrive2.files import GoogleDriveFile
 
 from utilities.logger import get_logger
 from utilities.settings import settings
@@ -25,56 +28,87 @@ logging.getLogger("googleapiclient.discovery_cache.file_cache").setLevel(level=l
 
 
 class GoogleDriveUploader(object):
+
     def __init__(self, file: Union[str, Path]):
         logger.debug("Initializing Google Drive uploader.")
 
         project_dir: Path = Path(__file__).parents[1]
+        self.file_path: Path = Path(project_dir) / file
 
         logger.debug("Authenticating with Google Drive.")
 
-        self.file_path: Path = Path(project_dir) / file
-        self.gauth: GoogleAuth = GoogleAuth()
+        base_dir = Path(__file__).parent.parent
+        sleep(0.25)
+        if not settings.integration_settings.google_drive_client_id:
+            settings.integration_settings.google_drive_client_id = input(
+                f"{Fore.GREEN}What is your Google Drive client ID? -> {Style.RESET_ALL}"
+            )
+            settings.write_settings_to_env_file(base_dir / ".env")
 
-        auth_token = project_dir / settings.integration_settings.google_drive_auth_token_local_path
+        if not settings.integration_settings.google_drive_client_secret:
+            settings.integration_settings.google_drive_client_secret = input(
+                f"{Fore.GREEN}What is your Google Drive client secret? -> {Style.RESET_ALL}"
+            )
+            settings.write_settings_to_env_file(base_dir / ".env")
 
-        # Try to load saved client credentials
-        self.gauth.LoadCredentialsFile(auth_token)
-        if self.gauth.credentials is None:
-            # Authenticate if they're not there
-            self.gauth.LocalWebserverAuth()
-        elif self.gauth.access_token_expired:
-            # Refresh them if expired
-            self.gauth.Refresh()
+        if settings.integration_settings.google_drive_auth_token_json:
+            credentials = json.dumps(settings.integration_settings.google_drive_auth_token_json)
         else:
-            # Initialize the saved creds
-            self.gauth.Authorize()
-        # Save the current credentials to a file
-        self.gauth.SaveCredentialsFile(auth_token)
+            credentials = None
+
+        google_auth: GoogleAuth = GoogleAuth(settings={
+            'client_config_backend': 'settings',
+            'client_config': {
+                'client_id': settings.integration_settings.google_drive_client_id,
+                'client_secret': settings.integration_settings.google_drive_client_secret,
+            },
+            'save_credentials': True,
+            'save_credentials_backend': 'dictionary',
+            "save_credentials_dict": {
+                "creds": credentials,
+            },
+            "save_credentials_key": "creds",
+            'get_refresh_token': True,
+            'oauth_scope': ['https://www.googleapis.com/auth/drive'],
+        })
+
+        google_auth.LoadCredentials(backend="dictionary")
+
+        if google_auth.credentials is None:
+            google_auth.LocalWebserverAuth()
+        elif google_auth.access_token_expired:
+            google_auth.Refresh()
+        else:
+            google_auth.Authorize()
+
+        google_auth.SaveCredentials(backend="dictionary")
+        settings.integration_settings.google_drive_auth_token_json = google_auth.credentials.to_json()
+        settings.write_settings_to_env_file(base_dir / ".env")
+
+        # Create GoogleDrive instance with authenticated GoogleAuth instance.
+        self.drive = GoogleDrive(google_auth)
 
     def upload_file(self, test: bool = False) -> str:
         logger.debug("Uploading file to Google Drive.")
 
-        # Create GoogleDrive instance with authenticated GoogleAuth instance.
-        drive = GoogleDrive(self.gauth)
-
         # Get lists of folders
-        root_folders = drive.ListFile(
+        root_folders = self.drive.ListFile(
             {"q": "'root' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"}).GetList()
 
-        google_drive_folder_path_default = settings.integration_settings.google_drive_default_folder_path
+        google_drive_folder_path_default = settings.integration_settings.google_drive_default_folder
         google_drive_folder_path = Path(
-            settings.integration_settings.google_drive_folder_path or google_drive_folder_path_default
+            settings.integration_settings.google_drive_folder or google_drive_folder_path_default
         ).parts
 
         google_drive_root_folder_id = self.make_root_folder(
-            drive,
+            self.drive,
             self.check_file_existence(google_drive_folder_path[0], root_folders, "root"),
             google_drive_folder_path[0]
         )
 
         if not test:
             parent_folder_id = google_drive_root_folder_id
-            parent_folder_content_folders = drive.ListFile({
+            parent_folder_content_folders = self.drive.ListFile({
                 "q": (
                     f"'{parent_folder_id}' in parents and "
                     f"mimeType='application/vnd.google-apps.folder' and "
@@ -84,13 +118,13 @@ class GoogleDriveUploader(object):
             for folder in google_drive_folder_path[1:]:
                 # create folder chain in Google Drive
                 parent_folder_id = self.make_parent_folder(
-                    drive,
+                    self.drive,
                     self.check_file_existence(folder, parent_folder_content_folders, parent_folder_id),
                     folder,
                     parent_folder_id
                 )
 
-                parent_folder_content_folders = drive.ListFile({
+                parent_folder_content_folders = self.drive.ListFile({
                     "q": (
                         f"'{parent_folder_id}' in parents and "
                         f"mimeType='application/vnd.google-apps.folder' and "
@@ -102,12 +136,12 @@ class GoogleDriveUploader(object):
             season_folder_name = Path(self.file_path).parts[-3]
 
             season_folder_id = self.make_parent_folder(
-                drive,
+                self.drive,
                 self.check_file_existence(season_folder_name, parent_folder_content_folders, parent_folder_id),
                 season_folder_name,
                 parent_folder_id
             )
-            season_folder_content_folders = drive.ListFile({
+            season_folder_content_folders = self.drive.ListFile({
                 "q": (
                     f"'{season_folder_id}' in parents and "
                     f"mimeType='application/vnd.google-apps.folder' and "
@@ -118,11 +152,11 @@ class GoogleDriveUploader(object):
             # Check for league folder and create it if it does not exist
             league_folder_name = self.file_path.parts[-2].replace("-", "_")
             league_folder_id = self.make_parent_folder(
-                drive,
+                self.drive,
                 self.check_file_existence(league_folder_name, season_folder_content_folders, season_folder_id),
                 league_folder_name, season_folder_id
             )
-            league_folder_content_pdfs = drive.ListFile({
+            league_folder_content_pdfs = self.drive.ListFile({
                 "q": (
                     f"'{league_folder_id}' in parents and "
                     f"mimeType='application/pdf' and "
@@ -134,7 +168,7 @@ class GoogleDriveUploader(object):
             report_file_name = self.file_path.parts[-1]
             report_file = self.check_file_existence(report_file_name, league_folder_content_pdfs, league_folder_id)
         else:
-            all_pdfs = drive.ListFile({"q": "mimeType='application/pdf' and trashed=false"}).GetList()
+            all_pdfs = self.drive.ListFile({"q": "mimeType='application/pdf' and trashed=false"}).GetList()
 
             report_file_name = self.file_path.parts[-1]
             report_file = self.check_file_existence(report_file_name, all_pdfs, "root")
@@ -142,7 +176,7 @@ class GoogleDriveUploader(object):
 
         if report_file:
             report_file.Delete()
-        upload_file = drive.CreateFile(
+        upload_file = self.drive.CreateFile(
             {
                 "title": report_file_name,
                 "mimeType": "application/pdf",
@@ -236,7 +270,7 @@ class GoogleDriveUploader(object):
 
 
 if __name__ == "__main__":
-    reupload_file = settings.integration_settings.google_drive_reupload_file_local_path
+    reupload_file = settings.integration_settings.google_drive_reupload_file_path
 
     logger.info(f"Re-uploading {Path(reupload_file).name} ({Path(reupload_file).parts[2]}) to Google Drive...")
 

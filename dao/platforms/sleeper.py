@@ -53,6 +53,9 @@ class LeagueData(BaseLeagueData):
         self.player_stats_data_by_week = None
         self.player_projected_stats_data_by_week = None
 
+    def _authenticate(self) -> None:
+        pass
+
     def query_with_delayed_refresh(self, url: str, save_file: Path, check_for_saved_data: bool = False,
                                    refresh_days_delay: int = 1):
         if check_for_saved_data:

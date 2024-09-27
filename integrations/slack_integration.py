@@ -4,14 +4,13 @@ __email__ = "uberfastman@uberfastman.dev"
 import datetime
 import json
 import logging
-import os
 from asyncio import Future
 from pathlib import Path
 from typing import Union
 
-from slack.errors import SlackApiError
-from slack.web.base_client import SlackResponse
-from slack.web.client import WebClient
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
+from slack_sdk.web.base_client import SlackResponse
 
 from utilities.logger import get_logger
 from utilities.settings import settings
@@ -23,21 +22,15 @@ logging.getLogger("slack.web.slack_response").setLevel(level=logging.INFO)
 logging.getLogger("slack.web.base_client").setLevel(level=logging.INFO)
 
 
-class SlackMessenger(object):
+class SlackUploader(object):
     def __init__(self):
-        logger.debug("Initializing Slack messenger.")
+        logger.debug("Initializing Slack uploader and authenticating.")
 
         self.project_dir: Path = Path(__file__).parent.parent
 
         logger.debug("Authenticating with Slack.")
 
-        auth_token = self.project_dir / settings.integration_settings.slack_auth_token_local_path
-
-        with open(auth_token, "r") as token_file:
-            # more information at https://api.slack.com/web#authentication
-            slack_api_access_token = json.load(token_file).get("access_token")
-            # self.sc = SlackClient(slack_api_access_token)
-            self.sc = WebClient(token=slack_api_access_token)
+        self.sc = WebClient(token=settings.integration_settings.slack_auth_token)
 
     def api_test(self):
         logger.debug("Testing Slack API.")
@@ -60,32 +53,32 @@ class SlackMessenger(object):
             if channel.get("name") == channel_name:
                 return channel.get("id")
 
-    def test_post_to_slack(self, message: str):
+    def test_post_to_slack_channel(self, message: str, channel_name: str):
         logger.debug("Testing message posting to Slack.")
 
         try:
-            logger.info(self.sc.conversations_info(channel=self.get_channel_id("apitest")))
+            # logger.info(self.sc.conversations_info(channel=self.get_channel_id("dev-test")))
 
-            self.sc.chat_postMessage(
-                channel=self.get_channel_id("apitest"),
-                text="<!here|here>:\n" + message,
+            return self.sc.chat_postMessage(
+                channel=self.get_channel_id(channel_name),
+                text="<!here>:\n" + message,
                 username="ff-report",
                 # uncomment the icon_emoji parameter if you wish to choose an icon emoji to be your app icon, otherwise
                 # it will default to whatever icon you have set for the app
                 # icon_emoji=":football:"
-            )
+            ).data
         except SlackApiError as e:
             logger.error(f"Slack client error: {e}")
 
-    def test_post_to_private_slack(self, message: str):
+    def test_post_to_private_slack_channel(self, message: str, channel_name: str):
         logger.debug("Testing message posting to private Slack channels.")
 
         try:
-            logger.info(self.sc.conversations_info(channel=self.get_channel_id("apitest-private")))
+            logger.info(self.sc.conversations_info(channel=self.get_channel_id("dev-test")))
 
             self.sc.chat_postMessage(
-                channel=self.get_channel_id("apitest-private"),
-                text="<!here|here>:\n" + message,
+                channel=self.get_channel_id(channel_name),
+                text="<!here>:\n" + message,
                 username="ff-report",
                 # uncomment the icon_emoji parameter if you wish to choose an icon emoji to be your app icon, otherwise
                 # it will default to whatever icon you have set for the app
@@ -94,50 +87,39 @@ class SlackMessenger(object):
         except SlackApiError as e:
             logger.error(f"Slack client error: {e}")
 
-    def test_file_upload_to_slack(self, upload_file: Path) -> Union[Future, SlackResponse]:
+    def test_file_upload_to_slack_channel(self, upload_file: Path, channel_name: str) -> Union[Future, SlackResponse]:
         logger.debug("Testing file uploads to Slack.")
 
         try:
-            logger.info(self.sc.conversations_info(channel=self.get_channel_id("apitest")))
+            logger.info(self.sc.conversations_info(channel=self.get_channel_id("dev-test")))
 
-            with open(upload_file, "rb") as uf:
-                file_to_upload = uf.read()
-
-                # noinspection PyTypeChecker
-                response = self.sc.files_upload(
-                    channels=self.get_channel_id("apitest"),
-                    username="ff-report",
-                    icon_emoji=":football:",
-                    filename=upload_file,
-                    filetype="pdf",
-                    file=file_to_upload
-                )
-            return response
+            return self.sc.files_upload_v2(
+                channel=self.get_channel_id(channel_name),
+                username="ff-report",
+                icon_emoji=":football:",
+                filename=upload_file.name,
+                file=str(upload_file)
+            )
         except SlackApiError as e:
             logger.error(f"Slack client error: {e}")
 
-    def test_file_upload_to_private_slack(self, upload_file: Path) -> Union[Future, SlackResponse]:
+    def test_file_upload_to_private_slack_channel(self, upload_file: Path, channel_name: str) -> Union[Future, SlackResponse]:
         logger.debug("Testing file uploads to private Slack channels.")
 
         try:
-            logger.info(self.sc.conversations_info(channel=self.get_channel_id("apitest-private")))
+            logger.info(self.sc.conversations_info(channel=self.get_channel_id(channel_name)))
 
-            with open(upload_file, "rb") as uf:
-                file_to_upload = str(uf.read())
-
-                response = self.sc.files_upload(
-                    channels=self.get_channel_id("apitest-private"),
-                    username="ff-report",
-                    icon_emoji=":football:",
-                    filename=upload_file,
-                    filetype="pdf",
-                    file=file_to_upload
-                )
-            return response
+            return self.sc.files_upload_v2(
+                channel=self.get_channel_id(channel_name),
+                username="ff-report",
+                icon_emoji=":football:",
+                filename=upload_file.name,
+                file=str(upload_file)
+            )
         except SlackApiError as e:
             logger.error(f"Slack client error: {e}")
 
-    def post_to_selected_slack_channel(self, message: str) -> Union[Future, SlackResponse]:
+    def post_to_configured_slack_channel(self, message: str) -> Union[Future, SlackResponse]:
         logger.debug(f"Posting message to Slack: \n{message}")
 
         try:
@@ -150,58 +132,53 @@ class SlackMessenger(object):
         except SlackApiError as e:
             logger.error(f"Slack client error: {e}")
 
-    def upload_file_to_selected_slack_channel(self, upload_file: str) -> Union[Future, SlackResponse]:
+    def upload_file_to_configured_slack_channel(self, upload_file: Path) -> Union[Future, SlackResponse]:
         logger.debug(f"Uploading file to Slack: \n{upload_file}")
 
         try:
-            report_file_info = upload_file.split(os.sep)
-            file_name = report_file_info[-1]
-            file_type = file_name.split(".")[-1]
-            league_name = report_file_info[-2]
             message = (
-                f"\nFantasy Football Report for {league_name}\nGenerated {datetime.datetime.now():%Y-%b-%d %H:%M:%S}\n"
+                f"\nFantasy Football Report for {upload_file.name}\nGenerated {datetime.datetime.now():%Y-%b-%d %H:%M:%S}\n"
             )
 
-            upload_file = self.project_dir / upload_file
+            upload_file: Path = self.project_dir / upload_file
             with open(upload_file, "rb") as uf:
 
                 if settings.integration_settings.slack_channel_notify_bool:
                     # post message with no additional content to trigger @here
-                    self.post_to_selected_slack_channel("")
+                    self.post_to_configured_slack_channel("")
 
-                file_to_upload = uf.read()
-                # noinspection PyTypeChecker
-                response = self.sc.files_upload(
-                    channels=self.get_channel_id(settings.integration_settings.slack_channel),
-                    filename=file_name,
-                    filetype=file_type,
-                    file=file_to_upload,
-                    title=file_name,
+                response = self.sc.files_upload_v2(
+                    channel=self.get_channel_id(settings.integration_settings.slack_channel),
+                    filename=upload_file.name,
+                    file=uf.read(),
                     initial_comment=message
                 )
+
             return response
         except SlackApiError as e:
             logger.error(f"Slack client error: {e}")
 
 
 if __name__ == "__main__":
-    repost_file = Path(__file__).parent.parent / settings.integration_settings.slack_repost_file_local_path
 
-    post_to_slack = SlackMessenger()
+    test_channel = "dev-test"
+    repost_file = Path(__file__).parent.parent / settings.integration_settings.slack_repost_file_path
+
+    slack_uploader = SlackUploader()
 
     # general slack integration testing
-    logger.info(f"{json.dumps(post_to_slack.api_test().data, indent=2)}")
-    # logger.info(f"{json.dumps(post_to_slack.list_channels().data, indent=2)}")
-    # logger.info(f"{json.dumps(post_to_slack.list_channels().get('channels'), indent=2)}")
+    logger.info(f"{json.dumps(slack_uploader.api_test().data, indent=2)}")
+    logger.info(f"{json.dumps(slack_uploader.list_channels().data, indent=2)}")
+    logger.info(f"{json.dumps(slack_uploader.list_channels().get('channels'), indent=2)}")
 
     # public channel integration testing
-    # logger.info(f"{json.dumps(post_to_slack.test_post_to_slack('test'), indent=2)}")
-    # logger.info(f"{json.dumps(post_to_slack.test_file_upload_to_slack(repost_file).data, indent=2)}")
+    logger.info(f"{json.dumps(slack_uploader.test_post_to_slack_channel('test message', test_channel), indent=2)}")
+    logger.info(f"{json.dumps(slack_uploader.test_file_upload_to_slack_channel(repost_file, test_channel).data, indent=2)}")
 
     # private channel integration testing
-    # logger.info(f"{json.dumps(post_to_slack.test_post_to_private_slack('test'), indent=2)}")
-    # logger.info(f"{json.dumps(post_to_slack.test_file_upload_to_private_slack(repost_file).data, indent=2)}")
+    logger.info(f"{json.dumps(slack_uploader.test_post_to_private_slack_channel('test message', test_channel), indent=2)}")
+    logger.info(f"{json.dumps(slack_uploader.test_file_upload_to_private_slack_channel(repost_file, test_channel).data, indent=2)}")
 
     # selected channel integration testing
-    # logger.info(f"{json.dumps(post_to_slack.post_to_selected_slack_channel('test').data, indent=2)}")
-    # logger.info(f"{json.dumps(post_to_slack.upload_file_to_selected_slack_channel(repost_file).data, indent=2)}")
+    logger.info(f"{json.dumps(slack_uploader.post_to_configured_slack_channel('test').data, indent=2)}")
+    logger.info(f"{json.dumps(slack_uploader.upload_file_to_configured_slack_channel(repost_file).data, indent=2)}")

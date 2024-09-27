@@ -94,7 +94,6 @@ def user_week_input_validation(week: int, retrieved_current_week: int, season: i
 
 
 def get_current_nfl_week(offline: bool) -> int:
-    # api_url = "https://bet.rotoworld.com/api/nfl/calendar/game_count"
     api_url = "https://api.sleeper.app/v1/state/nfl"
 
     current_nfl_week = settings.current_nfl_week
@@ -104,7 +103,7 @@ def get_current_nfl_week(offline: bool) -> int:
 
         try:
             nfl_weekly_info = requests.get(api_url).json()
-            current_nfl_week = nfl_weekly_info.get("week")
+            current_nfl_week = nfl_weekly_info.get("leg")
         except (KeyError, ValueError) as e:
             logger.warning("Unable to retrieve current NFL week. Defaulting to value set in \".env\" file.")
             logger.debug(e)

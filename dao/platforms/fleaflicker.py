@@ -46,6 +46,9 @@ class LeagueData(BaseLeagueData):
             offline
         )
 
+    def _authenticate(self) -> None:
+        pass
+
     def _scrape(self, url: str, file_dir: Path, filename: str):
 
         file_path = Path(file_dir) / filename

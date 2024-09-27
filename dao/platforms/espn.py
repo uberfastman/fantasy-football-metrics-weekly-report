@@ -5,8 +5,8 @@ import json
 import logging
 import os
 import re
-import sys
 import time
+from getpass import getpass
 from pathlib import Path
 from statistics import median
 from typing import List, Callable
@@ -20,9 +20,10 @@ from espn_api.football.league import League, Team
 from espn_api.football.settings import Settings
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import Chrome
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
 
@@ -67,40 +68,63 @@ class LeagueData(BaseLeagueData):
             offline
         )
 
-        espn_auth_json = None
-        espn_auth_file = Path(base_dir) / settings.platform_settings.espn_auth_dir_local_path / "private.json"
-        if Path(espn_auth_file).is_file():
-            with open(espn_auth_file, "r") as auth:
-                espn_auth_json = json.load(auth)
-        else:
-            no_auth_msg = (
-                f"{Fore.YELLOW}No \"private.json\" file found for ESPN. If generating the report for a PUBLIC league\n"
-                f"then ignore this message and CONTINUE running the app. However, if generating the report\n"
-                f"for a PRIVATE league then please follow the instructions in the README.md for obtaining\n"
-                f"ESPN credentials. Press \"y\" to CONTINUE or \"n\" to ABORT. "
-                f"({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
-            )
-            self._check_auth(no_auth_msg)
+        self._authenticate()
 
-        self.swid_cookie = None
-        self.espn_s2_cookie = None
-        if espn_auth_json:
-            if espn_auth_json.get("swid") and espn_auth_json.get("espn_s2"):
-                self.swid_cookie = espn_auth_json.get("swid")
-                self.espn_s2_cookie = espn_auth_json.get("espn_s2")
-            else:
-                espn_session_cookies = self._retrieve_session_cookies(espn_auth_json)
-                self.swid_cookie = espn_session_cookies.get("swid")
-                self.espn_s2_cookie = espn_session_cookies.get("espn_s2")
-                with open(espn_auth_file, "w") as auth:
-                    espn_auth_json.update({
-                        "swid": self.swid_cookie,
-                        "espn_s2": self.espn_s2_cookie
-                    })
-                    json.dump(espn_auth_json, auth, indent=2)
+    def _authenticate(self) -> None:
+
+        time.sleep(0.25)
+
+        # skip credentials check for public ESPN league access when use-default is set to true
+        if os.environ.get("USE_DEFAULT"):
+            logger.info(
+                "Use-default is set to \"true\". Automatically running the report for the selected ESPN league without "
+                "credentials. This will only work for public ESPN leagues."
+            )
+            return
+
+        if not settings.platform_settings.espn_cookie_swid or not settings.platform_settings.espn_cookie_espn_s2:
+
+            user_input = input(
+                f"{Fore.YELLOW}"
+                f"Your .env file is missing the required authentication session cookies for ESPN private leagues.\n"
+                f"If generating the report for a PUBLIC league then ignore this message and type \"y\" to CONTINUE\n"
+                f"running the app. However, if generating the report for a PRIVATE league then type any other key to\n"
+                f"authenticate with your ESPN credentials. -> {Style.RESET_ALL}"
+            )
+
+            if user_input.lower() == "y":
+                return
+
+            if not settings.platform_settings.espn_username:
+                settings.platform_settings.espn_username = input(
+                    f"{Fore.GREEN}What is your ESPN username? -> {Style.RESET_ALL}"
+                )
+                settings.write_settings_to_env_file(self.base_dir / ".env")
+
+            if not settings.platform_settings.espn_password:
+                settings.platform_settings.espn_password = getpass(
+                    f"{Fore.GREEN}What is your ESPN password? -> {Style.RESET_ALL}"
+                )
+                settings.write_settings_to_env_file(self.base_dir / ".env")
+
+            if not settings.platform_settings.espn_chrome_user_profile_path:
+                settings.platform_settings.espn_chrome_user_profile_path = input(
+                    f"{Fore.GREEN}What is your Chrome user data profile path? (wrap your response in quotes (\"\") if "
+                    f"there are any spaces in it) -> {Style.RESET_ALL}"
+                )
+                settings.write_settings_to_env_file(self.base_dir / ".env")
+
+            logger.info("Retrieving your ESPN session cookies using your configured ESPN credentials...")
+
+            espn_session_cookies = self._retrieve_session_cookies()
+            settings.platform_settings.espn_cookie_swid = espn_session_cookies["swid"]
+            settings.platform_settings.espn_cookie_espn_s2 = espn_session_cookies["espn_s2"]
+            settings.write_settings_to_env_file(self.base_dir / ".env")
+
+            logger.info("...ESPN session cookies retrieved and written to your .env file.")
 
     @staticmethod
-    def _get_espn_session_cookies(web_driver: Chrome):
+    def _get_espn_session_cookies(web_driver: WebDriver):
         if web_driver.get_cookie("SWID") and web_driver.get_cookie("espn_s2"):
             return {
                 "swid": web_driver.get_cookie("SWID")["value"],
@@ -110,13 +134,13 @@ class LeagueData(BaseLeagueData):
         else:
             return {}
 
-    def _retrieve_session_cookies(self, espn_auth_json):
+    def _retrieve_session_cookies(self):
 
-        # set Chrome options
-        options = Options()
-        options.add_argument("--headless=new")
-        options.add_argument(f"--user-data-dir={espn_auth_json.get('chrome_user_data_dir')}")
-        options.add_argument(f"--profile-directory={espn_auth_json.get('chrome_user_profile')}")
+        # set web driver options
+        options = ChromeOptions()
+        options.add_argument("--headless=new")  # comment out this line if you wish to see live browser navigation
+        options.add_argument(f"--user-data-dir={settings.platform_settings.espn_chrome_user_data_dir}")
+        options.add_argument(f"--profile-directory={settings.platform_settings.espn_chrome_user_profile}")
         driver = Chrome(options=options)
         driver.implicitly_wait(0.5)
 
@@ -124,7 +148,12 @@ class LeagueData(BaseLeagueData):
 
         actions = ActionChains(driver)
 
+        wait_for_element_timeout = 10
         try:
+            # wait for the profile menu to appear
+            block = WebDriverWait(driver, wait_for_element_timeout)
+            block.until(expected_conditions.visibility_of_element_located((By.ID, "global-user-trigger")))
+
             profile_menu = driver.find_element(by=By.ID, value="global-user-trigger")
 
             # hover over profile menu
@@ -139,7 +168,7 @@ class LeagueData(BaseLeagueData):
                     item.click()
 
             # wait for the modal iframe to appear
-            block = WebDriverWait(driver, 2)
+            block = WebDriverWait(driver, wait_for_element_timeout)
             block.until(expected_conditions.visibility_of_element_located((By.ID, "oneid-wrapper")))
 
             # switch driver to modal iframe
@@ -151,8 +180,8 @@ class LeagueData(BaseLeagueData):
                 link.click()
 
             # fill the username and password fields
-            driver.find_element(by=By.ID, value="InputLoginValue").send_keys(espn_auth_json.get("username"))
-            driver.find_element(by=By.ID, value="InputPassword").send_keys(espn_auth_json.get("password"))
+            driver.find_element(by=By.ID, value="InputLoginValue").send_keys(settings.platform_settings.espn_username)
+            driver.find_element(by=By.ID, value="InputPassword").send_keys(settings.platform_settings.espn_password)
 
             # submit the login form
             driver.find_element(by=By.ID, value="BtnSubmit").click()
@@ -162,7 +191,8 @@ class LeagueData(BaseLeagueData):
 
         except TimeoutException:
             logger.debug(
-                f"Already logged in to Chrome with user profile \"{espn_auth_json.get('chrome_user_profile')}\".\n"
+                f"Already logged in to browser with user profile "
+                f"\"{settings.platform_settings.espn_chrome_user_profile}\".\n"
             )
 
         # retrieve and display session cookies needed for ESPN FF API authentication and extract their values
@@ -173,34 +203,6 @@ class LeagueData(BaseLeagueData):
         driver.quit()
 
         return espn_session_cookies
-
-    def _check_auth(self, msg):
-        logger.debug(msg)
-        time.sleep(0.25)
-
-        # skip credentials check for public ESPN league access when use-default is set to true
-        if os.environ.get("USE_DEFAULT"):
-            logger.info(
-                "Use-default is set to \"true\". Automatically running the report for the selected ESPN league without "
-                "credentials. This will only work for public ESPN leagues."
-            )
-            use_credentials = "y"
-        else:
-            use_credentials = input(f"\n{msg}")
-
-        if use_credentials.lower() == "y":
-            logger.info(f"\"{Fore.GREEN}y{Fore.WHITE}\" -> Continuing...")
-        elif use_credentials.lower() == "n":
-            logger.info(f"\"{Fore.RED}n{Fore.WHITE}\" -> Aborting...")
-            sys.exit(0)
-        else:
-            incorrect_key_msg = (
-                f"{Fore.YELLOW}Please type \"{Fore.GREEN}y{Fore.YELLOW}\" to CONTINUE or \"{Fore.RED}n{Fore.YELLOW}\" "
-                f"to ABORT and press {Fore.GREEN}<ENTER>{Fore.YELLOW}. "
-                f"({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
-            )
-            logger.debug(incorrect_key_msg)
-            self._check_auth(incorrect_key_msg)
 
     def _save_and_load_data(self, file_dir, filename, data=None):
         file_path = Path(file_dir) / filename
@@ -234,8 +236,8 @@ class LeagueData(BaseLeagueData):
         espn_league: LeagueWrapper = LeagueWrapper(
             league_id=int(self.league.league_id),
             year=self.league.season,
-            espn_s2=self.espn_s2_cookie,
-            swid=self.swid_cookie
+            espn_s2=settings.platform_settings.espn_cookie_espn_s2,
+            swid=settings.platform_settings.espn_cookie_swid
         )
 
         self._save_and_load_data(
@@ -693,3 +695,21 @@ class LeagueWrapper(League):
                 elif matchup.away_team == team.team_id:
                     matchup.away_team = team
         return box_data
+
+
+if __name__ == '__main__':
+
+    root_directory = Path(__file__).parent.parent.parent
+
+    espn_platform = LeagueData(
+        root_directory,
+        Path(__file__).parent.parent.parent / 'data',
+        settings.league_id,
+        settings.season,
+        1,
+        settings.week_for_report,
+        lambda *args: None,
+        lambda *args: None
+    )
+    # noinspection PyProtectedMember
+    logger.info(espn_platform._authenticate())

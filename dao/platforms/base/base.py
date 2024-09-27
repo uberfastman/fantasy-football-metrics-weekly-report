@@ -154,5 +154,9 @@ class BaseLeagueData(ABC):
         return self.position_mapping.get(platform_position).get("base")
 
     @abstractmethod
+    def _authenticate(self, *args, **kwargs) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
     def map_data_to_base(self) -> BaseLeague:
         raise NotImplementedError()

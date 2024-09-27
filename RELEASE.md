@@ -12,50 +12,67 @@
     pip install -r requirements.txt -r requirements-dev.txt
     ```
    
-4. Lint code with `flake8`:
+4. *(Optional)* Lint code with `flake8`:
     ```shell
     flake8 . --count --show-source --statistics
     ```
    
-5. Check code security with `bandit`:
+5. *(Optional)* Check code security with `bandit`:
     ```shell
     bandit -r .
     ```
    
-6. Run *all* `pytest` tests:
+6. *(Optional)* Run *all* `pytest` tests:
     ```shell
     python -m pytest
     ```
    
-7. Run *all* `pytest` tests *verbosely*:
+7. *(Optional)* Run *all* `pytest` tests *verbosely*:
     ```shell
     python -m pytest -v -s
     ```
-   
-8. Update the Docker `compose.yaml` file with the latest version of the app.
 
-9. Build and push a new Docker image for the app (see [DEPLOYMENT.md](./docker/DEPLOYMENT.md)).
+8. *(Optional)* Test Python support using [act](https://github.com/nektos/act) for GitHub Actions:
 
-10. Create a git commit:
+    ```shell
+    act -j build
+    ```
+
+    ***Note***: If `act` is unable to locate Docker, make sure that the required `/var/run/docker.sock` symlink exists. If it does not, you can fix it by running:
+    
+    ```shell
+    sudo ln -s "$HOME/.docker/run/docker.sock" /var/run/docker.sock`
+    ```
+
+9. Update the Docker `compose.yaml` file with the latest version of the app.
+
+10. Build and push a new Docker image for the app (see [DEPLOYMENT.md](./docker/DEPLOYMENT.md)).
+
+11. Create a new git branch:
+    ```shell
+    git checkout -b release/vX.X.X
+    ```
+
+12. Create a git commit:
     ```shell
     git add .
     git commit -m 'commit message'
     ```
-   
-11. *(Optional)* View git tags:
-    ```shell
-    git tag -l --sort=v:refname -n99
-    ```
     
-12. Update the git tag (format: `git tag -a [tag_name/version] -m [message]`):
+13. Update the git tag (format: `git tag -a [tag_name/version] -m [message]`):
    ```shell
    git tag -a v1.0.0 -m 'first release'
    git push origin --tags
    ```
 
-13. Update `fantasy-football-metrics-weekly-report` GitHub repository:
+14. *(Optional)* View git tags:
+    ```shell
+    git tag -l --sort=v:refname -n99
+    ```
+
+15. Update `fantasy-football-metrics-weekly-report` GitHub repository:
    ```shell
-   git push
+   git push -u origin release/vX.X.X
    ```
 
-14. Go to the [FFMWR Releases page](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases) and draft a new release using the above git tag.
+16. Go to the [FFMWR Releases page](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases) and draft a new release using the above git tag.

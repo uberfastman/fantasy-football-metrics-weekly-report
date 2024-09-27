@@ -589,7 +589,12 @@ class BaseManager(FantasyFootballReportObject):
             value_tokens = str(value).split()
             self.name_str = value_tokens[0]
             for token in value_tokens[1:]:
-                self.name_str += f" {token[0]}."
+                # skip turning additional tokens into initials if token is only an integer
+                try:
+                    token = int(token)
+                except ValueError:
+                    token = f" {token[0]}."
+                self.name_str += f" {token}"
             value = self.name_str
         super().__setattr__(key, value)
 
