@@ -54,7 +54,7 @@ class BaseLeagueData(ABC):
         week_for_report = week_validation_function(week_for_report, self.current_week, season)
 
         logger.debug(f"Initializing {self.platform_display} league.")
-        self.league: BaseLeague = BaseLeague(data_dir, league_id, season, week_for_report, save_data, offline)
+        self.league: BaseLeague = BaseLeague(base_dir, data_dir, league_id, season, week_for_report, save_data, offline)
 
         # create full directory path if any directories in it do not already exist
         if not Path(self.league.data_dir).exists():

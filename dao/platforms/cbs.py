@@ -9,7 +9,7 @@ import requests
 from colorama import Fore, Style
 
 from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseManager, BaseRecord, BasePlayer, BaseStat
-from dao.platforms.base.base import BaseLeagueData
+from dao.platforms.base.league import BaseLeagueData
 from utilities.logger import get_logger
 from utilities.settings import settings
 

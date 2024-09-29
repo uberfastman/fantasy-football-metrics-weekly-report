@@ -14,13 +14,13 @@ from utilities.logger import get_logger
 logger = get_logger(__name__, propagate=False)
 
 
-class BeefStats(object):
+class BeefFeature(object):
 
     def __init__(self, data_dir: Path, save_data: bool = False, offline: bool = False, refresh: bool = False):
         """
         Initialize class, load data from Sleeper API, and combine defensive player data into team total
         """
-        logger.debug("Initializing beef stats.")
+        logger.debug("Initializing beef feature.")
 
         self.save_data: bool = save_data
         self.offline: bool = offline
@@ -33,10 +33,10 @@ class BeefStats(object):
         self.tabbu_value: float = 500.0
 
         self.raw_player_data: Dict[str, Dict[str, str]] = {}
-        self.raw_player_data_file_path: Path = Path(data_dir) / "beef_raw_data.json"
+        self.raw_player_data_file_path: Path = data_dir / "beef_raw_data.json"
 
         self.beef_data: Dict[str, Dict[str, Any]] = {}
-        self.beef_data_file_path: Path = Path(data_dir) / "beef_data.json"
+        self.beef_data_file_path: Path = data_dir / "beef_data.json"
         if not self.refresh:
             self.open_beef_data()
 
@@ -68,7 +68,7 @@ class BeefStats(object):
 
     def open_beef_data(self):
         logger.debug("Loading saved beef data.")
-        if Path(self.beef_data_file_path).exists():
+        if self.beef_data_file_path.exists():
             with open(self.beef_data_file_path, "r", encoding="utf-8") as beef_in:
                 self.beef_data = dict(json.load(beef_in))
 

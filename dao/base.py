@@ -8,8 +8,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Set, Union, List, Dict, Any, Callable
 
-from calculate.bad_boy_stats import BadBoyStats
-from calculate.beef_stats import BeefStats
+from features.bad_boy import BadBoyFeature
+from features.beef import BeefFeature
 from calculate.playoff_probabilities import PlayoffProbabilities
 
 
@@ -85,11 +85,12 @@ class FantasyFootballReportObject(object):
 
 class BaseLeague(FantasyFootballReportObject):
 
-    def __init__(self, data_dir: Path, league_id: str, season: int, week_for_report: int,
+    def __init__(self, root_dir: Path, data_dir: Path, league_id: str, season: int, week_for_report: int,
                  save_data: bool = True, offline: bool = False):
         super().__init__()
 
         # attributes set during instantiation
+        self.root_dir: Path = root_dir
         self.data_dir: Path = data_dir
         self.league_id: str = league_id
         self.season: int = season
@@ -242,17 +243,18 @@ class BaseLeague(FantasyFootballReportObject):
             offline=offline
         )
 
-    def get_bad_boy_stats(self, save_data: bool = False, offline: bool = False, refresh: bool = False) -> BadBoyStats:
-        return BadBoyStats(
-            Path(self.data_dir) / str(self.season) / self.league_id,
+    def get_bad_boy_stats(self, save_data: bool = False, offline: bool = False, refresh: bool = False) -> BadBoyFeature:
+        return BadBoyFeature(
+            self.root_dir,
+            self.data_dir / str(self.season) / self.league_id,
             save_data=save_data,
             offline=offline,
             refresh=refresh
         )
 
-    def get_beef_stats(self, save_data: bool = False, offline: bool = False, refresh: bool = False) -> BeefStats:
-        return BeefStats(
-            Path(self.data_dir) / str(self.season) / self.league_id,
+    def get_beef_stats(self, save_data: bool = False, offline: bool = False, refresh: bool = False) -> BeefFeature:
+        return BeefFeature(
+            self.data_dir / str(self.season) / self.league_id,
             save_data=save_data,
             offline=offline,
             refresh=refresh

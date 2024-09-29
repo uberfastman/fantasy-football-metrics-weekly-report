@@ -8,7 +8,7 @@ import re
 import string
 from collections import OrderedDict
 from pathlib import Path
-from typing import Dict, List, Any, Union
+from typing import Dict, List, Any, Union, Optional
 
 import requests
 from bs4 import BeautifulSoup
@@ -19,51 +19,45 @@ from utilities.logger import get_logger
 logger = get_logger(__name__, propagate=False)
 
 
-class BadBoyStats(object):
+class BaseFeature(object):
 
-    def __init__(self, data_dir: Path, save_data: bool = False, offline: bool = False, refresh: bool = False):
-        """ Initialize class, load data from USA Today NFL Arrest DB. Combine defensive player data
+    def __init__(self, feature_type: str, refresh: bool = False, save_data: bool = False, offline: bool = False,
+                 root_dir: Optional[Path] = None, data_dir: Optional[Path] = None):
         """
-        logger.debug("Initializing bad boy stats.")
+        """
+        self.feature_type_str: str = feature_type.replace(" ", "_").lower()
+        self.feature_type_title: str = feature_type.replace("_", " ").capitalize()
 
+        self.refresh: bool = refresh
         self.save_data: bool = save_data
         self.offline: bool = offline
-        self.refresh: bool = refresh
 
-        # position type reference
-        self.position_types: Dict[str, str] = {
-            "C": "D", "CB": "D", "DB": "D", "DE": "D", "DE/DT": "D", "DT": "D", "LB": "D", "S": "D", "Safety": "D",
-            # defense
-            "FB": "O", "QB": "O", "RB": "O", "TE": "O", "WR": "O",  # offense
-            "K": "S", "P": "S",  # special teams
-            "OG": "L", "OL": "L", "OT": "L",  # offensive line
-            "OC": "C",  # coaching staff
-        }
+        self.root_dir: Path = root_dir
+        self.data_dir: Path = data_dir
 
-        # create parent directory if it does not exist
-        if not Path(data_dir).exists():
+        self.raw_feature_data: Dict[str, Any] = {}
+        self.feature_data: Dict[str, Any] = {}
+
+        self.raw_feature_data_file_path: Optional[Path] = None
+        self.feature_data_file_path: Optional[Path] = None
+
+        # load preexisting (saved) feature data (if it exists) if refresh=False or if offline=True
+        if not self.refresh or self.offline:
+            self.load_feature_data()
+
+        # create output data directory if it does not exist
+        if not data_dir.exists():
             os.makedirs(data_dir)
 
-        # Load the scoring based on crime categories
-        with open(Path(__file__).parent.parent / "resources" / "files" / "crime_categories.json", mode="r",
-                  encoding="utf-8") as crimes:
-            self.crime_rankings = json.load(crimes)
-            logger.debug("Crime categories loaded.")
-
-        # for outputting all unique crime categories found in the USA Today NFL arrests data
-        self.unique_crime_categories_for_output = {}
-
-        # preserve raw retrieved player crime data for reference and later usage
-        self.raw_bad_boy_data: Dict[str, Any] = {}
-        self.raw_bad_boy_data_file_path: Path = Path(data_dir) / "bad_boy_raw_data.json"
+        # preserve raw retrieved data for reference and later usage
+        self.raw_feature_data: Dict[str, Any] = {}
+        self.raw_feature_data_file_path: Path = data_dir / "bad_boy_raw_data.json"
 
         # for collecting all retrieved bad boy data
         self.bad_boy_data: Dict[str, Any] = {}
-        self.bad_boy_data_file_path: Path = Path(data_dir) / "bad_boy_data.json"
+        self.bad_boy_data_file_path: Path = data_dir / "bad_boy_data.json"
 
-        # load preexisting (saved) bad boy data (if it exists) if refresh=False
-        if not self.refresh:
-            self.open_bad_boy_data()
+
 
         # fetch crimes of players from the web if not running in offline mode or if refresh=True
         if self.refresh or not self.offline:
@@ -195,11 +189,22 @@ class BadBoyStats(object):
         else:
             logger.info(f"{len(self.bad_boy_data)} bad boy records loaded")
 
-    def open_bad_boy_data(self):
-        logger.debug("Loading saved bay boy data.")
-        if Path(self.bad_boy_data_file_path).exists():
+    def load_feature_data(self):
+        logger.debug(f"Loading saved {self.feature_type_title} data...")
+
+        feature_data_file_path = self.data_dir / f"{self.feature_type_str}_data.json"
+
+        if self.bad_boy_data_file_path.exists():
             with open(self.bad_boy_data_file_path, "r", encoding="utf-8") as bad_boy_in:
                 self.bad_boy_data = dict(json.load(bad_boy_in))
+
+        # if offline mode, load pre-fetched bad boy data (only works if you've previously run application with -s flag)
+        else:
+            if not self.bad_boy_data:
+                raise FileNotFoundError(
+                    f"FILE {self.bad_boy_data_file_path} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY "
+                    f"SAVED DATA!"
+                )
 
     def save_bad_boy_data(self):
         if self.save_data:
@@ -344,7 +349,7 @@ class BadBoyStats(object):
 
     def generate_crime_categories_json(self):
         unique_crimes = OrderedDict(sorted(self.unique_crime_categories_for_output.items(), key=lambda k_v: k_v[0]))
-        with open(Path(__file__).parent.parent / "resources" / "files" / "crime_categories.new.json", mode="w",
+        with open(self.resource_files_dir / "crime_categories.new.json", mode="w",
                   encoding="utf-8") as crimes:
             json.dump(unique_crimes, crimes, ensure_ascii=False, indent=2)
 

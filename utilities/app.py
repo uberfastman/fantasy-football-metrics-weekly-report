@@ -17,8 +17,8 @@ from colorama import Fore, Style
 from git import Repo, TagReference, cmd
 from urllib3 import connectionpool, poolmanager
 
-from calculate.bad_boy_stats import BadBoyStats
-from calculate.beef_stats import BeefStats
+from features.bad_boy import BadBoyFeature
+from features.beef import BeefFeature
 from calculate.metrics import CalculateMetrics
 from dao.base import BaseLeague, BaseTeam, BasePlayer
 from dao.platforms.cbs import LeagueData as CbsLeagueData
@@ -214,7 +214,7 @@ def add_report_player_stats(metrics: Dict[str, Any], player: BasePlayer,
     if player.selected_position not in bench_positions:
 
         if settings.report_settings.league_bad_boy_rankings_bool:
-            bad_boy_stats: BadBoyStats = metrics.get("bad_boy_stats")
+            bad_boy_stats: BadBoyFeature = metrics.get("bad_boy_stats")
             player.bad_boy_crime = bad_boy_stats.get_player_bad_boy_crime(
                 player.first_name, player.last_name, player.nfl_team_abbr, player.primary_position
             )
@@ -226,7 +226,7 @@ def add_report_player_stats(metrics: Dict[str, Any], player: BasePlayer,
             )
 
         if settings.report_settings.league_beef_rankings_bool:
-            beef_stats: BeefStats = metrics.get("beef_stats")
+            beef_stats: BeefFeature = metrics.get("beef_stats")
             player.weight = beef_stats.get_player_weight(player.first_name, player.last_name, player.nfl_team_abbr)
             player.tabbu = beef_stats.get_player_tabbu(player.first_name, player.last_name, player.nfl_team_abbr)
 

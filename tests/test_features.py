@@ -5,17 +5,18 @@ import os
 import sys
 from pathlib import Path
 
-module_dir = Path(__file__).parent.parent
-sys.path.append(str(module_dir))
+root_dir = Path(__file__).parent.parent
+sys.path.append(str(root_dir))
 
-from calculate.bad_boy_stats import BadBoyStats  # noqa: E402
-from calculate.beef_stats import BeefStats  # noqa: E402
+from features.bad_boy import BadBoyFeature  # noqa: E402
+from features.beef import BeefFeature  # noqa: E402
+from features.high_roller import HighRollerStats  # noqa: E402
 
 from utilities.logger import get_logger  # noqa: E402
 
 logger = get_logger(__file__)
 
-test_data_dir = Path(module_dir) / "tests"
+test_data_dir = Path(root_dir) / "tests"
 if not Path(test_data_dir).exists():
     os.makedirs(test_data_dir)
 
@@ -25,9 +26,12 @@ player_full_name = f"{player_first_name} {player_last_name}"
 player_team_abbr = "ARI"
 player_position = "WR"
 
+season = 2024
+
 
 def test_bad_boy_init():
-    bad_boy_stats = BadBoyStats(
+    bad_boy_stats = BadBoyFeature(
+        root_dir=root_dir,
         data_dir=test_data_dir,
         save_data=True,
         offline=False,
@@ -48,7 +52,7 @@ def test_bad_boy_init():
 
 
 def test_beef_init():
-    beef_stats = BeefStats(
+    beef_stats = BeefFeature(
         data_dir=test_data_dir,
         save_data=True,
         offline=False,
@@ -68,6 +72,20 @@ def test_beef_init():
     assert beef_stats.beef_data is not None
 
 
+def test_high_roller_init():
+    high_roller_stats = HighRollerStats(
+        season=season,
+        data_dir=test_data_dir,
+        save_data=True,
+        offline=False,
+        refresh=True
+    )
+
+    logger.info(f"\n{high_roller_stats}")
+
+    assert high_roller_stats.high_roller_data is not None
+
+
 if __name__ == "__main__":
     logger.info("Testing features...")
 
@@ -76,3 +94,6 @@ if __name__ == "__main__":
 
     # test player weight (beef) data retrieval
     test_beef_init()
+
+    # test player NFL fines (high roller) data retrieval
+    test_high_roller_init()
