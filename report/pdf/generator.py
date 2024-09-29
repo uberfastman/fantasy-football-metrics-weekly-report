@@ -434,6 +434,7 @@ class PdfGenerator(object):
         self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]]
         self.beef_headers = [["Place", "Team", "Manager", "TABBU(s)"]]
         self.weekly_top_scorer_headers = [["Week", "Team", "Manager", "Score"]]
+        self.weekly_low_scorer_headers = [["Week", "Team", "Manager", "Score"]]
         self.weekly_highest_ce_headers = [["Week", "Team", "Manager", "Coaching Efficiency (%)"]]
         self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
 
@@ -508,6 +509,7 @@ class PdfGenerator(object):
         self.data_for_weekly_points_by_position = report_data.data_for_weekly_points_by_position
         self.data_for_season_average_team_points_by_position = report_data.data_for_season_avg_points_by_position
         self.data_for_season_weekly_top_scorers = report_data.data_for_season_weekly_top_scorers
+        self.data_for_season_weekly_low_scorers = report_data.data_for_season_weekly_low_scorers
         self.data_for_season_weekly_highest_ce = report_data.data_for_season_weekly_highest_ce
 
         # dynamically create table styles based on number of ties in metrics
@@ -702,6 +704,18 @@ class PdfGenerator(object):
                     self.data_for_coaching_efficiency[index] = team
 
         if metric_type == "top_scorers":
+            temp_data = []
+            for wk in data:
+                entry = [
+                    wk["week"],
+                    wk["team"],
+                    wk["manager"],
+                    wk["score"]
+                ]
+                temp_data.append(entry)
+                data = temp_data
+
+        if metric_type == "low_scorers":
             temp_data = []
             for wk in data:
                 entry = [
@@ -1622,6 +1636,26 @@ class PdfGenerator(object):
             ))
             elements.append(self.spacer_twentieth_inch)
 
+        if settings.report_settings.league_weekly_low_scorers_bool:
+            weekly_low_scorers_title_str = "Weekly Low Scorers"
+            weekly_low_scorers_page_title = self.create_title(
+                "<i>" + weekly_low_scorers_title_str + "</i>", element_type="chart",
+                anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>")
+            elements.append(weekly_low_scorers_page_title)
+
+            # weekly low scorers
+            elements.append(self.create_section(
+                "Weekly Low Scorers",
+                self.weekly_top_scorer_headers,
+                self.data_for_season_weekly_low_scorers,
+                self.style_no_highlight,
+                self.style_no_highlight,
+                self.widths_04_cols_no_1,
+                metric_type="top_scorers",
+                section_title_function=self.toc.add_top_performers_section
+            ))
+            elements.append(self.spacer_twentieth_inch)
+
         if settings.report_settings.league_weekly_highest_ce_bool:
             weekly_highest_ce_title_str = "Weekly Highest Coaching Efficiency"
             weekly_highest_ce_page_title = self.create_title(
@@ -1642,6 +1676,7 @@ class PdfGenerator(object):
             ))
 
         if (settings.report_settings.league_weekly_top_scorers_bool
+                or settings.report_settings.league_weekly_low_scorers_bool
                 or settings.report_settings.league_weekly_highest_ce_bool):
             elements.append(self.add_page_break())
 
@@ -1763,6 +1798,7 @@ class TableOfContents(object):
             ]
 
         if (settings.report_settings.league_weekly_top_scorers_bool
+                or settings.report_settings.league_weekly_low_scorers_bool
                 or settings.report_settings.league_weekly_highest_ce_bool):
             self.toc_top_performers_section_data = [
                 [Paragraph("<b><i>Top Performers</i></b>", self.toc_style_title_right),
