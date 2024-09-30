@@ -9,6 +9,8 @@ The Fantasy Football Metrics Weekly Report can be used within Docker for a more 
     ```shell
     docker compose -f compose.yaml -f compose.build.yaml build
     ```
+   
+    ***Note***: If you need to rebuild the Docker image with updated dependencies, run `docker compose -f compose.yaml -f compose.build.yaml build --no-cache`.
 
 ## Deploy
 

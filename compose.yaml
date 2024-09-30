@@ -2,10 +2,8 @@
 services:
 
   app:
-    image: ghcr.io/uberfastman/fantasy-football-metrics-weekly-report:18.0.0
+    image: ghcr.io/uberfastman/fantasy-football-metrics-weekly-report:18.1.3
     platform: linux/amd64
-    env_file:
-      - ./.env
     ports:
       - "5001:5000"
     volumes:

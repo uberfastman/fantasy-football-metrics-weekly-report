@@ -180,6 +180,7 @@ class FantasyFootballReport(object):
 
         season_avg_points_by_position = defaultdict(list)
         season_weekly_top_scorers = []
+        season_weekly_low_scorers = []
         season_weekly_highest_ce = []
         season_weekly_teams_results = []
 
@@ -231,6 +232,14 @@ class FantasyFootballReport(object):
                 "score": report_data.data_for_scores[0][3],
             }
             season_weekly_top_scorers.append(top_scorer)
+
+            low_scorer = {
+                "week": week_counter,
+                "team": report_data.data_for_scores[-1][1],
+                "manager": report_data.data_for_scores[-1][2],
+                "score": report_data.data_for_scores[-1][3],
+            }
+            season_weekly_low_scorers.append(low_scorer)
 
             highest_ce = {
                 "week": week_counter,
@@ -297,6 +306,7 @@ class FantasyFootballReport(object):
 
         report_data.data_for_season_avg_points_by_position = season_avg_points_by_position
         report_data.data_for_season_weekly_top_scorers = season_weekly_top_scorers
+        report_data.data_for_season_weekly_low_scorers = season_weekly_low_scorers
         report_data.data_for_season_weekly_highest_ce = season_weekly_highest_ce
 
         # calculate season average metrics and then add columns for them to their respective metric table data

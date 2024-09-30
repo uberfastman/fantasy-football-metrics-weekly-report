@@ -9,7 +9,7 @@
 **.pytest_cache
 
 # environment
-.env*
+*.env*
 env*
 .venv
 venv

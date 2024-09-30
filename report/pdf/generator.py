@@ -434,6 +434,7 @@ class PdfGenerator(object):
         self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]]
         self.beef_headers = [["Place", "Team", "Manager", "TABBU(s)"]]
         self.weekly_top_scorer_headers = [["Week", "Team", "Manager", "Score"]]
+        self.weekly_low_scorer_headers = [["Week", "Team", "Manager", "Score"]]
         self.weekly_highest_ce_headers = [["Week", "Team", "Manager", "Coaching Efficiency (%)"]]
         self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
 
@@ -508,6 +509,7 @@ class PdfGenerator(object):
         self.data_for_weekly_points_by_position = report_data.data_for_weekly_points_by_position
         self.data_for_season_average_team_points_by_position = report_data.data_for_season_avg_points_by_position
         self.data_for_season_weekly_top_scorers = report_data.data_for_season_weekly_top_scorers
+        self.data_for_season_weekly_low_scorers = report_data.data_for_season_weekly_low_scorers
         self.data_for_season_weekly_highest_ce = report_data.data_for_season_weekly_highest_ce
 
         # dynamically create table styles based on number of ties in metrics
@@ -703,6 +705,20 @@ class PdfGenerator(object):
 
         if metric_type == "top_scorers":
             temp_data = []
+            wk: Dict
+            for wk in data:
+                entry = [
+                    wk["week"],
+                    wk["team"],
+                    wk["manager"],
+                    wk["score"]
+                ]
+                temp_data.append(entry)
+                data = temp_data
+
+        if metric_type == "low_scorers":
+            temp_data = []
+            wk: Dict
             for wk in data:
                 entry = [
                     wk["week"],
@@ -715,6 +731,7 @@ class PdfGenerator(object):
 
         if metric_type == "highest_ce":
             temp_data = []
+            wk: Dict
             for wk in data:
                 # noinspection PyTypeChecker
                 entry = [
@@ -887,7 +904,8 @@ class PdfGenerator(object):
             display_row = []
             for cell_ndx, cell in enumerate(row):
                 if isinstance(cell, str):
-                    # truncate data cell contents to specified max characters
+                    # truncate data cell contents to specified max characters and half of specified max characters if
+                    # cell is a team manager header
                     display_row.append(
                         truncate_cell_for_display(cell, halve_max_chars=(cell_ndx == manager_header_ndx))
                     )
@@ -1432,12 +1450,14 @@ class PdfGenerator(object):
                     ),
                     metric_type="playoffs",
                     footer_text=(
-                        f"""† Predicted Division Leaders{
-                        "<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                        "‡ Predicted Division Qualifiers"
-                        if settings.num_playoff_slots_per_division > 1
-                        else ""
-                        }"""
+                        f"""† Predicted Division Leaders
+                        {
+                            "<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                            "‡ Predicted Division Qualifiers"
+                            if settings.num_playoff_slots_per_division > 1
+                            else ""
+                        }
+                        """
                         if self.report_data.has_divisions else None
                     )
                 ))
@@ -1622,6 +1642,26 @@ class PdfGenerator(object):
             ))
             elements.append(self.spacer_twentieth_inch)
 
+        if settings.report_settings.league_weekly_low_scorers_bool:
+            weekly_low_scorers_title_str = "Weekly Low Scorers"
+            weekly_low_scorers_page_title = self.create_title(
+                "<i>" + weekly_low_scorers_title_str + "</i>", element_type="chart",
+                anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>")
+            elements.append(weekly_low_scorers_page_title)
+
+            # weekly low scorers
+            elements.append(self.create_section(
+                "Weekly Low Scorers",
+                self.weekly_top_scorer_headers,
+                self.data_for_season_weekly_low_scorers,
+                self.style_no_highlight,
+                self.style_no_highlight,
+                self.widths_04_cols_no_1,
+                metric_type="top_scorers",
+                section_title_function=self.toc.add_top_performers_section
+            ))
+            elements.append(self.spacer_twentieth_inch)
+
         if settings.report_settings.league_weekly_highest_ce_bool:
             weekly_highest_ce_title_str = "Weekly Highest Coaching Efficiency"
             weekly_highest_ce_page_title = self.create_title(
@@ -1642,6 +1682,7 @@ class PdfGenerator(object):
             ))
 
         if (settings.report_settings.league_weekly_top_scorers_bool
+                or settings.report_settings.league_weekly_low_scorers_bool
                 or settings.report_settings.league_weekly_highest_ce_bool):
             elements.append(self.add_page_break())
 
@@ -1763,6 +1804,7 @@ class TableOfContents(object):
             ]
 
         if (settings.report_settings.league_weekly_top_scorers_bool
+                or settings.report_settings.league_weekly_low_scorers_bool
                 or settings.report_settings.league_weekly_highest_ce_bool):
             self.toc_top_performers_section_data = [
                 [Paragraph("<b><i>Top Performers</i></b>", self.toc_style_title_right),
@@ -1825,7 +1867,8 @@ class TableOfContents(object):
         self.toc_anchor += 1
 
     def add_team_section(self, team_name):
-        team_section = self.format_toc_section(team_name)
+        # truncate data cell contents to 1.5x specified max characters if team name length exceeds that value
+        team_section = self.format_toc_section(truncate_cell_for_display(team_name, sesqui_max_chars=True))
         self.toc_team_section_data.append(team_section)
         self.toc_anchor += 1
 
@@ -1840,7 +1883,7 @@ class TableOfContents(object):
     # noinspection DuplicatedCode
     def get_toc(self):
 
-        row_heights = []
+        row_heights: List = []
         if self.toc_metric_section_data:
             row_heights.extend([0.25 * inch] * len(self.toc_metric_section_data))
             row_heights.append(0.05 * inch)

@@ -669,7 +669,7 @@ The following setup steps are ***required*** in order to allow the Slack integra
 1. Sign in to your slack workspace [here](https://slack.com/signin).
 2. Once logged in, you need to [create a new app](https://api.slack.com/apps?new_app=1) for your workspace.
 3. After the popup appears, select `From scratch` and fill in the fields as follows:
-    * i. `App Name`: `ffmw-report` (this name can be anything you want)
+    * i. `App Name`: `ff-metrics-weekly-report` (this name can be anything you want)
     * ii. `Pick a workspace to develop your app in:`: Select your chosen Slack workspace from the dropdown menu.
 4. Click `Create App`. You should now be taken to the page for your new app, where you can set things like the app title card color, the icon, the description, as well as a whole host of other features (see [here](https://api.slack.com/docs/apps) for more information).
 5. Select `Basic Information` from the `Settings` section in the menu on the left.

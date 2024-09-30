@@ -76,10 +76,11 @@ class LeagueData(BaseLeagueData):
 
         # skip credentials check for public ESPN league access when use-default is set to true
         if os.environ.get("USE_DEFAULT"):
-            logger.info(
-                "Use-default is set to \"true\". Automatically running the report for the selected ESPN league without "
-                "credentials. This will only work for public ESPN leagues."
-            )
+            if not settings.platform_settings.espn_cookie_swid and not settings.platform_settings.espn_cookie_espn_s2:
+                logger.info(
+                    "Use-default is set to \"true\". Automatically running the report for the selected ESPN league "
+                    "without credentials. This will only work for public ESPN leagues."
+                )
             return
 
         if not settings.platform_settings.espn_cookie_swid or not settings.platform_settings.espn_cookie_espn_s2:

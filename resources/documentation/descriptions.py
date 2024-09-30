@@ -81,5 +81,7 @@ beef_rankings = "The Beef ranking is a \"just-for-fun\" metric with a made-up un
 
 weekly_top_scorers = "Running list of each week's highest scoring team. Can be used for weekly highest points payouts."
 
+weekly_low_scorers = "Running list of each week's lowest scoring team."
+
 weekly_highest_coaching_efficiency = "Running list of each week's team with the highest coaching efficiency. Can be " \
                                      "used for weekly highest coaching efficiency payouts."

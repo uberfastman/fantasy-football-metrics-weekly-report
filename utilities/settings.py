@@ -32,20 +32,23 @@ class CustomSettingsSource(EnvSettingsSource):
     @classmethod
     def convert_env_field_value_to_settings(cls, field_key: str, field_value: Any) -> Any:
 
-        if field_key.endswith("_int"):
-            settings_field_value = int(field_value)
-        elif field_key.endswith("_bool"):
-            settings_field_value = str(field_value).lower() == "true"
-        elif field_key.endswith("_list"):
-            settings_field_value = field_value.split(",") if field_value else []
-        elif field_key.endswith("_json"):
-            settings_field_value = json.loads(field_value) if field_value else {}
-        elif field_key.endswith("_path"):
-            settings_field_value = Path(field_value) if field_value else None
-        elif isinstance(field_value, str):
-            settings_field_value = field_value or None
+        if isinstance(field_value, str):  # check if incoming field value is coming from a .env file or not
+            if field_key.endswith("_int"):
+                settings_field_value = int(field_value)
+            elif field_key.endswith("_bool"):
+                settings_field_value = str(field_value).lower() == "true"
+            elif field_key.endswith("_list"):
+                settings_field_value = field_value.split(",") if field_value else []
+            elif field_key.endswith("_json"):
+                settings_field_value = json.loads(field_value) if field_value else {}
+            elif field_key.endswith("_path"):
+                settings_field_value = Path(field_value) if field_value else None
+            elif isinstance(field_value, str):
+                settings_field_value = field_value or None
+            else:
+                settings_field_value = json.loads(field_value)
         else:
-            settings_field_value = json.loads(field_value)
+            settings_field_value = field_value
 
         return settings_field_value
 
@@ -175,10 +178,10 @@ class CustomSettings(BaseSettings):
 
 class PlatformSettings(CustomSettings):
     # yahoo
-    yahoo_consumer_key: str = Field(None, title=__qualname__)
-    yahoo_consumer_secret: str = Field(None, title=__qualname__)
+    yahoo_consumer_key: Optional[str] = Field(None, title=__qualname__)
+    yahoo_consumer_secret: Optional[str] = Field(None, title=__qualname__)
     yahoo_access_token_json: Optional[Dict[str, Any]] = Field(None, title=__qualname__)
-    yahoo_game_id: Union[str, int] = Field(
+    yahoo_game_id: Optional[Union[str, int]] = Field(
         "nfl",
         title=__qualname__,
         description=(
@@ -187,7 +190,7 @@ class PlatformSettings(CustomSettings):
             "(2018 NFL season), or 390 (2019 nfl season)"
         )
     )
-    yahoo_initial_faab_budget: int = Field(
+    yahoo_initial_faab_budget: Optional[int] = Field(
         100,
         title=__qualname__,
         description="YAHOO LEAGUES ONLY: default FAAB since the initial/starting FAAB is not exposed in the API"
@@ -230,6 +233,7 @@ class ReportSettings(CustomSettings):
     league_bad_boy_rankings_bool: bool = Field(True, title=__qualname__)
     league_beef_rankings_bool: bool = Field(True, title=__qualname__)
     league_weekly_top_scorers_bool: bool = Field(True, title=__qualname__)
+    league_weekly_low_scorers_bool: bool = Field(True, title=__qualname__)
     league_weekly_highest_ce_bool: bool = Field(True, title=__qualname__)
     report_time_series_charts_bool: bool = Field(True, title=__qualname__)
     report_team_stats_bool: bool = Field(True, title=__qualname__)
@@ -262,7 +266,7 @@ class ReportSettings(CustomSettings):
         )
     )
     max_data_chars: int = Field(
-        24,
+        20,
         title=__qualname__,
         description="specify max number of characters to display for any given data cell in the report tables"
     )

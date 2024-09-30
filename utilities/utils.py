@@ -11,10 +11,16 @@ def format_platform_display(platform: str) -> str:
     return platform.capitalize() if len(platform) > 4 else platform.upper()
 
 
-def truncate_cell_for_display(cell_text: str, halve_max_chars: bool = False) -> str:
+def truncate_cell_for_display(cell_text: str, halve_max_chars: bool = False, sesqui_max_chars: bool = False) -> str:
     max_chars: int = settings.report_settings.max_data_chars
 
-    if halve_max_chars:
+    if halve_max_chars and sesqui_max_chars:
+        logger.warning(
+            f"Max characters cannot be both halved and doubled. Defaulting to configure max characters: {max_chars}"
+        )
+    elif halve_max_chars:
         max_chars //= 2
+    elif sesqui_max_chars:
+        max_chars += (max_chars // 2)
 
     return f"{cell_text[:max_chars].strip()}..." if len(cell_text) > max_chars else cell_text
