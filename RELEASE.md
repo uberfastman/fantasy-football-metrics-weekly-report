@@ -48,7 +48,7 @@
 
 10. Build and push a new Docker image for the app (see [DEPLOYMENT.md](./docker/DEPLOYMENT.md)).
 
-11. Create a new git branch:
+11. *(Optional)* Create a new git branch if creating a release:
     ```shell
     git checkout -b release/vX.X.X
     ```
@@ -60,10 +60,10 @@
     ```
     
 13. Update the git tag (format: `git tag -a [tag_name/version] -m [message]`):
-   ```shell
-   git tag -a v1.0.0 -m 'first release'
-   git push origin --tags
-   ```
+    ```shell
+    git tag -a v1.0.0 -m 'first release'
+    git push origin --tags
+    ```
 
 14. *(Optional)* View git tags:
     ```shell
@@ -71,8 +71,15 @@
     ```
 
 15. Update `fantasy-football-metrics-weekly-report` GitHub repository:
-   ```shell
-   git push -u origin release/vX.X.X
-   ```
+
+    * *(Optional)* If creating a release:    
+        ```shell
+        git push -u origin release/vX.X.X
+        ```
+    
+    * If updating `main`:
+        ```shell
+        git push
+        ```
 
 16. Go to the [FFMWR Releases page](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases) and draft a new release using the above git tag.
