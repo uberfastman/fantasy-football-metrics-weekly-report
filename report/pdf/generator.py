@@ -705,6 +705,7 @@ class PdfGenerator(object):
 
         if metric_type == "top_scorers":
             temp_data = []
+            wk: Dict
             for wk in data:
                 entry = [
                     wk["week"],
@@ -717,6 +718,7 @@ class PdfGenerator(object):
 
         if metric_type == "low_scorers":
             temp_data = []
+            wk: Dict
             for wk in data:
                 entry = [
                     wk["week"],
@@ -729,6 +731,7 @@ class PdfGenerator(object):
 
         if metric_type == "highest_ce":
             temp_data = []
+            wk: Dict
             for wk in data:
                 # noinspection PyTypeChecker
                 entry = [
@@ -901,7 +904,8 @@ class PdfGenerator(object):
             display_row = []
             for cell_ndx, cell in enumerate(row):
                 if isinstance(cell, str):
-                    # truncate data cell contents to specified max characters
+                    # truncate data cell contents to specified max characters and half of specified max characters if
+                    # cell is a team manager header
                     display_row.append(
                         truncate_cell_for_display(cell, halve_max_chars=(cell_ndx == manager_header_ndx))
                     )
@@ -1446,12 +1450,14 @@ class PdfGenerator(object):
                     ),
                     metric_type="playoffs",
                     footer_text=(
-                        f"""† Predicted Division Leaders{
-                        "<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                        "‡ Predicted Division Qualifiers"
-                        if settings.num_playoff_slots_per_division > 1
-                        else ""
-                        }"""
+                        f"""† Predicted Division Leaders
+                        {
+                            "<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                            "‡ Predicted Division Qualifiers"
+                            if settings.num_playoff_slots_per_division > 1
+                            else ""
+                        }
+                        """
                         if self.report_data.has_divisions else None
                     )
                 ))
@@ -1861,7 +1867,8 @@ class TableOfContents(object):
         self.toc_anchor += 1
 
     def add_team_section(self, team_name):
-        team_section = self.format_toc_section(team_name)
+        # truncate data cell contents to 1.5x specified max characters if team name length exceeds that value
+        team_section = self.format_toc_section(truncate_cell_for_display(team_name, sesqui_max_chars=True))
         self.toc_team_section_data.append(team_section)
         self.toc_anchor += 1
 
@@ -1876,7 +1883,7 @@ class TableOfContents(object):
     # noinspection DuplicatedCode
     def get_toc(self):
 
-        row_heights = []
+        row_heights: List = []
         if self.toc_metric_section_data:
             row_heights.extend([0.25 * inch] * len(self.toc_metric_section_data))
             row_heights.append(0.05 * inch)

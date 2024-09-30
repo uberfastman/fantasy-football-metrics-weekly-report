@@ -266,7 +266,7 @@ class ReportSettings(CustomSettings):
         )
     )
     max_data_chars: int = Field(
-        24,
+        20,
         title=__qualname__,
         description="specify max number of characters to display for any given data cell in the report tables"
     )
