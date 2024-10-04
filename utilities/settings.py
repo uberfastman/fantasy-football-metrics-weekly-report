@@ -232,6 +232,7 @@ class ReportSettings(CustomSettings):
     league_optimal_score_rankings_bool: bool = Field(True, title=__qualname__)
     league_bad_boy_rankings_bool: bool = Field(True, title=__qualname__)
     league_beef_rankings_bool: bool = Field(True, title=__qualname__)
+    league_high_roller_rankings_bool: bool = Field(True, title=__qualname__)
     league_weekly_top_scorers_bool: bool = Field(True, title=__qualname__)
     league_weekly_low_scorers_bool: bool = Field(True, title=__qualname__)
     league_weekly_highest_ce_bool: bool = Field(True, title=__qualname__)
@@ -240,6 +241,7 @@ class ReportSettings(CustomSettings):
     team_points_by_position_charts_bool: bool = Field(True, title=__qualname__)
     team_bad_boy_stats_bool: bool = Field(True, title=__qualname__)
     team_beef_stats_bool: bool = Field(True, title=__qualname__)
+    team_high_roller_stats_bool: bool = Field(True, title=__qualname__)
     team_boom_or_bust_bool: bool = Field(True, title=__qualname__)
 
     font: str = Field(
@@ -254,11 +256,16 @@ class ReportSettings(CustomSettings):
     )
     font_size: int = Field(
         12,
+        ge=8,
+        le=14,
         title=__qualname__,
-        description="set base font size (certain report element fonts resize dynamically based on the base font size)"
+        description=(
+            "set base font size so report element fonts resize dynamically (min: 8, max: 14)"
+        )
     )
     image_quality: int = Field(
         75,
+        le=100,
         title=__qualname__,
         description=(
             "specify player headshot image quality in percent (default: 75%), where higher quality (up to 100%) "
@@ -326,6 +333,13 @@ class AppSettings(CustomSettings):
         "info",
         title=__qualname__,
         description="logger output level: notset, debug, info, warning, error, critical"
+    )
+    check_for_updates: bool = Field(
+        True,
+        title=__qualname__,
+        description=(
+            "automatically check GitHub for app updates and prompt user to update if local installation is out of date"
+        )
     )
     # output directories can be set to store your saved data and generated reports wherever you want
     data_dir_path: Path = Field(

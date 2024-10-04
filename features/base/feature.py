@@ -1,360 +1,116 @@
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
-import itertools
 import json
 import os
-import re
-import string
-from collections import OrderedDict
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, List, Any, Union, Optional
+from typing import Dict, List, Any
 
-import requests
-from bs4 import BeautifulSoup
-
-from utilities.constants import nfl_team_abbreviations, nfl_team_abbreviation_conversions
 from utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)
 
 
-class BaseFeature(object):
+class BaseFeature(ABC):
 
-    def __init__(self, feature_type: str, refresh: bool = False, save_data: bool = False, offline: bool = False,
-                 root_dir: Optional[Path] = None, data_dir: Optional[Path] = None):
-        """
+    def __init__(self, feature_type: str, feature_web_base_url: str, data_dir: Path, refresh: bool = False,
+                 save_data: bool = False, offline: bool = False):
+        """Base Feature class for retrieving data from the web, saving, and loading it.
         """
         self.feature_type_str: str = feature_type.replace(" ", "_").lower()
         self.feature_type_title: str = feature_type.replace("_", " ").capitalize()
+
+        logger.debug(f"Initializing {self.feature_type_title} feature.")
+
+        self.feature_web_base_url = feature_web_base_url
+
+        self.data_dir: Path = data_dir
 
         self.refresh: bool = refresh
         self.save_data: bool = save_data
         self.offline: bool = offline
 
-        self.root_dir: Path = root_dir
-        self.data_dir: Path = data_dir
-
         self.raw_feature_data: Dict[str, Any] = {}
         self.feature_data: Dict[str, Any] = {}
 
-        self.raw_feature_data_file_path: Optional[Path] = None
-        self.feature_data_file_path: Optional[Path] = None
+        self.raw_feature_data_file_path: Path = self.data_dir / f"{self.feature_type_str}_raw_data.json"
+        self.feature_data_file_path: Path = self.data_dir / f"{self.feature_type_str}_data.json"
 
-        # load preexisting (saved) feature data (if it exists) if refresh=False or if offline=True
-        if not self.refresh or self.offline:
-            self.load_feature_data()
+        self.player_name_punctuation: List[str] = [".", "'"]
+        self.player_name_suffixes: List[str] = ["Jr", "Sr", "V", "IV", "III", "II", "I"]  # ordered for str.removesuffix
 
-        # create output data directory if it does not exist
-        if not data_dir.exists():
-            os.makedirs(data_dir)
+        # fetch feature data from the web if not running in offline mode or if refresh=True
+        if not self.offline and self.refresh:
+            if not self.feature_data:
+                logger.debug(f"Retrieving {self.feature_type_title} data from the web.")
 
-        # preserve raw retrieved data for reference and later usage
-        self.raw_feature_data: Dict[str, Any] = {}
-        self.raw_feature_data_file_path: Path = data_dir / "bad_boy_raw_data.json"
+                self._get_feature_data()
 
-        # for collecting all retrieved bad boy data
-        self.bad_boy_data: Dict[str, Any] = {}
-        self.bad_boy_data_file_path: Path = data_dir / "bad_boy_data.json"
-
-
-
-        # fetch crimes of players from the web if not running in offline mode or if refresh=True
-        if self.refresh or not self.offline:
-            if not self.bad_boy_data:
-                logger.debug("Retrieving bad boy data from the web.")
-
-                usa_today_nfl_arrest_url = "https://www.usatoday.com/sports/nfl/arrests/"
-                res = requests.get(usa_today_nfl_arrest_url)
-                soup = BeautifulSoup(res.text, "html.parser")
-                cdata = re.search("var sitedata = (.*);", soup.find(string=re.compile("CDATA"))).group(1)
-                ajax_nonce = json.loads(cdata)["ajax_nonce"]
-
-                usa_today_nfl_arrest_url = "https://databases.usatoday.com/wp-admin/admin-ajax.php"
-                headers = {
-                    "Content-Type": "application/x-www-form-urlencoded"
-                }
-
-                # example ajax query body
-                # example_body = (
-                #     'action=cspFetchTable&'
-                #     'security=61406e4feb&'
-                #     'pageID=10&'
-                #     'sortBy=Date&'
-                #     'sortOrder=desc&'
-                #     'searches={"Last_name":"hill","Team":"SEA","First_name":"leroy"}'
-                # )
-                arrests = []
-                for team in nfl_team_abbreviations:
-
-                    page_num = 1
-                    body = (
-                        f"action=cspFetchTable"
-                        f"&security={ajax_nonce}"
-                        f"&pageID=10"
-                        f"&sortBy=Date"
-                        f"&sortOrder=desc"
-                        f"&page={page_num}"
-                        f"&searches={{\"Team\":\"{team}\"}}"
-                    )
-
-                    res_json = requests.post(usa_today_nfl_arrest_url, data=body, headers=headers).json()
-
-                    arrests_data = res_json["data"]["Result"]
-
-                    for arrest in arrests_data:
-                        arrests.append({
-                            "name": f"{arrest['First_name']} {arrest['Last_name']}",
-                            "team": (
-                                "FA"
-                                if (arrest["Team"] == "Free agent" or arrest["Team"] == "Free Agent")
-                                else arrest["Team"]
-                            ),
-                            "date": arrest["Date"],
-                            "position": arrest["Position"],
-                            "position_type": self.position_types[arrest["Position"]],
-                            "case": arrest["Case_1"].upper(),
-                            "crime": arrest["Category"].upper(),
-                            "description": arrest["Description"],
-                            "outcome": arrest["Outcome"]
-                        })
-
-                    total_results = res_json["data"]["totalResults"]
-
-                    # the USA Today NFL arrests database only retrieves 20 entries per request
-                    if total_results > 20:
-                        if (total_results % 20) > 0:
-                            num_pages = (total_results // 20) + 1
-                        else:
-                            num_pages = total_results // 20
-
-                        for page in range(2, num_pages + 1):
-                            page_num += 1
-                            body = (
-                                f"action=cspFetchTable"
-                                f"&security={ajax_nonce}"
-                                f"&pageID=10"
-                                f"&sortBy=Date"
-                                f"&sortOrder=desc"
-                                f"&page={page_num}"
-                                f"&searches={{\"Team\":\"{team}\"}}"
-                            )
-
-                            r = requests.post(usa_today_nfl_arrest_url, data=body, headers=headers)
-                            resp_json = r.json()
-
-                            arrests_data = resp_json["data"]["Result"]
-
-                            for arrest in arrests_data:
-                                arrests.append({
-                                    "name": f"{arrest['First_name']} {arrest['Last_name']}",
-                                    "team": (
-                                        "FA"
-                                        if (arrest["Team"] == "Free agent" or arrest["Team"] == "Free Agent")
-                                        else arrest["Team"]
-                                    ),
-                                    "date": arrest["Date"],
-                                    "position": arrest["Position"],
-                                    "position_type": self.position_types[arrest["Position"]],
-                                    "case": arrest["Case_1"].upper(),
-                                    "crime": arrest["Category"].upper(),
-                                    "description": arrest["Description"],
-                                    "outcome": arrest["Outcome"]
-                                })
-
-                arrests_by_team = {
-                    key: list(group) for key, group in itertools.groupby(
-                        sorted(arrests, key=lambda x: x["team"]),
-                        lambda x: x["team"]
-                    )
-                }
-
-                for team_abbr in nfl_team_abbreviations:
-                    self.add_entry(team_abbr, arrests_by_team.get(team_abbr))
-
-                self.save_bad_boy_data()
-
-        # if offline mode, load pre-fetched bad boy data (only works if you've previously run application with -s flag)
+                if self.save_data:
+                    self._save_feature_data()
+        # if offline=True or refresh=False load saved feature data (must have previously run application with -s flag)
         else:
-            if not self.bad_boy_data:
-                raise FileNotFoundError(
-                    f"FILE {self.bad_boy_data_file_path} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY "
-                    f"SAVED DATA!"
-                )
+            self._load_feature_data()
 
-        if len(self.bad_boy_data) == 0:
+        if len(self.feature_data) == 0:
             logger.warning(
-                "NO bad boy records were loaded, please check your internet connection or the availability of "
-                "\"https://www.usatoday.com/sports/nfl/arrests/\" and try generating a new report.")
-        else:
-            logger.info(f"{len(self.bad_boy_data)} bad boy records loaded")
-
-    def load_feature_data(self):
-        logger.debug(f"Loading saved {self.feature_type_title} data...")
-
-        feature_data_file_path = self.data_dir / f"{self.feature_type_str}_data.json"
-
-        if self.bad_boy_data_file_path.exists():
-            with open(self.bad_boy_data_file_path, "r", encoding="utf-8") as bad_boy_in:
-                self.bad_boy_data = dict(json.load(bad_boy_in))
-
-        # if offline mode, load pre-fetched bad boy data (only works if you've previously run application with -s flag)
-        else:
-            if not self.bad_boy_data:
-                raise FileNotFoundError(
-                    f"FILE {self.bad_boy_data_file_path} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY "
-                    f"SAVED DATA!"
-                )
-
-    def save_bad_boy_data(self):
-        if self.save_data:
-            logger.debug("Saving bad boy data and raw player crime data.")
-            # save report bad boy data locally
-            with open(self.bad_boy_data_file_path, "w", encoding="utf-8") as bad_boy_out:
-                json.dump(self.bad_boy_data, bad_boy_out, ensure_ascii=False, indent=2)
-
-            # save raw player crime data locally
-            with open(self.raw_bad_boy_data_file_path, "w", encoding="utf-8") as bad_boy_raw_out:
-                json.dump(self.raw_bad_boy_data, bad_boy_raw_out, ensure_ascii=False, indent=2)
-
-    def add_entry(self, team_abbr: str, arrests: List[Dict[str, str]]):
-
-        if arrests:
-            nfl_team = {
-                "pos": "D/ST",
-                "players": {},
-                "total_points": 0,
-                "offenders": [],
-                "num_offenders": 0,
-                "worst_offense": None,
-                "worst_offense_points": 0
-            }
-
-            for player_arrest in arrests:
-                player_name = player_arrest.get("name")
-                player_pos = player_arrest.get("position")
-                player_pos_type = player_arrest.get("position_type")
-                offense_category = str.upper(player_arrest.get("crime"))
-
-                # Add each crime to output categories for generation of crime_categories.new.json file, which can
-                # be used to replace the existing crime_categories.json file. Each new crime categories will default to
-                # a score of 0, and must have its score manually assigned within the json file.
-                self.unique_crime_categories_for_output[offense_category] = self.crime_rankings.get(offense_category, 0)
-
-                # add raw player arrest data to raw data collection
-                self.raw_bad_boy_data[player_name] = player_arrest
-
-                if offense_category in self.crime_rankings.keys():
-                    offense_points = self.crime_rankings.get(offense_category)
-                else:
-                    offense_points = 0
-                    logger.warning(f"Crime ranking not found: \"{offense_category}\". Assigning score of 0.")
-
-                nfl_player = {
-                    "team": team_abbr,
-                    "pos": player_pos,
-                    "offenses": [],
-                    "total_points": 0,
-                    "worst_offense": None,
-                    "worst_offense_points": 0
-                }
-
-                # update player entry
-                nfl_player["offenses"].append({offense_category: offense_points})
-                nfl_player["total_points"] += offense_points
-
-                if offense_points > nfl_player["worst_offense_points"]:
-                    nfl_player["worst_offense"] = offense_category
-                    nfl_player["worst_offense_points"] = offense_points
-
-                self.bad_boy_data[player_name] = nfl_player
-
-                # update team DEF entry
-                if player_pos_type == "D":
-                    nfl_team["players"][player_name] = self.bad_boy_data[player_name]
-                    nfl_team["total_points"] += offense_points
-                    nfl_team["offenders"].append(player_name)
-                    nfl_team["offenders"] = list(set(nfl_team["offenders"]))
-                    nfl_team["num_offenders"] = len(nfl_team["offenders"])
-
-                    if offense_points > nfl_team["worst_offense_points"]:
-                        nfl_team["worst_offense"] = offense_category
-                        nfl_team["worst_offense_points"] = offense_points
-
-            self.bad_boy_data[team_abbr] = nfl_team
-
-    def get_player_bad_boy_stats(self, player_first_name: str, player_last_name: str, player_team_abbr: str,
-                                 player_pos: str, key_str: str = "") -> Union[int, str, Dict[str, Any]]:
-        """ Looks up given player and returns number of "bad boy" points based on custom crime scoring.
-
-        TODO: maybe limit for years and adjust defensive players rolling up to DEF team as it skews DEF scores high
-        :param player_first_name: First name of player to look up
-        :param player_last_name: Last name of player to look up
-        :param player_team_abbr: Player's team (maybe limit to only crimes while on that team...or for DEF players???)
-        :param player_pos: Player's position
-        :param key_str: which player information to retrieve (crime: "worst_offense" or bad boy points: "total_points")
-        :return: Ether integer number of bad boy points or crime recorded (depending on key_str)
-        """
-        player_team = str.upper(player_team_abbr) if player_team_abbr else "?"
-        if player_team not in nfl_team_abbreviations:
-            if player_team in nfl_team_abbreviation_conversions.keys():
-                player_team = nfl_team_abbreviation_conversions[player_team]
-
-        player_full_name = (
-                (string.capwords(player_first_name) if player_first_name else "") +
-                (" " if player_first_name and player_last_name else "") +
-                (string.capwords(player_last_name) if player_last_name else "")
-        ).strip()
-
-        # TODO: figure out how to include only ACTIVE players in team DEF roll-ups
-        if player_pos == "D/ST":
-            # player_full_name = player_team
-            player_full_name = "TEMPORARY DISABLING OF TEAM DEFENSES IN BAD BOY POINTS"
-        if player_full_name in self.bad_boy_data:
-            return self.bad_boy_data[player_full_name][key_str] if key_str else self.bad_boy_data[player_full_name]
-        else:
-            logger.debug(
-                f"Player not found: {player_full_name}. Setting crime category and bad boy points to 0. Run report "
-                f"with the -r flag (--refresh-web-data) to refresh all external web data and try again."
+                f"No {self.feature_type_title} data records were loaded, please check your internet connection or the "
+                f"availability of {self.feature_web_base_url} and try generating a new report."
             )
-
-            self.bad_boy_data[player_full_name] = {
-                "team": player_team,
-                "pos": player_pos,
-                "offenses": [],
-                "total_points": 0,
-                "worst_offense": None,
-                "worst_offense_points": 0
-            }
-            return self.bad_boy_data[player_full_name][key_str] if key_str else self.bad_boy_data[player_full_name]
-
-    def get_player_bad_boy_crime(self, player_first_name: str, player_last_name: str, player_team: str,
-                                 player_pos: str) -> str:
-        return self.get_player_bad_boy_stats(player_first_name, player_last_name, player_team, player_pos,
-                                             "worst_offense")
-
-    def get_player_bad_boy_points(self, player_first_name: str, player_last_name: str, player_team: str,
-                                  player_pos: str) -> int:
-        return self.get_player_bad_boy_stats(player_first_name, player_last_name, player_team, player_pos,
-                                             "total_points")
-
-    def get_player_bad_boy_num_offenders(self, player_first_name: str, player_last_name: str, player_team: str,
-                                         player_pos: str) -> int:
-        player_bad_boy_stats = self.get_player_bad_boy_stats(player_first_name, player_last_name, player_team,
-                                                             player_pos)
-        if player_bad_boy_stats.get("pos") == "D/ST":
-            return player_bad_boy_stats.get("num_offenders")
         else:
-            return 0
-
-    def generate_crime_categories_json(self):
-        unique_crimes = OrderedDict(sorted(self.unique_crime_categories_for_output.items(), key=lambda k_v: k_v[0]))
-        with open(self.resource_files_dir / "crime_categories.new.json", mode="w",
-                  encoding="utf-8") as crimes:
-            json.dump(unique_crimes, crimes, ensure_ascii=False, indent=2)
+            logger.info(f"{len(self.feature_data)} feature data records loaded")
 
     def __str__(self):
-        return json.dumps(self.bad_boy_data, indent=2, ensure_ascii=False)
+        return json.dumps(self.feature_data, indent=2, ensure_ascii=False)
 
     def __repr__(self):
-        return json.dumps(self.bad_boy_data, indent=2, ensure_ascii=False)
+        return json.dumps(self.feature_data, indent=2, ensure_ascii=False)
+
+    def _load_feature_data(self) -> None:
+        logger.debug(f"Loading saved {self.feature_type_title} data...")
+
+        if self.feature_data_file_path.is_file():
+            with open(self.feature_data_file_path, "r", encoding="utf-8") as feature_data_in:
+                self.feature_data = dict(json.load(feature_data_in))
+        else:
+            raise FileNotFoundError(
+                f"FILE {self.feature_data_file_path} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING PREVIOUSLY "
+                f"SAVED DATA!"
+            )
+
+    def _save_feature_data(self) -> None:
+        logger.debug(f"Saving {self.feature_type_title} data and raw {self.feature_type_title} data.")
+
+        # create output data directory if it does not exist
+        if not self.data_dir.is_dir():
+            os.makedirs(self.data_dir, exist_ok=True)
+
+        # save feature data locally
+        if self.feature_data:
+            with open(self.feature_data_file_path, "w", encoding="utf-8") as feature_data_out:
+                json.dump(self.feature_data, feature_data_out, ensure_ascii=False, indent=2)
+
+        # save raw feature data locally
+        if self.raw_feature_data:
+            with open(self.raw_feature_data_file_path, "w", encoding="utf-8") as feature_raw_data_out:
+                json.dump(self.raw_feature_data, feature_raw_data_out, ensure_ascii=False, indent=2)
+
+    def _normalize_player_name(self, player_name: str) -> str:
+        """Remove all punctuation and name suffixes from player names and covert them to title case.
+        """
+        normalized_player_name: str = player_name.strip()
+        if (any(punc in player_name for punc in self.player_name_punctuation)
+                or any(suffix in player_name for suffix in self.player_name_suffixes)):
+
+            for punc in self.player_name_punctuation:
+                normalized_player_name = normalized_player_name.replace(punc, "")
+
+            for suffix in self.player_name_suffixes:
+                normalized_player_name = normalized_player_name.removesuffix(suffix)
+
+        return normalized_player_name.strip().title()
+
+    @abstractmethod
+    def _get_feature_data(self) -> None:
+        raise NotImplementedError

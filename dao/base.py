@@ -6,11 +6,12 @@ __email__ = "uberfastman@uberfastman.dev"
 import json
 from collections import defaultdict
 from pathlib import Path
-from typing import Set, Union, List, Dict, Any, Callable
+from typing import Set, Union, List, Dict, Any, Callable, Optional
 
+from calculate.playoff_probabilities import PlayoffProbabilities
 from features.bad_boy import BadBoyFeature
 from features.beef import BeefFeature
-from calculate.playoff_probabilities import PlayoffProbabilities
+from features.high_roller import HighRollerFeature
 
 
 # noinspection GrazieInspection
@@ -99,7 +100,7 @@ class BaseLeague(FantasyFootballReportObject):
         self.offline: bool = offline
 
         # attributes mapped directly from platform API data
-        self.name: Union[str, None] = None
+        self.name: Optional[str] = None
         self.week: int = 0
         self.start_week: int = 1
         self.num_teams: int = 0
@@ -113,7 +114,7 @@ class BaseLeague(FantasyFootballReportObject):
         self.has_waiver_priorities: bool = False
         self.is_faab: bool = False
         self.faab_budget: int = 0
-        self.url: Union[str, None] = None
+        self.url: Optional[str] = None
 
         # attributes calculated externally from platform API data
         self.roster_positions: List[str] = []
@@ -140,8 +141,8 @@ class BaseLeague(FantasyFootballReportObject):
         self.median_standings: List[BaseTeam] = []
         self.current_median_standings: List[BaseTeam] = []
 
-        self.player_data_by_week_function: Union[Callable, None] = None
-        self.player_data_by_week_key: Union[str, None] = None
+        self.player_data_by_week_function: Optional[Callable] = None
+        self.player_data_by_week_key: Optional[str] = None
 
     def get_player_data_by_week(self, player_id: str, week: int = None) -> Any:
         return getattr(self.player_data_by_week_function(player_id, week), self.player_data_by_week_key)
@@ -243,21 +244,31 @@ class BaseLeague(FantasyFootballReportObject):
             offline=offline
         )
 
-    def get_bad_boy_stats(self, save_data: bool = False, offline: bool = False, refresh: bool = False) -> BadBoyFeature:
+    def get_bad_boy_stats(self, refresh: bool = False, save_data: bool = False, offline: bool = False) -> BadBoyFeature:
         return BadBoyFeature(
-            self.root_dir,
             self.data_dir / str(self.season) / self.league_id,
+            self.root_dir,
+            refresh=refresh,
             save_data=save_data,
-            offline=offline,
-            refresh=refresh
+            offline=offline
         )
 
-    def get_beef_stats(self, save_data: bool = False, offline: bool = False, refresh: bool = False) -> BeefFeature:
+    def get_beef_stats(self, refresh: bool = False, save_data: bool = False, offline: bool = False) -> BeefFeature:
         return BeefFeature(
             self.data_dir / str(self.season) / self.league_id,
+            refresh=refresh,
             save_data=save_data,
-            offline=offline,
-            refresh=refresh
+            offline=offline
+        )
+
+    def get_high_roller_stats(self, refresh: bool = False, save_data: bool = False,
+                              offline: bool = False) -> HighRollerFeature:
+        return HighRollerFeature(
+            self.data_dir / str(self.season) / self.league_id,
+            self.season,
+            refresh=refresh,
+            save_data=save_data,
+            offline=offline
         )
 
 
@@ -289,31 +300,43 @@ class BaseTeam(FantasyFootballReportObject):
         super().__init__()
 
         self.week: int = 0
-        self.name: Union[str, None] = None
+        self.name: Optional[str] = None
         self.num_moves: int = 0
         self.num_trades: int = 0
         self.managers: List[BaseManager] = []
-        self.team_id: Union[str, None] = None
-        self.division: Union[str, None] = None
+        self.team_id: Optional[str] = None
+        self.division: Optional[str] = None
         self.points: float = 0
         self.projected_points: float = 0
         self.home_field_advantage_points: float = 0
         self.waiver_priority: int = 0
         self.faab: int = 0
-        self.url: Union[str, None] = None
+        self.url: Optional[str] = None
         self.roster: List[BasePlayer] = []
 
+        # - - - - - - - - - - - -
         # custom report attributes
-        self.manager_str: Union[str, None] = None
+        # v v v v v v v v v v v v
+
+        self.manager_str: Optional[str] = None
         self.bench_points: float = 0
-        self.streak_str: Union[str, None] = None
-        self.division_streak_str: Union[str, None] = None
+        self.streak_str: Optional[str] = None
+        self.division_streak_str: Optional[str] = None
+
         self.bad_boy_points: int = 0
-        self.worst_offense: Union[str, None] = None
-        self.num_offenders: int = 0
+        self.worst_offense: Optional[str] = None
         self.worst_offense_score: int = 0
+        self.num_offenders: int = 0
+
         self.total_weight: float = 0.0
-        self.tabbu: float = 0
+        self.tabbu: float = 0.0
+
+        self.fines_count: int = 0
+        self.fines_total: float = 0.0
+        self.worst_violation: Optional[str] = None
+        self.worst_violation_fine: float = 0.0
+        self.num_violators: int = 0
+
         self.positions_filled_active: List[str] = []
         self.coaching_efficiency: Union[float, str] = 0.0
         self.luck: float = 0
@@ -580,11 +603,11 @@ class BaseManager(FantasyFootballReportObject):
     def __init__(self):
         super().__init__()
 
-        self.manager_id: Union[str, None] = None
-        self.email: Union[str, None] = None
-        self.name: Union[str, None] = None
-        self.name_str: Union[str, None] = None
-        self.nickname: Union[str, None] = None
+        self.manager_id: Optional[str] = None
+        self.email: Optional[str] = None
+        self.name: Optional[str] = None
+        self.name_str: Optional[str] = None
+        self.nickname: Optional[str] = None
 
     def __setattr__(self, key: str, value: Any):
         if key == "name":
@@ -607,38 +630,48 @@ class BasePlayer(FantasyFootballReportObject):
         super().__init__()
 
         self.week_for_report: int = 0
-        self.player_id: Union[str, None] = None
+        self.player_id: Optional[str] = None
         self.bye_week: int = 0
-        self.display_position: Union[str, None] = None
-        self.nfl_team_id: Union[str, None] = None
-        self.nfl_team_abbr: Union[str, None] = None
-        self.nfl_team_name: Union[str, None] = None
-        self.first_name: Union[str, None] = None
-        self.last_name: Union[str, None] = None
-        self.full_name: Union[str, None] = None
-        self.headshot_url: Union[str, None] = None
-        self.owner_team_id: Union[str, None] = None
-        self.owner_team_name: Union[str, None] = None
+        self.display_position: Optional[str] = None
+        self.nfl_team_id: Optional[str] = None
+        self.nfl_team_abbr: Optional[str] = None
+        self.nfl_team_name: Optional[str] = None
+        self.first_name: Optional[str] = None
+        self.last_name: Optional[str] = None
+        self.full_name: Optional[str] = None
+        self.headshot_url: Optional[str] = None
+        self.owner_team_id: Optional[str] = None
+        self.owner_team_name: Optional[str] = None
         self.percent_owned: float = 0.0
         self.points: float = 0.0
         self.projected_points: float = 0.0
         self.season_points: float = 0.0
         self.season_projected_points: float = 0.0
         self.season_average_points: float = 0.0
-        self.position_type: Union[str, None] = None
-        self.primary_position: Union[str, None] = None
-        self.selected_position: Union[str, None] = None
+        self.position_type: Optional[str] = None
+        self.primary_position: Optional[str] = None
+        self.selected_position: Optional[str] = None
         self.selected_position_is_flex: bool = False
-        self.status: Union[str, None] = None
+        self.status: Optional[str] = None
         self.eligible_positions: Set[str] = set()
         self.stats: List[BaseStat] = []
 
+        # - - - - - - - - - - - -
         # custom report attributes
-        self.bad_boy_crime: Union[str, None] = None
+        # v v v v v v v v v v v v
+
+        self.bad_boy_crime: Optional[str] = None
         self.bad_boy_points: int = 0
         self.bad_boy_num_offenders: int = 0
-        self.weight: int = 0
-        self.tabbu: float = 0.0
+
+        self.beef_weight: int = 0
+        self.beef_tabbu: float = 0.0
+
+        self.high_roller_fines_count: int = 0
+        self.high_roller_fines_total: float = 0.0
+        self.high_roller_worst_violation: Optional[str] = None
+        self.high_roller_worst_violation_fine: float = 0.0
+        self.high_roller_num_violators: int = 0
 
 
 class BaseStat(FantasyFootballReportObject):
@@ -646,7 +679,7 @@ class BaseStat(FantasyFootballReportObject):
     def __init__(self):
         super().__init__()
 
-        self.stat_id: Union[str, None] = None
-        self.name: Union[str, None] = None
-        self.abbreviation: Union[str, None] = None
+        self.stat_id: Optional[str] = None
+        self.name: Optional[str] = None
+        self.abbreviation: Optional[str] = None
         self.value: float = 0.0

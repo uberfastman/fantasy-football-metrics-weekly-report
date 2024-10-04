@@ -610,7 +610,7 @@ if __name__ == '__main__':
 
     cbs_platform = LeagueData(
         root_directory,
-        Path(__file__).parent.parent.parent / 'data',
+        Path(__file__).parent.parent.parent / "output" / "data",
         settings.league_id,
         settings.season,
         2,

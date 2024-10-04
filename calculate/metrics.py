@@ -348,12 +348,12 @@ class CalculateMetrics(object):
         for team in bad_boy_results:
             ranked_team_name = team.name
             ranked_team_manager = team.manager_str
-            ranked_bb_points = str(team.bad_boy_points)
+            ranked_bad_boy_points = str(team.bad_boy_points)
             ranked_offense = team.worst_offense
             ranked_count = str(team.num_offenders)
 
             bad_boy_results_data.append(
-                [place, ranked_team_name, ranked_team_manager, ranked_bb_points, ranked_offense, ranked_count]
+                [place, ranked_team_name, ranked_team_manager, ranked_bad_boy_points, ranked_offense, ranked_count]
             )
 
             place += 1
@@ -374,6 +374,28 @@ class CalculateMetrics(object):
             beef_results_data.append([place, ranked_team_name, ranked_team_manager, ranked_beef_points])
             place += 1
         return beef_results_data
+
+    @staticmethod
+    def get_high_roller_data(high_roller_results: List[BaseTeam]) -> List[List[Any]]:
+        logger.debug("Creating league high roller data.")
+
+        high_roller_results_data = []
+        place = 1
+        team: BaseTeam
+        for team in high_roller_results:
+            ranked_team_name = team.name
+            ranked_team_manager = team.manager_str
+            ranked_total_fines = str(team.fines_total)
+            ranked_violation = team.worst_violation
+            ranked_violation_fine = str(team.worst_violation_fine)
+
+            high_roller_results_data.append(
+                [place, ranked_team_name, ranked_team_manager, ranked_total_fines, ranked_violation,
+                 ranked_violation_fine]
+            )
+
+            place += 1
+        return high_roller_results_data
 
     def get_ties_count(self, results_data: List[List[Any]], tie_type: str, break_ties: bool) -> int:
 
@@ -420,6 +442,15 @@ class CalculateMetrics(object):
                                 team[4],
                                 team[5]
                             ]
+                        elif tie_type == "high_roller":
+                            results_data[team_index] = [
+                                str(place) + ("*" if group_has_ties else ""),
+                                team[1],
+                                team[2],
+                                team[3],
+                                team[4],
+                                team[5]
+                            ]
                         else:
                             results_data[team_index] = [
                                 str(place) + ("*" if group_has_ties else ""),
@@ -439,6 +470,13 @@ class CalculateMetrics(object):
             num_ties = 0
             for group in groups:
                 if len(group) > 1 and int(group[0][3]) > 0:
+                    num_ties += sum(range(len(group)))
+
+        if tie_type == "high_roller":
+            groups = [list(group) for key, group in itertools.groupby(results_data, lambda x: x[3])]
+            num_ties = 0
+            for group in groups:
+                if len(group) > 1 and float(group[0][3]) > 0:
                     num_ties += sum(range(len(group)))
 
         return num_ties

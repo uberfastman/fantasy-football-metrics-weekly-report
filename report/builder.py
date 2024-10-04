@@ -132,7 +132,7 @@ class FantasyFootballReport(object):
                 f"Retrieving bad boy data from https://www.usatoday.com/sports/nfl/arrests/ "
                 f"{'website' if not self.offline or self.refresh_web_data else 'saved data'}..."
             )
-            self.bad_boy_stats = self.league.get_bad_boy_stats(self.save_data, self.offline, self.refresh_web_data)
+            self.bad_boy_stats = self.league.get_bad_boy_stats(self.refresh_web_data, self.save_data, self.offline)
             delta = datetime.datetime.now() - begin
             logger.info(
                 f"...retrieved all bad boy data from https://www.usatoday.com/sports/nfl/arrests/ "
@@ -147,7 +147,7 @@ class FantasyFootballReport(object):
                 f"Retrieving beef data from Sleeper "
                 f"{'API' if not self.offline or self.refresh_web_data else 'saved data'}..."
             )
-            self.beef_stats = self.league.get_beef_stats(self.save_data, self.offline, self.refresh_web_data)
+            self.beef_stats = self.league.get_beef_stats(self.refresh_web_data, self.save_data, self.offline)
             delta = datetime.datetime.now() - begin
             logger.info(
                 f"...retrieved all beef data from Sleeper "
@@ -155,6 +155,23 @@ class FantasyFootballReport(object):
             )
         else:
             self.beef_stats = None
+
+        if settings.report_settings.league_high_roller_rankings_bool:
+            begin = datetime.datetime.now()
+            logger.info(
+                f"Retrieving high roller data from https://www.spotrac.com/nfl/fines "
+                f"{'website' if not self.offline or self.refresh_web_data else 'saved data'}..."
+            )
+            self.high_roller_stats = self.league.get_high_roller_stats(
+                self.refresh_web_data, self.save_data, self.offline
+            )
+            delta = datetime.datetime.now() - begin
+            logger.info(
+                f"...retrieved all high roller data from https://www.spotrac.com/nfl/fines "
+                f"{'website' if not self.offline else 'saved data'} in {delta}\n"
+            )
+        else:
+            self.high_roller_stats = None
 
         # output league info for verification
         logger.info(
@@ -213,7 +230,8 @@ class FantasyFootballReport(object):
                     ),
                     "playoff_probs": self.playoff_probs,
                     "bad_boy_stats": self.bad_boy_stats,
-                    "beef_stats": self.beef_stats
+                    "beef_stats": self.beef_stats,
+                    "high_roller_stats": self.high_roller_stats
                 },
                 break_ties=self.break_ties,
                 dq_ce=self.dq_ce,
