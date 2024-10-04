@@ -22,9 +22,10 @@ logging.getLogger("slack.web.slack_response").setLevel(level=logging.INFO)
 logging.getLogger("slack.web.base_client").setLevel(level=logging.INFO)
 
 
-class SlackUploader(object):
+class SlackIntegration(object):
+
     def __init__(self):
-        logger.debug("Initializing Slack uploader and authenticating.")
+        logger.debug("Initializing Slack integration.")
 
         self.project_dir: Path = Path(__file__).parent.parent
 
@@ -164,21 +165,21 @@ if __name__ == "__main__":
     test_channel = "dev-test"
     repost_file = Path(__file__).parent.parent / settings.integration_settings.slack_repost_file_path
 
-    slack_uploader = SlackUploader()
+    slack_integration = SlackIntegration()
 
     # general slack integration testing
-    logger.info(f"{json.dumps(slack_uploader.api_test().data, indent=2)}")
-    logger.info(f"{json.dumps(slack_uploader.list_channels().data, indent=2)}")
-    logger.info(f"{json.dumps(slack_uploader.list_channels().get('channels'), indent=2)}")
+    logger.info(f"{json.dumps(slack_integration.api_test().data, indent=2)}")
+    logger.info(f"{json.dumps(slack_integration.list_channels().data, indent=2)}")
+    logger.info(f"{json.dumps(slack_integration.list_channels().get('channels'), indent=2)}")
 
     # public channel integration testing
-    logger.info(f"{json.dumps(slack_uploader.test_post_to_slack_channel('test message', test_channel), indent=2)}")
-    logger.info(f"{json.dumps(slack_uploader.test_file_upload_to_slack_channel(repost_file, test_channel).data, indent=2)}")
+    logger.info(f"{json.dumps(slack_integration.test_post_to_slack_channel('test message', test_channel), indent=2)}")
+    logger.info(f"{json.dumps(slack_integration.test_file_upload_to_slack_channel(repost_file, test_channel).data, indent=2)}")
 
     # private channel integration testing
-    logger.info(f"{json.dumps(slack_uploader.test_post_to_private_slack_channel('test message', test_channel), indent=2)}")
-    logger.info(f"{json.dumps(slack_uploader.test_file_upload_to_private_slack_channel(repost_file, test_channel).data, indent=2)}")
+    logger.info(f"{json.dumps(slack_integration.test_post_to_private_slack_channel('test message', test_channel), indent=2)}")
+    logger.info(f"{json.dumps(slack_integration.test_file_upload_to_private_slack_channel(repost_file, test_channel).data, indent=2)}")
 
     # selected channel integration testing
-    logger.info(f"{json.dumps(slack_uploader.post_to_configured_slack_channel('test').data, indent=2)}")
-    logger.info(f"{json.dumps(slack_uploader.upload_file_to_configured_slack_channel(repost_file).data, indent=2)}")
+    logger.info(f"{json.dumps(slack_integration.post_to_configured_slack_channel('test').data, indent=2)}")
+    logger.info(f"{json.dumps(slack_integration.upload_file_to_configured_slack_channel(repost_file).data, indent=2)}")

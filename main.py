@@ -13,8 +13,8 @@ from typing import Union
 import colorama
 from colorama import Fore, Style
 
-from integrations.drive_integration import GoogleDriveUploader
-from integrations.slack_integration import SlackUploader
+from integrations.drive import GoogleDriveIntegration
+from integrations.slack import SlackIntegration
 from report.builder import FantasyFootballReport
 from utilities.app import check_github_for_updates
 from utilities.logger import get_logger
@@ -310,8 +310,8 @@ if __name__ == "__main__":
     if upload_file_to_google_drive:
         if not options.get("test", False):
             # upload pdf to google drive
-            google_drive_uploader = GoogleDriveUploader(report_pdf)
-            upload_message = google_drive_uploader.upload_file()
+            google_drive_integration = GoogleDriveIntegration(report_pdf)
+            upload_message = google_drive_integration.upload_file()
             logger.info(upload_message)
         else:
             logger.info("Test report NOT uploaded to Google Drive.")
@@ -320,15 +320,15 @@ if __name__ == "__main__":
     if post_to_slack:
         if not options.get("test", False):
             # post pdf or link to pdf to slack
-            slack_messenger = SlackUploader()
+            slack_integration = SlackIntegration()
             post_or_file = settings.integration_settings.slack_post_or_file
 
             if post_or_file == "post":
-                # post shareable link to uploaded Google Drive pdf on slack
-                slack_response = slack_messenger.post_to_configured_slack_channel(upload_message)
+                # post shareable link to uploaded Google Drive PDF on slack
+                slack_response = slack_integration.post_to_configured_slack_channel(upload_message)
             elif post_or_file == "file":
                 # upload pdf report directly to slack
-                slack_response = slack_messenger.upload_file_to_configured_slack_channel(report_pdf)
+                slack_response = slack_integration.upload_file_to_configured_slack_channel(report_pdf)
             else:
                 logger.warning(
                     f"The \".env\" file contains unsupported Slack setting: "

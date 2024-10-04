@@ -587,7 +587,7 @@ The following setup steps are ***required*** in order to allow the Google Drive 
 
 3. Accept the terms & conditions.
 
-4. Name your project, something like `ff-report-drive-uploader`, but it can be anything you like.
+4. Name your project, something like `ff-metrics-weekly-report`, but it can be anything you like.
 
 5. Click `CREATE`.
 
@@ -609,7 +609,7 @@ The following setup steps are ***required*** in order to allow the Google Drive 
 
 14. Select `Internal` for the `User Type` then click `CREATE`.
 
-15. Put `yff-report-drive-uploader` in `Application name`.
+15. Put `ff-metrics-weekly-report` in `Application name`.
 
 16. Select your email from the dropdown under `User support email`.
 
@@ -623,35 +623,31 @@ The following setup steps are ***required*** in order to allow the Google Drive 
 
 21. Now go click `Credentials` again from the left menu and click `CREATE CREDENTIALS`, then select `OAuth client ID`.
 
-22. Select `Desktop app` from the dropdown menu, and put `yff-report-drive-uploader-client-id`.
+22. Select `Desktop app` from the dropdown menu, and put `ff-metrics-weekly-report-client-id`.
 
 23. Click `CREATE`.
 
-24. A popup with your `client ID` and `client secret` will appear. Click `OK`.
+24. A popup with your `Client ID` and `Client secret` will appear. Copy the respective values to the `GOOGLE_DRIVE_CLIENT_ID` and `GOOGLE_DRIVE_CLIENT_SECRET` environment variables in your `.env` file, and then click `OK`. *Please note that if you accidentally close the popup you will still be able to click on the created credential in order to obtain your client ID and client secret.*
 
-25. On the far right of your new credential, click the little arrow that displays `Download OAuth Client` when you hover over it, then click `DOWNLOAD JSON`.
-
-26. Your credentials JSON file will download. Rename it `credentials.json`, and put it in the `auth/google/` directory where `credentials.template.json` is located.
-
-27. Open a terminal window (makes sure you are inside the `fantasy-football-metrics-weekly-report` directory), and run:
+25. Open a terminal window (makes sure you are inside the `fantasy-football-metrics-weekly-report` directory), and run:
 
     ```bash
     docker exec -it fantasy-football-metrics-weekly-report_app_1 python resources/google_quickstart.py --noauth_local_webserver
     ```
 
-28. You will see a message that says `Go to the following link in your browser:`, followed by a link. Copy the URL and paste it into a web browser, and hit enter. The open window will ask you to either select a Google account to log into (if you have multiple) or log in. Select your account/login.
+26. You will see a message that says `Go to the following link in your browser:`, followed by a link. Copy the URL and paste it into a web browser, and hit enter. The open window will ask you to either select a Google account to log into (if you have multiple) or log in. Select your account/login.
 
-29. A warning screen will appear saying "This app isn't verified". Click "Advanced" and then "Go to yff-report-drive-uploader (unsafe)" (this screen may vary depending on your web browser, but the point is you need to proceed past the warning).
+27. A warning screen will appear saying *"This app isn't verified"*. Click `Advanced` and then `Go to ff-metrics-weekly-report (unsafe)` (this screen may vary depending on your web browser, but the point is you need to proceed past the warning).
 
-30. On the next screen, a popup saying "Grant yff-report-drive-uploader permission" will appear. Click "Allow", then "Allow" again on the following "Confirm your choices" screen.
+28. On the next screen, a popup saying *"Grant ff-metrics-weekly-report permission"* will appear. Click `Allow`, then `Allow` again on the following *"Confirm your choices"* screen.
 
-31. Next you will see a screen that says only "Please copy this code, switch to your application and paste it there:". Copy the code, and return to your open terminal window (you can close the browser window once you've copied the verification code).
+29. Next you will see a screen that says only *"Please copy this code, switch to your application and paste it there:"*. Copy the code, and return to your open terminal window (you can close the browser window once you've copied the verification code).
 
-32. Paste the verification code where it says `Enter verification code:`, and hit enter.
+30. Paste the verification code where it says `Enter verification code:`, and hit enter.
 
-33. You should then see the command line output "Authentication successful.", as well as a list of 10 files in your Google Drive to confirm it can access your drive. It will also have automatically generated a `token.json` file in `auth/google/`, which you should just leave where it is and do ***NOT*** edit or modify in any way!
+31. You should then see the command line output *"Authentication successful."*, as well as a list of 10 files in your Google Drive to confirm it can access your drive. It will also have automatically generated OAuth credentials and written them as JSON to the `GOOGLE_DRIVE_AUTH_TOKEN_JSON` environment variable in your `.env` file, which you should just leave as is and do ***NOT*** edit or modify in any way!
 
-34. You can now upload your reports to Google Drive in one of two ways listed below. ***Please note, if you wish to specify where the app will upload the report to in Google Drive, change the value of `GOOGLE_DRIVE_FOLDER_PATH` in the `.env` file to whatever path you wish to store the reports in Google Drive, such as `Fantasy_Football/reports`. If you do not put a path in this value the report will default to uploading files to a `Fantasy_Football` directory at the root of your Google Drive.***
+32. You can now upload your reports to Google Drive in one of two ways listed below. ***Please note, if you wish to specify where the app will upload the report to in Google Drive, change the value of `GOOGLE_DRIVE_FOLDER_PATH` in the `.env` file to whatever path you wish to store the reports in Google Drive, such as `Fantasy_Football/reports`. If you do not put a path in this value the report will default to uploading files to a `Fantasy_Football` directory at the root of your Google Drive.***
 
     1. Change `GOOGLE_DRIVE_UPLOAD_BOOL` to `True` in the `.env` file and generate a new report. You will see a message at the end of the run that indicates the report PDF was successfully uploaded to Google Drive, and provides the direct share link to the file.
     
@@ -697,8 +693,8 @@ The following setup steps are ***required*** in order to allow the Slack integra
 12. Select `Install App` from the `Settings` section in the menu on the left and click the `Install to [Workspace]` (with your selected workspace) button. 
 13. You will be redirected to a screen saying your app is asking for permission to access the Slack workspace, and presenting you with a dropdown to select a channel for your app to post to. Select your desired channel, and hit `Allow`. 
 14. You will now be redirected back to the `Installed App Settings` section of your app settings. At the top, you will see a `Bot User OAuth Token` field, which will now have a value populated. 
-15. Copy the file `token.template.json` (located in the `auth/slack/` directory), and rename the file copy `token.json`, then copy and paste the value of the above `Bot user OAuth Token` into the field value of `token.json` where it says `"SLACK_APP_OAUTH_ACCESS_TOKEN_STRING"`, replacing that string. Make sure you are using double quotes (`"`) on either side of your token string. 
-16. If you are posting to a *private channel*, you will need to invite the bot to the channel before it can make posts there. Just go to the Slack channel and type `@ffmw-report` (or whatever name you gave your app), and then hit enter. Slack will ask if you wish to invite the bot to the channel, so confirm that you wish to add the bot to the channel, and now it should be able to post to the *private channel*.
+15. Copy the value of `Bot User OAuth Token`and paste in into the `SLACK_AUTH_TOKEN` environment variable in your `.env` file. 
+16. If you are posting to a *private channel*, you will need to invite the bot to the channel before it can make posts there. Just go to the Slack channel and type `@ff-metrics-weekly-report` (or whatever name you gave your app), and then hit enter. Slack will ask if you wish to invite the bot to the channel, so confirm that you wish to add the bot to the channel, and now it should be able to post to the *private channel*.
 17. *You can now upload your reports to Slack, either by updating the following values in the `.env` file:*
     * i. `SLACK_POST_BOOL=True`
     * ii. `SLACK_CHANNEL=channel-name` (this can be set to whichever channel you wish to post as long as the user who created the app has access to that channel)

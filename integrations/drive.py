@@ -27,10 +27,10 @@ logging.getLogger("googleapiclient.discovery_cache").setLevel(level=logging.ERRO
 logging.getLogger("googleapiclient.discovery_cache.file_cache").setLevel(level=logging.ERROR)
 
 
-class GoogleDriveUploader(object):
+class GoogleDriveIntegration(object):
 
     def __init__(self, file: Union[str, Path]):
-        logger.debug("Initializing Google Drive uploader.")
+        logger.debug("Initializing Google Drive integration.")
 
         project_dir: Path = Path(__file__).parents[1]
         self.file_path: Path = Path(project_dir) / file
@@ -274,6 +274,6 @@ if __name__ == "__main__":
 
     logger.info(f"Re-uploading {Path(reupload_file).name} ({Path(reupload_file).parts[2]}) to Google Drive...")
 
-    google_drive_uploader = GoogleDriveUploader(reupload_file)
-    upload_message = google_drive_uploader.upload_file()
+    google_drive_integration = GoogleDriveIntegration(reupload_file)
+    upload_message = google_drive_integration.upload_file()
     logger.info(upload_message)

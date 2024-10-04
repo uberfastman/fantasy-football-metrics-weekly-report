@@ -19,7 +19,7 @@ class BaseFeature(ABC):
         """Base Feature class for retrieving data from the web, saving, and loading it.
         """
         self.feature_type_str: str = feature_type.replace(" ", "_").lower()
-        self.feature_type_title: str = feature_type.replace("_", " ").capitalize()
+        self.feature_type_title: str = feature_type.replace("_", " ").title()
 
         logger.debug(f"Initializing {self.feature_type_title} feature.")
 
