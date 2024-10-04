@@ -199,19 +199,28 @@ class ReportData(object):
 
         # luck data
         self.data_for_luck = metrics_calculator.get_luck_data(
-            sorted(self.teams_results.values(), key=lambda x: float(x.luck), reverse=True))
+            sorted(self.teams_results.values(), key=lambda x: float(x.luck), reverse=True)
+        )
 
         # optimal score data
         self.data_for_optimal_scores = metrics_calculator.get_optimal_score_data(
-            sorted(self.teams_results.values(), key=lambda x: float(x.optimal_points), reverse=True))
+            sorted(self.teams_results.values(), key=lambda x: float(x.optimal_points), reverse=True)
+        )
 
         # bad boy data
         self.data_for_bad_boy_rankings = metrics_calculator.get_bad_boy_data(
-            sorted(self.teams_results.values(), key=lambda x: x.bad_boy_points, reverse=True))
+            sorted(self.teams_results.values(), key=lambda x: x.bad_boy_points, reverse=True)
+        )
 
         # beef rank data
         self.data_for_beef_rankings = metrics_calculator.get_beef_rank_data(
-            sorted(self.teams_results.values(), key=lambda x: x.tabbu, reverse=True))
+            sorted(self.teams_results.values(), key=lambda x: x.tabbu, reverse=True)
+        )
+
+        # high roller data
+        self.data_for_high_roller_rankings = metrics_calculator.get_high_roller_data(
+            sorted(self.teams_results.values(), key=lambda x: x.fines_total, reverse=True)
+        )
 
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ COUNT METRIC TIES ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
@@ -249,18 +258,33 @@ class ReportData(object):
             [list(group) for key, group in itertools.groupby(self.data_for_luck, lambda x: x[3])][0])
 
         # get number of bad boy rankings ties and ties for first
-        self.ties_for_bad_boy_rankings = metrics_calculator.get_ties_count(self.data_for_bad_boy_rankings, "bad_boy",
-                                                                           self.break_ties)
+        self.ties_for_bad_boy_rankings = metrics_calculator.get_ties_count(
+            self.data_for_bad_boy_rankings, "bad_boy", self.break_ties
+        )
         self.num_first_place_for_bad_boy_rankings = len(
-            [list(group) for key, group in itertools.groupby(self.data_for_bad_boy_rankings, lambda x: x[3])][0])
+            [list(group) for key, group in itertools.groupby(self.data_for_bad_boy_rankings, lambda x: x[3])][0]
+        )
         # filter out teams that have no bad boys in their starting lineup
-        self.data_for_bad_boy_rankings = [result for result in self.data_for_bad_boy_rankings if int(result[5]) != 0]
+        self.data_for_bad_boy_rankings = [result for result in self.data_for_bad_boy_rankings if int(result[-1]) != 0]
 
         # get number of beef rankings ties and ties for first
-        self.ties_for_beef_rankings = metrics_calculator.get_ties_count(self.data_for_beef_rankings, "beef",
-                                                                        self.break_ties)
+        self.ties_for_beef_rankings = metrics_calculator.get_ties_count(
+            self.data_for_beef_rankings, "beef", self.break_ties
+        )
         self.num_first_place_for_beef_rankings = len(
-            [list(group) for key, group in itertools.groupby(self.data_for_beef_rankings, lambda x: x[3])][0])
+            [list(group) for key, group in itertools.groupby(self.data_for_beef_rankings, lambda x: x[3])][0]
+        )
+
+        # get number of high roller rankings ties and ties for first
+        self.ties_for_high_roller_rankings = metrics_calculator.get_ties_count(
+            self.data_for_high_roller_rankings, "high_roller", self.break_ties
+        )
+        self.num_first_place_for_high_roller_rankings = len(
+            [list(group) for key, group in itertools.groupby(self.data_for_high_roller_rankings, lambda x: x[3])][0])
+        # filter out teams that have no high rollers in their starting lineup
+        self.data_for_high_roller_rankings = [
+            result for result in self.data_for_high_roller_rankings if float(result[3]) != 0.0
+        ]
 
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ CALCULATE POWER RANKING ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~

@@ -82,4 +82,6 @@
         git push
         ```
 
-16. Go to the [FFMWR Releases page](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases) and draft a new release using the above git tag.
+16. Open a pull request (PR) with the `release/vX.X.X` branch, allow GitHub actions to complete successfully, draft release notes, and merge it.
+
+17. Go to the [FFMWR Releases page](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/releases) and draft a new release using the above git tag.

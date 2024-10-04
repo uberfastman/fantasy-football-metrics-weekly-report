@@ -13,7 +13,7 @@ from yfpy.models import League, Manager, Matchup, Team, Player, RosterPosition
 from yfpy.query import YahooFantasySportsQuery
 
 from dao.base import BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
-from dao.platforms.base.base import BaseLeagueData
+from dao.platforms.base.league import BaseLeagueData
 from utilities.logger import get_logger
 from utilities.settings import settings
 

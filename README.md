@@ -175,6 +175,8 @@ Every time you run the app it will check to see if you are using the latest vers
 
 If you wish to update the app yourself manually, you can just type `n` to skip automatically updating, and run `git pull origin main` manually from within the application directory on the command line.
 
+If you wish to disable the automatic check for updates, you can set `CHECK_FOR_UPDATES=False` in your `.env` file and the app will skip checking GitHub for any updates. *Please note that until you set the `CHECK_FOR_UPDATES` environment variable back to its default value of `True`, the app will **never** attempt to check for updates again.*
+
 ---
 
 <a name="dependencies"></a>

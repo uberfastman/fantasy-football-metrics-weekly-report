@@ -16,7 +16,7 @@ from colorama import Fore, Style
 from integrations.drive_integration import GoogleDriveUploader
 from integrations.slack_integration import SlackUploader
 from report.builder import FantasyFootballReport
-from utilities.app import check_for_updates
+from utilities.app import check_github_for_updates
 from utilities.logger import get_logger
 from utilities.settings import settings
 
@@ -284,8 +284,9 @@ if __name__ == "__main__":
     options = main(sys.argv[1:])
     logger.debug(f"Fantasy football metrics weekly report app settings options:\n{options}")
 
-    # check to see if the current app is behind any commits, and provide option to update and re-run if behind
-    up_to_date = check_for_updates(options.get("use_default", False))
+    if settings.check_for_updates:
+        # check to see if the current app is behind any commits, and provide option to update and re-run if behind
+        up_to_date = check_github_for_updates(options.get("use_default", False))
 
     report = select_league(
         options.get("use_default", False),

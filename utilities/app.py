@@ -17,8 +17,6 @@ from colorama import Fore, Style
 from git import Repo, TagReference, cmd
 from urllib3 import connectionpool, poolmanager
 
-from calculate.bad_boy_stats import BadBoyStats
-from calculate.beef_stats import BeefStats
 from calculate.metrics import CalculateMetrics
 from dao.base import BaseLeague, BaseTeam, BasePlayer
 from dao.platforms.cbs import LeagueData as CbsLeagueData
@@ -26,6 +24,9 @@ from dao.platforms.espn import LeagueData as EspnLeagueData
 from dao.platforms.fleaflicker import LeagueData as FleaflickerLeagueData
 from dao.platforms.sleeper import LeagueData as SleeperLeagueData
 from dao.platforms.yahoo import LeagueData as YahooLeagueData
+from features.bad_boy import BadBoyFeature
+from features.beef import BeefFeature
+from features.high_roller import HighRollerFeature
 from utilities.logger import get_logger
 from utilities.settings import settings
 from utilities.utils import format_platform_display
@@ -137,7 +138,7 @@ def league_data_factory(base_dir: Path, data_dir: Path, platform: str,
 
         elif platform == "fleaflicker":
             fleaflicker_league = FleaflickerLeagueData(
-                None,
+                base_dir,
                 data_dir,
                 league_id,
                 season,
@@ -152,7 +153,7 @@ def league_data_factory(base_dir: Path, data_dir: Path, platform: str,
 
         elif platform == "sleeper":
             sleeper_league = SleeperLeagueData(
-                None,
+                base_dir,
                 data_dir,
                 league_id,
                 season,
@@ -208,13 +209,17 @@ def add_report_player_stats(metrics: Dict[str, Any], player: BasePlayer,
     player.bad_boy_crime = str()
     player.bad_boy_points = int()
     player.bad_boy_num_offenders = int()
-    player.weight = float()
-    player.tabbu = float()
+    player.beef_weight = float()
+    player.beef_tabbu = float()
+    player.high_roller_worst_violation = str()
+    player.high_roller_worst_violation_fine = float()
+    player.high_roller_fines_total = float()
+    player.high_roller_num_violators = int()
 
     if player.selected_position not in bench_positions:
 
         if settings.report_settings.league_bad_boy_rankings_bool:
-            bad_boy_stats: BadBoyStats = metrics.get("bad_boy_stats")
+            bad_boy_stats: BadBoyFeature = metrics.get("bad_boy_stats")
             player.bad_boy_crime = bad_boy_stats.get_player_bad_boy_crime(
                 player.first_name, player.last_name, player.nfl_team_abbr, player.primary_position
             )
@@ -226,9 +231,24 @@ def add_report_player_stats(metrics: Dict[str, Any], player: BasePlayer,
             )
 
         if settings.report_settings.league_beef_rankings_bool:
-            beef_stats: BeefStats = metrics.get("beef_stats")
-            player.weight = beef_stats.get_player_weight(player.first_name, player.last_name, player.nfl_team_abbr)
-            player.tabbu = beef_stats.get_player_tabbu(player.first_name, player.last_name, player.nfl_team_abbr)
+            beef_stats: BeefFeature = metrics.get("beef_stats")
+            player.beef_weight = beef_stats.get_player_weight(player.first_name, player.last_name, player.nfl_team_abbr)
+            player.beef_tabbu = beef_stats.get_player_tabbu(player.first_name, player.last_name, player.nfl_team_abbr)
+
+        if settings.report_settings.league_high_roller_rankings_bool:
+            high_roller_stats: HighRollerFeature = metrics.get("high_roller_stats")
+            player.high_roller_worst_violation = high_roller_stats.get_player_worst_violation(
+                player.first_name, player.last_name, player.nfl_team_abbr, player.primary_position
+            )
+            player.high_roller_worst_violation_fine = high_roller_stats.get_player_worst_violation_fine(
+                player.first_name, player.last_name, player.nfl_team_abbr, player.primary_position
+            )
+            player.high_roller_fines_total = high_roller_stats.get_player_fines_total(
+                player.first_name, player.last_name, player.nfl_team_abbr, player.primary_position
+            )
+            player.high_roller_num_violators = high_roller_stats.get_player_num_violators(
+                player.first_name, player.last_name, player.nfl_team_abbr, player.primary_position
+            )
 
     return player
 
@@ -257,6 +277,7 @@ def add_report_team_stats(team: BaseTeam, league: BaseLeague, week_counter: int,
         team.worst_offense = None
         team.num_offenders = 0
         team.worst_offense_score = 0
+        p: BasePlayer
         for p in team.roster:
             if p.selected_position not in bench_positions:
                 if p.bad_boy_points > 0:
@@ -270,8 +291,22 @@ def add_report_team_stats(team: BaseTeam, league: BaseLeague, week_counter: int,
                         team.worst_offense_score = p.bad_boy_points
 
     if settings.report_settings.league_beef_rankings_bool:
-        team.total_weight = sum([p.weight for p in team.roster if p.selected_position not in bench_positions])
-        team.tabbu = sum([p.tabbu for p in team.roster if p.selected_position not in bench_positions])
+        team.total_weight = sum([p.beef_weight for p in team.roster if p.selected_position not in bench_positions])
+        team.tabbu = sum([p.beef_tabbu for p in team.roster if p.selected_position not in bench_positions])
+
+    if settings.report_settings.league_high_roller_rankings_bool:
+        p: BasePlayer
+        for p in team.roster:
+            if p.selected_position not in bench_positions:
+                if p.high_roller_fines_total > 0:
+                    team.fines_total += p.high_roller_fines_total
+                    if p.selected_position == "D/ST":
+                        team.num_violators += p.high_roller_num_violators
+                    else:
+                        team.num_violators += 1
+                    if p.high_roller_fines_total > team.worst_violation_fine:
+                        team.worst_violation = p.high_roller_worst_violation
+                        team.worst_violation_fine = p.high_roller_worst_violation_fine
 
     team.positions_filled_active = [p.selected_position for p in team.roster if
                                     p.selected_position not in bench_positions]
@@ -383,7 +418,7 @@ def git_ls_remote(url: str):
     return remote_refs
 
 
-def check_for_updates(use_default: bool = False):
+def check_github_for_updates(use_default: bool = False):
     if not active_network_connection():
         logger.info(
             "No active network connection found. Unable to check for updates for the Fantasy Football Metrics Weekly "
@@ -434,9 +469,9 @@ def check_for_updates(use_default: bool = False):
         if active_branch != target_branch:
             if not use_default:
                 switch_branch = input(
-                    f"{Fore.YELLOW}You are {Fore.RED}not{Fore.YELLOW} on the deployment branch "
+                    f"{Fore.YELLOW}You are {Fore.RED}not {Fore.YELLOW}on the deployment branch "
                     f"({Fore.GREEN}\"{target_branch}\"{Fore.YELLOW}) of the Fantasy Football Metrics Weekly Report "
-                    f"app. Do you want to switch to the {Fore.GREEN}\"{target_branch}\"{Fore.YELLOW} branch? "
+                    f"app.\nDo you want to switch to the {Fore.GREEN}\"{target_branch}\"{Fore.YELLOW} branch? "
                     f"({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
                 )
 
@@ -450,7 +485,7 @@ def check_for_updates(use_default: bool = False):
                 else:
                     logger.warning("You must select either \"y\" or \"n\".")
                     project_repo.remote(name="origin").set_url(origin_url)
-                    return check_for_updates(use_default)
+                    return check_github_for_updates(use_default)
             else:
                 logger.info("Use-default is set to \"true\". Automatically switching to deployment branch \"main\".")
                 project_repo.git.checkout(target_branch)
@@ -505,7 +540,7 @@ def check_for_updates(use_default: bool = False):
             else:
                 logger.warning("Please only select \"y\" or \"n\".")
                 time.sleep(0.25)
-                check_for_updates()
+                check_github_for_updates()
         else:
             logger.info(
                 f"The Fantasy Football Metrics Weekly Report app is {Fore.GREEN}up to date{Fore.WHITE} and running "
