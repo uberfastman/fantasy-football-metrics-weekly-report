@@ -1,9 +1,9 @@
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
-import datetime
 import os
 from collections import defaultdict
+from datetime import datetime
 from pathlib import Path
 from typing import List
 
@@ -92,10 +92,10 @@ class FantasyFootballReport(object):
             f"{f'    dq_ce: {self.dq_ce}{f_str_newline}'}"
             f"{f'    offline: {self.offline}{f_str_newline}'}"
             f"{f'    test: {self.test}{f_str_newline}'}"
-            f"on {datetime.datetime.now():%b %d, %Y}..."
+            f"on {datetime.now():%b %d, %Y}..."
         )
 
-        begin = datetime.datetime.now()
+        begin = datetime.now()
         logger.info(
             f"Retrieving fantasy football data from {self.platform_display} {'API' if not self.offline else 'saved data'}..."
         )
@@ -114,7 +114,7 @@ class FantasyFootballReport(object):
             offline=self.offline
         )
 
-        delta = datetime.datetime.now() - begin
+        delta = datetime.now() - begin
         logger.info(
             f"...retrieved all fantasy football data from "
             f"{self.platform_display + (' API' if not self.offline else ' saved data')} in {delta}\n"
@@ -127,48 +127,18 @@ class FantasyFootballReport(object):
             self.playoff_probs = None
 
         if settings.report_settings.league_bad_boy_rankings_bool:
-            begin = datetime.datetime.now()
-            logger.info(
-                f"Retrieving bad boy data from https://www.usatoday.com/sports/nfl/arrests/ "
-                f"{'website' if not self.offline or self.refresh_web_data else 'saved data'}..."
-            )
             self.bad_boy_stats = self.league.get_bad_boy_stats(self.refresh_web_data, self.save_data, self.offline)
-            delta = datetime.datetime.now() - begin
-            logger.info(
-                f"...retrieved all bad boy data from https://www.usatoday.com/sports/nfl/arrests/ "
-                f"{'website' if not self.offline else 'saved data'} in {delta}\n"
-            )
         else:
             self.bad_boy_stats = None
 
         if settings.report_settings.league_beef_rankings_bool:
-            begin = datetime.datetime.now()
-            logger.info(
-                f"Retrieving beef data from Sleeper "
-                f"{'API' if not self.offline or self.refresh_web_data else 'saved data'}..."
-            )
             self.beef_stats = self.league.get_beef_stats(self.refresh_web_data, self.save_data, self.offline)
-            delta = datetime.datetime.now() - begin
-            logger.info(
-                f"...retrieved all beef data from Sleeper "
-                f"{'API' if not self.offline else 'saved data'} in {delta}\n"
-            )
         else:
             self.beef_stats = None
 
         if settings.report_settings.league_high_roller_rankings_bool:
-            begin = datetime.datetime.now()
-            logger.info(
-                f"Retrieving high roller data from https://www.spotrac.com/nfl/fines "
-                f"{'website' if not self.offline or self.refresh_web_data else 'saved data'}..."
-            )
             self.high_roller_stats = self.league.get_high_roller_stats(
                 self.refresh_web_data, self.save_data, self.offline
-            )
-            delta = datetime.datetime.now() - begin
-            logger.info(
-                f"...retrieved all high roller data from https://www.spotrac.com/nfl/fines "
-                f"{'website' if not self.offline else 'saved data'} in {delta}\n"
             )
         else:
             self.high_roller_stats = None
@@ -394,7 +364,7 @@ class FantasyFootballReport(object):
         report_title_text = f"{self.league.name} ({self.league_id}) Week {self.league.week_for_report} Report"
         report_footer_text = (
             f"<para alignment='center'>"
-            f"Report generated {datetime.datetime.now():%Y-%b-%d %H:%M:%S} for {self.platform_display} "
+            f"Report generated {datetime.now():%Y-%b-%d %H:%M:%S} for {self.platform_display} "
             f"Fantasy Football league \"{self.league.name}\" with id {self.league_id} "
             f"(<a href=\"{self.league.url}\" color=blue><u>{self.league.url}</u></a>)."
             f"<br></br><br></br><br></br>"

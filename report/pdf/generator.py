@@ -1783,7 +1783,7 @@ class PdfGenerator(object):
 
         if (settings.report_settings.league_bad_boy_rankings_bool
                 or settings.report_settings.league_beef_rankings_bool
-                or settings.reportsettings.league_high_roller_rankings_bool):
+                or settings.report_settings.league_high_roller_rankings_bool):
             elements.append(self.add_page_break())
 
         if settings.report_settings.league_weekly_top_scorers_bool:

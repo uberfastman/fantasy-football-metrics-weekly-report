@@ -4,6 +4,7 @@ __email__ = "uberfastman@uberfastman.dev"
 import json
 import os
 from abc import ABC, abstractmethod
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any
 
@@ -40,26 +41,36 @@ class BaseFeature(ABC):
         self.player_name_punctuation: List[str] = [".", "'"]
         self.player_name_suffixes: List[str] = ["Jr", "Sr", "V", "IV", "III", "II", "I"]  # ordered for str.removesuffix
 
-        # fetch feature data from the web if not running in offline mode or if refresh=True
-        if not self.offline and self.refresh:
-            if not self.feature_data:
-                logger.debug(f"Retrieving {self.feature_type_title} data from the web.")
+        start = datetime.now()
 
+        data_retrieved_from_web = False
+        if not self.offline:
+            if not self.feature_data_file_path.is_file() or self.refresh:
+                logger.info(f"Retrieving {self.feature_type_title} data from {self.feature_web_base_url}...")
+                # fetch feature data from the web
                 self._get_feature_data()
+                data_retrieved_from_web = True
 
                 if self.save_data:
                     self._save_feature_data()
-        # if offline=True or refresh=False load saved feature data (must have previously run application with -s flag)
+            else:
+                # load saved feature data (must have previously run application with -s flag)
+                self._load_feature_data()
         else:
+            # load saved feature data (must have previously run application with -s flag)
             self._load_feature_data()
 
         if len(self.feature_data) == 0:
             logger.warning(
-                f"No {self.feature_type_title} data records were loaded, please check your internet connection or the "
-                f"availability of {self.feature_web_base_url} and try generating a new report."
+                f"...{'retrieved' if data_retrieved_from_web else 'loaded'} 0 {self.feature_type_title} data records. "
+                f"Please check your internet connection or the availability of {self.feature_web_base_url} and try "
+                f"generating a new report."
             )
         else:
-            logger.info(f"{len(self.feature_data)} feature data records loaded")
+            logger.info(
+                f"...{'retrieved' if data_retrieved_from_web else 'loaded'} {len(self.feature_data)} "
+                f"{self.feature_type_title} data records in {datetime.now() - start}."
+            )
 
     def __str__(self):
         return json.dumps(self.feature_data, indent=2, ensure_ascii=False)
@@ -68,7 +79,7 @@ class BaseFeature(ABC):
         return json.dumps(self.feature_data, indent=2, ensure_ascii=False)
 
     def _load_feature_data(self) -> None:
-        logger.debug(f"Loading saved {self.feature_type_title} data...")
+        logger.info(f"Loading saved {self.feature_type_title} data...")
 
         if self.feature_data_file_path.is_file():
             with open(self.feature_data_file_path, "r", encoding="utf-8") as feature_data_in:
@@ -80,7 +91,7 @@ class BaseFeature(ABC):
             )
 
     def _save_feature_data(self) -> None:
-        logger.debug(f"Saving {self.feature_type_title} data and raw {self.feature_type_title} data.")
+        logger.debug(f"Saving {self.feature_type_title} data...")
 
         # create output data directory if it does not exist
         if not self.data_dir.is_dir():
