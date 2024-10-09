@@ -389,8 +389,15 @@ class LeagueData(BaseLeagueData):
 
                         base_manager.manager_id = manager["id"]
                         base_manager.email = None
-                        base_manager.name = re.sub(r"\W+", " ", f"{manager['firstName']} {manager['lastName']}")
-                        base_manager.nickname = manager["displayName"]
+                        manager_first_name = manager.get(
+                            "firstName",
+                            f"Manager {matchup_team.team_id}"
+                        )
+                        manager_last_name = manager.get("lastName", "")
+                        base_manager.name = re.sub(
+                            r"\W+", " ", f"{manager_first_name} {manager_last_name}"
+                        ).strip()
+                        base_manager.nickname = manager.get("displayName", None)
 
                         base_team.managers.append(base_manager)
 
