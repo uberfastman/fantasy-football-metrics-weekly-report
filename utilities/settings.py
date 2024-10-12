@@ -11,6 +11,7 @@ from camel_converter import to_snake
 from colorama import Fore, Style
 from dotenv import dotenv_values
 from pydantic import Field, computed_field
+# noinspection PyProtectedMember
 from pydantic.fields import FieldInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict, EnvSettingsSource, PydanticBaseSettingsSource
 
@@ -236,8 +237,7 @@ class ReportSettings(CustomSettings):
     league_weekly_top_scorers_bool: bool = Field(True, title=__qualname__)
     league_weekly_low_scorers_bool: bool = Field(True, title=__qualname__)
     league_weekly_highest_ce_bool: bool = Field(True, title=__qualname__)
-    report_time_series_charts_bool: bool = Field(True, title=__qualname__)
-    report_team_stats_bool: bool = Field(True, title=__qualname__)
+    league_time_series_charts_bool: bool = Field(True, title=__qualname__)
     team_points_by_position_charts_bool: bool = Field(True, title=__qualname__)
     team_bad_boy_stats_bool: bool = Field(True, title=__qualname__)
     team_beef_stats_bool: bool = Field(True, title=__qualname__)
@@ -256,11 +256,11 @@ class ReportSettings(CustomSettings):
     )
     font_size: int = Field(
         12,
-        ge=8,
+        ge=10,
         le=14,
         title=__qualname__,
         description=(
-            "set base font size so report element fonts resize dynamically (min: 8, max: 14)"
+            "set base font size so report element fonts resize dynamically (min: 10, max: 14)"
         )
     )
     image_quality: int = Field(
