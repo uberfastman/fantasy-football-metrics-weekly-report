@@ -1,10 +1,12 @@
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
 from time import sleep
 from typing import List, Dict, Optional, Union
 from uuid import uuid4
-import sys
+
+from colorama import Fore, Style
 from requests import get, post
 
 from integrations.base.integration import BaseIntegration
@@ -17,14 +19,27 @@ logger = get_logger(__name__, propagate=False)
 class GroupMeIntegration(BaseIntegration):
 
     def __init__(self):
-        super().__init__("groupme")
-
         self.root_dir = Path(__file__).parent.parent
+        super().__init__("groupme")
 
         self.base_url = "https://api.groupme.com/v3"
         self.file_service_base_url = "https://file.groupme.com/v1"
 
     def _authenticate(self) -> None:
+
+        if not settings.integration_settings.groupme_access_token:
+            settings.integration_settings.groupme_access_token = input(
+                f"{Fore.GREEN}What is your GroupMe access token? -> {Style.RESET_ALL}"
+            )
+            settings.write_settings_to_env_file(self.root_dir / ".env")
+
+        if (settings.integration_settings.groupme_bot_or_user == "bot"
+                and not settings.integration_settings.groupme_bot_id):
+            settings.integration_settings.groupme_bot_id = input(
+                f"{Fore.GREEN}What is your GroupMe bot ID? -> {Style.RESET_ALL}"
+            )
+            settings.write_settings_to_env_file(self.root_dir / ".env")
+
         self.headers = {
             "Content-Type": "application/json",
             "User-Agent": "ff-metrics-weekly-report/1.0.0",

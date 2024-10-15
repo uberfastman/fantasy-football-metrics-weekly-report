@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Union
 
+from colorama import Fore, Style
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web.base_client import SlackResponse
@@ -26,11 +27,17 @@ logging.getLogger("slack.web.base_client").setLevel(level=logging.INFO)
 class SlackIntegration(BaseIntegration):
 
     def __init__(self):
+        self.root_dir = Path(__file__).parent.parent
         super().__init__("slack")
 
-        self.root_dir = Path(__file__).parent.parent
-
     def _authenticate(self) -> None:
+
+        if not settings.integration_settings.slack_auth_token:
+            settings.integration_settings.slack_auth_token = input(
+                f"{Fore.GREEN}What is your Slack authentication token? -> {Style.RESET_ALL}"
+            )
+            settings.write_settings_to_env_file(self.root_dir / ".env")
+
         self.client = WebClient(token=settings.integration_settings.slack_auth_token)
 
     def api_test(self):

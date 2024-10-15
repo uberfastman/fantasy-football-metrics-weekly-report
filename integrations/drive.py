@@ -8,7 +8,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from time import sleep
-from typing import List, Union, Any
+from typing import List, Union
 
 from colorama import Fore, Style
 from pydrive2.auth import GoogleAuth
@@ -31,9 +31,8 @@ logging.getLogger("googleapiclient.discovery_cache.file_cache").setLevel(level=l
 class GoogleDriveIntegration(BaseIntegration):
 
     def __init__(self):
-        super().__init__("google_drive")
-
         self.root_dir = Path(__file__).parent.parent
+        super().__init__("google_drive")
 
     def _authenticate(self) -> None:
 
