@@ -344,6 +344,23 @@ class IntegrationSettings(CustomSettings):
     groupme_bot_id: Optional[str] = Field(None, title=__qualname__)
     groupme_group: Optional[str] = Field(None, title=__qualname__)
 
+    # discord
+    discord_post_bool: bool = Field(
+        False,
+        title=__qualname__,
+        description="change DISCORD_POST_BOOL to True/False to turn on/off posting of the report to Discord"
+    )
+    discord_post_or_file: str = Field(
+        "file",
+        title=__qualname__,
+        description=(
+            "options for DISCORD_POST_OR_FILE: post (if you wish to post a link to the report), file (if you wish to "
+            "post the report PDF)"
+        )
+    )
+    discord_webhook_id: Optional[str] = Field(None, title=__qualname__)
+    discord_channel_notify_bool: bool = Field(False, title=__qualname__)
+
 
 class AppSettings(CustomSettings):
     model_config = SettingsConfigDict(

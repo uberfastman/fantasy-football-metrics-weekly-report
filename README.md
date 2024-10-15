@@ -74,6 +74,7 @@
     * [Google Drive](#google-drive-setup)
     * [Slack](#slack-setup)
     * [GroupMe](#groupme-setup)
+    * [Discord](#discord-setup)
 * [Troubleshooting](#troubleshooting)
     * [Logs](#logs)
     * [Yahoo](#yahoo)
@@ -728,6 +729,30 @@ The following setup steps are ***required*** in order to allow the GroupMe integ
     * `GROUPME_GROUP=<GROUP_NAME>` (this can be set to whichever group you wish to post as long as the user/bot has access to that group)
 
    *Or by setting the value of `REUPLOAD_FILE_PATH` in the `.env` file to the filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/groupme.py`*.
+
+---
+
+<a name="discord-setup"></a>
+#### Discord Setup
+
+The Fantasy Football Metrics Weekly Report application includes integration with the popular chat and messaging app Discord, allowing your generated reports (or links to where they are stored on Google Drive) to be uploaded directly to Discord, making it easy to share the report with all league members.
+
+The following setup steps are ***required*** in order to allow the Discord integration to function properly (see the Discord documentation on [Intro to Webhooks](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks) for more detailed information and instructions):
+
+1. Sign in to Discord and select the server on which you want to post reports.
+2. Click the server name on the top left and then click `Server Settings`.
+3. Select `Integrations` in the menu on the left (in the `APPS` section).
+4. Click on `Webhooks`.
+5. Click `New Webhook`.
+6. A new webhook will be created. Click the webhook to expand it and update the configuration:
+   1. `NAME`: `Fantasy Football Metrics Weekly Report` (this name can be anything you want)
+   2. Profile picture: Upload [football.png](resources/images/football.png) (this picture can be anything you want)
+   3. `CHANNEL`: Select the target Discord channel from the `CHANNEL` dropdown.
+7. Click `Copy Webhook URL` to copy the value of the webhook URL and paste the webhook ID portion of the URL into the `DISCORD_WEBHOOK_ID` environment variable in your `.env` file.
+8. *You can now upload your reports to Discord, either by updating the following values in the `.env` file:*
+    * `DISCORD_POST_BOOL=True`
+
+   *Or by setting the value of `REUPLOAD_FILE_PATH` in the `.env` file to the filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/discord.py`*.
 
 ---
 

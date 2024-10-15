@@ -13,6 +13,7 @@ from typing import Union
 import colorama
 from colorama import Fore, Style
 
+from integrations.discord import DiscordIntegration
 from integrations.drive import GoogleDriveIntegration
 from integrations.groupme import GroupMeIntegration
 from integrations.slack import SlackIntegration
@@ -372,3 +373,31 @@ if __name__ == "__main__":
                 )
         else:
             logger.info("Test report NOT posted to GroupMe.")
+
+    if settings.integration_settings.discord_post_bool:
+        if not options.get("test", False):
+            discord_integration = DiscordIntegration()
+
+            # post PDF or link to PDF to Discord
+            post_or_file = settings.integration_settings.discord_post_or_file
+            if post_or_file == "post":
+                # post shareable link to uploaded Google Drive PDF on Discord
+                discord_response = discord_integration.post_message(upload_message)
+            elif post_or_file == "file":
+                # upload PDF report directly to Discord
+                discord_response = discord_integration.upload_file(report_pdf)
+            else:
+                logger.warning(
+                    f"The \".env\" file contains unsupported Discord setting: "
+                    f"DISCORD_POST_OR_FILE={post_or_file}. Please choose \"post\" or \"file\" and try again."
+                )
+                sys.exit(1)
+
+            if discord_response["type"] == 0:
+                logger.info(f"Report {str(report_pdf)} successfully posted to Discord!")
+            else:
+                logger.error(
+                    f"Report {str(report_pdf)} was NOT posted to Discord with error: {discord_response}"
+                )
+        else:
+            logger.info("Test report NOT posted to Discord.")
