@@ -14,6 +14,7 @@ import colorama
 from colorama import Fore, Style
 
 from integrations.drive import GoogleDriveIntegration
+from integrations.groupme import GroupMeIntegration
 from integrations.slack import SlackIntegration
 from report.builder import FantasyFootballReport
 from utilities.app import check_github_for_updates
@@ -305,36 +306,36 @@ if __name__ == "__main__":
         options.get("test", False))
     report_pdf: Path = report.create_pdf_report()
 
-    upload_file_to_google_drive = settings.integration_settings.google_drive_upload_bool
     upload_message = ""
-    if upload_file_to_google_drive:
+    if settings.integration_settings.google_drive_upload_bool:
         if not options.get("test", False):
-            # upload pdf to google drive
-            google_drive_integration = GoogleDriveIntegration(report_pdf)
-            upload_message = google_drive_integration.upload_file()
+            google_drive_integration = GoogleDriveIntegration()
+
+            # upload PDF to Google Drive
+            upload_message = google_drive_integration.upload_file(report_pdf)
             logger.info(upload_message)
         else:
             logger.info("Test report NOT uploaded to Google Drive.")
 
-    post_to_slack = settings.integration_settings.slack_post_bool
-    if post_to_slack:
+    if settings.integration_settings.slack_post_bool:
         if not options.get("test", False):
-            # post pdf or link to pdf to slack
             slack_integration = SlackIntegration()
-            post_or_file = settings.integration_settings.slack_post_or_file
 
+            # post PDF or link to PDF to Slack
+            post_or_file = settings.integration_settings.slack_post_or_file
             if post_or_file == "post":
-                # post shareable link to uploaded Google Drive PDF on slack
-                slack_response = slack_integration.post_to_configured_slack_channel(upload_message)
+                # post shareable link to uploaded Google Drive PDF on Slack
+                slack_response = slack_integration.post_message(upload_message)
             elif post_or_file == "file":
-                # upload pdf report directly to slack
-                slack_response = slack_integration.upload_file_to_configured_slack_channel(report_pdf)
+                # upload PDF report directly to Slack
+                slack_response = slack_integration.upload_file(report_pdf)
             else:
                 logger.warning(
                     f"The \".env\" file contains unsupported Slack setting: "
                     f"SLACK_POST_OR_FILE={post_or_file}. Please choose \"post\" or \"file\" and try again."
                 )
                 sys.exit(1)
+
             if slack_response.get("ok"):
                 logger.info(f"Report {str(report_pdf)} successfully posted to Slack!")
             else:
@@ -343,3 +344,31 @@ if __name__ == "__main__":
                 )
         else:
             logger.info("Test report NOT posted to Slack.")
+
+    if settings.integration_settings.groupme_post_bool:
+        if not options.get("test", False):
+            groupme_integration = GroupMeIntegration()
+
+            # post PDF or link to PDF to GroupMe
+            post_or_file = settings.integration_settings.groupme_post_or_file
+            if post_or_file == "post":
+                # post shareable link to uploaded Google Drive PDF on GroupMe
+                groupme_response = groupme_integration.post_message(upload_message)
+            elif post_or_file == "file":
+                # upload PDF report directly to GroupMe
+                groupme_response = groupme_integration.upload_file(report_pdf)
+            else:
+                logger.warning(
+                    f"The \".env\" file contains unsupported GroupMe setting: "
+                    f"GROUPME_POST_OR_FILE={post_or_file}. Please choose \"post\" or \"file\" and try again."
+                )
+                sys.exit(1)
+
+            if groupme_response == 202 or groupme_response["meta"]["code"] == 201:
+                logger.info(f"Report {str(report_pdf)} successfully posted to GroupMe!")
+            else:
+                logger.error(
+                    f"Report {str(report_pdf)} was NOT posted to GroupMe with error: {groupme_response}"
+                )
+        else:
+            logger.info("Test report NOT posted to GroupMe.")

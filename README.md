@@ -73,6 +73,7 @@
 * [Additional Integrations](#additional-integrations)
     * [Google Drive](#google-drive-setup)
     * [Slack](#slack-setup)
+    * [GroupMe](#groupme-setup)
 * [Troubleshooting](#troubleshooting)
     * [Logs](#logs)
     * [Yahoo](#yahoo)
@@ -667,8 +668,8 @@ The following setup steps are ***required*** in order to allow the Slack integra
 1. Sign in to your slack workspace [here](https://slack.com/signin).
 2. Once logged in, you need to [create a new app](https://api.slack.com/apps?new_app=1) for your workspace.
 3. After the popup appears, select `From scratch` and fill in the fields as follows:
-    * i. `App Name`: `ff-metrics-weekly-report` (this name can be anything you want)
-    * ii. `Pick a workspace to develop your app in:`: Select your chosen Slack workspace from the dropdown menu.
+    * `App Name`: `ff-metrics-weekly-report` (this name can be anything you want)
+    * `Pick a workspace to develop your app in:`: Select your chosen Slack workspace from the dropdown menu.
 4. Click `Create App`. You should now be taken to the page for your new app, where you can set things like the app title card color, the icon, the description, as well as a whole host of other features (see [here](https://api.slack.com/docs/apps) for more information).
 5. Select `Basic Information` from the `Settings` section in the menu on the left.
 6. Scroll down to `Display Information` and set up your Slack app with whatever display settings you want.
@@ -696,9 +697,37 @@ The following setup steps are ***required*** in order to allow the Slack integra
 15. Copy the value of `Bot User OAuth Token`and paste in into the `SLACK_AUTH_TOKEN` environment variable in your `.env` file. 
 16. If you are posting to a *private channel*, you will need to invite the bot to the channel before it can make posts there. Just go to the Slack channel and type `@ff-metrics-weekly-report` (or whatever name you gave your app), and then hit enter. Slack will ask if you wish to invite the bot to the channel, so confirm that you wish to add the bot to the channel, and now it should be able to post to the *private channel*.
 17. *You can now upload your reports to Slack, either by updating the following values in the `.env` file:*
-    * i. `SLACK_POST_BOOL=True`
-    * ii. `SLACK_CHANNEL=channel-name` (this can be set to whichever channel you wish to post as long as the user who created the app has access to that channel)
-    *Or by setting the value of `SLACK_REPOST_FILE_LOCAL_PATH` in the `.env` file to the filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/slack.py`*.
+    * `SLACK_POST_BOOL=True`
+    * `SLACK_CHANNEL=<CHANNEL_NAME>` (this can be set to whichever channel you wish to post as long as the user who created the app has access to that channel)
+
+    *Or by setting the value of `REUPLOAD_FILE_PATH` in the `.env` file to the filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/slack.py`*.
+
+---
+
+<a name="groupme-setup"></a>
+#### GroupMe Setup
+
+The Fantasy Football Metrics Weekly Report application includes integration with the popular chat and messaging app GroupMe, allowing your generated reports (or links to where they are stored on Google Drive) to be uploaded directly to GroupMe, making it easy to share the report with all league members.
+
+The following setup steps are ***required*** in order to allow the GroupMe integration to function properly:
+
+1. Sign in to the developer portal with your GroupMe account [here](https://dev.groupme.com/session/new).
+2. Enter your PIN if you use 2-factor authentication.
+3. Once logged in, click on `Access Token` on the top right of the menubar to the left of your username.
+4. When the modal pops up, copy the value of `Your access token` paste in into the `GROUPME_ACCESS_TOKEN` environment variable in your `.env` file.
+5. If you only want to post to GroupMe as your own user account, then you must change the value of the `GROUPME_BOT_OR_USER` environment variable in your `.env` file to `user` and you can skip to the last step. However, if you wish to post to GroupMe as a bot account, then you must follow the additional setup steps below:
+   1. In order to post reports to GroupMe from a bot account, you need to [create a new bot](https://dev.groupme.com/bots/new) by filling in the fields as follows:
+       * Select the target GroupMe group from the `Choose the group this bot will live in.` dropdown.
+       * `Name`: `Fantasy Football Metrics Weekly Report` (this name can be anything you want)
+       * `Callback URL`: Leave this field blank.
+       * `Avatar URL` *(Optional)*: If you wish for your bot to use have a profile picture, you can add a link to any image you wish to use here.
+   2. Click `Submit`, and you will be redirected to the `Bots` page where you should see your newly created bot listed.
+   3. Copy the `Bot ID` and paste in into the `GROUPME_BOT_ID` environment variable in your `.env` file.
+6. *You can now upload your reports to GroupMe, either by updating the following values in the `.env` file:*
+    * `GROUPME_POST_BOOL=True`
+    * `GROUPME_GROUP=<GROUP_NAME>` (this can be set to whichever group you wish to post as long as the user/bot has access to that group)
+
+   *Or by setting the value of `REUPLOAD_FILE_PATH` in the `.env` file to the filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/groupme.py`*.
 
 ---
 

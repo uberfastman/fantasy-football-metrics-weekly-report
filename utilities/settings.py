@@ -280,6 +280,12 @@ class ReportSettings(CustomSettings):
 
 
 class IntegrationSettings(CustomSettings):
+    reupload_file_path: Optional[Path] = Field(
+        "resources/files/example_report.pdf",
+        title=__qualname__,
+        description="file to reupload to third-party integrations"
+    )
+
     # google drive
     google_drive_upload_bool: bool = Field(
         False,
@@ -291,10 +297,6 @@ class IntegrationSettings(CustomSettings):
     google_drive_client_id: Optional[str] = Field(None, title=__qualname__)
     google_drive_client_secret: Optional[str] = Field(None, title=__qualname__)
     google_drive_auth_token_json: Optional[Dict[str, Any]] = Field(None, title=__qualname__)
-    google_drive_reupload_file_path: Optional[Path] = Field(
-        "resources/files/example_report.pdf",
-        title=__qualname__
-    )
     google_drive_default_folder: str = Field("Fantasy_Football", title=__qualname__)
     google_drive_folder: Optional[str] = Field(None, title=__qualname__)
 
@@ -304,11 +306,6 @@ class IntegrationSettings(CustomSettings):
         title=__qualname__,
         description="change SLACK_POST_BOOL to True/False to turn on/off posting of the report to Slack"
     )
-    slack_auth_token: Optional[str] = Field(None, title=__qualname__)
-    slack_repost_file_path: Optional[Path] = Field(
-        "resources/files/example_report.pdf",
-        title=__qualname__
-    )
     slack_post_or_file: str = Field(
         "file",
         title=__qualname__,
@@ -317,8 +314,35 @@ class IntegrationSettings(CustomSettings):
             "post the report PDF)"
         )
     )
+    slack_auth_token: Optional[str] = Field(None, title=__qualname__)
     slack_channel: Optional[str] = Field(None, title=__qualname__)
     slack_channel_notify_bool: bool = Field(False, title=__qualname__)
+
+    # groupme
+    groupme_post_bool: bool = Field(
+        False,
+        title=__qualname__,
+        description="change GROUPME_POST_BOOL to True/False to turn on/off posting of the report to GroupMe"
+    )
+    groupme_post_or_file: str = Field(
+        "file",
+        title=__qualname__,
+        description=(
+            "options for GROUPME_POST_OR_FILE: post (if you wish to post a link to the report), file (if you wish to "
+            "post the report PDF)"
+        )
+    )
+    groupme_bot_or_user: str = Field(
+        "bot",
+        title=__qualname__,
+        description=(
+            "options for GROUPME_BOT_OR_USER: bot (if you wish to post as a bot account), user (if you with to post as "
+            "your user account)"
+        )
+    )
+    groupme_access_token: Optional[str] = Field(None, title=__qualname__)
+    groupme_bot_id: Optional[str] = Field(None, title=__qualname__)
+    groupme_group: Optional[str] = Field(None, title=__qualname__)
 
 
 class AppSettings(CustomSettings):
