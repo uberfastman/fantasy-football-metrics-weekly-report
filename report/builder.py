@@ -329,10 +329,15 @@ class FantasyFootballReport(object):
                     team_luck_data_entry.append(team.weekly_overall_record.get_record_str())
 
         # add season total optimal points to optimal points data
+        sorted_season_total_optimal_points_data = dict(sorted(season_total_optimal_points_data.items(), key=lambda x: x[1], reverse=True))
+        list_sorted_season_total_optimal_points_data = [(i, k, v) for i, (k, v) in enumerate(sorted_season_total_optimal_points_data.items())]
         for team_optimal_points_data_entry in report_data.data_for_optimal_scores:
-            for team_name, season_total_optimal_points in season_total_optimal_points_data.items():
+            for team_index, team_name, season_total_optimal_points in list_sorted_season_total_optimal_points_data:
                 if team_optimal_points_data_entry[1] == team_name:
-                    team_optimal_points_data_entry.append(f"{round(season_total_optimal_points, 2):.2f}")
+                    place = team_index + 1
+                    total_optimal_points_ranked = str("{:.2f}".format(round(season_total_optimal_points, 2))) + " (" + str(place) +")"
+                    team_optimal_points_data_entry.append(total_optimal_points_ranked)
+
 
         report_data.data_for_power_rankings = season_average_calculator.get_average(
             time_series_power_rank_data,
