@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 from features.base.feature import BaseFeature
 from utilities.constants import nfl_team_abbreviations, nfl_team_abbreviation_conversions
 from utilities.logger import get_logger
+from utilities.utils import normalize_player_name
 
 logger = get_logger(__name__, propagate=False)
 
@@ -101,7 +102,7 @@ class HighRollerFeature(BaseFeature):
 
             if player_name not in self.feature_data.keys():
                 self.feature_data[player_name] = {
-                    "normalized_name": self._normalize_player_name(player_name),
+                    "normalized_name": normalize_player_name(player_name),
                     "team": player_team,
                     "position": player_position,
                     "position_type": self.position_types[player_position],
@@ -172,7 +173,7 @@ class HighRollerFeature(BaseFeature):
                 })
             else:
                 player.update({
-                    "normalized_name": self._normalize_player_name(player_full_name),
+                    "normalized_name": normalize_player_name(player_full_name),
                     "team": player_team_abbr,
                     "fines": [],
                 })

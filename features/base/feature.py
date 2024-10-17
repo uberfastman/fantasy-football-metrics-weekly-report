@@ -6,7 +6,7 @@ import os
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 from utilities.logger import get_logger
 
@@ -37,9 +37,6 @@ class BaseFeature(ABC):
 
         self.raw_feature_data_file_path: Path = self.data_dir / f"{self.feature_type_str}_raw_data.json"
         self.feature_data_file_path: Path = self.data_dir / f"{self.feature_type_str}_data.json"
-
-        self.player_name_punctuation: List[str] = [".", "'"]
-        self.player_name_suffixes: List[str] = ["Jr", "Sr", "V", "IV", "III", "II", "I"]  # ordered for str.removesuffix
 
         start = datetime.now()
 
@@ -106,21 +103,6 @@ class BaseFeature(ABC):
         if self.raw_feature_data:
             with open(self.raw_feature_data_file_path, "w", encoding="utf-8") as feature_raw_data_out:
                 json.dump(self.raw_feature_data, feature_raw_data_out, ensure_ascii=False, indent=2)
-
-    def _normalize_player_name(self, player_name: str) -> str:
-        """Remove all punctuation and name suffixes from player names and covert them to title case.
-        """
-        normalized_player_name: str = player_name.strip()
-        if (any(punc in player_name for punc in self.player_name_punctuation)
-                or any(suffix in player_name for suffix in self.player_name_suffixes)):
-
-            for punc in self.player_name_punctuation:
-                normalized_player_name = normalized_player_name.replace(punc, "")
-
-            for suffix in self.player_name_suffixes:
-                normalized_player_name = normalized_player_name.removesuffix(suffix)
-
-        return normalized_player_name.strip().title()
 
     @abstractmethod
     def _get_feature_data(self) -> None:

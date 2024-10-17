@@ -17,7 +17,7 @@ nfl_team_abbreviation_conversions: Dict[str, str] = {
 }
 
 # prohibited player statuses to check team coaching efficiency eligibility if dq_ce = True
-prohibited_statuses = {
+prohibited_statuses: Dict[str, str] = {
     "O": "Out",
     "Out": "Out",
     "NA": "Inactive: Coach's Decision or Not on Roster",
@@ -40,3 +40,7 @@ prohibited_statuses = {
     "RET": "Reserve: Retired",
     "Reserve-Ret": "Reserve: Retired"
 }
+
+player_name_punctuation: List[str] = [".", "'"]
+
+player_name_suffixes: List[str] = ["Jr", "Sr", "V", "IV", "III", "II", "I"]  # ordered for str.removesuffix support

@@ -9,6 +9,7 @@ from typing import List, Dict, Set, Union
 from dao.base import BasePlayer, BaseLeague
 from utilities.constants import prohibited_statuses
 from utilities.logger import get_logger
+from utilities.utils import normalize_player_name
 
 logger = get_logger(__name__, propagate=False)
 
@@ -70,7 +71,11 @@ class CoachingEfficiency(object):
         if player.points != 0.0:
             return False
         else:
-            return player.status in self.inactive_statuses or player.bye_week == week or player.full_name in inactives
+            return (
+                player.status in self.inactive_statuses
+                or player.bye_week == week
+                or normalize_player_name(player.full_name) in inactives
+            )
 
     def _get_player_open_positions(self, player: BasePlayer, optimal_lineup: Dict[str, RosterSlot]):
 
@@ -255,7 +260,8 @@ class CoachingEfficiency(object):
                 p for p in team_roster if p.selected_position == "BN"
             ]  # exclude IR players
             ineligible_efficiency_player_count = len(
-                [p for p in bench_players if self._is_player_ineligible(p, week, inactive_players)])
+                [p for p in bench_players if self._is_player_ineligible(p, week, inactive_players)]
+            )
 
             if Counter(self.roster_active_slots) == Counter(positions_filled_active):
                 num_bench_slots = self.roster_slot_counts.get("BN", 0)  # excludes IR players/slots

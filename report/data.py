@@ -10,6 +10,7 @@ from dao.base import BaseLeague, BaseMatchup, BaseTeam
 from utilities.app import add_report_team_stats, get_player_game_time_statuses
 from utilities.logger import get_logger
 from utilities.settings import settings
+from utilities.utils import normalize_player_name
 
 logger = get_logger(__name__, propagate=False)
 
@@ -39,7 +40,7 @@ class ReportData(object):
                 if player_status_info:
                     player_status = player_status_info.text.strip()
                     if player_status == "Out":
-                        inactive_players.append(player_name)
+                        inactive_players.append(normalize_player_name(player_name))
 
         self.teams_results = {
             team.team_id: add_report_team_stats(

@@ -1,6 +1,9 @@
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
+import re
+
+from utilities.constants import player_name_punctuation, player_name_suffixes
 from utilities.logger import get_logger
 from utilities.settings import settings
 
@@ -35,3 +38,21 @@ def truncate_cell_for_display(cell_text: str, halve_max_chars: bool = False, ses
 
     else:
         return cell_text
+
+
+def normalize_player_name(player_full_name: str) -> str:
+    """Remove all punctuation and name suffixes from player names, combine whitespace, and covert them to title case.
+    """
+    regex_all_whitespace = re.compile(r"\s+")
+    normalized_player_name: str = regex_all_whitespace.sub(" ", player_full_name).strip()
+
+    if (any(punc in player_full_name for punc in player_name_punctuation)
+            or any(suffix in player_full_name for suffix in player_name_suffixes)):
+
+        for punc in player_name_punctuation:
+            normalized_player_name = normalized_player_name.replace(punc, "")
+
+        for suffix in player_name_suffixes:
+            normalized_player_name = normalized_player_name.removesuffix(suffix)
+
+    return normalized_player_name.strip().title()
