@@ -310,7 +310,7 @@ if __name__ == "__main__":
     upload_message = ""
     if settings.integration_settings.google_drive_upload_bool:
         if not options.get("test", False):
-            google_drive_integration = GoogleDriveIntegration()
+            google_drive_integration = GoogleDriveIntegration(report.league.week_for_report)
 
             # upload PDF to Google Drive
             upload_message = google_drive_integration.upload_file(report_pdf)
@@ -320,13 +320,17 @@ if __name__ == "__main__":
 
     if settings.integration_settings.slack_post_bool:
         if not options.get("test", False):
-            slack_integration = SlackIntegration()
+            slack_integration = SlackIntegration(report.league.week_for_report)
 
             # post PDF or link to PDF to Slack
+            slack_response = None
             post_or_file = settings.integration_settings.slack_post_or_file
             if post_or_file == "post":
-                # post shareable link to uploaded Google Drive PDF on Slack
-                slack_response = slack_integration.post_message(upload_message)
+                if settings.integration_settings.google_drive_upload_bool:
+                    # post shareable link to uploaded Google Drive PDF on Slack
+                    slack_response = slack_integration.post_message(upload_message)
+                else:
+                    logger.warning("Unable to post Google Drive link to Slack when GOOGLE_DRIVE_UPLOAD_BOOL=False.")
             elif post_or_file == "file":
                 # upload PDF report directly to Slack
                 slack_response = slack_integration.upload_file(report_pdf)
@@ -337,24 +341,28 @@ if __name__ == "__main__":
                 )
                 sys.exit(1)
 
-            if slack_response.get("ok"):
+            if slack_response and slack_response.get("ok"):
                 logger.info(f"Report {str(report_pdf)} successfully posted to Slack!")
             else:
                 logger.error(
-                    f"Report {str(report_pdf)} was NOT posted to Slack with error: {slack_response.get('error')}"
+                    f"Report {str(report_pdf)} was NOT posted to Slack with error: {slack_response}"
                 )
         else:
             logger.info("Test report NOT posted to Slack.")
 
     if settings.integration_settings.groupme_post_bool:
         if not options.get("test", False):
-            groupme_integration = GroupMeIntegration()
+            groupme_integration = GroupMeIntegration(report.league.week_for_report)
 
             # post PDF or link to PDF to GroupMe
+            groupme_response = None
             post_or_file = settings.integration_settings.groupme_post_or_file
             if post_or_file == "post":
-                # post shareable link to uploaded Google Drive PDF on GroupMe
-                groupme_response = groupme_integration.post_message(upload_message)
+                if settings.integration_settings.google_drive_upload_bool:
+                    # post shareable link to uploaded Google Drive PDF on GroupMe
+                    groupme_response = groupme_integration.post_message(upload_message)
+                else:
+                    logger.warning("Unable to post Google Drive link to GroupMe when GOOGLE_DRIVE_UPLOAD_BOOL=False.")
             elif post_or_file == "file":
                 # upload PDF report directly to GroupMe
                 groupme_response = groupme_integration.upload_file(report_pdf)
@@ -376,13 +384,18 @@ if __name__ == "__main__":
 
     if settings.integration_settings.discord_post_bool:
         if not options.get("test", False):
-            discord_integration = DiscordIntegration()
+            discord_integration = DiscordIntegration(report.league.week_for_report)
 
             # post PDF or link to PDF to Discord
+            discord_response = None
             post_or_file = settings.integration_settings.discord_post_or_file
             if post_or_file == "post":
-                # post shareable link to uploaded Google Drive PDF on Discord
-                discord_response = discord_integration.post_message(upload_message)
+                if settings.integration_settings.google_drive_upload_bool:
+                    # post shareable link to uploaded Google Drive PDF on Discord
+                    discord_response = discord_integration.post_message(upload_message)
+                else:
+                    logger.warning("Unable to post Google Drive link to Discord when GOOGLE_DRIVE_UPLOAD_BOOL=False.")
+
             elif post_or_file == "file":
                 # upload PDF report directly to Discord
                 discord_response = discord_integration.upload_file(report_pdf)
@@ -393,7 +406,7 @@ if __name__ == "__main__":
                 )
                 sys.exit(1)
 
-            if discord_response["type"] == 0:
+            if discord_response and discord_response.get("type") == 0:
                 logger.info(f"Report {str(report_pdf)} successfully posted to Discord!")
             else:
                 logger.error(

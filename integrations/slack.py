@@ -4,7 +4,6 @@ __email__ = "uberfastman@uberfastman.dev"
 import json
 import logging
 from asyncio import Future
-from datetime import datetime
 from pathlib import Path
 from typing import Union
 
@@ -26,9 +25,9 @@ logging.getLogger("slack.web.base_client").setLevel(level=logging.INFO)
 
 class SlackIntegration(BaseIntegration):
 
-    def __init__(self):
+    def __init__(self, week):
         self.root_dir = Path(__file__).parent.parent
-        super().__init__("slack")
+        super().__init__("slack", week)
 
     def _authenticate(self) -> None:
 
@@ -81,17 +80,13 @@ class SlackIntegration(BaseIntegration):
         logger.debug(f"Uploading file to Slack: \n{file_path}")
 
         try:
-            message = (
-                f"\nFantasy Football Report for {file_path.name}\n"
-                f"Generated {datetime.now():%Y-%b-%d %H:%M:%S}\n"
-            )
+            message = self._upload_success_message(file_path.name)
+
+            if settings.integration_settings.slack_channel_notify_bool:
+                message = f"<!here>\n{message}"
 
             file_for_upload: Path = self.root_dir / file_path
             with open(file_for_upload, "rb") as uf:
-
-                if settings.integration_settings.slack_channel_notify_bool:
-                    # post message with no additional content to trigger @here
-                    self.post_message("")
 
                 response = self.client.files_upload_v2(
                     channel=self._get_channel_id(settings.integration_settings.slack_channel),
@@ -110,7 +105,7 @@ if __name__ == "__main__":
 
     logger.info(f"Re-uploading {reupload_file.name} ({reupload_file}) to Slack...")
 
-    slack_integration = SlackIntegration()
+    slack_integration = SlackIntegration(settings.week_for_report)
 
     # logger.info(f"\n{json.dumps(slack_integration.api_test().data, indent=2)}")
     # logger.info(f"{json.dumps(slack_integration.post_message('test message').data, indent=2)}")

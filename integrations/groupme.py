@@ -18,9 +18,9 @@ logger = get_logger(__name__, propagate=False)
 
 class GroupMeIntegration(BaseIntegration):
 
-    def __init__(self):
+    def __init__(self, week):
         self.root_dir = Path(__file__).parent.parent
-        super().__init__("groupme")
+        super().__init__("groupme", week)
 
         self.base_url = "https://api.groupme.com/v3"
         self.file_service_base_url = "https://file.groupme.com/v1"
@@ -159,10 +159,7 @@ class GroupMeIntegration(BaseIntegration):
     def upload_file(self, file_path: Path) -> Union[int, Dict]:
         logger.debug(f"Uploading file to GroupMe: \n{file_path}")
 
-        message = (
-            f"\nFantasy Football Report for {file_path.name}\n"
-            f"Generated {datetime.now():%Y-%b-%d %H:%M:%S}\n"
-        )
+        message = self._upload_success_message(file_path.name)
 
         if settings.integration_settings.groupme_bot_or_user == "bot":
             return self._post_as_bot(message, file_path)
@@ -182,7 +179,7 @@ if __name__ == "__main__":
 
     logger.info(f"Re-uploading {reupload_file.name} ({reupload_file}) to GroupMe...")
 
-    groupme_integration = GroupMeIntegration()
+    groupme_integration = GroupMeIntegration(settings.week_for_report)
 
     # logger.info(f"{json.dumps(groupme_integration.post_message('test message'), indent=2)}")
     logger.info(f"{json.dumps(groupme_integration.upload_file(reupload_file), indent=2)}")

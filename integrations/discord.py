@@ -16,10 +16,10 @@ logger = get_logger(__name__, propagate=False)
 
 class DiscordIntegration(BaseIntegration):
 
-    def __init__(self):
+    def __init__(self, week):
         self.root_dir = Path(__file__).parent.parent
         self.base_url = f"https://discord.com/api/webhooks"
-        super().__init__("discord")
+        super().__init__("discord", week)
 
     def _authenticate(self) -> None:
 
@@ -46,10 +46,7 @@ class DiscordIntegration(BaseIntegration):
     def upload_file(self, file_path: Path) -> Response:
         logger.debug(f"Uploading file to Discord: \n{file_path}")
 
-        message = (
-            f"\nFantasy Football Report for {file_path.name}\n"
-            f"Generated {datetime.now():%Y-%b-%d %H:%M:%S}\n"
-        )
+        message = self._upload_success_message(file_path.name)
 
         if settings.integration_settings.discord_channel_notify_bool:
             message = f"@everyone\n{message}"
@@ -70,7 +67,7 @@ if __name__ == "__main__":
 
     logger.info(f"Re-uploading {reupload_file.name} ({reupload_file}) to Discord...")
 
-    discord_integration = DiscordIntegration()
+    discord_integration = DiscordIntegration(settings.week_for_report)
 
     # logger.info(f"{json.dumps(discord_integration.post_message('test message'), indent=2)}")
     logger.info(f"{json.dumps(discord_integration.upload_file(reupload_file), indent=2)}")

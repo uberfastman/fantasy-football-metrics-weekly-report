@@ -5,7 +5,6 @@ __email__ = "uberfastman@uberfastman.dev"
 
 import json
 import logging
-from datetime import datetime
 from pathlib import Path
 from time import sleep
 from typing import List, Union
@@ -30,9 +29,9 @@ logging.getLogger("googleapiclient.discovery_cache.file_cache").setLevel(level=l
 
 class GoogleDriveIntegration(BaseIntegration):
 
-    def __init__(self):
+    def __init__(self, week):
         self.root_dir = Path(__file__).parent.parent
-        super().__init__("google_drive")
+        super().__init__("google_drive", week)
 
     def _authenticate(self) -> None:
 
@@ -256,14 +255,7 @@ class GoogleDriveIntegration(BaseIntegration):
             }
         )
 
-        return (
-            f"\n"
-            f"Fantasy Football Report\n"
-            f"Generated {datetime.now():%Y-%b-%d %H:%M:%S}\n"
-            f"*{upload_file['title']}*\n\n"
-            f"_Google Drive Link:_\n"
-            f"{upload_file['alternateLink']}"
-        )
+        return self._upload_success_message(upload_file["title"], drive_link=upload_file["alternateLink"])
 
 
 if __name__ == "__main__":
@@ -271,7 +263,7 @@ if __name__ == "__main__":
 
     logger.info(f"Re-uploading {reupload_file.name} ({reupload_file}) to Google Drive...")
 
-    google_drive_integration = GoogleDriveIntegration()
+    google_drive_integration = GoogleDriveIntegration(settings.week_for_report)
 
     upload_message = google_drive_integration.upload_file(reupload_file)
     logger.info(upload_message)
