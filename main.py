@@ -87,7 +87,7 @@ def main(argv):
     )
 
     try:
-        opts, args = getopt.getopt(argv, "hdf:l:w:k:g:y:srp:bqot")
+        opts, args = getopt.getopt(argv, "hdf:l:w:k:g:y:srp:bqout")
     except getopt.GetoptError:
         print(usage_str)
         sys.exit(2)
@@ -134,10 +134,12 @@ def main(argv):
             options_dict["dq_ce"] = True
 
         # for developers
-        elif opt in ("-t", "--test"):
-            options_dict["test"] = True
         elif opt in ("-o", "--offline"):
             options_dict["offline"] = True
+        elif opt in ("-u", "--skip-uploads"):
+            options_dict["offline"] = True
+        elif opt in ("-t", "--test"):
+            options_dict["test"] = True
 
     return options_dict
 
@@ -309,17 +311,17 @@ if __name__ == "__main__":
 
     upload_message = ""
     if settings.integration_settings.google_drive_upload_bool:
-        if not options.get("test", False):
+        if not options.get("skip_uploads", False) and not options.get("test", False):
             google_drive_integration = GoogleDriveIntegration(report.league.week_for_report)
 
             # upload PDF to Google Drive
             upload_message = google_drive_integration.upload_file(report_pdf)
             logger.info(upload_message)
         else:
-            logger.info("Test report NOT uploaded to Google Drive.")
+            logger.info(f"Report NOT uploaded to Google Drive with options: {options}")
 
     if settings.integration_settings.slack_post_bool:
-        if not options.get("test", False):
+        if not options.get("skip_uploads", False) and not options.get("test", False):
             slack_integration = SlackIntegration(report.league.week_for_report)
 
             # post PDF or link to PDF to Slack
@@ -348,10 +350,10 @@ if __name__ == "__main__":
                     f"Report {str(report_pdf)} was NOT posted to Slack with error: {slack_response}"
                 )
         else:
-            logger.info("Test report NOT posted to Slack.")
+            logger.info(f"Report NOT posted to Slack with options: {options}")
 
     if settings.integration_settings.groupme_post_bool:
-        if not options.get("test", False):
+        if not options.get("skip_uploads", False) and not options.get("test", False):
             groupme_integration = GroupMeIntegration(report.league.week_for_report)
 
             # post PDF or link to PDF to GroupMe
@@ -380,10 +382,10 @@ if __name__ == "__main__":
                     f"Report {str(report_pdf)} was NOT posted to GroupMe with error: {groupme_response}"
                 )
         else:
-            logger.info("Test report NOT posted to GroupMe.")
+            logger.info(f"Report NOT posted to GroupMe with options: {options}")
 
     if settings.integration_settings.discord_post_bool:
-        if not options.get("test", False):
+        if not options.get("skip_uploads", False) and not options.get("test", False):
             discord_integration = DiscordIntegration(report.league.week_for_report)
 
             # post PDF or link to PDF to Discord
@@ -413,4 +415,4 @@ if __name__ == "__main__":
                     f"Report {str(report_pdf)} was NOT posted to Discord with error: {discord_response}"
                 )
         else:
-            logger.info("Test report NOT posted to Discord.")
+            logger.info(f"Report NOT posted to Discord with options: {options}")

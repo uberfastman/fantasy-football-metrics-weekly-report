@@ -5,7 +5,6 @@ import re
 
 from utilities.constants import player_name_punctuation, player_name_suffixes
 from utilities.logger import get_logger
-from utilities.settings import settings
 
 logger = get_logger(__name__, propagate=False)
 
@@ -14,8 +13,8 @@ def format_platform_display(platform: str) -> str:
     return platform.capitalize() if len(platform) > 4 else platform.upper()
 
 
-def truncate_cell_for_display(cell_text: str, halve_max_chars: bool = False, sesqui_max_chars: bool = False) -> str:
-    max_chars: int = settings.report_settings.max_data_chars
+def truncate_cell_for_display(cell_text: str, max_chars: int, halve_max_chars: bool = False,
+                              sesqui_max_chars: bool = False) -> str:
 
     if halve_max_chars and sesqui_max_chars:
         logger.warning(

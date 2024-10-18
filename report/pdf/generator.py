@@ -973,10 +973,18 @@ class PdfGenerator(object):
                         # truncate data cell contents to specified max characters and half of specified max characters
                         # if cell is a team manager header
                         display_row.append(
-                            truncate_cell_for_display(cell, halve_max_chars=(cell_ndx == manager_header_ndx))
+                            truncate_cell_for_display(
+                                cell,
+                                max_chars=settings.report_settings.max_data_chars,
+                                halve_max_chars=(cell_ndx == manager_header_ndx)
+                            )
                         )
                     else:
-                        display_row.append(truncate_cell_for_display(cell, sesqui_max_chars=True))
+                        display_row.append(
+                            truncate_cell_for_display(
+                                cell, max_chars=settings.report_settings.max_data_chars, sesqui_max_chars=True
+                            )
+                        )
 
                 else:
                     display_row.append(cell)
@@ -1005,7 +1013,7 @@ class PdfGenerator(object):
         display_series_names = []
         for name in series_names:
             # truncate series name to specified max characters
-            display_series_names.append(truncate_cell_for_display(str(name)))
+            display_series_names.append(truncate_cell_for_display(str(name), settings.report_settings.max_data_chars))
 
         series_names = display_series_names
 
@@ -2057,7 +2065,7 @@ class TableOfContents(object):
 
         if truncate_title:
             title = (
-                f"{truncate_cell_for_display(title, sesqui_max_chars=True)}"
+                f"{truncate_cell_for_display(title, settings.report_settings.max_data_chars, sesqui_max_chars=True)}"
                 f"{f' (Part {team_page})' if team_page else ''}"
             )
 
