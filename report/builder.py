@@ -322,11 +322,71 @@ class FantasyFootballReport(object):
         )
 
         # add weekly record to luck data
+
+        wins = 0
+        losses = 0
+
+        time_series_luck = {}
+
+        week_counter = 1
+
+        while week_counter <= self.league.week_for_report:
+            for team_luck_data_entry in report_data.data_for_luck:
+                for team in self.league.teams_by_week[str(week_counter)].values():  # type: BaseTeam
+                    if team_luck_data_entry[1] == team.name:
+                        wins = team.weekly_overall_record.get_wins()
+                        losses = team.weekly_overall_record.get_losses()
+                        if week_counter == 1:
+                            time_series_luck[team.name] = {'name': team.name, 'wins': wins, 'losses': losses}
+                        elif week_counter < self.league.week_for_report:
+                            wins += time_series_luck[team.name]['wins']
+                            losses += time_series_luck[team.name]['losses']
+                            time_series_luck[team.name] = {'name': team.name, 'wins': wins, 'losses': losses}
+                        else:
+                            wins += time_series_luck[team.name]['wins']
+                            losses += time_series_luck[team.name]['losses']
+                            time_series_luck[team.name] = {'name': team.name, 'wins': wins, 'losses': losses}
+            week_counter += 1
+
+        # Calculate Season Luck Record and resolve ties
+
+        sorted_time_series_luck = dict(sorted(time_series_luck.items(), key=lambda x: list(x[1].values())[1], reverse=True))
+
+        team_index = 0
+
+        for i in sorted_time_series_luck:
+            team_index += 1
+            if team_index == 1:
+                previous_name = ""
+                name = sorted_time_series_luck[i]['name']
+                previous_wins = 0
+                wins = sorted_time_series_luck[i]['wins']
+                previous_losses = 0
+                losses = sorted_time_series_luck[i]['losses']
+            else:
+                previous_name = name
+                name = sorted_time_series_luck[i]['name']
+                previous_wins = wins
+                wins = sorted_time_series_luck[i]['wins']
+                previous_losses = losses
+                losses = sorted_time_series_luck[i]['losses']
+            if wins == previous_wins:
+                sorted_time_series_luck[i] = {'name': name, 'wins': wins, 'losses': losses, 'season_luck': str(team_index - 1) + "*"}
+                sorted_time_series_luck[previous_name] = {'name': previous_name, 'wins': previous_wins, 'losses': previous_losses, 'season_luck': str(team_index - 1) + "*"}
+            else:
+                sorted_time_series_luck[i] = {'name': name, 'wins': wins, 'losses': losses, 'season_luck': team_index}
+
+        # Append Weekly Luck Record along with Season Luck Record and Season Luck Record Ranking (Place)
         for team_luck_data_entry in report_data.data_for_luck:
-            for team in self.league.teams_by_week[str(self.league.week_for_report)].values():
-                team: BaseTeam
+            for team in self.league.teams_by_week[str(self.league.week_for_report)].values():  # type: BaseTeam
                 if team_luck_data_entry[1] == team.name:
-                    team_luck_data_entry.append(team.weekly_overall_record.get_record_str())
+                    for i in sorted_time_series_luck:
+                        if team_luck_data_entry[1] == sorted_time_series_luck[i]['name']:
+                            name = sorted_time_series_luck[i]['name']
+                            wins = sorted_time_series_luck[i]['wins']
+                            losses = sorted_time_series_luck[i]['losses']
+                            season_luck = sorted_time_series_luck[i]['season_luck']
+                            team_luck_data_entry.append(team.weekly_overall_record.get_record_str() + " / " + str(wins) + "-" + str(losses) + " (" + str(season_luck) + ")")
 
         # add season total optimal points to optimal points data
         sorted_season_total_optimal_points_data = dict(sorted(season_total_optimal_points_data.items(), key=lambda x: x[1], reverse=True))
