@@ -185,6 +185,10 @@ class PdfGenerator(object):
         self.widths_07_cols_no_2 = [0.45 * inch, 1.80 * inch, 1.50 * inch, 1.10 * inch, 1.00 * inch, 1.05 * inch,
                                     0.85 * inch]  # 7.75
 
+        # ..........................Place........Team.........Manager......Col 4........Col 5........Col 6........Col 7.....
+        self.widths_07_cols_no_3 = [0.45 * inch, 1.40 * inch, 1.10 * inch, 0.60 * inch, 1.30 * inch, 1.30 * inch,
+                                    1.60 * inch]  # 7.75
+
         # ..........................Place........Team.........Manager......Record.......Pts For......Pts Against..Streak.......Waiver.......Moves........Trades....
         self.widths_10_cols_no_1 = [0.45 * inch, 1.80 * inch, 1.10 * inch, 1.00 * inch, 0.80 * inch, 1.05 * inch,
                                     0.50 * inch, 0.50 * inch, 0.50 * inch, 0.50 * inch]  # 8.20
@@ -334,6 +338,11 @@ class PdfGenerator(object):
             fontName=self.font_italic
         )
         self.text_style_small = ParagraphStyle(name="small", fontSize=5, alignment=TA_CENTER)
+        self.text_style_medium = ParagraphStyle(
+            name="medium",
+            parent=self.text_style_normal,
+            fontSize=8
+        )
         self.text_style_invisible = ParagraphStyle(name="invisible", fontSize=0, textColor=colors.white)
 
         # set word wrap
@@ -434,7 +443,10 @@ class PdfGenerator(object):
         self.zscores_headers = [["Place", "Team", "Manager", "Z-Score"]]
         self.scores_headers = [["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]]
         self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
-        self.luck_headers = [["Place", "Team", "Manager", "Luck", "Season Avg. (Place)", "Week/Seas Rec. (Pl.)"]]
+        self.luck_headers = [[
+            "Place", "Team", "Manager", "Luck", "Season Avg. (Place)", "Weekly Record (W-L)",
+            "Season Record (W-L) (Place)"
+        ]]
         self.optimal_scores_headers = [["Place", "Team", "Manager", "Optimal Points", "Season Total"]]
         self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]]
         self.beef_headers = [["Place", "Team", "Manager", "TABBU(s)"]]
@@ -444,7 +456,7 @@ class PdfGenerator(object):
         self.weekly_top_scorer_headers = [["Week", "Team", "Manager", "Score"]]
         self.weekly_low_scorer_headers = [["Week", "Team", "Manager", "Score"]]
         self.weekly_highest_ce_headers = [["Week", "Team", "Manager", "Coaching Efficiency (%)"]]
-        self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
+        self.tie_for_first_footer = "<i>*Tie(s).</i>"
 
         # options: "document", "section", or None
         self.report_title = self.create_title(report_title_text, element_type="document")
@@ -888,11 +900,11 @@ class PdfGenerator(object):
 
         if metric_type in ["scores", "coaching_efficiency"]:
             if not self.break_ties:
-                return Paragraph(self.tie_for_first_footer, self.text_style_normal)
+                return Paragraph(self.tie_for_first_footer, self.text_style_medium)
             else:
                 return None
         else:
-            return Paragraph(self.tie_for_first_footer, self.text_style_normal)
+            return Paragraph(self.tie_for_first_footer, self.text_style_medium)
 
     def create_title(self, title_text: str, title_width: float = 8.5, element_type: str = None, anchor: str = "",
                      subtitle_text: Union[List, str] = None, subsubtitle_text: Union[List, str] = None) -> Table:
@@ -959,7 +971,7 @@ class PdfGenerator(object):
 
         # reduce manager string max characters for standings metric to accommodate narrower column widths
         manager_header_ndx = None
-        if metric_type == "standings":
+        if metric_type == "standings" or metric_type == "luck":
             for header_ndx, header in enumerate(col_headers[0]):
                 if header == "Manager":
                     manager_header_ndx = header_ndx
@@ -1717,16 +1729,21 @@ class PdfGenerator(object):
             elements.append(self.spacer_twentieth_inch)
 
         if settings.report_settings.league_luck_rankings_bool:
+            # update luck styles to reduce font size
+            luck_style = deepcopy(self.style)
+            luck_style.add("FONTSIZE", (0, 0), (-1, -1), self.font_size - 4)
+            luck_style_tied = deepcopy(self.style_tied_luck)
+            luck_style_tied.add("FONTSIZE", (0, 0), (-1, -1), self.font_size - 4)
+
             # luck
             elements.append(self.create_section(
                 "Team Luck Rankings",
                 "metrics",
                 self.luck_headers,
                 self.data_for_luck,
-                self.style,
-                self.style_tied_luck,
-                # self.widths_5_cols_1,
-                self.widths_06_cols_no_3,
+                luck_style,
+                luck_style_tied,
+                self.widths_07_cols_no_3,
                 tied_metric=self.report_data.ties_for_luck > 0,
                 metric_type="luck"
             ))

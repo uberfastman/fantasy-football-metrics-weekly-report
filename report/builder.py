@@ -5,7 +5,7 @@ import os
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Dict
 
 from calculate.coaching_efficiency import CoachingEfficiency
 from calculate.metrics import CalculateMetrics
@@ -350,7 +350,7 @@ class FantasyFootballReport(object):
 
         # Calculate Season Luck Record and resolve ties
 
-        sorted_time_series_luck = dict(sorted(time_series_luck.items(), key=lambda x: list(x[1].values())[1], reverse=True))
+        sorted_time_series_luck: Dict = dict(sorted(time_series_luck.items(), key=lambda x: list(x[1].values())[1], reverse=True))
 
         team_index = 0
 
@@ -382,11 +382,15 @@ class FantasyFootballReport(object):
                 if team_luck_data_entry[1] == team.name:
                     for i in sorted_time_series_luck:
                         if team_luck_data_entry[1] == sorted_time_series_luck[i]['name']:
-                            name = sorted_time_series_luck[i]['name']
                             wins = sorted_time_series_luck[i]['wins']
                             losses = sorted_time_series_luck[i]['losses']
                             season_luck = sorted_time_series_luck[i]['season_luck']
-                            team_luck_data_entry.append(team.weekly_overall_record.get_record_str() + " / " + str(wins) + "-" + str(losses) + " (" + str(season_luck) + ")")
+                            team_luck_data_entry.extend(
+                                [
+                                    team.weekly_overall_record.get_record_str(),
+                                    f"{wins}-{losses} ({season_luck})"
+                                ]
+                            )
 
         # add season total optimal points to optimal points data
         for team_optimal_points_data_entry in report_data.data_for_optimal_scores:
