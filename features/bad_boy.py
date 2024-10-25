@@ -119,10 +119,9 @@ class BadBoyFeature(BaseFeature):
 
             # the USA Today NFL arrests database only retrieves 20 entries per request
             if total_results > 20:
-                if (total_results % 20) > 0:
-                    num_pages = (total_results // 20) + 1
-                else:
-                    num_pages = total_results // 20
+
+                # add extra page to include last page of results if they exist
+                num_pages = (total_results // 20) + (1 if total_results % 20 > 0 else 0)
 
                 for page in range(2, num_pages + 1):
                     page_num += 1

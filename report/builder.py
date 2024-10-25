@@ -117,7 +117,7 @@ class FantasyFootballReport(object):
         delta = datetime.now() - begin
         logger.info(
             f"...retrieved all fantasy football data from "
-            f"{self.platform_display + (' API' if not self.offline else ' saved data')} in {delta}\n"
+            f"{self.platform_display + (' API' if not self.offline else ' saved data')} in {delta}"
         )
 
         if self.league.num_playoff_slots > 0:
@@ -146,7 +146,7 @@ class FantasyFootballReport(object):
         # output league info for verification
         logger.info(
             f"...setup complete for "
-            f"\"{self.league.name.upper()}\" ({self.league_id}) week {self.league.week_for_report} report.\n"
+            f"\"{self.league.name.upper()}\" ({self.league_id}) week {self.league.week_for_report} report."
         )
 
     def create_pdf_report(self) -> Path:

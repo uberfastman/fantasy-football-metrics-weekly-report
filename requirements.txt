@@ -18,6 +18,7 @@ reportlab==4.2.5
 requests==2.32.3
 selenium==4.25.0
 slack_sdk==3.33.1
+tornado==6.4.1
 urllib3==2.2.3
 yahoo-oauth==2.1.0
 yfpy==16.0.3

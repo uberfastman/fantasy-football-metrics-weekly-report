@@ -330,7 +330,7 @@ class PlayoffProbabilities(object):
                     delta = datetime.datetime.now() - begin
                     logger.info(
                         f"...ran {self.simulations:,} playoff simulation{'s' if self.simulations > 1 else ''} "
-                        f"in {str(delta)}\n"
+                        f"in {str(delta)}"
                     )
 
                     if self.save_data:

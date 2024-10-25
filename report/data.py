@@ -7,7 +7,7 @@ from typing import List
 from calculate.metrics import CalculateMetrics
 from calculate.points_by_position import PointsByPosition
 from dao.base import BaseLeague, BaseMatchup, BaseTeam
-from utilities.app import add_report_team_stats, get_player_game_time_statuses
+from utilities.app import add_report_team_stats, get_inactive_players
 from utilities.logger import get_logger
 from utilities.settings import settings
 from utilities.utils import normalize_player_name
@@ -33,14 +33,7 @@ class ReportData(object):
 
         inactive_players = []
         if dq_ce:
-            injured_players = get_player_game_time_statuses(week_counter, league).findAll("div", {"class": "tr"})
-            for player in injured_players:
-                player_name = player.find("a").text.strip()
-                player_status_info = player.find("div", {"class": "td w20 hidden-xs"}).find("b")
-                if player_status_info:
-                    player_status = player_status_info.text.strip()
-                    if player_status == "Out":
-                        inactive_players.append(normalize_player_name(player_name))
+            inactive_players = get_inactive_players(week_counter, league)
 
         self.teams_results = {
             team.team_id: add_report_team_stats(

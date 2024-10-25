@@ -72,7 +72,7 @@ class HighRollerFeature(BaseFeature):
         logger.debug(f"Response URL: {response.url}")
         logger.debug(f"Response (HTML): {html_soup}")
 
-        fined_players = html_soup.find("tbody").findAll("tr", {"class": ""})
+        fined_players = html_soup.find("tbody").find_all("tr", {"class": ""})
 
         for player in fined_players:
 

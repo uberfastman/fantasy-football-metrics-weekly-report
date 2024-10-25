@@ -103,7 +103,7 @@ class LeagueData(BaseLeagueData):
         )
 
         try:
-            scraped_current_week = int(scraped_league_scores.findAll(
+            scraped_current_week = int(scraped_league_scores.find_all(
                 text=re.compile(".*This Week.*")
             )[-1].parent.findNext("li").text.strip().split(" ")[-1]) - 1
         except (IndexError, AttributeError) as e:
@@ -116,7 +116,7 @@ class LeagueData(BaseLeagueData):
             f"{self.league.league_id}-league-rules.html"
         )
 
-        elements = scraped_league_rules.findAll(["dt", "dd"])
+        elements = scraped_league_rules.find_all(["dt", "dd"])
         for elem in elements:
             if elem.text.strip() == "Playoffs":
 
@@ -125,7 +125,7 @@ class LeagueData(BaseLeagueData):
                 else:
                     self.league.num_playoff_slots = 0
 
-                playoff_weeks_elements = elements[elements.index(elem) + 1].findAll(text=True, recursive=False)
+                playoff_weeks_elements = elements[elements.index(elem) + 1].find_all(text=True, recursive=False)
                 if any((text.strip() and "Weeks" in text) for text in playoff_weeks_elements):
                     for text in playoff_weeks_elements:
                         if text.strip() and "Weeks" in text:

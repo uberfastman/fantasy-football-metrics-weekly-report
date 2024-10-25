@@ -27,9 +27,10 @@ from dao.platforms.yahoo import LeagueData as YahooLeagueData
 from features.bad_boy import BadBoyFeature
 from features.beef import BeefFeature
 from features.high_roller import HighRollerFeature
+from utilities.constants import prohibited_statuses
 from utilities.logger import get_logger
 from utilities.settings import settings
-from utilities.utils import format_platform_display
+from utilities.utils import format_platform_display, normalize_player_name, get_data_from_web
 
 logger = get_logger(__name__, propagate=False)
 
@@ -40,6 +41,25 @@ NFL_SEASON_LENGTH = 18
 current_date = datetime.today()
 current_year = current_date.year
 current_month = current_date.month
+
+
+class InjuryReportPlayer(object):
+
+    def __init__(self, full_name: str, href: str, game_status: str, game_status_date_str: str, season: int,
+                 player_data_dir: Path):
+        self.full_name: str = full_name
+        self.full_name_normalized: str = normalize_player_name(full_name)
+        self.full_name_key: str = normalize_player_name(full_name, as_key_format=True)
+
+        self.url: str = f"https://www.footballdb.com{href}/gamelogs/{season}"
+
+        self.game_status: str = game_status
+        self.game_status_date: datetime = datetime.strptime(
+            f"{game_status_date_str}/{season}",
+            "%m/%d/%Y"
+        )
+
+        self.player_data_file_path: Path = player_data_dir / f"{self.full_name_key}.html"
 
 
 def user_week_input_validation(week: int, retrieved_current_week: int, season: int) -> int:
@@ -330,20 +350,25 @@ def add_report_team_stats(team: BaseTeam, league: BaseLeague, week_counter: int,
     return team
 
 
-def get_player_game_time_statuses(week: int, league: BaseLeague):
-    file_name = f"week_{week}-player_status_data.html"
-    file_dir = Path(league.data_dir) / str(league.season) / str(league.league_id) / f"week_{week}"
-    file_path = Path(file_dir) / file_name
+def get_inactive_players(week: int, league: BaseLeague) -> List[str]:
+    logger.info(f"Retrieving inactive players for week {week} from the Football Database...")
 
-    if not league.offline:
-        user_agent = (
+    start = datetime.now()
+
+    data_dir = league.data_dir / str(league.season) / str(league.league_id) / f"week_{week}"
+    data_file_path = data_dir / f"week_{week}-player_status_data.html"
+    player_data_dir = data_dir / "player_statuses"
+
+    headers = {
+        "user-agent": (
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) "
             "AppleWebKit/605.1.15 (KHTML, like Gecko) "
             "Version/13.0.2 Safari/605.1.15"
         )
-        headers = {
-            "user-agent": user_agent
-        }
+    }
+
+    data_retrieved_from_web = False
+    if not league.offline:
         params = {
             "yr": str(league.season),
             "wk": str(week),
@@ -357,24 +382,111 @@ def get_player_game_time_statuses(week: int, league: BaseLeague):
         html_soup = BeautifulSoup(response.text, "html.parser")
         logger.debug(f"Response URL: {response.url}")
         logger.debug(f"Response (HTML): {html_soup}")
+        data_retrieved_from_web = True
     else:
         try:
-            with open(file_path, "r", encoding="utf-8") as data_in:
+            with open(data_file_path, "r", encoding="utf-8") as data_in:
                 html_soup = BeautifulSoup(data_in.read(), "html.parser")
         except FileNotFoundError:
             logger.error(
-                f"FILE {file_path} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!"
+                f"FILE {data_file_path} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!"
             )
             sys.exit(1)
 
     if league.save_data:
-        if not Path(file_dir).exists():
-            os.makedirs(file_dir)
+        if not Path(data_dir).exists():
+            os.makedirs(data_dir)
 
-        with open(file_path, "w", encoding="utf-8") as data_out:
+        with open(data_file_path, "w", encoding="utf-8") as data_out:
             data_out.write(html_soup.prettify())
 
-    return html_soup
+    injured_players: Dict[str, InjuryReportPlayer] = {}
+    injury_report_players_to_check: Dict[str, InjuryReportPlayer] = {}
+    injured_players_html = html_soup.find_all("div", {"class": "tr"})
+    for player in injured_players_html:
+
+        player_info = player.find("a")
+        player_game_status = player.find("div", {"class": "td w20 hidden-xs"}).find("b")  # bolded text with game status
+
+        if player_game_status:
+            player_game_status_date_str = re.search(
+                r"(?<=\()(.+/.+)(?=\))",  # match strings with a forward slash between parentheses
+                player.find("div", {"class": "td w20 hidden-xs"}).text  # text with game status, date, and opponent
+            ).group(0)
+
+            injury_report_player = InjuryReportPlayer(
+                full_name=player_info.text.strip(),
+                href=player_info.get("href"),
+                game_status=player_game_status,
+                game_status_date_str=player_game_status_date_str,
+                season=league.season,
+                player_data_dir=player_data_dir
+            )
+
+            injury_report_player.game_status = player_game_status.text.strip()
+            if injury_report_player.game_status == "Out":
+                injured_players[injury_report_player.url] = injury_report_player
+            else:
+                injury_report_players_to_check[injury_report_player.url] = injury_report_player
+
+    if not league.offline:
+        player_pages = get_data_from_web(
+            [
+                player_url for player_url, player in injury_report_players_to_check.items()
+                if player.game_status == "Questionable" or player.game_status == "Doubtful"
+            ],
+            "GET",
+            headers,
+            return_responses_as_body_strings=True
+        )
+    else:
+        player_pages = {}
+        for player_url, player in injury_report_players_to_check.items():
+            try:
+                with open(player.player_data_file_path, "r", encoding="utf-8") as player_html_in:
+                    player_pages[player_url] = player_html_in.read()
+            except FileNotFoundError:
+                logger.error(
+                    f"FILE {player.player_data_file_path} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING "
+                    f"PREVIOUSLY SAVED DATA!"
+                )
+                sys.exit(1)
+
+    for player_url, player_page_html in player_pages.items():
+
+        injury_report_player = injury_report_players_to_check[player_url]
+
+        player_page_html_soup = BeautifulSoup(player_page_html, "html.parser")
+
+        # retrieve data table where data title includes the substring "Game Logs"
+        game_logs_table = player_page_html_soup.find("div", {"data-title": re.compile("Game Logs")})
+        for row in game_logs_table.find_all("tr"):
+            if not {"header", "preseason", "row_playerstats"}.intersection(set(row.get("class"))):
+                game_date = datetime.strptime(row.find("td", {"class": "center nowrap"}).text, "%m/%d/%y")
+                game_no_stat_msg = row.find("div", {"class": "nostatmsg"})
+
+                if game_date >= injury_report_player.game_status_date and game_no_stat_msg:
+                    game_no_stat_msg = game_no_stat_msg.text.strip()
+                    if any(game_no_stat_msg in status for status in prohibited_statuses.values()):
+                        injured_players[player_url] = injury_report_player
+
+    if league.save_data:
+        if not Path(player_data_dir).exists():
+            os.makedirs(player_data_dir)
+
+        for player_url, player_page_html in player_pages.items():
+            with (open(injury_report_players_to_check[player_url].player_data_file_path, "w", encoding="utf-8")
+                  as player_html_out):
+                player_html_out.write(player_page_html)
+
+    logger.info(
+        f"...{'retrieved' if data_retrieved_from_web else 'loaded'} {len(injured_players)} injured players from the "
+        f"week {week} injury report in {datetime.now() - start}."
+    )
+
+    return [
+        player.full_name_normalized for player in sorted(injured_players.values(), key=lambda x: x.full_name_normalized)
+    ]
 
 
 # function taken from https://stackoverflow.com/a/33117579 (written by 7h3rAm)
@@ -572,3 +684,17 @@ def update_app(repository: Repo):
 if __name__ == "__main__":
     local_current_nfl_week = get_current_nfl_week(offline=False)
     logger.info(f"Local current NFL week: {local_current_nfl_week}")
+
+    root_dir = Path(__file__).parent.parent
+    local_league: BaseLeague = BaseLeague(
+        root_dir,
+        root_dir / "tests",
+        settings.league_id,
+        settings.season,
+        settings.week_for_report,
+        True,
+        False
+    )
+
+    local_inactive_players = get_inactive_players(settings.week_for_report, local_league)
+    logger.info(f"Local inactive players: {local_inactive_players}")

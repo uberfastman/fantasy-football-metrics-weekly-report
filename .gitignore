@@ -31,3 +31,4 @@ resources/files/crime_categories.new.json
 
 # testing
 tests/*.json
+tests/**/*.html
