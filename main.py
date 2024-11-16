@@ -1,12 +1,18 @@
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
+import sys
+
+if not sys.warnoptions:
+    import warnings
+
+    # suppress SyntaxWarning due to "invalid escape sequence" messages in transitive dependencies: stringcase, rauth
+    warnings.filterwarnings("ignore", category=SyntaxWarning)
+
 import getopt
 import os
-import re
-import subprocess
-import sys
 import time
+from importlib.metadata import distributions
 from pathlib import Path
 from typing import Union
 
@@ -21,6 +27,7 @@ from report.builder import FantasyFootballReport
 from utilities.app import check_github_for_updates
 from utilities.logger import get_logger
 from utilities.settings import settings
+from utilities.utils import normalize_dependency_package_name
 
 colorama.init()
 
@@ -36,18 +43,19 @@ def main(argv):
     with open(Path(__file__).parent / "requirements.txt", "r") as reqs:
         for line in reqs.readlines():
             if not line.startswith("#"):
-                dependencies.append(line.strip())
+                dep, dep_version = line.strip().split("==")
+                dependencies.append(f"{normalize_dependency_package_name(dep)}=={dep_version}")
 
-    installed_dependencies = subprocess.check_output(["pip", "freeze"]).decode("utf-8")
+    installed_dependencies = sorted(
+        [f"{normalize_dependency_package_name(x.name)}=={x.version}" for x in distributions()]
+    )
+
     missing_dependency_count = 0
     for dependency in dependencies:
-        dependency_is_installed = installed_dependencies.find(dependency) != -1
-        if not dependency_is_installed:
+        if dependency not in installed_dependencies:
             missing_dependency_count += 1
-            dependency_package = re.split("\\W+", dependency)[0]
             logger.error(
-                f"MISSING DEPENDENCY: {dependency_package}. Please run `pip install {dependency_package}` and retry "
-                f"the report generation."
+                f"MISSING DEPENDENCY: {dependency}. Please run `uv add {dependency}` and retry the report generation."
             )
 
     if missing_dependency_count > 0:

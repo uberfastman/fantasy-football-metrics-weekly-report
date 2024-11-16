@@ -184,7 +184,7 @@ If you wish to disable the automatic check for updates, you can set `CHECK_FOR_U
 <a name="dependencies"></a>
 ### Dependencies
 
-The application is actively developed in macOS, but is cross-platform compatible. The app requires ***Python 3.10 or later***. To check if you have the minimum required version (or later) of Python installed, open up a window in Terminal (macOS), Command Prompt (Windows), or a command line shell of your choice, and run `python --version`. If the return value is `Python 3.x.x` where the first `x` is equal to or greater than the minimum required minor version, you are good to go. If the return is `Python 2.x.x`, you will need to install the correct Python 3 version. Check out the instructions [here](https://realpython.com/installing-python/) for how to install Python 3 on your system.
+The application is actively developed in macOS, but is cross-platform compatible. The app requires ***Python 3.11 or later***. To check if you have the minimum required version (or later) of Python installed, open up a window in Terminal (macOS), Command Prompt (Windows), or a command line shell of your choice, and run `python --version`. If the return value is `Python 3.x.x` where the first `x` is equal to or greater than the minimum required minor version, you are good to go. If the return is `Python 2.x.x`, you will need to install the correct Python 3 version. Check out the instructions [here](https://realpython.com/installing-python/) for how to install Python 3 on your system.
 
 Project dependencies can be viewed in the [`requirements.txt`](requirements.txt) file.
 

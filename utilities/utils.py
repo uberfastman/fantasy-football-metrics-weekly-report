@@ -14,6 +14,11 @@ from utilities.logger import get_logger
 logger = get_logger(__name__, propagate=False)
 
 
+def normalize_dependency_package_name(package_name: str) -> str:
+    # normalize Python package name (see https://packaging.python.org/en/latest/specifications/name-normalization/)
+    return re.sub(r"[-_.]+", "-", package_name).lower()
+
+
 def format_platform_display(platform: str) -> str:
     return platform.capitalize() if len(platform) > 4 else platform.upper()
 

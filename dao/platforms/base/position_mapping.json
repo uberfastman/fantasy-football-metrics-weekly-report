@@ -152,8 +152,11 @@
     "IDP_FLEX": {
       "base": "FLEX_IDP",
       "positions": [
+        "CB",
         "DB",
+        "DE",
         "DL",
+        "DT",
         "LB"
       ]
     }

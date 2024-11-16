@@ -94,8 +94,6 @@
 <a name="running-the-report-application"></a>
 ### Running the Report Application
 
-* If you are running on macOS, see [below](#macos-launch-script)!
-
 * *If you followed the setup instructions and set up the application to run in a virtual environment, once you have navigated to the project directory, you **MUST** run*
 
     ```bash

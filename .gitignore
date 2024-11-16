@@ -13,6 +13,13 @@
 env*
 .venv
 venv
+.venv*/
+venv*/
+.python-version
+.python-venv
+
+# dependencies
+uv.lock
 
 # auth secrets
 **private*.json
