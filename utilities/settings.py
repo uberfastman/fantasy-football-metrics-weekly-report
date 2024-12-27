@@ -5,17 +5,19 @@ from datetime import datetime
 from inspect import isclass
 from pathlib import Path
 from time import sleep
-from typing import List, Dict, Set, Tuple, Type, Any, Union, Optional
+from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 
 from camel_converter import to_snake
 from colorama import Fore, Style
 from dotenv import dotenv_values
 from pydantic import Field, computed_field
+
 # noinspection PyProtectedMember
 from pydantic.fields import FieldInfo
-from pydantic_settings import BaseSettings, SettingsConfigDict, EnvSettingsSource, PydanticBaseSettingsSource
+from pydantic_settings import BaseSettings, EnvSettingsSource, PydanticBaseSettingsSource, SettingsConfigDict
 
 from utilities.logger import get_logger
+from utilities.utils import FFMWRPythonObjectJson
 
 root_directory = Path(__file__).parent.parent
 
@@ -70,7 +72,7 @@ class CustomSettingsSource(EnvSettingsSource):
         return settings_field_value
 
 
-class CustomSettings(BaseSettings):
+class CustomSettings(BaseSettings, FFMWRPythonObjectJson):
 
     def __repr__(self):
         properties = ", ".join([f"{k}={v}" for k, v in self.__dict__.items()])
@@ -370,6 +372,26 @@ class AppSettings(CustomSettings):
         extra="ignore"  # allow, forbid, or ignore
     )
 
+    ffmwr_version_major: int = Field(
+        title=__qualname__,
+        description="Fantasy Football Metrics Weekly Report major version",
+
+    )
+    ffmwr_version_minor: int = Field(
+        title=__qualname__,
+        description="Fantasy Football Metrics Weekly Report minor version",
+
+    )
+    ffmwr_version_patch: int = Field(
+        title=__qualname__,
+        description="Fantasy Football Metrics Weekly Report patch version",
+
+    )
+    @computed_field
+    @property
+    def ffmwr_version(self) -> str:
+        return f"v{self.ffmwr_version_major}.{self.ffmwr_version_minor}.{self.ffmwr_version_patch}"
+
     log_level: str = Field(
         "info",
         title=__qualname__,
@@ -598,7 +620,5 @@ def create_env_file_from_settings(env_fields: Set[Tuple[str, str, str]], env_fil
     return app_settings
 
 
-settings = get_app_settings_from_env_file()
-
 if __name__ == "__main__":
-    logger.info(settings)
+    logger.info(get_app_settings_from_env_file())

@@ -1,2 +1,2 @@
-from dao import base
-from dao.platforms import yahoo, fleaflicker, sleeper, espn, cbs
+from dao import base  # noqa: F401
+from dao.platforms import cbs, espn, fleaflicker, sleeper, yahoo  # noqa: F401

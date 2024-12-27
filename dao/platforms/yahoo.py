@@ -2,20 +2,22 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
+
 # from collections import defaultdict
 # from concurrent.futures import ThreadPoolExecutor
 from statistics import median
-from typing import Union, List, Callable
+from typing import List, Union
 
 from yfpy.data import Data
-from yfpy.models import League, Manager, Matchup, Team, Player, RosterPosition
+from yfpy.models import League, Manager, Matchup, Player, RosterPosition, Team
 from yfpy.query import YahooFantasySportsQuery
 
-from dao.base import BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
+from dao.base import BaseLeague, BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
 from dao.platforms.base.league import BaseLeagueData
 from utilities.logger import get_logger
-from utilities.settings import settings
+from utilities.settings import AppSettings
 
 logger = get_logger(__name__, propagate=False)
 
@@ -24,17 +26,46 @@ logging.getLogger("yfpy.query").setLevel(level=logging.INFO)
 logging.getLogger("yfpy.data").setLevel(level=logging.INFO)
 
 
+def get_yahoo_player_data(league: BaseLeague, yahoo_data: Data,
+                          yahoo_query: YahooFantasySportsQuery) -> Callable[[str, int], float]:
+
+    def get_player_data(player_key: str, week: int = None) -> float:
+        # YAHOO API QUERY: run query to retrieve stats for specific player for chosen week if supplied, else for season
+        params = {"player_key": player_key}
+        if week:
+            params["chosen_week"] = week
+
+            return yahoo_data.retrieve(
+                player_key,
+                yahoo_query.get_player_stats_by_week,
+                params=params,
+                new_data_dir=league.data_dir / f"week_{week}" / "players",
+                data_type_class=Player
+            )
+        else:
+            return yahoo_data.retrieve(
+                player_key,
+                yahoo_query.get_player_stats_for_season,
+                params=params,
+                new_data_dir=league.data_dir / "players",
+                data_type_class=Player
+            )
+
+    return get_player_data
+
+
 # noinspection DuplicatedCode
 class LeagueData(BaseLeagueData):
 
-    def __init__(self, base_dir: Path, data_dir: Path, game_id: Union[str, int],
+    def __init__(self, settings: AppSettings, root_dir: Path, data_dir: Path, game_id: Union[str, int],
                  league_id: str, season: int, start_week: int, week_for_report: int,
                  get_current_nfl_week_function: Callable, week_validation_function: Callable, save_data: bool = True,
                  offline: bool = False):
         super().__init__(
+            settings,
             "Yahoo",
             None,
-            base_dir,
+            root_dir,
             data_dir,
             league_id,
             season,
@@ -46,12 +77,14 @@ class LeagueData(BaseLeagueData):
             offline
         )
 
-        self.game_id = game_id or settings.platform_settings.yahoo_game_id
+        self.settings = settings
 
-        self.yahoo_data = Data(self.league.data_dir, save_data=self.league.save_data, dev_offline=self.league.offline)
+        self.game_id = game_id or self.settings.platform_settings.yahoo_game_id
+
+        self.yahoo_data = Data(
+            self.league.data_dir, save_data=False, dev_offline=self.league.offline
+        )
         self.yahoo_query = None
-
-        self._authenticate()
 
     def _authenticate(self) -> None:
 
@@ -61,52 +94,50 @@ class LeagueData(BaseLeagueData):
             game_id=self.game_id,
             # only provide Yahoo consumer key if no saved Yahoo access token data
             yahoo_consumer_key=(
-                settings.platform_settings.yahoo_consumer_key
-                if not settings.platform_settings.yahoo_access_token_json
+                self.settings.platform_settings.yahoo_consumer_key
+                if not self.settings.platform_settings.yahoo_access_token_json
                 else None
             ),
             # only provide Yahoo consumer secret if no saved Yahoo access token data
             yahoo_consumer_secret=(
-                settings.platform_settings.yahoo_consumer_secret
-                if not settings.platform_settings.yahoo_access_token_json
+                self.settings.platform_settings.yahoo_consumer_secret
+                if not self.settings.platform_settings.yahoo_access_token_json
                 else None
             ),
-            yahoo_access_token_json=settings.platform_settings.yahoo_access_token_json,
+            yahoo_access_token_json=self.settings.platform_settings.yahoo_access_token_json,
             browser_callback=False,
             offline=self.league.offline
         )
         self.yahoo_query.save_access_token_data_to_env_file(
-            env_file_location=self.base_dir,
+            env_file_location=self.root_dir,
             save_json_to_var_only=True
         )
 
-    def get_player_data(self, player_key: str, week: int = None):
-        # YAHOO API QUERY: run query to retrieve stats for specific player for chosen week if supplied, else for season
-        params = {"player_key": player_key}
-        if week:
-            params["chosen_week"] = week
-
-            return self.yahoo_data.retrieve(
-                player_key,
-                self.yahoo_query.get_player_stats_by_week,
-                params=params,
-                new_data_dir=(
-                        Path(self.league.data_dir) / str(self.league.season) / self.league.league_id / f"week_{week}"
-                        / "players"
-                ),
-                data_type_class=Player
-            )
-        else:
-            return self.yahoo_data.retrieve(
-                player_key,
-                self.yahoo_query.get_player_stats_for_season,
-                params=params,
-                new_data_dir=Path(self.league.data_dir) / str(self.league.season) / self.league.league_id / "players",
-                data_type_class=Player
-            )
+    # TODO: find better pattern for player points retrieval instead of passing around a class method object
+    # def get_player_data(self, player_key: str, week: int = None):
+    #     # YAHOO API QUERY: run query to retrieve stats for specific player for chosen week if supplied, else for season
+    #     params = {"player_key": player_key}
+    #     if week:
+    #         params["chosen_week"] = week
+    #
+    #         return self.yahoo_data.retrieve(
+    #             player_key,
+    #             self.yahoo_query.get_player_stats_by_week,
+    #             params=params,
+    #             new_data_dir=self.league.data_dir / f"week_{week}" / "players",
+    #             data_type_class=Player
+    #         )
+    #     else:
+    #         return self.yahoo_data.retrieve(
+    #             player_key,
+    #             self.yahoo_query.get_player_stats_for_season,
+    #             params=params,
+    #             new_data_dir=self.league.data_dir / "players",
+    #             data_type_class=Player
+    #         )
 
     # noinspection PyTypeChecker
-    def map_data_to_base(self):
+    def map_data_to_base(self) -> None:
         logger.debug(f"Retrieving {self.platform_display} league data and mapping it to base objects.")
 
         # YAHOO API QUERY: run query to retrieve all league information, including current standings
@@ -114,7 +145,7 @@ class LeagueData(BaseLeagueData):
             f"{self.league.league_id}-league_info",
             self.yahoo_query.get_league_info,
             data_type_class=League,
-            new_data_dir=(self.league.data_dir / str(self.league.season) / self.league.league_id)
+            new_data_dir=self.league.data_dir
         )
 
         # TODO: too many request to Yahoo, triggers 999 rate limiting error
@@ -151,11 +182,12 @@ class LeagueData(BaseLeagueData):
         self.league.median_score = 0
         self.league.is_faab = bool(league_info.settings.uses_faab)
         if self.league.is_faab:
-            self.league.faab_budget = settings.platform_settings.yahoo_initial_faab_budget or 100
+            self.league.faab_budget = self.settings.platform_settings.yahoo_initial_faab_budget or 100
         self.league.url = league_info.url
 
-        self.league.player_data_by_week_function = self.get_player_data
-        self.league.player_data_by_week_key = "player_points_value"
+        # TODO: find better pattern for player points retrieval instead of passing around a class method object
+        # self.league.player_data_by_week_function = self.get_player_data
+        # self.league.player_data_by_week_key = "player_points_value"
 
         position: RosterPosition
         for position in league_info.settings.roster_positions:
@@ -187,9 +219,7 @@ class LeagueData(BaseLeagueData):
                 f"week_{wk}-matchups_by_week",
                 self.yahoo_query.get_league_matchups_by_week,
                 params={"chosen_week": str(wk)},
-                new_data_dir=(
-                        self.league.data_dir / str(self.league.season) / self.league.league_id / f"week_{str(wk)}"
-                )
+                new_data_dir=self.league.data_dir / f"week_{str(wk)}"
             )
 
             if wk <= self.league.week_for_report:
@@ -360,11 +390,7 @@ class LeagueData(BaseLeagueData):
                         f"{team.team_id}-{str(team.name.decode('utf-8')).replace(' ', '_')}-roster",
                         self.yahoo_query.get_team_roster_player_info_by_week,
                         params={"team_id": str(team.team_id), "chosen_week": str(wk)},
-                        new_data_dir=(
-                                self.league.data_dir / str(
-                            self.league.season) / self.league.league_id / f"week_{str(wk)}"
-                                / "rosters"
-                        )
+                        new_data_dir=self.league.data_dir / f"week_{str(wk)}" / "rosters"
                     ) for team in league_info.standings.teams
             }
 
@@ -448,5 +474,3 @@ class LeagueData(BaseLeagueData):
             ),
             reverse=True
         )
-
-        return self.league

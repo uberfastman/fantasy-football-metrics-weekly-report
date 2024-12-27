@@ -3,21 +3,19 @@ __email__ = "uberfastman@uberfastman.dev"
 
 import datetime
 import logging
-import os
 import re
-import sys
 from collections import defaultdict
 from pathlib import Path
 from statistics import median
-from typing import Dict, Callable, Union
+from typing import Callable, Dict, Union
 
 import requests
 from bs4 import BeautifulSoup
 
-from dao.base import BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
+from dao.base import BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
 from dao.platforms.base.league import BaseLeagueData
 from utilities.logger import get_logger
-from utilities.settings import settings
+from utilities.settings import AppSettings
 
 logger = get_logger(__name__, propagate=False)
 
@@ -28,13 +26,14 @@ logger.setLevel(level=logging.INFO)
 # noinspection DuplicatedCode
 class LeagueData(BaseLeagueData):
 
-    def __init__(self, base_dir: Union[Path, None], data_dir: Path, league_id: str,
+    def __init__(self, settings: AppSettings, root_dir: Union[Path, None], data_dir: Path, league_id: str,
                  season: int, start_week: int, week_for_report: int, get_current_nfl_week_function: Callable,
                  week_validation_function: Callable, save_data: bool = True, offline: bool = False):
         super().__init__(
+            settings,
             "Fleaflicker",
             f"https://www.fleaflicker.com",
-            base_dir,
+            root_dir,
             data_dir,
             league_id,
             season,
@@ -49,58 +48,30 @@ class LeagueData(BaseLeagueData):
     def _authenticate(self) -> None:
         pass
 
-    def _scrape(self, url: str, file_dir: Path, filename: str):
+    @staticmethod
+    def _scrape(url: str):
+        logger.debug(f"Scraping Fleaflicker data from endpoint: {url}")
 
-        file_path = Path(file_dir) / filename
+        user_agent = (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 "
+            "Safari/605.1.15"
+        )
+        headers = {"user-agent": user_agent}
+        response = requests.get(url, headers)
 
-        if not self.league.offline:
-            logger.debug(f"Scraping Fleaflicker data from endpoint: {url}")
-
-            user_agent = (
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 "
-                "Safari/605.1.15"
-            )
-            headers = {"user-agent": user_agent}
-            response = requests.get(url, headers)
-
-            html_soup = BeautifulSoup(response.text, "html.parser")
-            logger.debug(f"Response (HTML): {html_soup}")
-        else:
-            try:
-                with open(file_path, "r", encoding="utf-8") as data_in:
-                    html_soup = BeautifulSoup(data_in.read(), "html.parser")
-            except FileNotFoundError:
-                logger.error(
-                    f"FILE {file_path} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!"
-                )
-                sys.exit(1)
-
-        if self.league.save_data:
-            logger.debug(f"Saving Fleaflicker data scraped from endpoint: {url}")
-            if not Path(file_dir).exists():
-                os.makedirs(file_dir)
-
-            with open(file_path, "w", encoding="utf-8") as data_out:
-                data_out.write(html_soup.prettify())
+        html_soup = BeautifulSoup(response.text, "html.parser")
+        logger.debug(f"Response (HTML): {html_soup}")
 
         return html_soup
 
-    def map_data_to_base(self):
+    def map_data_to_base(self) -> None:
         logger.debug(f"Retrieving {self.platform_display} league data and mapping it to base objects.")
 
         self.league.url = f"{self.base_url}/nfl/leagues/{self.league.league_id}"
         # noinspection PyUnusedLocal
-        scraped_league_info = self._scrape(
-            self.league.url,
-            Path(self.league.data_dir) / str(self.league.season) / str(self.league.league_id),
-            f"{self.league.league_id}-league-info.html"
-        )
+        scraped_league_info = self._scrape(self.league.url)
 
-        scraped_league_scores = self._scrape(
-            f"{self.league.url}/scores",
-            Path(self.league.data_dir) / str(self.league.season) / str(self.league.league_id),
-            f"{self.league.league_id}-league-scores.html"
-        )
+        scraped_league_scores = self._scrape(f"{self.league.url}/scores")
 
         try:
             scraped_current_week = int(scraped_league_scores.find_all(
@@ -110,11 +81,7 @@ class LeagueData(BaseLeagueData):
             logger.error(e)
             scraped_current_week = None
 
-        scraped_league_rules = self._scrape(
-            f"{self.league.url}/rules",
-            Path(self.league.data_dir) / str(self.league.season) / str(self.league.league_id),
-            f"{self.league.league_id}-league-rules.html"
-        )
+        scraped_league_rules = self._scrape(f"{self.league.url}/rules")
 
         elements = scraped_league_rules.find_all(["dt", "dd"])
         for elem in elements:
@@ -136,24 +103,18 @@ class LeagueData(BaseLeagueData):
                     # TODO: figure out how to get total number of regular season weeks when league has no playoffs
                     self.league.num_regular_season_weeks = 18 if int(self.league.season) > 2020 else 17
                 else:
-                    self.league.num_regular_season_weeks = settings.num_regular_season_weeks
+                    self.league.num_regular_season_weeks = self.settings.num_regular_season_weeks
                 break
             else:
-                self.league.num_playoff_slots = settings.num_playoff_slots
-                self.league.num_regular_season_weeks = settings.num_regular_season_weeks
+                self.league.num_playoff_slots = self.settings.num_playoff_slots
+                self.league.num_regular_season_weeks = self.settings.num_regular_season_weeks
 
         # TODO: how to get league rules for LAST YEAR from Fleaflicker API
-        league_rules = self.query(
-            f"https://www.fleaflicker.com/api/FetchLeagueRules?leagueId={self.league.league_id}",
-            (Path(self.league.data_dir) / str(self.league.season) / str(self.league.league_id)
-             / f"{self.league.league_id}-league-rules.json")
-        )
+        league_rules = self.query(f"https://www.fleaflicker.com/api/FetchLeagueRules?leagueId={self.league.league_id}")
 
         league_standings = self.query(
-            (f"https://www.fleaflicker.com/api/FetchLeagueStandings"
-             f"?leagueId={self.league.league_id}{f'&season={self.league.season}' if self.league.season else ''}"),
-            (Path(self.league.data_dir) / str(self.league.season) / str(self.league.league_id)
-             / f"{self.league.league_id}-league-standings.json")
+            f"https://www.fleaflicker.com/api/FetchLeagueStandings"
+            f"?leagueId={self.league.league_id}{f'&season={self.league.season}' if self.league.season else ''}"
         )
 
         league_info = league_standings.get("league")
@@ -177,11 +138,9 @@ class LeagueData(BaseLeagueData):
         matchups_by_week = {}
         for wk in range(self.start_week, int(self.league.num_regular_season_weeks) + 1):
             matchups_by_week[str(wk)] = self.query(
-                (f"https://www.fleaflicker.com/api/FetchLeagueScoreboard"
-                 f"?leagueId={self.league.league_id}&scoringPeriod={wk}"
-                 f"{f'&season={self.league.season}' if self.league.season else ''}"),
-                (Path(self.league.data_dir) / str(self.league.season) / str(self.league.league_id) / f"week_{wk}"
-                 / f"week_{wk}-scoreboard.json")
+                f"https://www.fleaflicker.com/api/FetchLeagueScoreboard"
+                f"?leagueId={self.league.league_id}&scoringPeriod={wk}"
+                f"{f'&season={self.league.season}' if self.league.season else ''}"
             )
 
             if int(wk) <= self.league.week_for_report:
@@ -203,19 +162,15 @@ class LeagueData(BaseLeagueData):
         for wk in range(self.start_week, self.league.week_for_report + 1):
             rosters_by_week[str(wk)] = {
                 str(team.get("id")): self.query(
-                    (f"https://www.fleaflicker.com/api/FetchRoster"
-                     f"?leagueId={self.league.league_id}&teamId={team.get('id')}&scoringPeriod={wk}"
-                     f"{f'&season={self.league.season}' if self.league.season else ''}"),
-                    (Path(self.league.data_dir) / str(self.league.season) / str(self.league.league_id) / f"week_{wk}"
-                     / "rosters" / f"{team.get('id')}-{team.get('name').replace(' ', '_')}-roster.json")
+                    f"https://www.fleaflicker.com/api/FetchRoster"
+                    f"?leagueId={self.league.league_id}&teamId={team.get('id')}&scoringPeriod={wk}"
+                    f"{f'&season={self.league.season}' if self.league.season else ''}"
                 ) for team in ranked_league_teams
             }
 
         # TODO: how to get transactions for LAST YEAR from Fleaflicker API...?
         league_activity = self.query(
-            f"https://www.fleaflicker.com/api/FetchLeagueActivity?leagueId={self.league.league_id}",
-            (Path(self.league.data_dir) / str(self.league.season) / str(self.league.league_id)
-             / f"{self.league.league_id}-league-transactions.json")
+            f"https://www.fleaflicker.com/api/FetchLeagueActivity?leagueId={self.league.league_id}"
         )
 
         league_transactions_by_team = defaultdict(dict)
@@ -482,7 +437,7 @@ class LeagueData(BaseLeagueData):
                         base_player.position_type = (
                             "O"
                             if self.get_mapped_position(flea_pro_player.get("position"))
-                               in self.league.offensive_positions
+                            in self.league.offensive_positions
                             else "D"
                         )
                         base_player.primary_position = self.get_mapped_position(flea_pro_player.get("position"))
@@ -537,5 +492,3 @@ class LeagueData(BaseLeagueData):
             ),
             reverse=True
         )
-
-        return self.league

@@ -11,12 +11,11 @@ sys.path.append(str(root_dir))
 from features.bad_boy import BadBoyFeature  # noqa: E402
 from features.beef import BeefFeature  # noqa: E402
 from features.high_roller import HighRollerFeature  # noqa: E402
-
 from utilities.logger import get_logger  # noqa: E402
 
 logger = get_logger(__file__)
 
-test_data_dir = Path(root_dir) / "tests"
+test_data_dir = Path(root_dir) / "tests" / "output" / "data" / "feature_data"
 if not Path(test_data_dir).exists():
     os.makedirs(test_data_dir)
 
@@ -27,12 +26,14 @@ player_team_abbr = "KC"
 player_position = "WR"
 
 season = 2023
+week_for_report = 1
 
 
 def test_bad_boy_init():
     bad_boy_feature = BadBoyFeature(
-        data_dir=test_data_dir,
+        week_for_report=week_for_report,
         root_dir=root_dir,
+        data_dir=test_data_dir,
         refresh=True,
         save_data=True,
         offline=False
@@ -53,6 +54,7 @@ def test_bad_boy_init():
 
 def test_beef_init():
     beef_feature = BeefFeature(
+        week_for_report=week_for_report,
         data_dir=test_data_dir,
         refresh=True,
         save_data=True,
@@ -74,8 +76,9 @@ def test_beef_init():
 
 def test_high_roller_init():
     high_roller_feature = HighRollerFeature(
-        data_dir=test_data_dir,
         season=season,
+        week_for_report=week_for_report,
+        data_dir=test_data_dir,
         refresh=True,
         save_data=True,
         offline=False

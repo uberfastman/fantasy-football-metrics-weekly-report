@@ -3,99 +3,33 @@ from __future__ import annotations
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
-import json
 from collections import defaultdict
 from pathlib import Path
-from typing import Set, Union, List, Dict, Any, Callable, Optional
+from typing import Any, Dict, List, Optional, Set, Union
 
 from calculate.playoff_probabilities import PlayoffProbabilities
 from features.bad_boy import BadBoyFeature
 from features.beef import BeefFeature
 from features.high_roller import HighRollerFeature
+from utilities.settings import AppSettings
+from utilities.utils import FFMWRPythonObjectJson
 
 
-# noinspection GrazieInspection
-def complex_json_handler(obj: Any) -> Any:
-    """Custom handler to allow custom objects to be serialized into json.
+class BaseLeague(FFMWRPythonObjectJson):
 
-    :param obj: custom object to be serialized into json
-    :return: serializable version of the custom object
-    """
-    if hasattr(obj, "serialized"):
-        return obj.serialized()
-    else:
-        try:
-            return str(obj, "utf-8")
-        except TypeError:
-            raise TypeError(f"Object of type {type(obj)} with value of {repr(obj)} is not JSON serializable")
-
-
-class FantasyFootballReportObject(object):
-    """Base Fantasy Football Report object.
-    """
-
-    def __init__(self):
-        """Instantiate a Yahoo fantasy football object.
-        """
-
-    def __str__(self):
-        return self.to_json()
-
-    def __repr__(self):
-        return self.to_json()
-
-    def subclass_dict(self):
-        """Derive snake case dict keys from custom object type camel case class names.
-
-        :return: dict with snake case strings of all subclasses of YahooFantasyObject as keys and subclasses as values
-        """
-        return {cls.__name__: cls for cls in self.__class__.__mro__[-2].__subclasses__()}
-
-    def clean_data_dict(self):
-        """Recursive method to un-type custom class type objects for serialization.
-
-        :return: dictionary that extracts serializable data from custom objects
-        """
-        clean_dict = {}
-        for k, v in self.__dict__.items():
-            clean_dict[k] = v.clean_data_dict() if type(v) in self.subclass_dict().values() else v
-        return clean_dict
-
-    def serialized(self):
-        """Pack up all object content into nested dictionaries for json serialization.
-
-        :return: serializable dictionary
-        """
-        serializable_dict = dict()
-        for a, v in self.clean_data_dict().items():
-            if hasattr(v, "serialized"):
-                serializable_dict[a] = v.serialized()
-            elif isinstance(v, set):
-                serializable_dict[a] = list(v)
-            else:
-                serializable_dict[a] = v
-        return serializable_dict
-
-    def to_json(self):
-        """Serialize the class object to json.
-
-        :return: json string derived from the serializable version of the class object
-        """
-        return json.dumps(self.serialized(), indent=2, default=complex_json_handler, ensure_ascii=False)
-
-
-class BaseLeague(FantasyFootballReportObject):
-
-    def __init__(self, root_dir: Path, data_dir: Path, league_id: str, season: int, week_for_report: int,
-                 save_data: bool = True, offline: bool = False):
+    def __init__(self, settings: AppSettings, platform: str, league_id: str, season: int, week_for_report: int,
+                 root_dir: Path, data_dir: Path, save_data: bool = True, offline: bool = False):
         super().__init__()
 
         # attributes set during instantiation
-        self.root_dir: Path = root_dir
-        self.data_dir: Path = data_dir
+        self.settings: AppSettings = settings
+        self.platform: str = platform
         self.league_id: str = league_id
         self.season: int = season
         self.week_for_report: int = week_for_report
+        self.root_dir: Path = root_dir
+        self.data_dir: Path = data_dir / f"{self.season}" / self.platform / self.league_id
+        self.league_data_file_path: Path = self.data_dir / f"week_{self.week_for_report}" / f"{self.league_id}.json"
         self.save_data: bool = save_data
         self.offline: bool = offline
 
@@ -141,11 +75,13 @@ class BaseLeague(FantasyFootballReportObject):
         self.median_standings: List[BaseTeam] = []
         self.current_median_standings: List[BaseTeam] = []
 
-        self.player_data_by_week_function: Optional[Callable] = None
-        self.player_data_by_week_key: Optional[str] = None
+        # TODO: find better pattern for player points retrieval instead of passing around a class method object
+        # self.player_data_by_week_function: Optional[Callable] = None
+        # self.player_data_by_week_key: Optional[str] = None
 
-    def get_player_data_by_week(self, player_id: str, week: int = None) -> Any:
-        return getattr(self.player_data_by_week_function(player_id, week), self.player_data_by_week_key)
+    # TODO: find better pattern for player points retrieval instead of passing around a class method object
+    # def get_player_data_by_week(self, player_id: str, week: int = None) -> Any:
+    #     return getattr(self.player_data_by_week_function(player_id, week), self.player_data_by_week_key)
 
     def get_custom_weekly_matchups(self, week_for_report: int) -> List[Dict[str, Dict[str, Any]]]:
         """
@@ -230,14 +166,20 @@ class BaseLeague(FantasyFootballReportObject):
             "FLEX_IDP": self.flex_positions_idp
         }
 
-    def get_playoff_probs(self, save_data: bool = False, playoff_prob_sims: int = None, offline: bool = False,
-                          recalculate: bool = True) -> PlayoffProbabilities:
+    def get_playoff_probs(
+            self,
+            playoff_prob_sims: int = None,
+            save_data: bool = False,
+            offline: bool = False,
+            recalculate: bool = True
+    ) -> PlayoffProbabilities:
         # TODO: UPDATE USAGE OF recalculate PARAM (could use self.offline)
         return PlayoffProbabilities(
+            self.settings,
             playoff_prob_sims,
             self.num_regular_season_weeks,
             self.num_playoff_slots,
-            data_dir=Path(self.data_dir) / str(self.season) / self.league_id,
+            data_dir=self.data_dir,
             num_divisions=self.num_divisions,
             save_data=save_data,
             recalculate=recalculate,
@@ -246,8 +188,9 @@ class BaseLeague(FantasyFootballReportObject):
 
     def get_bad_boy_stats(self, refresh: bool = False, save_data: bool = False, offline: bool = False) -> BadBoyFeature:
         return BadBoyFeature(
-            self.data_dir / str(self.season) / self.league_id,
+            self.week_for_report,
             self.root_dir,
+            self.data_dir,
             refresh=refresh,
             save_data=save_data,
             offline=offline
@@ -255,7 +198,8 @@ class BaseLeague(FantasyFootballReportObject):
 
     def get_beef_stats(self, refresh: bool = False, save_data: bool = False, offline: bool = False) -> BeefFeature:
         return BeefFeature(
-            self.data_dir / str(self.season) / self.league_id,
+            self.week_for_report,
+            self.data_dir,
             refresh=refresh,
             save_data=save_data,
             offline=offline
@@ -264,15 +208,16 @@ class BaseLeague(FantasyFootballReportObject):
     def get_high_roller_stats(self, refresh: bool = False, save_data: bool = False,
                               offline: bool = False) -> HighRollerFeature:
         return HighRollerFeature(
-            self.data_dir / str(self.season) / self.league_id,
             self.season,
+            self.week_for_report,
+            self.data_dir,
             refresh=refresh,
             save_data=save_data,
             offline=offline
         )
 
 
-class BaseMatchup(FantasyFootballReportObject):
+class BaseMatchup(FFMWRPythonObjectJson):
 
     def __init__(self):
         super().__init__()
@@ -294,7 +239,7 @@ class BaseMatchup(FantasyFootballReportObject):
         super().__setattr__(key, value)
 
 
-class BaseTeam(FantasyFootballReportObject):
+class BaseTeam(FFMWRPythonObjectJson):
 
     def __init__(self):
         super().__init__()
@@ -361,7 +306,7 @@ class BaseTeam(FantasyFootballReportObject):
 
 
 # noinspection DuplicatedCode
-class BaseRecord(FantasyFootballReportObject):
+class BaseRecord(FFMWRPythonObjectJson):
 
     # noinspection GrazieInspection
     def __init__(self, week: int = 0, wins: int = 0, ties: int = 0, losses: int = 0, percentage: float = 0.0,
@@ -598,7 +543,7 @@ class BaseRecord(FantasyFootballReportObject):
         return f"{self._division_streak_type}-{self._division_streak_len}"
 
 
-class BaseManager(FantasyFootballReportObject):
+class BaseManager(FFMWRPythonObjectJson):
 
     def __init__(self):
         super().__init__()
@@ -624,7 +569,7 @@ class BaseManager(FantasyFootballReportObject):
         super().__setattr__(key, value)
 
 
-class BasePlayer(FantasyFootballReportObject):
+class BasePlayer(FFMWRPythonObjectJson):
 
     def __init__(self):
         super().__init__()
@@ -674,7 +619,7 @@ class BasePlayer(FantasyFootballReportObject):
         self.high_roller_num_violators: int = 0
 
 
-class BaseStat(FantasyFootballReportObject):
+class BaseStat(FFMWRPythonObjectJson):
 
     def __init__(self):
         super().__init__()

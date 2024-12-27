@@ -8,7 +8,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Union, Any
+from typing import Any, Dict, List, Union
 
 import colorama
 import requests
@@ -18,7 +18,8 @@ from git import Repo, TagReference, cmd
 from urllib3 import connectionpool, poolmanager
 
 from calculate.metrics import CalculateMetrics
-from dao.base import BaseLeague, BaseTeam, BasePlayer
+from dao.base import BaseLeague, BasePlayer, BaseTeam
+from dao.platforms.base.league import BaseLeagueData
 from dao.platforms.cbs import LeagueData as CbsLeagueData
 from dao.platforms.espn import LeagueData as EspnLeagueData
 from dao.platforms.fleaflicker import LeagueData as FleaflickerLeagueData
@@ -29,8 +30,8 @@ from features.beef import BeefFeature
 from features.high_roller import HighRollerFeature
 from utilities.constants import prohibited_statuses
 from utilities.logger import get_logger
-from utilities.settings import settings
-from utilities.utils import format_platform_display, normalize_player_name, get_data_from_web
+from utilities.settings import AppSettings, get_app_settings_from_env_file
+from utilities.utils import format_platform_display, get_data_from_web, normalize_player_name
 
 logger = get_logger(__name__, propagate=False)
 
@@ -62,7 +63,7 @@ class InjuryReportPlayer(object):
         self.player_data_file_path: Path = player_data_dir / f"{self.full_name_key}.html"
 
 
-def user_week_input_validation(week: int, retrieved_current_week: int, season: int) -> int:
+def user_week_input_validation(settings: AppSettings, week: int, retrieved_current_week: int, season: int) -> int:
     # user input validation
     if week:
         week_for_report = week
@@ -114,7 +115,7 @@ def user_week_input_validation(week: int, retrieved_current_week: int, season: i
     return int(week_for_report)
 
 
-def get_current_nfl_week(offline: bool) -> int:
+def get_current_nfl_week(settings: AppSettings, offline: bool) -> int:
     api_url = "https://api.sleeper.app/v1/state/nfl"
 
     current_nfl_week = settings.current_nfl_week
@@ -136,13 +137,25 @@ def get_current_nfl_week(offline: bool) -> int:
     return current_nfl_week
 
 
-def league_data_factory(base_dir: Path, data_dir: Path, platform: str,
-                        game_id: Union[str, int], league_id: str, season: int, start_week: int, week_for_report: int,
-                        save_data: bool, offline: bool) -> BaseLeague:
+def league_data_factory(
+        settings: AppSettings,
+        root_dir: Path,
+        data_dir: Path,
+        platform: str,
+        game_id: Union[str, int],
+        league_id: str,
+        season: int,
+        start_week: int,
+        week_for_report: int,
+        save_data: bool,
+        offline: bool
+) -> BaseLeagueData:
+
     if platform in settings.supported_platforms_list:
         if platform == "yahoo":
-            yahoo_league = YahooLeagueData(
-                base_dir,
+            league_data = YahooLeagueData(
+                settings,
+                root_dir,
                 data_dir,
                 game_id,
                 league_id,
@@ -154,11 +167,11 @@ def league_data_factory(base_dir: Path, data_dir: Path, platform: str,
                 save_data,
                 offline
             )
-            return yahoo_league.map_data_to_base()
 
         elif platform == "fleaflicker":
-            fleaflicker_league = FleaflickerLeagueData(
-                base_dir,
+            league_data = FleaflickerLeagueData(
+                settings,
+                root_dir,
                 data_dir,
                 league_id,
                 season,
@@ -169,11 +182,11 @@ def league_data_factory(base_dir: Path, data_dir: Path, platform: str,
                 save_data,
                 offline
             )
-            return fleaflicker_league.map_data_to_base()
 
         elif platform == "sleeper":
-            sleeper_league = SleeperLeagueData(
-                base_dir,
+            league_data = SleeperLeagueData(
+                settings,
+                root_dir,
                 data_dir,
                 league_id,
                 season,
@@ -184,11 +197,11 @@ def league_data_factory(base_dir: Path, data_dir: Path, platform: str,
                 save_data,
                 offline
             )
-            return sleeper_league.map_data_to_base()
 
         elif platform == "espn":
-            espn_league = EspnLeagueData(
-                base_dir,
+            league_data = EspnLeagueData(
+                settings,
+                root_dir,
                 data_dir,
                 league_id,
                 season,
@@ -199,11 +212,11 @@ def league_data_factory(base_dir: Path, data_dir: Path, platform: str,
                 save_data,
                 offline
             )
-            return espn_league.map_data_to_base()
 
         elif platform == "cbs":
-            cbs_league = CbsLeagueData(
-                base_dir,
+            league_data = CbsLeagueData(
+                settings,
+                root_dir,
                 data_dir,
                 league_id,
                 season,
@@ -214,7 +227,14 @@ def league_data_factory(base_dir: Path, data_dir: Path, platform: str,
                 save_data,
                 offline
             )
-            return cbs_league.map_data_to_base()
+        else:
+            logger.error(
+                f"Generating fantasy football reports for the \"{format_platform_display(platform)}\" fantasy football "
+                f"platform is not currently supported. Please change the settings in your .env file and try again."
+            )
+            sys.exit(1)
+
+        return league_data
 
     else:
         logger.error(
@@ -224,7 +244,7 @@ def league_data_factory(base_dir: Path, data_dir: Path, platform: str,
         sys.exit(1)
 
 
-def add_report_player_stats(metrics: Dict[str, Any], player: BasePlayer,
+def add_report_player_stats(settings: AppSettings, metrics: Dict[str, Any], player: BasePlayer,
                             bench_positions: List[str]) -> BasePlayer:
     player.bad_boy_crime = str()
     player.bad_boy_points = int()
@@ -273,13 +293,14 @@ def add_report_player_stats(metrics: Dict[str, Any], player: BasePlayer,
     return player
 
 
-def add_report_team_stats(team: BaseTeam, league: BaseLeague, week_counter: int, metrics_calculator: CalculateMetrics,
-                          metrics: Dict[str, Any], dq_ce: bool, inactive_players: List[str]) -> BaseTeam:
+def add_report_team_stats(settings: AppSettings, team: BaseTeam, league: BaseLeague, week_counter: int,
+                          metrics_calculator: CalculateMetrics, metrics: Dict[str, Any], dq_ce: bool,
+                          inactive_players: List[str]) -> BaseTeam:
     team.name = metrics_calculator.decode_byte_string(team.name)
     bench_positions = league.bench_positions
 
     for player in team.roster:
-        add_report_player_stats(metrics, player, bench_positions)
+        add_report_player_stats(settings, metrics, player, bench_positions)
 
     starting_lineup_points = round(
         sum([p.points for p in team.roster if p.selected_position not in bench_positions]), 2)
@@ -351,12 +372,10 @@ def add_report_team_stats(team: BaseTeam, league: BaseLeague, week_counter: int,
 
 
 def get_inactive_players(week: int, league: BaseLeague) -> List[str]:
-    logger.info(f"Retrieving inactive players for week {week} from the Football Database...")
+    injured_players_url = "https://www.footballdb.com/transactions/injuries.html"
 
-    start = datetime.now()
-
-    data_dir = league.data_dir / str(league.season) / str(league.league_id) / f"week_{week}"
-    data_file_path = data_dir / f"week_{week}-player_status_data.html"
+    data_dir = league.data_dir / f"week_{week}" / "players_status_data"
+    data_file_path = data_dir / f"player_status_data.html"
     player_data_dir = data_dir / "player_statuses"
 
     headers = {
@@ -367,6 +386,13 @@ def get_inactive_players(week: int, league: BaseLeague) -> List[str]:
         )
     }
 
+    logger.info(
+        f"{'Retrieving' if not league.offline else 'Loading'} inactive player data for week {week} from "
+        f"{injured_players_url if not league.offline else data_file_path}..."
+    )
+
+    start = datetime.now()
+
     data_retrieved_from_web = False
     if not league.offline:
         params = {
@@ -375,9 +401,7 @@ def get_inactive_players(week: int, league: BaseLeague) -> List[str]:
             "type": "reg"
         }
 
-        response = requests.get(
-            "https://www.footballdb.com/transactions/injuries.html", headers=headers, params=params
-        )
+        response = requests.get(injured_players_url, headers=headers, params=params)
 
         html_soup = BeautifulSoup(response.text, "html.parser")
         logger.debug(f"Response URL: {response.url}")
@@ -682,19 +706,22 @@ def update_app(repository: Repo):
 
 
 if __name__ == "__main__":
-    local_current_nfl_week = get_current_nfl_week(offline=False)
+    local_settings = get_app_settings_from_env_file()
+
+    local_current_nfl_week = get_current_nfl_week(settings=local_settings, offline=False)
     logger.info(f"Local current NFL week: {local_current_nfl_week}")
 
-    root_dir = Path(__file__).parent.parent
     local_league: BaseLeague = BaseLeague(
-        root_dir,
-        root_dir / "tests",
-        settings.league_id,
-        settings.season,
-        settings.week_for_report,
+        local_settings,
+        local_settings.platform.lower(),
+        local_settings.league_id,
+        local_settings.season,
+        local_settings.week_for_report,
+        Path(__file__).parent.parent,
+        Path("output/data"),
         True,
         False
     )
 
-    local_inactive_players = get_inactive_players(settings.week_for_report, local_league)
+    local_inactive_players = get_inactive_players(local_settings.week_for_report, local_league)
     logger.info(f"Local inactive players: {local_inactive_players}")

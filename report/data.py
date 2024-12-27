@@ -9,15 +9,14 @@ from calculate.points_by_position import PointsByPosition
 from dao.base import BaseLeague, BaseMatchup, BaseTeam
 from utilities.app import add_report_team_stats, get_inactive_players
 from utilities.logger import get_logger
-from utilities.settings import settings
-from utilities.utils import normalize_player_name
+from utilities.settings import AppSettings
 
 logger = get_logger(__name__, propagate=False)
 
 
 class ReportData(object):
 
-    def __init__(self, league: BaseLeague, season_weekly_teams_results, week_counter: int,
+    def __init__(self, settings: AppSettings, league: BaseLeague, season_weekly_teams_results, week_counter: int,
                  week_for_report: int, season: int, metrics_calculator: CalculateMetrics, metrics,
                  break_ties: bool = False, dq_ce: bool = False, testing: bool = False):
         logger.debug("Instantiating report data.")
@@ -37,6 +36,7 @@ class ReportData(object):
 
         self.teams_results = {
             team.team_id: add_report_team_stats(
+                settings,
                 team,
                 league,
                 week_counter,

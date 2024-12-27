@@ -2,11 +2,10 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
 import math
-from collections import Counter
-from collections import defaultdict
-from typing import List, Dict, Set, Union
+from collections import Counter, defaultdict
+from typing import Dict, List, Set, Union
 
-from dao.base import BasePlayer, BaseLeague
+from dao.base import BaseLeague, BasePlayer
 from utilities.constants import prohibited_statuses
 from utilities.logger import get_logger
 from utilities.utils import normalize_player_name

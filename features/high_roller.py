@@ -3,13 +3,13 @@ __email__ = "uberfastman@uberfastman.dev"
 
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Union, Type
+from typing import Dict, Type, Union
 
 import requests
 from bs4 import BeautifulSoup
 
 from features.base.feature import BaseFeature
-from utilities.constants import nfl_team_abbreviations, nfl_team_abbreviation_conversions
+from utilities.constants import nfl_team_abbreviation_conversions, nfl_team_abbreviations
 from utilities.logger import get_logger
 from utilities.utils import normalize_player_name
 
@@ -18,8 +18,8 @@ logger = get_logger(__name__, propagate=False)
 
 class HighRollerFeature(BaseFeature):
 
-    def __init__(self, data_dir: Path, season: int, refresh: bool = False, save_data: bool = False,
-                 offline: bool = False):
+    def __init__(self, season: int, week_for_report: int, data_dir: Path, refresh: bool = False,
+                 save_data: bool = False, offline: bool = False):
         """Initialize class, load data from Spotrac.com.
         """
         self.season: int = season
@@ -37,6 +37,7 @@ class HighRollerFeature(BaseFeature):
         super().__init__(
             "high_roller",
             f"https://www.spotrac.com/nfl/fines/_/year/{self.season}",
+            week_for_report,
             data_dir,
             refresh,
             save_data,

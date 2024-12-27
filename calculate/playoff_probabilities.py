@@ -8,28 +8,29 @@ __email__ = "uberfastman@uberfastman.dev"
 import datetime
 import itertools
 import json
-import os
 import random
 import traceback
 from copy import deepcopy
 from pathlib import Path
-from typing import Dict, List, Tuple, Any, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
 
 import numpy as np
 
 from utilities.logger import get_logger
-from utilities.settings import settings
+from utilities.settings import AppSettings, get_app_settings_from_env_file
+from utilities.utils import FFMWRPythonObjectJson
 
 if TYPE_CHECKING:
-    from dao.base import BaseTeam, BaseMatchup
+    from dao.base import BaseMatchup, BaseTeam
 
 logger = get_logger(__name__, propagate=False)
 
 
-class TeamWithPlayoffProbs(object):
+class TeamWithPlayoffProbs(FFMWRPythonObjectJson):
 
     def __init__(self, team_id, name, manager, wins, losses, ties, points_for, playoff_slots, simulations,
                  division=None, division_wins=0, division_losses=0, division_ties=0, division_points_for=0):
+        super().__init__()
         self.team_id = team_id
         self.name = name
         self.manager = manager
@@ -103,11 +104,15 @@ class TeamWithPlayoffProbs(object):
         self.division_losses = self.base_division_losses
 
 
-class PlayoffProbabilities(object):
+class PlayoffProbabilities(FFMWRPythonObjectJson):
 
-    def __init__(self, simulations: int, num_weeks: int, num_playoff_slots: int, data_dir: Path, num_divisions: int = 0,
-                 save_data: bool = False, recalculate: bool = False, offline: bool = False):
+    def __init__(self, settings: AppSettings, simulations: int, num_weeks: int, num_playoff_slots: int, data_dir: Path,
+                 num_divisions: int = 0, save_data: bool = False, recalculate: bool = False, offline: bool = False):
+        super().__init__()
+
         logger.debug("Initializing playoff probabilities.")
+
+        self.settings = settings
 
         self.simulations: int = simulations or settings.num_playoff_simulations
 
@@ -123,12 +128,6 @@ class PlayoffProbabilities(object):
     def calculate(self, week: int, week_for_report: int, standings: List[BaseTeam],
                   remaining_matchups: Dict[str, List[Tuple[BaseMatchup]]]) -> Union[None, Dict[str, List[Any]]]:
         logger.debug("Calculating playoff probabilities.")
-
-        # with open("playoff_prob_standings.json", "w") as pps:
-        #     json.dump(standings, pps, indent=2)
-        #
-        # with open("playoff_prob_remaining_matchups.json", "w") as pprm:
-        #     json.dump(remaining_matchups, pprm, indent=2)
 
         teams_for_playoff_probs = {}
         for team in standings:
@@ -152,6 +151,9 @@ class PlayoffProbabilities(object):
 
         try:
             if week == week_for_report:
+                playoff_probs_data_file = (
+                    self.data_dir / f"week_{week_for_report}" / "metrics_data" / "playoff_probs_data.json"
+                )
                 if self.recalculate:
                     logger.info(
                         f"Running {self.simulations:,} Monte Carlo playoff "
@@ -187,7 +189,9 @@ class PlayoffProbabilities(object):
                         if self.num_divisions > 0:
                             sorted_divisions = self.group_by_division(teams_for_playoff_probs)
 
-                            num_playoff_slots_per_division_without_leader = settings.num_playoff_slots_per_division - 1
+                            num_playoff_slots_per_division_without_leader = (
+                                    self.settings.num_playoff_slots_per_division - 1
+                            )
 
                             # pick the teams making the playoffs
                             division_winners = []
@@ -285,7 +289,7 @@ class PlayoffProbabilities(object):
                     if self.num_divisions > 0:
                         sorted_divisions = self.group_by_division(teams_for_playoff_probs)
 
-                        num_playoff_slots_per_division_without_leader = settings.num_playoff_slots_per_division - 1
+                        num_playoff_slots_per_division_without_leader = self.settings.num_playoff_slots_per_division - 1
 
                         for division in sorted_divisions.values():
                             ranked_division = sorted(
@@ -334,27 +338,18 @@ class PlayoffProbabilities(object):
                     )
 
                     if self.save_data:
-                        save_dir = Path(self.data_dir) / f"week_{week_for_report}"
-                        if not Path(save_dir).exists():
-                            os.makedirs(save_dir)
-
-                        with open(Path(save_dir) / "playoff_probs_data.json", "w") as pp_out:
-                            json.dump(self.playoff_probs_data, pp_out, ensure_ascii=False, indent=2)
+                        self.save_to_json_file(playoff_probs_data_file)
 
                 else:
                     logger.info("Using saved Monte Carlo playoff simulations for playoff probabilities.")
 
-                    playoff_probs_data_file_path = (
-                            Path(self.data_dir) / f"week_{week_for_report}" / "playoff_probs_data.json"
-                    )
-                    if Path(playoff_probs_data_file_path).exists():
-                        with open(playoff_probs_data_file_path, "r") as pp_in:
-                            self.playoff_probs_data = json.load(pp_in)
-                    else:
+                    try:
+                        self.load_from_json_file(playoff_probs_data_file)
+                    except FileNotFoundError as e:
                         raise FileNotFoundError(
-                            f"FILE {playoff_probs_data_file_path} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING "
+                            f"FILE {playoff_probs_data_file} DOES NOT EXIST. CANNOT RUN LOCALLY WITHOUT HAVING "
                             f"PREVIOUSLY SAVED DATA!"
-                        )
+                        ) from e
 
                 return self.playoff_probs_data
             else:
@@ -403,11 +398,12 @@ class PlayoffProbabilities(object):
 
 
 if __name__ == "__main__":
+    local_settings: AppSettings = get_app_settings_from_env_file()
+
     playoff_probs = PlayoffProbabilities(
+        settings=local_settings,
         simulations=100,
         num_weeks=13,
         num_playoff_slots=6,
         data_dir=Path(".")
     )
-
-    # playoff_probs.calculate(week=8, week_for_report=7,)

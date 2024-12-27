@@ -6,14 +6,16 @@ import logging
 import os
 import sys
 from abc import ABC, abstractmethod
+from datetime import datetime
 from pathlib import Path
-from typing import Union, Dict, Callable, Any
+from typing import Any, Callable, Dict, Union
 
 import requests
 from requests.exceptions import HTTPError
 
 from dao.base import BaseLeague
 from utilities.logger import get_logger
+from utilities.settings import AppSettings
 from utilities.utils import format_platform_display
 
 logger = get_logger(__name__, propagate=False)
@@ -26,9 +28,10 @@ logger.setLevel(level=logging.INFO)
 class BaseLeagueData(ABC):
 
     def __init__(self,
+                 settings: AppSettings,
                  platform: str,
                  base_url: Union[str, None],
-                 base_dir: Path,
+                 root_dir: Path,
                  data_dir: Path,
                  league_id: str,
                  season: int,
@@ -39,22 +42,39 @@ class BaseLeagueData(ABC):
                  save_data: bool = True,
                  offline: bool = False):
 
+        self.settings = settings
+
         self.platform: str = platform.lower()
         self.platform_display: str = format_platform_display(platform)
         self.base_url: str = base_url
-        self.base_dir: Path = base_dir
+        self.root_dir: Path = root_dir
+        self.data_dir: Path = data_dir
 
+        self.league_id = league_id
+
+        self.season = season
         # TODO: figure out how to get start week from all platforms
         self.start_week = start_week or 1
-
         # retrieve current NFL week
-        self.current_week: int = get_current_nfl_week_function(offline)
-
+        self.current_week: int = get_current_nfl_week_function(self.settings, offline)
         # validate user selection of week for which to generate report
-        week_for_report = week_validation_function(week_for_report, self.current_week, season)
+        self.week_for_report = week_validation_function(self.settings, week_for_report, self.current_week, self.season)
+
+        self.save_data: bool = save_data
+        self.offline: bool = offline
 
         logger.debug(f"Initializing {self.platform_display} league.")
-        self.league: BaseLeague = BaseLeague(base_dir, data_dir, league_id, season, week_for_report, save_data, offline)
+        self.league: BaseLeague = BaseLeague(
+            self.settings,
+            self.platform,
+            self.league_id,
+            self.season,
+            self.week_for_report,
+            self.root_dir,
+            self.data_dir,
+            self.save_data,
+            self.offline
+        )
 
         # create full directory path if any directories in it do not already exist
         if not Path(self.league.data_dir).exists():
@@ -74,43 +94,19 @@ class BaseLeagueData(ABC):
             pos_attributes.get("type") == "bench"
         ]
 
-    def query(self, url: str, save_file: Path = None, headers: Dict[str, str] = None):
+    def query(self, url: str, headers: Dict[str, str] = None):
+        logger.debug(f"Retrieving {self.platform_display} web data from endpoint: {url}")
+        response = requests.get(url, headers=headers)
 
-        if not self.league.offline:
-            logger.debug(f"Retrieving {self.platform_display} data from endpoint: {url}")
-            response = requests.get(url, headers=headers)
+        try:
+            response.raise_for_status()
+        except HTTPError as e:
+            # log error and terminate query if status code is not 200
+            logger.error(f"REQUEST FAILED WITH STATUS CODE: {response.status_code} - {e}")
+            sys.exit(1)
 
-            try:
-                response.raise_for_status()
-            except HTTPError as e:
-                # log error and terminate query if status code is not 200
-                logger.error(f"REQUEST FAILED WITH STATUS CODE: {response.status_code} - {e}")
-                sys.exit(1)
-
-            response_json = response.json()
-            logger.debug(f"Response (JSON): {response_json}")
-        else:
-            try:
-                logger.debug(f"Loading saved {self.platform_display} data for endpoint: {url}")
-                with open(save_file, "r", encoding="utf-8") as data_in:
-                    response_json = json.load(data_in)
-            except FileNotFoundError:
-                logger.error(
-                    f"FILE {save_file} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!"
-                )
-                sys.exit(1)
-
-        if self.league.save_data:
-            logger.debug(f"Saving {self.platform_display} data retrieved from endpoint: {url}")
-
-            if save_file:
-                if not Path(save_file.parent).exists():
-                    os.makedirs(save_file.parent)
-
-                with open(save_file, "w", encoding="utf-8") as data_out:
-                    json.dump(response_json, data_out, ensure_ascii=False, indent=2)
-            else:
-                logger.debug(f"No save file provided. Response will not be saved.")
+        response_json = response.json()
+        logger.debug(f"Response (JSON): {response_json}")
 
         return response_json
 
@@ -155,8 +151,46 @@ class BaseLeagueData(ABC):
 
     @abstractmethod
     def _authenticate(self, *args, **kwargs) -> None:
-        raise NotImplementedError
+        raise NotImplementedError()
 
     @abstractmethod
-    def map_data_to_base(self) -> BaseLeague:
+    def map_data_to_base(self) -> None:
         raise NotImplementedError()
+
+    def fetch(self) -> None:
+        begin = datetime.now()
+        logger.info(
+            f"Retrieving fantasy football data from "
+            f"{self.platform_display} {'API' if not self.league.offline else 'saved data'}..."
+        )
+
+        if self.league.offline:
+            if not self.league.league_data_file_path.is_file():
+                raise FileNotFoundError(
+                    f"FILE {self.league.league_data_file_path} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING "
+                    f"PREVIOUSLY SAVED DATA!"
+                )
+            else:
+                logger.debug(f"Loading saved {self.platform_display} data from {self.league.league_data_file_path}")
+
+                # load league feature data (must have previously run application with -s flag)
+                self.league.load_from_json_file(self.league.league_data_file_path)
+
+                # update values that could be different in the saved data from those provided at runtime
+                self.league.save_data = self.save_data
+                self.league.offline = self.offline
+        else:
+            # authenticate with platform as needed
+            self._authenticate()
+            # fetch league data from the web
+            self.map_data_to_base()
+
+        if self.league.save_data:
+            logger.debug(f"Saving {self.platform_display} data to {self.league.league_data_file_path}")
+            self.league.save_to_json_file(self.league.league_data_file_path)
+
+        delta = datetime.now() - begin
+        logger.info(
+            f"...retrieved all fantasy football data from "
+            f"{self.platform_display + (' API' if not self.league.offline else ' saved data')} in {delta}"
+        )

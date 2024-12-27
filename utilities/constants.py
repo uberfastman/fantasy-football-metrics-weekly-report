@@ -1,5 +1,5 @@
 
-from typing import List, Dict
+from typing import Dict, List
 
 # nfl team abbreviations
 nfl_team_abbreviations: List[str] = [

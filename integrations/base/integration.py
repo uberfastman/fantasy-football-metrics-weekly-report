@@ -1,15 +1,20 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
-from datetime import datetime
+
 from utilities.logger import get_logger
+from utilities.settings import AppSettings
 
 logger = get_logger(__name__, propagate=False)
 
 
 class BaseIntegration(ABC):
 
-    def __init__(self, integration_type: str, week: int):
+    def __init__(self, settings: AppSettings, integration_type: str, week: int):
+
+        self.settings = settings
+
         self.integration_type_str: str = integration_type.replace(" ", "_").lower()
         self.integration_type_title: str = integration_type.replace("_", " ").title()
 

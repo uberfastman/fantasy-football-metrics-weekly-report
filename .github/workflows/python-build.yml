@@ -1,4 +1,4 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# This workflow will install Python dependencies and run tests with a variety of Python versions
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
 name: CI Build
@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
 
     steps:
     - uses: actions/checkout@v4
@@ -31,18 +31,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install flake8 bandit pytest
+        python -m pip install pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-#    - name: Lint with flake8
-#      run: |
-#        # stop the build if there are Python syntax errors
-#        flake8 . --count --show-source --statistics
-#        # exit-zero treats all errors as warnings
-#        flake8 . --count --exit-zero --statistics
-#    - name: Security lint with bandit
-#      run: |
-#        # stop the build if there are security warnings
-#        bandit -r yfpy/
-    - name: Test with pytest
+    - name: Test with PyTest
       run: |
         pytest

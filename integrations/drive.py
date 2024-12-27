@@ -16,7 +16,7 @@ from pydrive2.files import GoogleDriveFile
 
 from integrations.base.integration import BaseIntegration
 from utilities.logger import get_logger
-from utilities.settings import settings
+from utilities.settings import AppSettings, get_app_settings_from_env_file
 
 logger = get_logger(__name__, propagate=False)
 
@@ -29,36 +29,36 @@ logging.getLogger("googleapiclient.discovery_cache.file_cache").setLevel(level=l
 
 class GoogleDriveIntegration(BaseIntegration):
 
-    def __init__(self, week):
+    def __init__(self, settings: AppSettings, week: int):
         self.root_dir = Path(__file__).parent.parent
-        super().__init__("google_drive", week)
+        super().__init__(settings, "google_drive", week)
 
     def _authenticate(self) -> None:
 
         sleep(0.25)
 
-        if not settings.integration_settings.google_drive_client_id:
-            settings.integration_settings.google_drive_client_id = input(
+        if not self.settings.integration_settings.google_drive_client_id:
+            self.settings.integration_settings.google_drive_client_id = input(
                 f"{Fore.GREEN}What is your Google Drive client ID? -> {Style.RESET_ALL}"
             )
-            settings.write_settings_to_env_file(self.root_dir / ".env")
+            self.settings.write_settings_to_env_file(self.root_dir / ".env")
 
-        if not settings.integration_settings.google_drive_client_secret:
-            settings.integration_settings.google_drive_client_secret = input(
+        if not self.settings.integration_settings.google_drive_client_secret:
+            self.settings.integration_settings.google_drive_client_secret = input(
                 f"{Fore.GREEN}What is your Google Drive client secret? -> {Style.RESET_ALL}"
             )
-            settings.write_settings_to_env_file(self.root_dir / ".env")
+            self.settings.write_settings_to_env_file(self.root_dir / ".env")
 
-        if settings.integration_settings.google_drive_auth_token_json:
-            credentials = json.dumps(settings.integration_settings.google_drive_auth_token_json)
+        if self.settings.integration_settings.google_drive_auth_token_json:
+            credentials = json.dumps(self.settings.integration_settings.google_drive_auth_token_json)
         else:
             credentials = None
 
         google_auth: GoogleAuth = GoogleAuth(settings={
             'client_config_backend': 'settings',
             'client_config': {
-                'client_id': settings.integration_settings.google_drive_client_id,
-                'client_secret': settings.integration_settings.google_drive_client_secret,
+                'client_id': self.settings.integration_settings.google_drive_client_id,
+                'client_secret': self.settings.integration_settings.google_drive_client_secret,
             },
             'save_credentials': True,
             'save_credentials_backend': 'dictionary',
@@ -80,8 +80,8 @@ class GoogleDriveIntegration(BaseIntegration):
             google_auth.Authorize()
 
         google_auth.SaveCredentials(backend="dictionary")
-        settings.integration_settings.google_drive_auth_token_json = google_auth.credentials.to_json()
-        settings.write_settings_to_env_file(self.root_dir / ".env")
+        self.settings.integration_settings.google_drive_auth_token_json = google_auth.credentials.to_json()
+        self.settings.write_settings_to_env_file(self.root_dir / ".env")
 
         # Create GoogleDrive instance with authenticated GoogleAuth instance.
         self.client = GoogleDrive(google_auth)
@@ -151,9 +151,9 @@ class GoogleDriveIntegration(BaseIntegration):
         root_folders = self.client.ListFile(
             {"q": "'root' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"}).GetList()
 
-        google_drive_folder_path_default = settings.integration_settings.google_drive_default_folder
+        google_drive_folder_path_default = self.settings.integration_settings.google_drive_default_folder
         google_drive_folder_path = Path(
-            settings.integration_settings.google_drive_folder or google_drive_folder_path_default
+            self.settings.integration_settings.google_drive_folder or google_drive_folder_path_default
         ).parts
 
         google_drive_root_folder_id = self._make_root_folder(
@@ -259,11 +259,13 @@ class GoogleDriveIntegration(BaseIntegration):
 
 
 if __name__ == "__main__":
-    reupload_file = settings.integration_settings.reupload_file_path
+    local_settings: AppSettings = get_app_settings_from_env_file()
+
+    reupload_file = local_settings.integration_settings.reupload_file_path
 
     logger.info(f"Re-uploading {reupload_file.name} ({reupload_file}) to Google Drive...")
 
-    google_drive_integration = GoogleDriveIntegration(settings.week_for_report)
+    google_drive_integration = GoogleDriveIntegration(local_settings, local_settings.week_for_report)
 
     upload_message = google_drive_integration.upload_file(reupload_file)
     logger.info(upload_message)

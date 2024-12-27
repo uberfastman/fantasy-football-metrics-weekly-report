@@ -3,15 +3,15 @@ import logging
 from collections import defaultdict
 from pathlib import Path
 from statistics import median
-from typing import Callable, Dict, Any
+from typing import Any, Callable, Dict
 
 import requests
 from colorama import Fore, Style
 
-from dao.base import BaseLeague, BaseMatchup, BaseTeam, BaseManager, BaseRecord, BasePlayer, BaseStat
+from dao.base import BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
 from dao.platforms.base.league import BaseLeagueData
 from utilities.logger import get_logger
-from utilities.settings import settings
+from utilities.settings import AppSettings, get_app_settings_from_env_file
 
 logger = get_logger(__name__, propagate=False)
 
@@ -23,13 +23,14 @@ logging.getLogger("git.cmd.cmd.execute").setLevel(level=logging.WARNING)
 # noinspection DuplicatedCode
 class LeagueData(BaseLeagueData):
 
-    def __init__(self, base_dir: Path, data_dir: Path, league_id: str, season: int,
+    def __init__(self, settings: AppSettings, root_dir: Path, data_dir: Path, league_id: str, season: int,
                  start_week: int, week_for_report: int, get_current_nfl_week_function: Callable,
                  week_validation_function: Callable, save_data: bool = True, offline: bool = False):
         super().__init__(
+            settings,
             "CBS",
             f"https://{league_id}.football.cbssports.com",
-            base_dir,
+            root_dir,
             data_dir,
             league_id,
             season,
@@ -48,18 +49,16 @@ class LeagueData(BaseLeagueData):
         # the new API uses the league ID and sport in the base URL
         self.api_base_url = f"{self.base_url}/api"
 
-        self._authenticate()
-
         self.query_headers = {
             "User-Agent": "Fantasy FB/5 CFNetwork/1410.0.3 Darwin/22.6.0",
             "Content-Type": "application/json",
             "Accept": "*/*",
-            "Authorization": settings.platform_settings.cbs_auth_token
+            "Authorization": self.settings.platform_settings.cbs_auth_token
         }
 
     def _authenticate(self) -> None:
 
-        if not settings.platform_settings.cbs_auth_token:
+        if not self.settings.platform_settings.cbs_auth_token:
 
             input(
                 f"{Fore.YELLOW}"
@@ -67,22 +66,22 @@ class LeagueData(BaseLeagueData):
                 f"Type any other key to authenticate with your CBS credentials. -> {Style.RESET_ALL}"
             )
 
-            if not settings.platform_settings.cbs_username:
-                settings.platform_settings.cbs_username = input(
+            if not self.settings.platform_settings.cbs_username:
+                self.settings.platform_settings.cbs_username = input(
                     f"{Fore.GREEN}What is your CBS username? -> {Style.RESET_ALL}"
                 )
-                settings.write_settings_to_env_file(self.base_dir / ".env")
+                self.settings.write_settings_to_env_file(self.root_dir / ".env")
 
-            if not settings.platform_settings.cbs_password:
-                settings.platform_settings.cbs_password = input(
+            if not self.settings.platform_settings.cbs_password:
+                self.settings.platform_settings.cbs_password = input(
                     f"{Fore.GREEN}What is your CBS password? -> {Style.RESET_ALL}"
                 )
-                settings.write_settings_to_env_file(self.base_dir / ".env")
+                self.settings.write_settings_to_env_file(self.root_dir / ".env")
 
             logger.info("Retrieving your CBS access token using your configured CBS credentials...")
 
-            settings.platform_settings.cbs_auth_token = self._retrieve_access_token()
-            settings.write_settings_to_env_file(self.base_dir / ".env")
+            self.settings.platform_settings.cbs_auth_token = self._retrieve_access_token()
+            self.settings.write_settings_to_env_file(self.root_dir / ".env")
 
             logger.info("...CBS access token retrieved and written to your .env file.")
 
@@ -96,8 +95,8 @@ class LeagueData(BaseLeagueData):
         auth_query_data = json.dumps({
             "client_id": "cbssports",
             "client_secret": "sportsallthetime",
-            "user_id": settings.platform_settings.cbs_username,
-            "password": settings.platform_settings.cbs_password
+            "user_id": self.settings.platform_settings.cbs_username,
+            "password": self.settings.platform_settings.cbs_password
         })
 
         auth_url = f"{self.auth_base_url}/general/oauth/mobile/login?response_format=json"
@@ -120,20 +119,16 @@ class LeagueData(BaseLeagueData):
         # noinspection PyTypeChecker
         return int("".join(filter(str.isdigit, str(input_with_embedded_int))))
 
-    def map_data_to_base(self) -> BaseLeague:
+    def map_data_to_base(self) -> None:
         logger.debug(f"Retrieving {self.platform_display} league data and mapping it to base objects.")
 
         league_details = self.query(
             self.build_api_url("/league/details"),
-            (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-             / f"{self.league.league_id}-details.json"),
             self.query_headers
         ).get("body").get("league_details")
 
         league_rules = self.query(
             self.build_api_url("/league/rules"),
-            (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-             / f"{self.league.league_id}-rules.json"),
             self.query_headers
         ).get("body").get("rules")
 
@@ -192,16 +187,12 @@ class LeagueData(BaseLeagueData):
 
         league_schedule = self.query(
             self.build_api_url("/league/schedules", additional_parameters={"period": "all"}),
-            (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-             / f"{self.league.league_id}-season_matchup_schedule.json"),
             self.query_headers
         ).get("body").get("schedule").get("periods")
 
         league_teams = {
             t.get("id"): t for t in self.query(
                 self.build_api_url("/league/teams"),
-                (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-                 / f"{self.league.league_id}-teams.json"),
                 self.query_headers
             ).get("body").get("teams")
         }
@@ -210,8 +201,6 @@ class LeagueData(BaseLeagueData):
         league_waivers = {
             t.get("id"): t for t in self.query(
                 self.build_api_url("/league/transactions/waiver-order"),
-                (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-                 / f"{self.league.league_id}-waivers.json"),
                 self.query_headers
             ).get("body").get(waiver_key).get("teams")
         }
@@ -222,8 +211,6 @@ class LeagueData(BaseLeagueData):
                     "/league/fantasy-points/weekly-scoring",
                     additional_parameters={"team_type": "roster", "team_id": "all"}
                 ),
-                (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-                 / f"{self.league.league_id}-weekly_scoring.json"),
                 self.query_headers
             ).get("body").get("weekly_scoring").get("players")
         }
@@ -232,16 +219,12 @@ class LeagueData(BaseLeagueData):
             self.build_api_url(
                 "/league/transaction-list/log", additional_parameters={"filter": "all_but_lineup"}
             ),
-            (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-             / f"{self.league.league_id}-transactions.json"),
             self.query_headers
         ).get("body").get("transaction_log")
 
         league_stat_categories = {
             s.get("abbr"): s for s in self.query(
                 self.build_api_url("/stats/categories"),
-                (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-                 / f"{self.league.league_id}-stat_categories.json"),
                 self.query_headers
             ).get("body").get("stats_categories")
         }
@@ -249,8 +232,6 @@ class LeagueData(BaseLeagueData):
         nfl_teams = {
             t.get("abbr"): t for t in self.query(
                 self.build_api_url("/pro-teams"),
-                (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-                 / f"{self.league.league_id}-nfl_teams.json"),
                 self.query_headers
             ).get("body").get("pro_teams")
         }
@@ -258,8 +239,6 @@ class LeagueData(BaseLeagueData):
         nfl_player_injuries = {
             str(p.get("player").get("id")): p for p in self.query(
                 self.build_api_url("/players/injuries"),
-                (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-                 / f"{self.league.league_id}-nfl_player_injuries.json"),
                 self.query_headers
             ).get("body").get("injuries")
         }
@@ -274,8 +253,6 @@ class LeagueData(BaseLeagueData):
 
                 league_rosters = self.query(
                     self.build_api_url("/league/rosters", additional_parameters={"team_id": "all", "period": wk}),
-                    (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id / f"week_{wk}"
-                     / f"week_{wk}-rosters.json"),
                     self.query_headers
                 ).get("body").get("rosters").get("teams")
 
@@ -284,8 +261,6 @@ class LeagueData(BaseLeagueData):
                         "/stats",
                         additional_parameters={"timeframe": self.league.season, "period": wk}
                     ),
-                    (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id / f"week_{wk}"
-                     / f"week_{wk}-player_stats.json"),
                     self.query_headers
                 ).get("body").get("player_stats")
 
@@ -305,8 +280,6 @@ class LeagueData(BaseLeagueData):
 
                 league_standings = self.query(
                     self.build_api_url("/league/standings/overall", additional_parameters={"period": wk}),
-                    (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id / f"week_{wk}"
-                     / f"week_{wk}-standings.json"),
                     self.query_headers
                 ).get("body").get("overall_standings")
                 if self.league.has_divisions:
@@ -362,8 +335,7 @@ class LeagueData(BaseLeagueData):
                     opponent_division = league_teams[matchup.get(opposite_key).get("id")].get("division")
                     if (team_division is not None
                             and opponent_division is not None
-                            and team_division == opponent_division
-                    ):
+                            and team_division == opponent_division):
                         base_matchup.division_matchup = True
 
                     base_team.week = matchups_week
@@ -527,9 +499,6 @@ class LeagueData(BaseLeagueData):
                                     "/league/fantasy-points/weekly-scoring",
                                     additional_parameters={"player_id": base_player.player_id}
                                 ),
-                                (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-                                 / f"team_{league_team.team_id}"
-                                 / f"player_{base_player.player_id}-weekly_scoring.json"),
                                 self.query_headers
                             ).get("body").get("weekly_scoring").get("players")
                         }.get(base_player.player_id)
@@ -601,20 +570,20 @@ class LeagueData(BaseLeagueData):
             reverse=True
         )
 
-        return self.league
-
 
 if __name__ == '__main__':
+    local_settings = get_app_settings_from_env_file()
 
     root_directory = Path(__file__).parent.parent.parent
 
     cbs_platform = LeagueData(
+        local_settings,
         root_directory,
         Path(__file__).parent.parent.parent / "output" / "data",
-        settings.league_id,
-        settings.season,
+        local_settings.league_id,
+        local_settings.season,
         2,
-        settings.week_for_report,
+        local_settings.week_for_report,
         lambda *args: None,
         lambda *args: None
     )

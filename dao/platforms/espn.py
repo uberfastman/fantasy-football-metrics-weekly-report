@@ -9,7 +9,7 @@ import time
 from getpass import getpass
 from pathlib import Path
 from statistics import median
-from typing import List, Callable
+from typing import Callable, List
 
 import colorama
 from colorama import Fore, Style
@@ -27,10 +27,10 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
 
-from dao.base import BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
+from dao.base import BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
 from dao.platforms.base.league import BaseLeagueData
 from utilities.logger import get_logger
-from utilities.settings import settings
+from utilities.settings import AppSettings, get_app_settings_from_env_file
 
 colorama.init()
 
@@ -50,13 +50,14 @@ logging.getLogger("selenium.webdriver.remote.remote_connection").setLevel(level=
 # noinspection DuplicatedCode
 class LeagueData(BaseLeagueData):
 
-    def __init__(self, base_dir: Path, data_dir: Path, league_id: str, season: int,
+    def __init__(self, settings: AppSettings, root_dir: Path, data_dir: Path, league_id: str, season: int,
                  start_week: int, week_for_report: int, get_current_nfl_week_function: Callable,
                  week_validation_function: Callable, save_data: bool = True, offline: bool = False):
         super().__init__(
+            settings,
             "ESPN",
             "https://lm-api-reads.fantasy.espn.com",
-            base_dir,
+            root_dir,
             data_dir,
             league_id,
             season,
@@ -68,22 +69,22 @@ class LeagueData(BaseLeagueData):
             offline
         )
 
-        self._authenticate()
-
     def _authenticate(self) -> None:
 
         time.sleep(0.25)
 
         # skip credentials check for public ESPN league access when use-default is set to true
         if os.environ.get("USE_DEFAULT"):
-            if not settings.platform_settings.espn_cookie_swid and not settings.platform_settings.espn_cookie_espn_s2:
+            if (not self.settings.platform_settings.espn_cookie_swid
+                    and not self.settings.platform_settings.espn_cookie_espn_s2):
                 logger.info(
                     "Use-default is set to \"true\". Automatically running the report for the selected ESPN league "
                     "without credentials. This will only work for public ESPN leagues."
                 )
             return
 
-        if not settings.platform_settings.espn_cookie_swid or not settings.platform_settings.espn_cookie_espn_s2:
+        if (not self.settings.platform_settings.espn_cookie_swid
+                or not self.settings.platform_settings.espn_cookie_espn_s2):
 
             user_input = input(
                 f"{Fore.YELLOW}"
@@ -96,31 +97,31 @@ class LeagueData(BaseLeagueData):
             if user_input.lower() == "y":
                 return
 
-            if not settings.platform_settings.espn_username:
-                settings.platform_settings.espn_username = input(
+            if not self.settings.platform_settings.espn_username:
+                self.settings.platform_settings.espn_username = input(
                     f"{Fore.GREEN}What is your ESPN username? -> {Style.RESET_ALL}"
                 )
-                settings.write_settings_to_env_file(self.base_dir / ".env")
+                self.settings.write_settings_to_env_file(self.root_dir / ".env")
 
-            if not settings.platform_settings.espn_password:
-                settings.platform_settings.espn_password = getpass(
+            if not self.settings.platform_settings.espn_password:
+                self.settings.platform_settings.espn_password = getpass(
                     f"{Fore.GREEN}What is your ESPN password? -> {Style.RESET_ALL}"
                 )
-                settings.write_settings_to_env_file(self.base_dir / ".env")
+                self.settings.write_settings_to_env_file(self.root_dir / ".env")
 
-            if not settings.platform_settings.espn_chrome_user_profile_path:
-                settings.platform_settings.espn_chrome_user_profile_path = input(
+            if not self.settings.platform_settings.espn_chrome_user_profile_path:
+                self.settings.platform_settings.espn_chrome_user_profile_path = input(
                     f"{Fore.GREEN}What is your Chrome user data profile path? (wrap your response in quotes (\"\") if "
                     f"there are any spaces in it) -> {Style.RESET_ALL}"
                 )
-                settings.write_settings_to_env_file(self.base_dir / ".env")
+                self.settings.write_settings_to_env_file(self.root_dir / ".env")
 
             logger.info("Retrieving your ESPN session cookies using your configured ESPN credentials...")
 
             espn_session_cookies = self._retrieve_session_cookies()
-            settings.platform_settings.espn_cookie_swid = espn_session_cookies["swid"]
-            settings.platform_settings.espn_cookie_espn_s2 = espn_session_cookies["espn_s2"]
-            settings.write_settings_to_env_file(self.base_dir / ".env")
+            self.settings.platform_settings.espn_cookie_swid = espn_session_cookies["swid"]
+            self.settings.platform_settings.espn_cookie_espn_s2 = espn_session_cookies["espn_s2"]
+            self.settings.write_settings_to_env_file(self.root_dir / ".env")
 
             logger.info("...ESPN session cookies retrieved and written to your .env file.")
 
@@ -140,8 +141,8 @@ class LeagueData(BaseLeagueData):
         # set web driver options
         options = ChromeOptions()
         options.add_argument("--headless=new")  # comment out this line if you wish to see live browser navigation
-        options.add_argument(f"--user-data-dir={settings.platform_settings.espn_chrome_user_data_dir}")
-        options.add_argument(f"--profile-directory={settings.platform_settings.espn_chrome_user_profile}")
+        options.add_argument(f"--user-data-dir={self.settings.platform_settings.espn_chrome_user_data_dir}")
+        options.add_argument(f"--profile-directory={self.settings.platform_settings.espn_chrome_user_profile}")
         driver = Chrome(options=options)
         driver.implicitly_wait(0.5)
 
@@ -181,8 +182,12 @@ class LeagueData(BaseLeagueData):
                 link.click()
 
             # fill the username and password fields
-            driver.find_element(by=By.ID, value="InputLoginValue").send_keys(settings.platform_settings.espn_username)
-            driver.find_element(by=By.ID, value="InputPassword").send_keys(settings.platform_settings.espn_password)
+            driver.find_element(by=By.ID, value="InputLoginValue").send_keys(
+                self.settings.platform_settings.espn_username
+            )
+            driver.find_element(by=By.ID, value="InputPassword").send_keys(
+                self.settings.platform_settings.espn_password
+            )
 
             # submit the login form
             driver.find_element(by=By.ID, value="BtnSubmit").click()
@@ -193,7 +198,7 @@ class LeagueData(BaseLeagueData):
         except TimeoutException:
             logger.debug(
                 f"Already logged in to browser with user profile "
-                f"\"{settings.platform_settings.espn_chrome_user_profile}\".\n"
+                f"\"{self.settings.platform_settings.espn_chrome_user_profile}\".\n"
             )
 
         # retrieve and display session cookies needed for ESPN FF API authentication and extract their values
@@ -205,51 +210,15 @@ class LeagueData(BaseLeagueData):
 
         return espn_session_cookies
 
-    def _save_and_load_data(self, file_dir, filename, data=None):
-        file_path = Path(file_dir) / filename
-
-        # TODO: get data loading working
-        # if self.offline:
-        #     logger.debug("Loading saved ESPN league data.")
-        #     try:
-        #         with open(file_path, "r", encoding="utf-8") as data_in:
-        #             data = json.load(data_in)
-        #     except FileNotFoundError:
-        #         logger.error(
-        #             f"FILE {file_path} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY SAVED DATA!"
-        #         )
-        #         sys.exit(1)
-
-        if self.league.save_data:
-            logger.debug("Saving ESPN league data.")
-            if not Path(file_dir).exists():
-                os.makedirs(file_dir)
-
-            with open(file_path, "w", encoding="utf-8") as data_out:
-                json.dump(data, data_out, ensure_ascii=False, indent=2)
-
-        return data
-
-    def map_data_to_base(self):
+    def map_data_to_base(self) -> None:
         logger.debug(f"Retrieving {self.platform_display} league data and mapping it to base objects.")
 
         # TODO: GET SAVE/LOAD WORKING FOR ALL ESPN DATA!
         espn_league: LeagueWrapper = LeagueWrapper(
             league_id=int(self.league.league_id),
             year=self.league.season,
-            espn_s2=settings.platform_settings.espn_cookie_espn_s2,
-            swid=settings.platform_settings.espn_cookie_swid
-        )
-
-        self._save_and_load_data(
-            Path(self.league.data_dir) / str(self.league.season) / self.league.league_id,
-            f"{self.league.league_id}-league_info.json",
-            data=espn_league.league_json
-        )
-        self._save_and_load_data(
-            Path(self.league.data_dir) / str(self.league.season) / self.league.league_id,
-            f"{self.league.league_id}-box_info.json",
-            data=espn_league.box_data_json
+            espn_s2=self.settings.platform_settings.espn_cookie_espn_s2,
+            swid=self.settings.platform_settings.espn_cookie_swid
         )
 
         # not currently needed
@@ -622,8 +591,6 @@ class LeagueData(BaseLeagueData):
             reverse=True
         )
 
-        return self.league
-
 
 # noinspection DuplicatedCode
 class LeagueWrapper(League):
@@ -706,16 +673,18 @@ class LeagueWrapper(League):
 
 
 if __name__ == '__main__':
+    local_settings: AppSettings = get_app_settings_from_env_file()
 
     root_directory = Path(__file__).parent.parent.parent
 
     espn_platform = LeagueData(
+        local_settings,
         root_directory,
         Path(__file__).parent.parent.parent / 'data',
-        settings.league_id,
-        settings.season,
+        local_settings.league_id,
+        local_settings.season,
         1,
-        settings.week_for_report,
+        local_settings.week_for_report,
         lambda *args: None,
         lambda *args: None
     )

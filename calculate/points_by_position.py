@@ -2,9 +2,9 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
 import copy
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
-from dao.base import BaseLeague, BaseTeam, BasePlayer
+from dao.base import BaseLeague, BasePlayer, BaseTeam
 from utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)

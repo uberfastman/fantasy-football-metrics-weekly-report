@@ -9,7 +9,7 @@ from typing import List
 import requests
 
 from features.base.feature import BaseFeature
-from utilities.constants import nfl_team_abbreviations, nfl_team_abbreviation_conversions
+from utilities.constants import nfl_team_abbreviation_conversions, nfl_team_abbreviations
 from utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)
@@ -17,7 +17,8 @@ logger = get_logger(__name__, propagate=False)
 
 class BeefFeature(BaseFeature):
 
-    def __init__(self, data_dir: Path, refresh: bool = False, save_data: bool = False, offline: bool = False):
+    def __init__(self, week_for_report: int, data_dir: Path, refresh: bool = False, save_data: bool = False,
+                 offline: bool = False):
         """Initialize class, load data from Sleeper API, and combine defensive player data into team total
         """
         self.first_name_punctuation: List[str] = [".", "'"]
@@ -28,6 +29,7 @@ class BeefFeature(BaseFeature):
         super().__init__(
             "beef",
             "https://api.sleeper.app/v1/players/nfl",
+            week_for_report,
             data_dir,
             refresh,
             save_data,
@@ -148,5 +150,5 @@ class BeefFeature(BaseFeature):
 
     def generate_player_info_json(self):
         ordered_player_data = OrderedDict(sorted(self.raw_feature_data.items(), key=lambda k_v: k_v[0]))
-        with open(self.raw_feature_data_file_path, mode="w", encoding="utf-8") as player_data:
+        with open(self.data_dir / f"{self.feature_type_str}_raw.json", mode="w", encoding="utf-8") as player_data:
             json.dump(ordered_player_data, player_data, ensure_ascii=False, indent=2)

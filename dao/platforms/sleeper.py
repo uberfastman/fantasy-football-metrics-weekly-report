@@ -1,21 +1,20 @@
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
-import datetime
 import json
 import logging
-from collections import defaultdict, Counter
+from collections import Counter, defaultdict
 from copy import deepcopy
 from datetime import datetime, timedelta
 from itertools import groupby
 from pathlib import Path
 from statistics import median
-from typing import Union, Callable
+from typing import Callable, Union
 
-from dao.base import BaseMatchup, BaseTeam, BaseRecord, BaseManager, BasePlayer, BaseStat
+from dao.base import BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
 from dao.platforms.base.league import BaseLeagueData
 from utilities.logger import get_logger
-from utilities.settings import settings
+from utilities.settings import AppSettings
 
 logger = get_logger(__name__, propagate=False)
 
@@ -26,13 +25,14 @@ logger.setLevel(level=logging.INFO)
 # noinspection DuplicatedCode
 class LeagueData(BaseLeagueData):
 
-    def __init__(self, base_dir: Union[Path, None], data_dir: Path, league_id: str,
+    def __init__(self, settings: AppSettings, root_dir: Union[Path, None], data_dir: Path, league_id: str,
                  season: int, start_week: int, week_for_report: int, get_current_nfl_week_function: Callable,
                  week_validation_function: Callable, save_data: bool = True, offline: bool = False):
         super().__init__(
+            settings,
             "Sleeper",
-            f"https://api.sleeper.app",
-            base_dir,
+            "https://api.sleeper.app",
+            root_dir,
             data_dir,
             league_id,
             season,
@@ -80,7 +80,7 @@ class LeagueData(BaseLeagueData):
                         response_json = json.load(saved_data)
                     return response_json
 
-        response_json = self.query(url, save_file)
+        response_json = self.query(url)
         return response_json
 
     def _fetch_player_data(self, player_id, week, starter=False):
@@ -131,13 +131,12 @@ class LeagueData(BaseLeagueData):
 
         return round(points, 2), round(projected_points, 2)
 
-    def map_data_to_base(self):
+    def map_data_to_base(self) -> None:
         logger.debug(f"Retrieving {self.platform_display} league data and mapping it to base objects.")
 
         league_info = self.query_with_delayed_refresh(
             f"{self.api_base_url}/league/{self.league.league_id}",
-            (Path(self.league.data_dir) / str(self.league.season) / str(self.league.league_id)
-             / f"{self.league.league_id}-league_info.json")
+            self.league.data_dir / f"{self.league.league_id}-league_info.json"
         )
 
         league_settings = league_info.get("settings")
@@ -146,22 +145,20 @@ class LeagueData(BaseLeagueData):
         num_regular_season_weeks: int = (
             (int(league_settings.get("playoff_week_start")) - 1)
             if league_settings.get("playoff_week_start") > 0
-            else settings.num_regular_season_weeks
+            else self.settings.num_regular_season_weeks
         )
 
         league_managers = {
             manager.get("user_id"): manager for manager in self.query_with_delayed_refresh(
                 f"{self.api_base_url}/league/{self.league.league_id}/users",
-                (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-                 / f"{self.league.league_id}-league_managers.json")
+                self.league.data_dir / f"{self.league.league_id}-league_managers.json"
             )
         }
 
         self.standings = sorted(
             self.query_with_delayed_refresh(
                 f"{self.api_base_url}/league/{self.league.league_id}/rosters",
-                (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-                 / f"{self.league.league_id}-league_standings.json")
+                self.league.data_dir / f"{self.league.league_id}-league_standings.json"
             ),
             key=lambda x: (
                 x.get("settings").get("wins"),
@@ -180,8 +177,7 @@ class LeagueData(BaseLeagueData):
 
         self.player_data = self.query_with_delayed_refresh(
             f"{self.api_base_url}/players/nfl",
-            (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-             / f"{self.league.league_id}-player_data.json"),
+            self.league.data_dir / f"{self.league.league_id}-player_data.json",
             check_for_saved_data=True,
             refresh_days_delay=7
         )
@@ -194,8 +190,7 @@ class LeagueData(BaseLeagueData):
                     player["player_id"]: player["stats"] for player in self.query_with_delayed_refresh(
                         (f"{self.api_stats_and_projections_base_url}"
                          f"/stats/nfl/{self.league.season}/{week_for_player_stats}?season_type=regular"),
-                        (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-                         / f"week_{week_for_player_stats}" / f"week_{week_for_player_stats}-player_stats_by_week.json"),
+                        self.league.data_dir / f"week_{week_for_player_stats}" / f"week_{week_for_player_stats}-player_stats_by_week.json",
                         check_for_saved_data=True,
                         refresh_days_delay=1
                     )
@@ -205,8 +200,7 @@ class LeagueData(BaseLeagueData):
                 player["player_id"]: player["stats"] for player in self.query_with_delayed_refresh(
                     (f"{self.api_stats_and_projections_base_url}"
                      f"/projections/nfl/{self.league.season}/{week_for_player_stats}?season_type=regular"),
-                    (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-                     / f"week_{week_for_player_stats}"
+                    (self.league.data_dir / f"week_{week_for_player_stats}"
                      / f"week_{week_for_player_stats}-player_projected_stats_by_week.json"),
                     check_for_saved_data=True,
                     refresh_days_delay=1
@@ -221,8 +215,8 @@ class LeagueData(BaseLeagueData):
                     sorted(
                         self.query_with_delayed_refresh(
                             f"{self.api_base_url}/league/{self.league.league_id}/matchups/{week_for_matchups}",
-                            (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-                             / f"week_{week_for_matchups}" / f"week_{week_for_matchups}-matchups_by_week.json")
+                            (self.league.data_dir / f"week_{week_for_matchups}"
+                             / f"week_{week_for_matchups}-matchups_by_week.json")
                         ),
                         key=lambda x: x["matchup_id"]
                     ),
@@ -271,8 +265,8 @@ class LeagueData(BaseLeagueData):
             league_transactions_by_week[str(week_for_transactions)] = defaultdict(lambda: defaultdict(list))
             weekly_transactions = self.query_with_delayed_refresh(
                 f"{self.api_base_url}/league/{self.league.league_id}/transactions/{week_for_transactions}",
-                (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-                 / f"week_{week_for_transactions}" / f"week_{week_for_transactions}-transactions_by_week.json")
+                (self.league.data_dir / f"week_{week_for_transactions}"
+                 / f"week_{week_for_transactions}-transactions_by_week.json")
             )
 
             for transaction in weekly_transactions:
@@ -293,8 +287,7 @@ class LeagueData(BaseLeagueData):
         player_season_stats = {
             player["player_id"]: player["stats"] for player in self.query_with_delayed_refresh(
                 f"{self.api_stats_and_projections_base_url}/stats/nfl/{self.league.season}?season_type=regular",
-                (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-                 / f"{self.league.league_id}-player_season_stats.json"),
+                self.league.data_dir / f"{self.league.league_id}-player_season_stats.json",
                 check_for_saved_data=True,
                 refresh_days_delay=1
             )
@@ -304,8 +297,7 @@ class LeagueData(BaseLeagueData):
             player["player_id"]: player["stats"] for player in self.query_with_delayed_refresh(
                 (f"{self.api_stats_and_projections_base_url}/projections/nfl/{self.league.season}"
                  f"?season_type=regular"),
-                (Path(self.league.data_dir) / str(self.league.season) / self.league.league_id
-                 / f"{self.league.league_id}-player_season_projected_stats.json"),
+                self.league.data_dir / f"{self.league.league_id}-player_season_projected_stats.json",
                 check_for_saved_data=True,
                 refresh_days_delay=1
             )
@@ -733,5 +725,3 @@ class LeagueData(BaseLeagueData):
             ),
             reverse=True
         )
-
-        return self.league

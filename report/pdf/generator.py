@@ -9,33 +9,32 @@ import urllib.request
 from copy import deepcopy
 from pathlib import Path
 from random import choice
-from typing import List, Dict, Tuple, Any, Union, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.error import URLError
 
-from PIL import Image
-from PIL import ImageFile
-from reportlab.graphics.shapes import Line, Drawing
-from reportlab.lib import colors
-from reportlab.lib import styles
-from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+from PIL import Image, ImageFile
+from reportlab.graphics.shapes import Drawing, Line
+from reportlab.lib import colors, styles
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import LETTER, portrait
-from reportlab.lib.pagesizes import inch
 from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.units import inch
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen.canvas import Canvas
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, PageBreak, Spacer, Flowable
-from reportlab.platypus.flowables import Image as ReportLabImage, KeepTogether
+from reportlab.platypus import Flowable, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus.flowables import Image as ReportLabImage
+from reportlab.platypus.flowables import KeepTogether
 
-from dao.base import BaseLeague, BaseTeam, BasePlayer
+from dao.base import BaseLeague, BasePlayer, BaseTeam
 from report.data import ReportData
 from report.pdf.charts.bar import HorizontalBarChart3DGenerator
 from report.pdf.charts.line import LineChartGenerator
 from report.pdf.charts.pie import BreakdownPieDrawing
 from resources.documentation import descriptions
 from utilities.logger import get_logger
-from utilities.settings import settings
+from utilities.settings import AppSettings
 from utilities.utils import truncate_cell_for_display
 
 logger = get_logger(__name__, propagate=False)
@@ -110,14 +109,15 @@ class HyperlinkedImage(ReportLabImage, object):
     Adopted from https://stackoverflow.com/a/26294527/304209.
     """
 
-    def __init__(self, file_path: Path, hyperlink: str = None, width: int = None, height: int = None,
+    def __init__(self, file_path: Path, hyperlink: str = None, width: float = None, height: float = None,
                  kind: str = 'direct', mask: str = 'auto', lazy: int = 1, hAlign: str = 'CENTER'):
         """The only variable added to __init__() is hyperlink.
 
         It defaults to None for the if statement used later.
         """
-        super(HyperlinkedImage, self).__init__(file_path, width, height, kind, mask, lazy,
-                                               hAlign=hAlign)
+        super(HyperlinkedImage, self).__init__(
+            file_path, width, height, kind, mask, lazy, hAlign=hAlign
+        )
         self.hyperlink = hyperlink
 
     def drawOn(self, canvas: Canvas, x: int, y: int, _sW: int = 0):
@@ -135,18 +135,19 @@ class HyperlinkedImage(ReportLabImage, object):
 class PdfGenerator(object):
 
     # noinspection SpellCheckingInspection
-    def __init__(self, season: int, league: BaseLeague, playoff_prob_sims: int,
+    def __init__(self, settings: AppSettings, season: int, league: BaseLeague, playoff_prob_sims: int,
                  report_title_text: str, report_footer_text: str, report_data: ReportData):
         logger.debug("Instantiating PDF generator.")
 
         # report settings
+        self.settings = settings
         self.season = season
         self.league_id = league.league_id
         self.playoff_slots = int(league.num_playoff_slots)
         self.has_divisions = league.has_divisions
         self.num_regular_season_weeks = int(league.num_regular_season_weeks)
         self.week_for_report = league.week_for_report
-        self.data_dir = Path(league.data_dir) / str(league.season) / league.league_id
+        self.data_dir = league.data_dir
         self.break_ties = report_data.break_ties
         self.playoff_prob_sims = playoff_prob_sims
         self.num_coaching_efficiency_dqs = report_data.num_coaching_efficiency_dqs
@@ -545,7 +546,7 @@ class PdfGenerator(object):
         )
 
         # table of contents
-        self.toc = TableOfContents(self.font, self.font_size)
+        self.toc = TableOfContents(self.settings, self.font, self.font_size)
 
         # appendix
         self.appendix = Appendix(
@@ -975,14 +976,14 @@ class PdfGenerator(object):
                         display_row.append(
                             truncate_cell_for_display(
                                 cell,
-                                max_chars=settings.report_settings.max_data_chars,
+                                max_chars=self.settings.report_settings.max_data_chars,
                                 halve_max_chars=(cell_ndx == manager_header_ndx)
                             )
                         )
                     else:
                         display_row.append(
                             truncate_cell_for_display(
-                                cell, max_chars=settings.report_settings.max_data_chars, sesqui_max_chars=True
+                                cell, max_chars=self.settings.report_settings.max_data_chars, sesqui_max_chars=True
                             )
                         )
 
@@ -1013,7 +1014,9 @@ class PdfGenerator(object):
         display_series_names = []
         for name in series_names:
             # truncate series name to specified max characters
-            display_series_names.append(truncate_cell_for_display(str(name), settings.report_settings.max_data_chars))
+            display_series_names.append(
+                truncate_cell_for_display(str(name), self.settings.report_settings.max_data_chars)
+            )
 
         series_names = display_series_names
 
@@ -1126,7 +1129,7 @@ class PdfGenerator(object):
         return horizontal_bar_chart
 
     @staticmethod
-    def get_img(path: Union[Path, str], width: int = 1 * inch, hyperlink: str = None) -> ReportLabImage:
+    def get_img(path: Union[Path, str], width: float = 1.0 * inch, hyperlink: str = None) -> ReportLabImage:
         img = ImageReader(path)
         iw, ih = img.getSize()
         aspect = ih / float(iw)
@@ -1161,14 +1164,14 @@ class PdfGenerator(object):
             player_info = team_result.roster
 
             has_team_graphics_page = (
-                    settings.report_settings.team_points_by_position_charts_bool
-                    or settings.report_settings.team_boom_or_bust_bool
+                self.settings.report_settings.team_points_by_position_charts_bool
+                or self.settings.report_settings.team_boom_or_bust_bool
             )
 
             has_team_tables_page = (
-                    settings.report_settings.team_bad_boy_stats_bool
-                    or settings.report_settings.team_beef_stats_bool
-                    or settings.report_settings.team_high_roller_stats_bool
+                self.settings.report_settings.team_bad_boy_stats_bool
+                or self.settings.report_settings.team_beef_stats_bool
+                or self.settings.report_settings.team_high_roller_stats_bool
             )
 
             if has_team_graphics_page and not has_team_tables_page:
@@ -1195,7 +1198,7 @@ class PdfGenerator(object):
 
                 doc_elements.append(title)
 
-            if settings.report_settings.team_points_by_position_charts_bool:
+            if self.settings.report_settings.team_points_by_position_charts_bool:
                 labels = []
                 weekly_data = []
                 season_data = [x[1] for x in season_average_team_data_by_position.get(team_id)]
@@ -1218,7 +1221,7 @@ class PdfGenerator(object):
                 doc_elements.append(KeepTogether(team_table))
                 doc_elements.append(self.spacer_quarter_inch)
 
-            if settings.report_settings.team_boom_or_bust_bool:
+            if self.settings.report_settings.team_boom_or_bust_bool:
                 if player_info:
                     starting_players = []
                     player: BasePlayer
@@ -1261,12 +1264,12 @@ class PdfGenerator(object):
 
                     best_player_headshot = get_player_image(
                         best_weekly_player.headshot_url, self.data_dir, self.week_for_report,
-                        settings.report_settings.image_quality, 1.5 * inch, best_weekly_player.full_name,
+                        self.settings.report_settings.image_quality, 1.5 * inch, best_weekly_player.full_name,
                         self.report_data.league.offline
                     )
                     worst_player_headshot = get_player_image(
                         worst_weekly_player.headshot_url, self.data_dir, self.week_for_report,
-                        settings.report_settings.image_quality, 1.5 * inch, worst_weekly_player.full_name,
+                        self.settings.report_settings.image_quality, 1.5 * inch, worst_weekly_player.full_name,
                         self.report_data.league.offline
                     )
 
@@ -1354,8 +1357,8 @@ class PdfGenerator(object):
 
                 doc_elements.append(title)
 
-            if (settings.report_settings.league_bad_boy_rankings_bool
-                    and settings.report_settings.team_bad_boy_stats_bool):
+            if (self.settings.report_settings.league_bad_boy_rankings_bool
+                    and self.settings.report_settings.team_bad_boy_stats_bool):
 
                 if player_info:
                     offending_players = []
@@ -1382,8 +1385,8 @@ class PdfGenerator(object):
                         doc_elements.append(KeepTogether(bad_boys_table))
                         doc_elements.append(self.spacer_tenth_inch)
 
-            if (settings.report_settings.league_beef_rankings_bool
-                    and settings.report_settings.team_beef_stats_bool):
+            if (self.settings.report_settings.league_beef_rankings_bool
+                    and self.settings.report_settings.team_beef_stats_bool):
 
                 if player_info:
                     doc_elements.append(self.create_title("Beefiest Bois", 8.5, "section"))
@@ -1414,8 +1417,8 @@ class PdfGenerator(object):
                     doc_elements.append(KeepTogether(beefy_boi_table))
                     doc_elements.append(self.spacer_tenth_inch)
 
-            if (settings.report_settings.league_high_roller_rankings_bool
-                    and settings.report_settings.team_high_roller_stats_bool):
+            if (self.settings.report_settings.league_high_roller_rankings_bool
+                    and self.settings.report_settings.team_high_roller_stats_bool):
 
                 if player_info:
                     violating_players = []
@@ -1480,7 +1483,7 @@ class PdfGenerator(object):
         elements.append(self.add_page_break())
 
         # standings
-        if settings.report_settings.league_standings_bool:
+        if self.settings.report_settings.league_standings_bool:
             # update standings style to vertically justify all rows
             standings_style = deepcopy(self.style)
             standings_style.add("VALIGN", (0, 0), (-1, -1), "MIDDLE")
@@ -1544,7 +1547,7 @@ class PdfGenerator(object):
             elements.append(standings)
             elements.append(self.spacer_tenth_inch)
 
-        if settings.report_settings.league_playoff_probs_bool and self.playoff_slots > 0:
+        if self.settings.report_settings.league_playoff_probs_bool and self.playoff_slots > 0:
             # update playoff probabilities style to make playoff teams green
             playoff_probs_style = deepcopy(self.style)
             playoff_probs_style.add("TEXTCOLOR", (0, 1), (-1, self.playoff_slots), colors.green)
@@ -1586,7 +1589,7 @@ class PdfGenerator(object):
                 num_playoff_simulations = (
                     int(self.playoff_prob_sims)
                     if self.playoff_prob_sims is not None
-                    else settings.num_playoff_simulations
+                    else self.settings.num_playoff_simulations
                 )
 
                 if self.report_data.has_divisions:
@@ -1595,7 +1598,7 @@ class PdfGenerator(object):
                         "\nProbabilities account for division winners in addition to overall win/loss/tie record."
                     )
 
-                    if settings.num_playoff_slots_per_division > 1:
+                    if self.settings.num_playoff_slots_per_division > 1:
                         footer_text_for_divisions_with_extra_qualifiers = (
                             "<br></br>"
                             "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
@@ -1628,10 +1631,11 @@ class PdfGenerator(object):
                     footer_text=footer_text_for_divisions
                 ))
 
-        if settings.report_settings.league_standings_bool or settings.report_settings.league_playoff_probs_bool:
+        if (self.settings.report_settings.league_standings_bool
+                or self.settings.report_settings.league_playoff_probs_bool):
             elements.append(self.add_page_break())
 
-        if settings.report_settings.league_median_standings_bool:
+        if self.settings.report_settings.league_median_standings_bool:
             # update median standings style to italicize ranking column
             median_standings_style = deepcopy(self.style)
             median_standings_style.add("FONT", (3, 1), (3, -1), self.font_italic)
@@ -1655,7 +1659,7 @@ class PdfGenerator(object):
             elements.append(self.spacer_twentieth_inch)
             elements.append(self.add_page_break())
 
-        if settings.report_settings.league_power_rankings_bool:
+        if self.settings.report_settings.league_power_rankings_bool:
             # power ranking
             elements.append(self.create_section(
                 "Team Power Rankings",
@@ -1671,7 +1675,7 @@ class PdfGenerator(object):
             ))
             elements.append(self.spacer_twentieth_inch)
 
-        if settings.report_settings.league_z_score_rankings_bool:
+        if self.settings.report_settings.league_z_score_rankings_bool:
             # z-scores (if week 3 or later, once meaningful z-scores can be calculated)
             if self.data_for_z_scores:
                 elements.append(self.create_section(
@@ -1691,10 +1695,11 @@ class PdfGenerator(object):
                     ]
                 ))
 
-        if settings.report_settings.league_power_rankings_bool or settings.report_settings.league_z_score_rankings_bool:
+        if (self.settings.report_settings.league_power_rankings_bool
+                or self.settings.report_settings.league_z_score_rankings_bool):
             elements.append(self.add_page_break())
 
-        if settings.report_settings.league_score_rankings_bool:
+        if self.settings.report_settings.league_score_rankings_bool:
             # scores
             elements.append(self.create_section(
                 "Team Score Rankings",
@@ -1709,7 +1714,7 @@ class PdfGenerator(object):
             ))
             elements.append(self.spacer_twentieth_inch)
 
-        if settings.report_settings.league_coaching_efficiency_rankings_bool:
+        if self.settings.report_settings.league_coaching_efficiency_rankings_bool:
             # coaching efficiency
             elements.append(self.create_section(
                 "Team Coaching Efficiency Rankings",
@@ -1719,13 +1724,15 @@ class PdfGenerator(object):
                 self.style,
                 self.style_tied_efficiencies,
                 self.widths_05_cols_no_1,
-                tied_metric=((self.report_data.ties_for_coaching_efficiency > 0) and
-                             (self.report_data.league.player_data_by_week_function is not None)),
+                # TODO: find better pattern for player points retrieval instead of passing around a class method object
+                # tied_metric=((self.report_data.ties_for_coaching_efficiency > 0) and
+                #              (self.report_data.league.player_data_by_week_function is not None)),
+                tied_metric=self.report_data.ties_for_coaching_efficiency > 0,
                 metric_type="coaching_efficiency"
             ))
             elements.append(self.spacer_twentieth_inch)
 
-        if settings.report_settings.league_luck_rankings_bool:
+        if self.settings.report_settings.league_luck_rankings_bool:
             # luck
             elements.append(self.create_section(
                 "Team Luck Rankings",
@@ -1740,12 +1747,12 @@ class PdfGenerator(object):
                 metric_type="luck"
             ))
 
-        if (settings.report_settings.league_score_rankings_bool
-                or settings.report_settings.league_coaching_efficiency_rankings_bool
-                or settings.report_settings.league_luck_rankings_bool):
+        if (self.settings.report_settings.league_score_rankings_bool
+                or self.settings.report_settings.league_coaching_efficiency_rankings_bool
+                or self.settings.report_settings.league_luck_rankings_bool):
             elements.append(self.add_page_break())
 
-        if settings.report_settings.league_optimal_score_rankings_bool:
+        if self.settings.report_settings.league_optimal_score_rankings_bool:
             # optimal scores
             elements.append(self.create_section(
                 "Team Optimal Score Rankings",
@@ -1759,7 +1766,7 @@ class PdfGenerator(object):
             elements.append(self.spacer_twentieth_inch)
             elements.append(self.add_page_break())
 
-        if settings.report_settings.league_bad_boy_rankings_bool:
+        if self.settings.report_settings.league_bad_boy_rankings_bool:
             # bad boy rankings
             elements.append(self.create_section(
                 "Bad Boy Rankings",
@@ -1774,7 +1781,7 @@ class PdfGenerator(object):
             ))
             elements.append(self.spacer_twentieth_inch)
 
-        if settings.report_settings.league_beef_rankings_bool:
+        if self.settings.report_settings.league_beef_rankings_bool:
             # beef rankings
             elements.append(self.create_section(
                 "Beef Rankings",
@@ -1794,7 +1801,7 @@ class PdfGenerator(object):
                 ]
             ))
 
-        if settings.report_settings.league_high_roller_rankings_bool:
+        if self.settings.report_settings.league_high_roller_rankings_bool:
             # high roller rankings
             elements.append(self.create_section(
                 "High Roller Rankings",
@@ -1810,12 +1817,12 @@ class PdfGenerator(object):
             ))
             elements.append(self.spacer_twentieth_inch)
 
-        if (settings.report_settings.league_bad_boy_rankings_bool
-                or settings.report_settings.league_beef_rankings_bool
-                or settings.report_settings.league_high_roller_rankings_bool):
+        if (self.settings.report_settings.league_bad_boy_rankings_bool
+                or self.settings.report_settings.league_beef_rankings_bool
+                or self.settings.report_settings.league_high_roller_rankings_bool):
             elements.append(self.add_page_break())
 
-        if settings.report_settings.league_weekly_top_scorers_bool:
+        if self.settings.report_settings.league_weekly_top_scorers_bool:
             weekly_top_scorers_title_str = "Weekly Top Scorers"
             weekly_top_scorers_page_title = self.create_title(
                 "<i>" + weekly_top_scorers_title_str + "</i>", element_type="chart",
@@ -1835,7 +1842,7 @@ class PdfGenerator(object):
             ))
             elements.append(self.spacer_twentieth_inch)
 
-        if settings.report_settings.league_weekly_low_scorers_bool:
+        if self.settings.report_settings.league_weekly_low_scorers_bool:
             weekly_low_scorers_title_str = "Weekly Low Scorers"
             weekly_low_scorers_page_title = self.create_title(
                 "<i>" + weekly_low_scorers_title_str + "</i>", element_type="chart",
@@ -1855,7 +1862,7 @@ class PdfGenerator(object):
             ))
             elements.append(self.spacer_twentieth_inch)
 
-        if settings.report_settings.league_weekly_highest_ce_bool:
+        if self.settings.report_settings.league_weekly_highest_ce_bool:
             weekly_highest_ce_title_str = "Weekly Highest Coaching Efficiency"
             weekly_highest_ce_page_title = self.create_title(
                 "<i>" + weekly_highest_ce_title_str + "</i>", element_type="chart",
@@ -1874,12 +1881,12 @@ class PdfGenerator(object):
                 metric_type="highest_ce"
             ))
 
-        if (settings.report_settings.league_weekly_top_scorers_bool
-                or settings.report_settings.league_weekly_low_scorers_bool
-                or settings.report_settings.league_weekly_highest_ce_bool):
+        if (self.settings.report_settings.league_weekly_top_scorers_bool
+                or self.settings.report_settings.league_weekly_low_scorers_bool
+                or self.settings.report_settings.league_weekly_highest_ce_bool):
             elements.append(self.add_page_break())
 
-        if settings.report_settings.league_time_series_charts_bool:
+        if self.settings.report_settings.league_time_series_charts_bool:
             series_names = line_chart_data_list[0]
             points_data = line_chart_data_list[2]
             efficiency_data = line_chart_data_list[3]
@@ -1921,11 +1928,11 @@ class PdfGenerator(object):
             elements.append(self.add_page_break())
 
         if any([
-            settings.report_settings.team_points_by_position_charts_bool,
-            settings.report_settings.team_boom_or_bust_bool,
-            settings.report_settings.team_bad_boy_stats_bool,
-            settings.report_settings.team_beef_stats_bool,
-            settings.report_settings.team_high_roller_stats_bool
+            self.settings.report_settings.team_points_by_position_charts_bool,
+            self.settings.report_settings.team_boom_or_bust_bool,
+            self.settings.report_settings.team_bad_boy_stats_bool,
+            self.settings.report_settings.team_beef_stats_bool,
+            self.settings.report_settings.team_high_roller_stats_bool
         ]):
             # dynamically build additional pages for individual team stats
             self.create_team_stats_pages(
@@ -1957,7 +1964,9 @@ class PdfGenerator(object):
 
 class TableOfContents(object):
 
-    def __init__(self, font, font_size):
+    def __init__(self, settings: AppSettings, font, font_size):
+
+        self.settings: AppSettings = settings
 
         self.toc_col_widths = [5.00 * inch, 0.75 * inch]
 
@@ -2023,7 +2032,7 @@ class TableOfContents(object):
 
             has_table_feature = False
             for table_entry in table_entries:
-                if getattr(settings.report_settings, table_entry):
+                if getattr(self.settings.report_settings, table_entry):
                     has_table_feature = True
 
             if has_table_feature:
@@ -2065,7 +2074,7 @@ class TableOfContents(object):
 
         if truncate_title:
             title = (
-                f"{truncate_cell_for_display(title, settings.report_settings.max_data_chars, sesqui_max_chars=True)}"
+                f"{truncate_cell_for_display(title, self.settings.report_settings.max_data_chars, sesqui_max_chars=True)}"
                 f"{f' (Part {team_page})' if team_page else ''}"
             )
 

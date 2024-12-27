@@ -2,9 +2,10 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
 import re
-from typing import List, Dict, Optional, Any, Union
+from typing import Any, Dict, List, Optional, Union
 
-from tornado.gen import coroutine, WaitIterator
+from pyobjson import PythonObjectJson
+from tornado.gen import WaitIterator, coroutine
 from tornado.httpclient import AsyncHTTPClient, HTTPRequest, HTTPResponse
 from tornado.ioloop import IOLoop
 
@@ -12,6 +13,32 @@ from utilities.constants import player_name_punctuation, player_name_suffixes
 from utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)
+
+
+class FFMWRPythonObjectJson(PythonObjectJson):
+    """Custom class extension of PythonObjectJson that excludes all sensitive attributes from saved data.
+    """
+
+    def __init__(self):
+        super().__init__(excluded_attributes=[
+            "yahoo_consumer_key",
+            "yahoo_consumer_secret",
+            "yahoo_access_token_json",
+            "espn_username",
+            "espn_password",
+            "espn_cookie_swid",
+            "espn_cookie_espn_s2",
+            "cbs_username",
+            "cbs_password",
+            "cbs_auth_token",
+            "google_drive_client_id",
+            "google_drive_client_secret",
+            "google_drive_auth_token_json",
+            "slack_auth_token",
+            "groupme_access_token",
+            "groupme_bot_id",
+            "discord_webhook_id"
+        ])
 
 
 def normalize_dependency_package_name(package_name: str) -> str:

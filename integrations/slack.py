@@ -14,7 +14,7 @@ from slack_sdk.web.base_client import SlackResponse
 
 from integrations.base.integration import BaseIntegration
 from utilities.logger import get_logger
-from utilities.settings import settings
+from utilities.settings import AppSettings, get_app_settings_from_env_file
 
 logger = get_logger(__name__, propagate=False)
 
@@ -25,19 +25,19 @@ logging.getLogger("slack.web.base_client").setLevel(level=logging.INFO)
 
 class SlackIntegration(BaseIntegration):
 
-    def __init__(self, week):
+    def __init__(self, settings: AppSettings, week: int):
         self.root_dir = Path(__file__).parent.parent
-        super().__init__("slack", week)
+        super().__init__(settings, "slack", week)
 
     def _authenticate(self) -> None:
 
-        if not settings.integration_settings.slack_auth_token:
-            settings.integration_settings.slack_auth_token = input(
+        if not self.settings.integration_settings.slack_auth_token:
+            self.settings.integration_settings.slack_auth_token = input(
                 f"{Fore.GREEN}What is your Slack authentication token? -> {Style.RESET_ALL}"
             )
-            settings.write_settings_to_env_file(self.root_dir / ".env")
+            self.settings.write_settings_to_env_file(self.root_dir / ".env")
 
-        self.client = WebClient(token=settings.integration_settings.slack_auth_token)
+        self.client = WebClient(token=self.settings.integration_settings.slack_auth_token)
 
     def api_test(self):
         logger.debug("Testing Slack API.")
@@ -66,7 +66,7 @@ class SlackIntegration(BaseIntegration):
 
         try:
             return self.client.chat_postMessage(
-                channel=self._get_channel_id(settings.integration_settings.slack_channel),
+                channel=self._get_channel_id(self.settings.integration_settings.slack_channel),
                 text=f"<!here>:\n{message}",
                 username="ff-report",
                 # uncomment the icon_emoji parameter if you wish to choose an icon emoji to be your app icon, otherwise
@@ -82,14 +82,14 @@ class SlackIntegration(BaseIntegration):
         try:
             message = self._upload_success_message(file_path.name)
 
-            if settings.integration_settings.slack_channel_notify_bool:
+            if self.settings.integration_settings.slack_channel_notify_bool:
                 message = f"<!here>\n{message}"
 
             file_for_upload: Path = self.root_dir / file_path
             with open(file_for_upload, "rb") as uf:
 
                 response = self.client.files_upload_v2(
-                    channel=self._get_channel_id(settings.integration_settings.slack_channel),
+                    channel=self._get_channel_id(self.settings.integration_settings.slack_channel),
                     filename=file_for_upload.name,
                     file=uf.read(),
                     initial_comment=message
@@ -101,11 +101,13 @@ class SlackIntegration(BaseIntegration):
 
 
 if __name__ == "__main__":
-    reupload_file = Path(__file__).parent.parent / settings.integration_settings.reupload_file_path
+    local_settings: AppSettings = get_app_settings_from_env_file()
+
+    reupload_file = Path(__file__).parent.parent / local_settings.integration_settings.reupload_file_path
 
     logger.info(f"Re-uploading {reupload_file.name} ({reupload_file}) to Slack...")
 
-    slack_integration = SlackIntegration(settings.week_for_report)
+    slack_integration = SlackIntegration(local_settings, local_settings.week_for_report)
 
     # logger.info(f"\n{json.dumps(slack_integration.api_test().data, indent=2)}")
     # logger.info(f"{json.dumps(slack_integration.post_message('test message').data, indent=2)}")

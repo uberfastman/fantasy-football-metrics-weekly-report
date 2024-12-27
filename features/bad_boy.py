@@ -7,13 +7,13 @@ import re
 from collections import OrderedDict
 from pathlib import Path
 from string import capwords
-from typing import Dict, Any, Union, Optional
+from typing import Any, Dict, Optional, Union
 
 import requests
 from bs4 import BeautifulSoup
 
 from features.base.feature import BaseFeature
-from utilities.constants import nfl_team_abbreviations, nfl_team_abbreviation_conversions
+from utilities.constants import nfl_team_abbreviation_conversions, nfl_team_abbreviations
 from utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)
@@ -21,8 +21,8 @@ logger = get_logger(__name__, propagate=False)
 
 class BadBoyFeature(BaseFeature):
 
-    def __init__(self, data_dir: Path, root_dir: Path, refresh: bool = False, save_data: bool = False,
-                 offline: bool = False):
+    def __init__(self, week_for_report: int, root_dir: Path, data_dir: Path, refresh: bool = False,
+                 save_data: bool = False, offline: bool = False):
         """Initialize class, load data from USA Today NFL Arrest DB. Combine defensive player data
         """
         # position type reference
@@ -49,6 +49,7 @@ class BadBoyFeature(BaseFeature):
         super().__init__(
             "bad_boy",
             "https://www.usatoday.com/sports/nfl/arrests",
+            week_for_report,
             data_dir,
             refresh,
             save_data,

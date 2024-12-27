@@ -12,11 +12,12 @@ from calculate.metrics import CalculateMetrics
 from calculate.points_by_position import PointsByPosition
 from calculate.season_averages import SeasonAverageCalculator
 from dao.base import BaseLeague, BaseTeam
+from dao.platforms.base.league import BaseLeagueData
 from report.data import ReportData
 from report.pdf.generator import PdfGenerator
 from utilities.app import league_data_factory, patch_http_connection_pool
 from utilities.logger import get_logger
-from utilities.settings import settings
+from utilities.settings import AppSettings
 from utilities.utils import format_platform_display
 
 logger = get_logger(__name__, propagate=False)
@@ -24,17 +25,18 @@ logger = get_logger(__name__, propagate=False)
 
 class FantasyFootballReport(object):
     def __init__(self,
+                 settings: AppSettings,
                  week_for_report=None,
                  platform=None,
                  league_id=None,
                  game_id=None,
                  season=None,
                  start_week=None,
-                 refresh_web_data=False,
                  playoff_prob_sims=None,
                  break_ties=False,
                  dq_ce=False,
                  save_data=False,
+                 refresh_feature_web_data=False,
                  offline=False,
                  test=False):
 
@@ -42,35 +44,36 @@ class FantasyFootballReport(object):
 
         patch_http_connection_pool(maxsize=100)
 
-        # settings
-        base_dir = Path(__file__).parent.parent
-        self.data_dir = base_dir / settings.data_dir_path
+        self.settings = settings
+
+        self.data_dir = self.settings.data_dir_path
         if platform:
             self.platform: str = platform
             self.platform_display: str = format_platform_display(self.platform)
         else:
-            self.platform: str = settings.platform
+            self.platform: str = self.settings.platform
             self.platform_display: str = format_platform_display(self.platform)
         if league_id:
             self.league_id: str = str(league_id)
         else:
-            self.league_id: str = settings.league_id
+            self.league_id: str = self.settings.league_id
         # TODO: game_id for Yahoo Fantasy Football can be int or str (YFPY expects int, with str for game_code)
         if game_id:
             self.game_id = game_id
         else:
-            self.game_id = settings.platform_settings.yahoo_game_id
+            self.game_id = self.settings.platform_settings.yahoo_game_id
         if season:
             self.season: int = int(season)
         else:
-            self.season: int = settings.season
+            self.season: int = self.settings.season
 
-        self.save_data = save_data
-        # refresh data pulled from external web sources: bad boy data from USA Today, beef data from Sleeper API
-        self.refresh_web_data = refresh_web_data
         self.playoff_prob_sims = playoff_prob_sims
         self.break_ties = break_ties
         self.dq_ce = dq_ce
+
+        self.save_data = save_data
+        # refresh feature data pulled from external web sources
+        self.refresh_feature_web_data = refresh_feature_web_data
 
         self.offline = offline
         self.test = test
@@ -85,24 +88,19 @@ class FantasyFootballReport(object):
             f"    game id: {self.game_id if self.game_id else 'nfl (current season)'}{f_str_newline}"
             f"    week: {week_for_report if week_for_report else 'selected/default'}{f_str_newline}"
             f"    start_week: {start_week if start_week else 'default=1'}{f_str_newline}"
-            f"{f'    save_data: {self.save_data}{f_str_newline}'}"
-            f"{f'    refresh_web_data: {self.refresh_web_data}{f_str_newline}'}"
             f"    playoff_prob_sims: {self.playoff_prob_sims}{f_str_newline}"
-            f"{f'    break_ties: {self.break_ties}{f_str_newline}'}"
-            f"{f'    dq_ce: {self.dq_ce}{f_str_newline}'}"
-            f"{f'    offline: {self.offline}{f_str_newline}'}"
-            f"{f'    test: {self.test}{f_str_newline}'}"
+            f"    break_ties: {self.break_ties}{f_str_newline}"
+            f"    dq_ce: {self.dq_ce}{f_str_newline}"
+            f"    save_data: {self.save_data}{f_str_newline}"
+            f"    refresh_feature_web_data: {self.refresh_feature_web_data}{f_str_newline}"
+            f"    offline: {self.offline}{f_str_newline}"
+            f"    test: {self.test}{f_str_newline}"
             f"on {datetime.now():%b %d, %Y}..."
         )
 
-        begin = datetime.now()
-        logger.info(
-            f"Retrieving fantasy football data from {self.platform_display} {'API' if not self.offline else 'saved data'}..."
-        )
-
-        # retrieve all league data from respective platform API
-        self.league: BaseLeague = league_data_factory(
-            base_dir=base_dir,
+        league_data: BaseLeagueData = league_data_factory(
+            settings=self.settings,
+            root_dir=Path(__file__).parent.parent,
             data_dir=self.data_dir,
             platform=self.platform,
             game_id=self.game_id,
@@ -114,31 +112,36 @@ class FantasyFootballReport(object):
             offline=self.offline
         )
 
-        delta = datetime.now() - begin
-        logger.info(
-            f"...retrieved all fantasy football data from "
-            f"{self.platform_display + (' API' if not self.offline else ' saved data')} in {delta}"
-        )
+        # retrieve all league data from respective platform API
+        league_data.fetch()
+
+        self.league: BaseLeague = league_data.league
 
         if self.league.num_playoff_slots > 0:
-            self.playoff_probs = self.league.get_playoff_probs(self.save_data, self.playoff_prob_sims,
-                                                               self.offline, recalculate=True)
+            self.playoff_probs = self.league.get_playoff_probs(
+                self.playoff_prob_sims, self.save_data, self.offline, recalculate=True
+            )
+
         else:
             self.playoff_probs = None
 
-        if settings.report_settings.league_bad_boy_rankings_bool:
-            self.bad_boy_stats = self.league.get_bad_boy_stats(self.refresh_web_data, self.save_data, self.offline)
+        if self.settings.report_settings.league_bad_boy_rankings_bool:
+            self.bad_boy_stats = self.league.get_bad_boy_stats(
+                self.refresh_feature_web_data, self.save_data, self.offline
+            )
         else:
             self.bad_boy_stats = None
 
-        if settings.report_settings.league_beef_rankings_bool:
-            self.beef_stats = self.league.get_beef_stats(self.refresh_web_data, self.save_data, self.offline)
+        if self.settings.report_settings.league_beef_rankings_bool:
+            self.beef_stats = self.league.get_beef_stats(
+                self.refresh_feature_web_data, self.save_data, self.offline
+            )
         else:
             self.beef_stats = None
 
-        if settings.report_settings.league_high_roller_rankings_bool:
+        if self.settings.report_settings.league_high_roller_rankings_bool:
             self.high_roller_stats = self.league.get_high_roller_stats(
-                self.refresh_web_data, self.save_data, self.offline
+                self.refresh_feature_web_data, self.save_data, self.offline
             )
         else:
             self.high_roller_stats = None
@@ -180,6 +183,7 @@ class FantasyFootballReport(object):
             custom_weekly_matchups = self.league.get_custom_weekly_matchups(week_counter)
 
             report_data = ReportData(
+                settings=self.settings,
                 league=self.league,
                 season_weekly_teams_results=season_weekly_teams_results,
                 week_counter=week_counter,
@@ -311,8 +315,10 @@ class FantasyFootballReport(object):
             time_series_efficiency_data,
             "data_for_coaching_efficiency",
             with_percent=True,
-            first_ties=((report_data.num_first_place_for_coaching_efficiency_before_resolution > 1) and
-                        (report_data.league.player_data_by_week_function is not None))
+            # TODO: find better pattern for player points retrieval instead of passing around a class method object
+            # first_ties=((report_data.num_first_place_for_coaching_efficiency_before_resolution > 1) and
+            #             (report_data.league.player_data_by_week_function is not None))
+            first_ties=report_data.num_first_place_for_coaching_efficiency_before_resolution > 1
         )
 
         report_data.data_for_luck = season_average_calculator.get_average(
@@ -335,9 +341,8 @@ class FantasyFootballReport(object):
             for team_index, team_name, season_total_optimal_points in list_sorted_season_total_optimal_points_data:
                 if team_optimal_points_data_entry[1] == team_name:
                     place = team_index + 1
-                    total_optimal_points_ranked = str("{:.2f}".format(round(season_total_optimal_points, 2))) + " (" + str(place) +")"
+                    total_optimal_points_ranked = f"{round(season_total_optimal_points, 2):.2f} ({place})"
                     team_optimal_points_data_entry.append(total_optimal_points_ranked)
-
 
         report_data.data_for_power_rankings = season_average_calculator.get_average(
             time_series_power_rank_data,
@@ -363,7 +368,7 @@ class FantasyFootballReport(object):
         filename = self.league.name.replace(" ", "-") + "(" + str(self.league_id) + ")_week-" + str(
             self.league.week_for_report) + "_report.pdf"
         report_save_dir = (
-                settings.output_dir_path / str(self.league.season)
+                self.settings.output_dir_path / str(self.league.season)
                 / f"{self.league.name.replace(' ', '-')}({self.league_id})"
         )
         report_title_text = f"{self.league.name} ({self.league_id}) Week {self.league.week_for_report} Report"
@@ -384,10 +389,11 @@ class FantasyFootballReport(object):
         if not self.test:
             filename_with_path = Path(report_save_dir) / filename
         else:
-            filename_with_path = settings.output_dir_path / "test_report.pdf"
+            filename_with_path = self.settings.output_dir_path / "test_report.pdf"
 
         # instantiate pdf generator
         pdf_generator = PdfGenerator(
+            settings=self.settings,
             season=self.season,
             league=self.league,
             playoff_prob_sims=self.playoff_prob_sims,

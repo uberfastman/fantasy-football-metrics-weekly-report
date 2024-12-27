@@ -2,13 +2,13 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
 import itertools
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict, defaultdict
 from statistics import mean
-from typing import Union, List, Dict, Any
+from typing import Any, Dict, List, Union
 
 import numpy as np
 
-from dao.base import BaseLeague, BaseTeam, BaseRecord, BasePlayer
+from dao.base import BaseLeague, BasePlayer, BaseRecord, BaseTeam
 from utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)
@@ -517,90 +517,97 @@ class CalculateMetrics(object):
 
         logger.debug("Resolving coaching efficiency ties.")
 
-        if league.player_data_by_week_function:
-            coaching_efficiency_results_data_with_tiebreakers = []
-            bench_positions = league.bench_positions
+        # if league.player_data_by_week_function:
+        coaching_efficiency_results_data_with_tiebreakers = []
+        bench_positions = league.bench_positions
 
-            season_average_points_by_player_dict = defaultdict(list)
-            if break_ties and ties_for_coaching_efficiency > 0 and week == int(week_for_report):
-                for ce_result in data_for_coaching_efficiency:
-                    if ce_result[0] == "1*":
-                        players = []
-                        for team_result in teams_results.values():
-                            if team_result.name == ce_result[1]:
-                                players = teams_results.get(team_result.team_id).roster
+        season_average_points_by_player_dict = defaultdict(list)
+        if break_ties and ties_for_coaching_efficiency > 0 and week == int(week_for_report):
+            for ce_result in data_for_coaching_efficiency:
+                if ce_result[0] == "1*":
+                    players = []
+                    for team_result in teams_results.values():
+                        if team_result.name == ce_result[1]:
+                            players = teams_results.get(team_result.team_id).roster
 
-                        num_players_exceeded_season_avg_points = 0
-                        total_percentage_points_players_exceeded_season_avg_points = 0
-                        player: BasePlayer
-                        for player in players:
-                            if player.selected_position not in bench_positions:
-                                week_counter = 1
-                                while week_counter <= int(week):
-                                    players_by_week = league.players_by_week[str(week_counter)]
-                                    if str(player.player_id) in players_by_week.keys():
-                                        weekly_player_points = players_by_week[str(player.player_id)].points
-                                    else:
-                                        weekly_player_points = league.get_player_data_by_week(
-                                            str(player.player_id), week_counter)
+                    num_players_exceeded_season_avg_points = 0
+                    total_percentage_points_players_exceeded_season_avg_points = 0
+                    player: BasePlayer
+                    for player in players:
+                        if player.selected_position not in bench_positions:
+                            week_counter = 1
+                            while week_counter <= int(week):
+                                # players_by_week = league.players_by_week[str(week_counter)]
+                                # if str(player.player_id) in players_by_week.keys():
+                                #     weekly_player_points = players_by_week[str(player.player_id)].points
+                                # else:
+                                #     weekly_player_points = league.get_player_data_by_week(
+                                #         str(player.player_id), week_counter)
+                                #
+                                # season_average_points_by_player_dict[player.player_id].append(weekly_player_points)
 
-                                    season_average_points_by_player_dict[player.player_id].append(weekly_player_points)
-                                    week_counter += 1
+                                players_by_week = league.players_by_week[str(week_counter)]
+                                if str(player.player_id) in players_by_week.keys():
+                                    season_average_points_by_player_dict[player.player_id].append(
+                                        players_by_week[str(player.player_id)].points
+                                    )
 
-                                player_last_week_points = season_average_points_by_player_dict[player.player_id][-1]
+                                week_counter += 1
 
-                                # handle the beginning of the season when a player has only played one or no games
-                                player_season_weekly_points = season_average_points_by_player_dict[player.player_id]
-                                if len(player_season_weekly_points) == 0:
-                                    player_season_avg_points = 0
-                                elif len(player_season_weekly_points) == 1:
-                                    player_season_avg_points = player_season_weekly_points[0]
+                            player_last_week_points = season_average_points_by_player_dict[player.player_id][-1]
+
+                            # handle the beginning of the season when a player has only played one or no games
+                            player_season_weekly_points = season_average_points_by_player_dict[player.player_id]
+                            if len(player_season_weekly_points) == 0:
+                                player_season_avg_points = 0
+                            elif len(player_season_weekly_points) == 1:
+                                player_season_avg_points = player_season_weekly_points[0]
+                            else:
+                                player_season_avg_points = mean(player_season_weekly_points[:-1])
+
+                            if player_last_week_points > player_season_avg_points:
+                                num_players_exceeded_season_avg_points += 1
+
+                                if player_season_avg_points > 0:
+                                    total_percentage_points_players_exceeded_season_avg_points += (
+                                            (
+                                                    (player_last_week_points - player_season_avg_points)
+                                                    / player_season_avg_points
+                                            ) * 100.0
+
+                                    )
                                 else:
-                                    player_season_avg_points = mean(player_season_weekly_points[:-1])
+                                    total_percentage_points_players_exceeded_season_avg_points += 100.0
 
-                                if player_last_week_points > player_season_avg_points:
-                                    num_players_exceeded_season_avg_points += 1
+                    ce_result.extend([num_players_exceeded_season_avg_points,
+                                      round(total_percentage_points_players_exceeded_season_avg_points, 2)])
+                    coaching_efficiency_results_data_with_tiebreakers.append(ce_result)
+                else:
+                    ce_result.extend(["N/A", "N/A"])
+                    coaching_efficiency_results_data_with_tiebreakers.append(ce_result)
 
-                                    if player_season_avg_points > 0:
-                                        total_percentage_points_players_exceeded_season_avg_points += (
-                                                (
-                                                        (player_last_week_points - player_season_avg_points)
-                                                        / player_season_avg_points
-                                                ) * 100.0
-
-                                        )
-                                    else:
-                                        total_percentage_points_players_exceeded_season_avg_points += 100.0
-
-                        ce_result.extend([num_players_exceeded_season_avg_points,
-                                          round(total_percentage_points_players_exceeded_season_avg_points, 2)])
-                        coaching_efficiency_results_data_with_tiebreakers.append(ce_result)
-                    else:
-                        ce_result.extend(["N/A", "N/A"])
-                        coaching_efficiency_results_data_with_tiebreakers.append(ce_result)
-
-                groups = [list(group) for key, group in
-                          itertools.groupby(coaching_efficiency_results_data_with_tiebreakers, lambda x: x[3])]
-            else:
-                groups = [list(group) for key, group in itertools.groupby(data_for_coaching_efficiency, lambda x: x[3])]
-
-            resolved_coaching_efficiency_results_data = []
-            place = 1
-            for group in groups:
-                for team in sorted(
-                        group,
-                        key=lambda x: (x[-2] if x[-2] != "DQ" else 0, x[-1]),
-                        reverse=True):
-                    if groups.index(group) == 0:
-                        if break_ties:
-                            team[0] = place
-                    resolved_coaching_efficiency_results_data.append(team)
-                    place += 1
-            return resolved_coaching_efficiency_results_data
+            groups = [list(group) for key, group in
+                      itertools.groupby(coaching_efficiency_results_data_with_tiebreakers, lambda x: x[3])]
         else:
-            logger.debug(
-                "No function to retrieve past player weekly points available. Cannot resolve coaching efficiency ties.")
-            return data_for_coaching_efficiency
+            groups = [list(group) for key, group in itertools.groupby(data_for_coaching_efficiency, lambda x: x[3])]
+
+        resolved_coaching_efficiency_results_data = []
+        place = 1
+        for group in groups:
+            for team in sorted(
+                    group,
+                    key=lambda x: (x[-2] if x[-2] != "DQ" else 0, x[-1]),
+                    reverse=True):
+                if groups.index(group) == 0:
+                    if break_ties:
+                        team[0] = place
+                resolved_coaching_efficiency_results_data.append(team)
+                place += 1
+        return resolved_coaching_efficiency_results_data
+        # else:
+        #     logger.debug(
+        #         "No function to retrieve past player weekly points available. Cannot resolve coaching efficiency ties.")
+        #     return data_for_coaching_efficiency
 
     @staticmethod
     def resolve_season_average_ties(data_for_season_averages: List[List[Any]], with_percent: bool) -> List[List[Any]]:
