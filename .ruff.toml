@@ -14,6 +14,7 @@ indent-width = 4
 [format]
 quote-style = "double"
 indent-style = "space"
+docstring-code-format = true
 skip-magic-trailing-comma = false
 line-ending = "auto"
 

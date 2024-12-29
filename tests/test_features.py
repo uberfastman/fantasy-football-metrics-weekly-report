@@ -1,23 +1,22 @@
 __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
-import os
 import sys
 from pathlib import Path
 
 root_dir = Path(__file__).parent.parent
 sys.path.append(str(root_dir))
 
-from features.bad_boy import BadBoyFeature  # noqa: E402
-from features.beef import BeefFeature  # noqa: E402
-from features.high_roller import HighRollerFeature  # noqa: E402
-from utilities.logger import get_logger  # noqa: E402
+from ffmwr.features.bad_boy import BadBoyFeature  # noqa: E402
+from ffmwr.features.beef import BeefFeature  # noqa: E402
+from ffmwr.features.high_roller import HighRollerFeature  # noqa: E402
+from ffmwr.utilities.logger import get_logger  # noqa: E402
 
 logger = get_logger(__file__)
 
-test_data_dir = Path(root_dir) / "tests" / "output" / "data" / "feature_data"
-if not Path(test_data_dir).exists():
-    os.makedirs(test_data_dir)
+test_data_dir = Path(root_dir) / "output" / "data" / "tests" / "feature_data"
+if not test_data_dir.exists():
+    test_data_dir.mkdir(parents=True, exist_ok=True)
 
 player_first_name = "Rashee"
 player_last_name = "Rice"
@@ -36,29 +35,25 @@ def test_bad_boy_init():
         data_dir=test_data_dir,
         refresh=True,
         save_data=True,
-        offline=False
+        offline=False,
     )
     bad_boy_feature.generate_crime_categories_json()
 
-    logger.info(
-        f"\nPlayer Bad Boy crime for {player_first_name} {player_last_name}: "
-        f"{bad_boy_feature.get_player_bad_boy_crime(player_first_name, player_last_name, player_team_abbr, player_position)}"
+    player_bad_boy_crime = bad_boy_feature.get_player_bad_boy_crime(
+        player_first_name, player_last_name, player_team_abbr, player_position
     )
-    logger.info(
-        f"\nPlayer Bad Boy points for {player_first_name} {player_last_name}: "
-        f"{bad_boy_feature.get_player_bad_boy_points(player_first_name, player_last_name, player_team_abbr, player_position)}"
+    logger.info(f"\nPlayer Bad Boy crime for {player_first_name} {player_last_name}: {player_bad_boy_crime}")
+    player_bad_boy_points = bad_boy_feature.get_player_bad_boy_points(
+        player_first_name, player_last_name, player_team_abbr, player_position
     )
+    logger.info(f"\nPlayer Bad Boy points for {player_first_name} {player_last_name}: {player_bad_boy_points}")
 
     assert bad_boy_feature.feature_data is not None
 
 
 def test_beef_init():
     beef_feature = BeefFeature(
-        week_for_report=week_for_report,
-        data_dir=test_data_dir,
-        refresh=True,
-        save_data=True,
-        offline=False
+        week_for_report=week_for_report, data_dir=test_data_dir, refresh=True, save_data=True, offline=False
     )
     beef_feature.generate_player_info_json()
 
@@ -81,21 +76,21 @@ def test_high_roller_init():
         data_dir=test_data_dir,
         refresh=True,
         save_data=True,
-        offline=False
+        offline=False,
     )
 
-    logger.info(
-        f"\nPlayer worst violation for {player_full_name}: "
-        f"{high_roller_feature.get_player_worst_violation(player_first_name, player_last_name, player_team_abbr, player_position)}"
+    player_worst_violation = high_roller_feature.get_player_worst_violation(
+        player_first_name, player_last_name, player_team_abbr, player_position
     )
-    logger.info(
-        f"\nPlayer worst violation fine for {player_full_name}: "
-        f"{high_roller_feature.get_player_worst_violation_fine(player_first_name, player_last_name, player_team_abbr, player_position)}"
+    logger.info(f"\nPlayer worst violation for {player_full_name}: {player_worst_violation}")
+    player_worst_violation_fine = high_roller_feature.get_player_worst_violation_fine(
+        player_first_name, player_last_name, player_team_abbr, player_position
     )
-    logger.info(
-        f"\nPlayer fines total for {player_full_name}: "
-        f"{high_roller_feature.get_player_fines_total(player_first_name, player_last_name, player_team_abbr, player_position)}"
+    logger.info(f"\nPlayer worst violation fine for {player_full_name}: {player_worst_violation_fine}")
+    player_fines_total = high_roller_feature.get_player_fines_total(
+        player_first_name, player_last_name, player_team_abbr, player_position
     )
+    logger.info(f"\nPlayer fines total for {player_full_name}: {player_fines_total}")
 
     assert high_roller_feature.feature_data is not None
 
