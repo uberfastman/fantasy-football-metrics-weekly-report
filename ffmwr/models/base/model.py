@@ -12,7 +12,7 @@ from ffmwr.features.bad_boy import BadBoyFeature
 from ffmwr.features.beef import BeefFeature
 from ffmwr.features.high_roller import HighRollerFeature
 from ffmwr.utilities.settings import AppSettings
-from ffmwr.utilities.utils import FFMWRPythonObjectJson
+from ffmwr.utilities.utils import FFMWRPythonObjectJson, generate_normalized_player_key
 
 
 class BaseLeague(FFMWRPythonObjectJson):
@@ -591,29 +591,37 @@ class BasePlayer(FFMWRPythonObjectJson):
 
         self.week_for_report: int = 0
         self.player_id: Optional[str] = None
-        self.bye_week: int = 0
-        self.display_position: Optional[str] = None
-        self.nfl_team_id: Optional[str] = None
-        self.nfl_team_abbr: Optional[str] = None
-        self.nfl_team_name: Optional[str] = None
-        self.first_name: Optional[str] = None
-        self.last_name: Optional[str] = None
-        self.full_name: Optional[str] = None
         self.headshot_url: Optional[str] = None
         self.owner_team_id: Optional[str] = None
         self.owner_team_name: Optional[str] = None
         self.percent_owned: float = 0.0
+
+        self.first_name: Optional[str] = None
+        self.last_name: Optional[str] = None
+        self.full_name: Optional[str] = None
+
+        self.nfl_team_id: Optional[str] = None
+        self.nfl_team_abbr: Optional[str] = None
+        self.nfl_team_name: Optional[str] = None
+
+        self.display_position: Optional[str] = None
+        self.primary_position: Optional[str] = None
+        self.eligible_positions: Set[str] = set()
+        self.position_type: Optional[str] = None
+
+        self.selected_position: Optional[str] = None
+        self.selected_position_is_flex: bool = False
+
+        self.bye_week: int = 0
+        self.jersey_number: Optional[int] = None
+        self.status: Optional[str] = None
+
         self.points: float = 0.0
         self.projected_points: float = 0.0
         self.season_points: float = 0.0
         self.season_projected_points: float = 0.0
         self.season_average_points: float = 0.0
-        self.position_type: Optional[str] = None
-        self.primary_position: Optional[str] = None
-        self.selected_position: Optional[str] = None
-        self.selected_position_is_flex: bool = False
-        self.status: Optional[str] = None
-        self.eligible_positions: Set[str] = set()
+
         self.stats: List[BaseStat] = []
 
         # - - - - - - - - - - - -
@@ -632,6 +640,9 @@ class BasePlayer(FFMWRPythonObjectJson):
         self.high_roller_worst_violation: Optional[str] = None
         self.high_roller_worst_violation_fine: float = 0.0
         self.high_roller_num_violators: int = 0
+
+    def get_normalized_player_key(self) -> str:
+        return generate_normalized_player_key(self.full_name, self.nfl_team_abbr)
 
 
 class BaseStat(FFMWRPythonObjectJson):

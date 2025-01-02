@@ -11,8 +11,9 @@ from pathlib import Path
 from statistics import median
 from typing import Callable, Union
 
-from ffmwr.models.base.model import BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
 from ffmwr.dao.platforms.base.platform import BasePlatform
+from ffmwr.models.base.model import BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
+from ffmwr.utilities.constants import nfl_team_abbreviations_to_names
 from ffmwr.utilities.logger import get_logger
 from ffmwr.utilities.settings import AppSettings
 
@@ -611,11 +612,11 @@ class SleeperPlatform(BasePlatform):
                         base_player.player_id = player.get("player_id")
                         # TODO: use week WITHOUT projections (Ex.: 11: null) to determine player bye week
                         base_player.bye_week = None
+                        base_player.jersey_number = player.get("number")
                         base_player.display_position = self.get_mapped_position(player.get("position"))
                         base_player.nfl_team_id = None
                         base_player.nfl_team_abbr = player.get("team")
-                        # TODO: no full team name for player
-                        base_player.nfl_team_name = player.get("team")
+                        base_player.nfl_team_name = nfl_team_abbreviations_to_names.get(player.get("team"))
                         if base_player.display_position == "D/ST":
                             base_player.first_name = f"{player.get('first_name')} {player.get('last_name')}"
                             base_player.full_name = base_player.first_name

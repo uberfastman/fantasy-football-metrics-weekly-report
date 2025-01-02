@@ -59,11 +59,11 @@ def test_beef_init():
 
     logger.info(
         f"\nPlayer weight for {player_full_name}: "
-        f"{beef_feature.get_player_weight(player_first_name, player_last_name, player_team_abbr)}"
+        f"{beef_feature.get_player_weight(player_first_name, player_last_name, player_team_abbr, player_position)}"
     )
     logger.info(
         f"\nPlayer TABBU for {player_full_name}: "
-        f"{beef_feature.get_player_tabbu(player_first_name, player_last_name, player_team_abbr)}"
+        f"{beef_feature.get_player_tabbu(player_first_name, player_last_name, player_team_abbr, player_position)}"
     )
 
     assert beef_feature.feature_data is not None

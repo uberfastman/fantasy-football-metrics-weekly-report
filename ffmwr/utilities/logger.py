@@ -24,8 +24,6 @@ class StyledFormatter(logging.Formatter):
         logging.Formatter.__init__(self, msg)
 
     def format(self, record):
-        record.name = f"{Fore.RESET}{record.name}{Style.RESET_ALL}"
-
         log_level = record.levelname
         if log_level == "DEBUG":
             record.levelname = f"{Fore.MAGENTA}{log_level}{Style.RESET_ALL}"
@@ -47,7 +45,7 @@ class StyledFormatter(logging.Formatter):
 
         # noinspection PyUnresolvedReferences
         if self.usesTime():
-            record.asctime = f"{Fore.RESET}{self.formatTime(record, self.datefmt)}{Style.RESET_ALL}"
+            record.asctime = self.formatTime(record, self.datefmt).replace(",", ".")
 
         s = self.formatMessage(record)
         if record.exc_info:
@@ -147,11 +145,15 @@ def get_logger(
 
     log_level = log_level_mapping.get(os.environ.get("LOG_LEVEL", "info") or "info")
 
+    separator = f"{Fore.WHITE} - {Style.RESET_ALL}"
     log_formatter = StyledFormatter(
-        f"%(asctime)s {Fore.RESET}-{Style.RESET_ALL} "
-        f"%(name)s {Fore.RESET}-{Style.RESET_ALL} "
-        # f"%(pathname)s {Fore.RESET}-{Style.RESET_ALL} "  # uncomment to debug third-party logging
-        f"%(levelname)s {Fore.RESET}-{Style.RESET_ALL} "
+        f"{Fore.WHITE}%(asctime)s{Style.RESET_ALL}"
+        f"{separator}"
+        f"{Fore.CYAN}%(name)s{Fore.WHITE}:{Fore.CYAN}%(lineno)d{Style.RESET_ALL}"
+        f"{separator}"
+        # f"{Fore.CYAN}%(pathname)s{Style.RESET_ALL}{separator}"  # uncomment to debug third-party logging
+        f"%(levelname)s"
+        f"{separator}"
         f"%(message)s"
     )
 

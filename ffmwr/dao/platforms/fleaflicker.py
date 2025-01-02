@@ -93,7 +93,7 @@ class FleaflickerPlatform(BasePlatform):
                 - 1
             )
         except (IndexError, AttributeError) as e:
-            logger.error(e)
+            logger.error(f"Unable to scrape the current week: {e}")
             scraped_current_week = None
 
         scraped_league_rules = self._scrape(f"{self.league.url}/rules")
@@ -416,6 +416,13 @@ class FleaflickerPlatform(BasePlatform):
                         base_player.week_for_report = int(week)
                         base_player.player_id = flea_pro_player.get("id")
                         base_player.bye_week = int(flea_pro_player.get("nflByeWeek", 0))
+                        # TODO: jersey number only appears to be available in player profile
+                        # flea_player_profile = self.query(
+                        #     f"https://www.fleaflicker.com/api/FetchPlayerProfile?"
+                        #     f"leagueId={self.league.league_id}"
+                        #     f"&playerId={flea_pro_player.get('id')}"
+                        # )
+                        # base_player.jersey_number = flea_player_profile.get("detail").get("jerseyNumber")
                         base_player.display_position = self.get_mapped_position(flea_pro_player.get("position"))
                         base_player.nfl_team_id = None
                         base_player.nfl_team_abbr = flea_pro_player.get("proTeam", {}).get("abbreviation").upper()

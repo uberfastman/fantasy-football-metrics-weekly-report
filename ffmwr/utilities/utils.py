@@ -77,8 +77,10 @@ def truncate_cell_for_display(
         return cell_text
 
 
-def normalize_player_name(player_full_name: str, as_key_format: bool = False) -> str:
-    """Remove all punctuation and name suffixes from player names, combine whitespace, and covert them to title case."""
+def generate_normalized_player_key(player_full_name: str, player_nfl_team_abbr: str) -> str:
+    """Remove all punctuation and name suffixes from player names, combine whitespace, covert them to snake case, and
+    append player NFL team abbreviation.
+    """
     regex_all_whitespace = re.compile(r"\s+")
     normalized_player_name: str = regex_all_whitespace.sub(" ", player_full_name).strip()
 
@@ -91,12 +93,9 @@ def normalize_player_name(player_full_name: str, as_key_format: bool = False) ->
         for suffix in player_name_suffixes:
             normalized_player_name = normalized_player_name.removesuffix(suffix)
 
-    normalized_player_name = normalized_player_name.strip()
-
-    if as_key_format:
-        return regex_all_whitespace.sub("_", normalized_player_name.lower())
-    else:
-        return normalized_player_name.title()
+    return (
+        f"{regex_all_whitespace.sub('_', normalized_player_name.strip().lower())}-{player_nfl_team_abbr.lower()}"
+    )
 
 
 def get_data_from_web(

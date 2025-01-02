@@ -195,7 +195,7 @@ Project dependencies can be viewed in the [`requirements.txt`](requirements.txt)
 
 The Fantasy Football Metrics Weekly Report requires several sets of setup steps, depending on which platform(s) for which you will be running it. To get the application running locally, you will first need to complete the below setup.
 
-_\* General setup **excludes** Google Drive and Slack integrations. See [Additional Integrations](#additional-integrations) for details on including those add-ons._
+_\* General setup **excludes** third-party integrations. See [Additional Integrations](#additional-integrations) for details on including those add-ons._
 
 ---
 

@@ -416,7 +416,8 @@ class YahooPlatform(BasePlatform):
 
                     base_player.week_for_report = int(week)
                     base_player.player_id = player.player_key
-                    base_player.bye_week = player.bye if player.bye else 0
+                    base_player.bye_week = player.bye or 0
+                    base_player.jersey_number = player.uniform_number
                     base_player.display_position = (
                         ", ".join([self.get_mapped_position(pos.strip()) for pos in player.display_position.split(",")])
                         if "," in player.display_position

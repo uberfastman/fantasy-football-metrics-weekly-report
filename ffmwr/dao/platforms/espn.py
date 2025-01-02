@@ -515,6 +515,7 @@ class ESPNPlatform(BasePlatform):
                     base_player.player_id = str(player.playerId)
                     # TODO: missing bye
                     base_player.bye_week = None
+                    base_player.jersey_number = int(player_json.get("jersey")) if player_json.get("jersey") else None
                     base_player.display_position = self.get_mapped_position(player.position)
                     base_player.nfl_team_id = player_json["proTeamId"]
                     base_player.nfl_team_abbr = player.proTeam

@@ -8,7 +8,7 @@ from typing import Dict, List, Set, Union
 from ffmwr.models.base.model import BaseLeague, BasePlayer
 from ffmwr.utilities.constants import prohibited_statuses
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.utils import normalize_player_name
+from ffmwr.utilities.utils import generate_normalized_player_key
 
 logger = get_logger(__name__, propagate=False)
 
@@ -69,7 +69,7 @@ class CoachingEfficiency(object):
             return (
                 player.status in self.inactive_statuses
                 or player.bye_week == week
-                or normalize_player_name(player.full_name) in inactives
+                or generate_normalized_player_key(player.full_name, player.nfl_team_abbr) in inactives
             )
 
     def _get_player_open_positions(self, player: BasePlayer, optimal_lineup: Dict[str, RosterSlot]):
