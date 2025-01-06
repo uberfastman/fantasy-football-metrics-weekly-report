@@ -15,7 +15,7 @@ from argparse import ArgumentParser, HelpFormatter, Namespace
 from datetime import datetime
 from importlib.metadata import distributions
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import colorama
 from colorama import Fore, Style
@@ -43,7 +43,7 @@ def select_league(
     league_id: Union[str, None],
     season: int,
     start_week: int,
-    week: int,
+    week_for_report: int,
     break_ties: bool,
     playoff_prob_sims: int,
     dq_ce: bool,
@@ -55,6 +55,12 @@ def select_league(
     # set "use default" environment variable for access by fantasy football platforms
     if use_default:
         os.environ["USE_DEFAULT"] = "1"
+
+    if not platform:
+        platform = select_platform(settings, use_default=use_default)
+
+    if not week_for_report:
+        week_for_report = select_week(settings, use_default=use_default)
 
     if not league_id:
         if not use_default:
@@ -70,11 +76,6 @@ def select_league(
         selection = "selected"
 
     if selection == "y":
-        if not week:
-            week_for_report = select_week(settings, use_default=use_default)
-        else:
-            week_for_report = week
-
         return FantasyFootballReport(
             settings=settings,
             week_for_report=week_for_report,
@@ -95,12 +96,6 @@ def select_league(
             f"{Fore.YELLOW}What is the league ID of the league for which you want to generate a report? "
             f"-> {Style.RESET_ALL}"
         )
-
-        if not week:
-            week_for_report = select_week(settings)
-        else:
-            week_for_report = week
-
         try:
             return FantasyFootballReport(
                 settings=settings,
@@ -128,7 +123,7 @@ def select_league(
                 None,
                 season,
                 start_week,
-                week,
+                week_for_report,
                 break_ties,
                 playoff_prob_sims,
                 dq_ce,
@@ -138,11 +133,6 @@ def select_league(
                 test,
             )
     elif selection == "selected":
-        if not week:
-            week_for_report = select_week(settings, use_default=use_default)
-        else:
-            week_for_report = week
-
         return FantasyFootballReport(
             settings=settings,
             week_for_report=week_for_report,
@@ -170,7 +160,7 @@ def select_league(
             None,
             season,
             start_week,
-            week,
+            week_for_report,
             break_ties,
             playoff_prob_sims,
             dq_ce,
@@ -181,7 +171,52 @@ def select_league(
         )
 
 
-def select_week(settings: AppSettings, use_default: bool = False) -> Union[int, None]:
+def select_platform(settings: AppSettings, use_default: bool = False) -> str:
+    if not use_default:
+        time.sleep(0.25)
+        selection = input(
+            f"{Fore.YELLOW}Generate report for default platform? ({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) "
+            f"-> {Style.RESET_ALL}"
+        ).lower()
+    else:
+        logger.info('Use-default is set to "true". Automatically running the report for the default platform.')
+        selection = "y"
+
+    if selection == "y":
+        if settings.platform in settings.supported_platforms_list:
+            return settings.platform
+        else:
+            logger.warning(
+                f'Generating fantasy football reports for the "{format_platform_display(settings.platform)}" fantasy '
+                f"football platform is not currently supported. Please change the settings in your .env file and try "
+                f"again."
+            )
+            sys.exit(1)
+    elif selection == "n":
+        chosen_platform = input(
+            f"{Fore.YELLOW}For which platform would you like to generate a report ? "
+            f"({Fore.GREEN}{f'{Fore.YELLOW}/{Fore.GREEN}'.join(settings.supported_platforms_list)}{Fore.YELLOW}) "
+            f"-> {Style.RESET_ALL}"
+        ).lower()
+
+        if chosen_platform in settings.supported_platforms_list:
+            return chosen_platform
+        else:
+            logger.warning(
+                f'Generating fantasy football reports for the "{format_platform_display(chosen_platform)}" fantasy '
+                f'football platform is not currently supported. Please select a valid platform from '
+                f'{"/".join(settings.supported_platforms_list)}. '
+                f'-> {Style.RESET_ALL}'
+            )
+            time.sleep(0.25)
+            return select_platform(settings, use_default=use_default)
+    else:
+        logger.warning('You must select either "y" or "n".')
+        time.sleep(0.25)
+        return select_platform(settings, use_default=use_default)
+
+
+def select_week(settings: AppSettings, use_default: bool = False) -> Optional[int]:
     if not use_default:
         time.sleep(0.25)
         selection = input(
@@ -209,11 +244,11 @@ def select_week(settings: AppSettings, use_default: bool = False) -> Union[int, 
         else:
             logger.warning(f"Please select a valid week number between 1 and {settings.nfl_season_length}.")
             time.sleep(0.25)
-            select_week(settings, use_default=use_default)
+            return select_week(settings, use_default=use_default)
     else:
         logger.warning('You must select either "y" or "n".')
         time.sleep(0.25)
-        select_week(settings, use_default=use_default)
+        return select_week(settings, use_default=use_default)
 
 
 def main() -> None:
@@ -242,6 +277,10 @@ def main() -> None:
         )
         sys.exit(1)
 
+    root_directory = Path(__file__).parent
+
+    app_settings: AppSettings = get_app_settings_from_env_file(root_directory / ".env")
+
     arg_parser = ArgumentParser(
         prog="python main.py",
         description=(
@@ -261,8 +300,8 @@ def main() -> None:
         type=str,
         required=False,
         help=(
-            "Fantasy football platform on which league for report is hosted. "
-            'Currently supports: "yahoo", "espn", "sleeper", "fleaflicker", and "cbs"'
+            f"Fantasy football platform on which league for report is hosted. "
+            f"Currently supports: {', '.join(app_settings.supported_platforms_list)}"
         ),
     )
     report_configuration_group.add_argument(
@@ -379,10 +418,6 @@ def main() -> None:
 
     args: Namespace = arg_parser.parse_args()
 
-    root_directory = Path(__file__).parent
-
-    app_settings: AppSettings = get_app_settings_from_env_file(root_directory / ".env")
-
     if app_settings.check_for_updates:
         # check to see if the current app is behind any commits, and provide option to update and re-run if behind
         check_github_for_updates(args.use_default)
@@ -402,10 +437,6 @@ def main() -> None:
         f"{args_display}"
         f"{f_str_newline}"
     )
-
-    if args.week < 1 or args.week > app_settings.nfl_season_length:
-        logger.error(f"Please select a valid week number from 1 to {app_settings.nfl_season_length}.")
-        args.week = select_week(app_settings)
 
     report = select_league(
         app_settings,
