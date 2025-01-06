@@ -195,7 +195,7 @@ Project dependencies can be viewed in the [`requirements.txt`](requirements.txt)
 
 The Fantasy Football Metrics Weekly Report requires several sets of setup steps, depending on which platform(s) for which you will be running it. To get the application running locally, you will first need to complete the below setup.
 
-_\* General setup **excludes** Google Drive and Slack integrations. See [Additional Integrations](#additional-integrations) for details on including those add-ons._
+_\* General setup **excludes** third-party integrations. See [Additional Integrations](#additional-integrations) for details on including those add-ons._
 
 ---
 
@@ -452,7 +452,7 @@ CBS has a public API that was once documented, the last version of which can be 
 
    1. You should see the following prompts:
 
-      1. `Generate report for default league? (y/n) -> `.
+      1. `Generate report for default platform? (y/n) ->`
 
          Type `y` and hit enter.
 
@@ -460,7 +460,11 @@ CBS has a public API that was once documented, the last version of which can be 
 
          Type `y` and hit enter.
 
-      3. <ins>**NOTE FOR YAHOO USERS ONLY**</ins>: The ***FIRST*** time you run the app, you will see an `AUTHORIZATION URL` (if you followed the instructions in the [Yahoo Setup](#yahoo-setup) section).
+      3. `Generate report for default league? (y/n) -> `
+
+         Type `y` and hit enter.
+
+      4. <ins>**NOTE FOR YAHOO USERS ONLY**</ins>: The ***FIRST*** time you run the app, you will see an `AUTHORIZATION URL` (if you followed the instructions in the [Yahoo Setup](#yahoo-setup) section).
 
           1. Click the link (or copy and paste it into your web browser).
 
@@ -527,29 +531,31 @@ In addition to turning on/off the features of the report PDF itself, there are a
 
 After completing the above setup and settings steps, you should now be able to simply run `docker exec -it fantasy-football-metrics-weekly-report_app_1 python main.py` to regenerate a report. The report generator script (`main.py`) also supports several command line options/arguments that allow you to specify the following:
 
-| Flag                                    | Description                                                                                                               |
-|:----------------------------------------|:--------------------------------------------------------------------------------------------------------------------------|
-| `-h`, `--help`                          | Display command line usage message                                                                                        |
-| `-d`, `--use-default`                   | Automatically run the report using the default settings without user input prompts.                                       |
-| `-f`, `--fantasy-platform` `<platform>` | Fantasy football platform on which league for report is hosted.                                                           |
-| `-l`, `--league-id` `<league_id>`       | Fantasy Football league ID                                                                                                |
-| `-w`, `--week` `<week>`                 | Chosen week for which to generate report                                                                                  |
-| `-g`, `--game-id` `<game_id>`           | Chosen fantasy game id for which to generate report. Defaults to "nfl", interpreted as the current season if using Yahoo. |
-| `-y`, `--year` `<year>`                 | Chosen year (season) of the league for which a report is being generated.                                                 | 
-| `-s`, `--save-data`                     | Save all retrieved data locally for faster future report generation                                                       |
-| `-s`, `--refresh-web-data`              | Refresh all web data from external APIs (such as bad boy and beef data)                                                   |
-| `-p`, `--playoff-prob-sims` `<int>`     | Number of Monte Carlo playoff probability simulations to run."                                                            |
-| `-b`, `--break-ties`                    | Break ties in metric rankings                                                                                             |
-| `-q`, `--disqualify-ce`                 | Automatically disqualify teams ineligible for coaching efficiency metric                                                  |
-| `-o`, `--offline`                       | Run ***OFFLINE*** (for development). Must have previously run report with -s option.                                      |
-| `-t`, `--test`                          | Generate TEST report (for development)                                                                                    |
+| Flag                                       | Description                                                                                                                              |
+|:-------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------|
+| `-h`, `--help`                             | Display command line usage message                                                                                                       |
+| `-p`, `--fantasy-platform` `<platform>`    | Fantasy football platform on which league for report is hosted                                                                           |
+| `-l`, `--league-id` `<league_id>`          | Fantasy Football league ID                                                                                                               |
+| `-g`, `--yahoo-game-id` `<yahoo_game_id>`  | (Yahoo only) Chosen fantasy game id for which to generate report. Defaults to "nfl", which is interpreted as the current season on Yahoo |
+| `-y`, `--year` `<year>`                    | Chosen year (season) of the league for which a report is being generated                                                                 |
+| `-k`, `--start-week` `<league_start_week>` | League start week (if league started later than week                                                                                     |
+| `-w`, `--week` `<week>`                    | Chosen week for which to generate report                                                                                                 |
+| `-d`, `--use-default`                      | Run the report using the default settings (in .env file) without user input                                                              |
+| `-s`, `--save-data`                        | Save all fantasy league data for faster future report generation                                                                         |
+| `-r`, `--refresh-feature-web-data`         | Refresh all feature web data                                                                                                             |
+| `-m`, `--playoff-prob-sims` `<num_sims>`   | Number of Monte Carlo playoff probability simulations to run                                                                             |
+| `-b`, `--break-ties`                       | Break ties in metric rankings                                                                                                            |
+| `-q`, `--disqualify-coaching-efficiency`   | Automatically disqualify teams ineligible for coaching efficiency metric                                                                 |
+| `-o`, `--offline`                          | Run ***OFFLINE*** for development (must have previously run report with -s option)                                                       |
+| `-u`, `--skip-uploads    `                 | Skip all integration uploads regardless of the configured settings                                                                       |
+| `-t`, `--test`                             | Generate TEST report                                                                                                                     |
 
 #### NOTE: all command line arguments <ins>***OVERRIDE***</ins> any settings in the local .env file!
 
 ##### Example:
 
 ```bash
-docker exec -it fantasy-football-metrics-weekly-report_app_1 python main.py -l 140941 -f fleaflicker -y 2020 -w 3 -p 1000 -s -r
+docker exec -it fantasy-football-metrics-weekly-report_app_1 python main.py -p fleaflicker -l 140941 -y 2020 -w 3 -m 1000 -s -r
 ```
 
 The above command runs the report with the following settings (which override anything set in the `.env` file):
@@ -573,7 +579,7 @@ The above command runs the report with the following settings (which override an
 <a name="additional-integrations"></a>
 ### Additional Integrations
 
-The Fantasy Football Metrics Weekly Report application also supports several additional integrations if you choose to utilize them. Currently, it is capable of uploading your generated reports to Google Drive, and also directly posting your generated reports to the Slack Messenger app.
+The Fantasy Football Metrics Weekly Report application also supports several additional integrations if you choose to utilize them.
 
 <a name="google-drive-setup"></a>
 #### Google Drive Setup

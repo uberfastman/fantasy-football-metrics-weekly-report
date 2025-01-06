@@ -3,7 +3,7 @@ ARG PYTHON_VERSION_MINOR=$PYTHON_VERSION_MINOR
 ARG PYTHON_VERSION_PATCH=$PYTHON_VERSION_PATCH
 
 # set base image
-FROM --platform=linux/amd64 python:${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.${PYTHON_VERSION_PATCH}-slim
+FROM python:${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.${PYTHON_VERSION_PATCH}-slim
 
 LABEL "org.opencontainers.image.source"="https://github.com/uberfastman/fantasy-football-metrics-weekly-report"
 

@@ -10,24 +10,11 @@
 
 # environment
 *.env*
-env*
-.venv
-venv
 .venv*/
-venv*/
-.python-version
 .python-venv
-
-# dependencies
-uv.lock
 
 # auth secrets
 **private*.json
-!**private.template.json
-**token*.json
-!**token.template.json
-**credentials*.json
-!**credentials.template.json
 
 # output
 **logs/

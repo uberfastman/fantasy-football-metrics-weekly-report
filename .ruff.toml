@@ -1,0 +1,24 @@
+exclude = [
+    ".git",
+    ".github",
+    ".idea",
+    ".pytest_cache",
+    ".python-venv",
+    "__pycache__",
+]
+extend-exclude = [
+]
+line-length = 120
+indent-width = 4
+
+[format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[lint]
+extend-select = [
+    "E501"
+]
