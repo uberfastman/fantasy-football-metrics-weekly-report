@@ -5,13 +5,8 @@
 [![Version](https://img.shields.io/github/v/tag/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/tags)
 [![Last Commit](https://img.shields.io/github/last-commit/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/commits/main)
 
----
-
 [![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/uberfastman/fantasy-football-metrics-weekly-report/python-build.yml?color=brightgreen&label=build)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/actions/workflows/python-build.yml)
 [![License](https://img.shields.io/github/license/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/blob/main/LICENSE)
-
----
-
 [![Issues](https://img.shields.io/github/issues/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/issues)
 [![Pull Requests](https://img.shields.io/github/issues-pr/uberfastman/fantasy-football-metrics-weekly-report)](https://github.com/uberfastman/fantasy-football-metrics-weekly-report/pulls)
 
