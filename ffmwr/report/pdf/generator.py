@@ -949,8 +949,9 @@ class PdfGenerator(object):
 
         if metric_type == "high_roller":
             font_reduction = 0
-            for x in range(1, (len(data[0][5:]) % 6) + 2):
-                font_reduction += 1
+            if data:
+                for x in range(1, (len(data[0][5:]) % 6) + 2):
+                    font_reduction += 1
             table_style.add("FONTSIZE", (0, 0), (-1, -1), (self.font_size - 2) - font_reduction)
 
             temp_data = []
