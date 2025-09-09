@@ -5,7 +5,8 @@ from typing import Any, Dict, List, Union
 
 import numpy as np
 
-from ffmwr.models.base.model import BaseLeague, BasePlayer, BaseRecord, BaseTeam
+from ffmwr.models.base.model import (BaseLeague, BasePlayer, BaseRecord,
+                                     BaseTeam)
 from ffmwr.utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)

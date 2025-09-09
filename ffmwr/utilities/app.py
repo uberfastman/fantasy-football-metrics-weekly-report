@@ -20,17 +20,14 @@ from ffmwr.features.bad_boy import BadBoyFeature
 from ffmwr.features.beef import BeefFeature
 from ffmwr.features.high_roller import HighRollerFeature
 from ffmwr.models.base.model import BaseLeague, BasePlayer, BaseTeam
-from ffmwr.utilities.constants import (
-    nfl_team_names_to_abbreviations,
-    prohibited_statuses,
-)
+from ffmwr.utilities.constants import (nfl_team_names_to_abbreviations,
+                                       prohibited_statuses)
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
-from ffmwr.utilities.utils import (
-    format_platform_display,
-    generate_normalized_player_key,
-    get_data_from_web,
-)
+from ffmwr.utilities.settings import (AppSettings,
+                                      get_app_settings_from_env_file)
+from ffmwr.utilities.utils import (format_platform_display,
+                                   generate_normalized_player_key,
+                                   get_data_from_web)
 
 logger = get_logger(__name__, propagate=False)
 

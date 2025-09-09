@@ -25,16 +25,11 @@ from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
 
 from ffmwr.dao.platforms.base.platform import BasePlatform
-from ffmwr.models.base.model import (
-    BaseManager,
-    BaseMatchup,
-    BasePlayer,
-    BaseRecord,
-    BaseStat,
-    BaseTeam,
-)
+from ffmwr.models.base.model import (BaseManager, BaseMatchup, BasePlayer,
+                                     BaseRecord, BaseStat, BaseTeam)
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
+from ffmwr.utilities.settings import (AppSettings,
+                                      get_app_settings_from_env_file)
 
 colorama.init()
 

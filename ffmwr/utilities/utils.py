@@ -1,11 +1,12 @@
 import re
 from typing import Any, Dict, List, Optional, Union
 
-from pyobjson import PythonObjectJson
 import requests
+from pyobjson import PythonObjectJson
 from requests import Response
 
-from ffmwr.utilities.constants import player_name_punctuation, player_name_suffixes
+from ffmwr.utilities.constants import (player_name_punctuation,
+                                       player_name_suffixes)
 from ffmwr.utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)

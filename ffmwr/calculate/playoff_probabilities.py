@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-
-# code snippets: https://github.com/cdtdev/ff_monte_carlo (originally written by https://github.com/cdtdev)
-
 import datetime
 import itertools
 import json
@@ -15,8 +12,14 @@ from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
 import numpy as np
 
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
+from ffmwr.utilities.settings import (AppSettings,
+                                      get_app_settings_from_env_file)
 from ffmwr.utilities.utils import FFMWRPythonObjectJson
+
+# code snippets: https://github.com/cdtdev/ff_monte_carlo (originally written by https://github.com/cdtdev)
+
+
+
 
 if TYPE_CHECKING:
     from ffmwr.models.base.model import BaseMatchup, BaseTeam

@@ -5,7 +5,6 @@ from typing import Any, List
 
 from reportlab.graphics.charts.legends import Legend
 from reportlab.graphics.charts.piecharts import Pie
-
 # noinspection PyProtectedMember,PyUnresolvedReferences
 from reportlab.graphics.shapes import Drawing, _DrawingEditorMixin
 from reportlab.lib.colors import HexColor, black, white

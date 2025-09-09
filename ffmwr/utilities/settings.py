@@ -7,19 +7,14 @@ from pathlib import Path
 from time import sleep
 from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 
+import yaml
 from camel_converter import to_snake
 from colorama import Fore, Style
-import yaml
 from pydantic import Field, computed_field
-
 # noinspection PyProtectedMember
 from pydantic.fields import FieldInfo
-from pydantic_settings import (
-    BaseSettings,
-    EnvSettingsSource,
-    PydanticBaseSettingsSource,
-    SettingsConfigDict,
-)
+from pydantic_settings import (BaseSettings, EnvSettingsSource,
+                               PydanticBaseSettingsSource, SettingsConfigDict)
 
 from ffmwr.utilities.logger import get_logger
 from ffmwr.utilities.utils import FFMWRPythonObjectJson

@@ -20,15 +20,8 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen.canvas import Canvas
-from reportlab.platypus import (
-    Flowable,
-    PageBreak,
-    Paragraph,
-    SimpleDocTemplate,
-    Spacer,
-    Table,
-    TableStyle,
-)
+from reportlab.platypus import (Flowable, PageBreak, Paragraph,
+                                SimpleDocTemplate, Spacer, Table, TableStyle)
 from reportlab.platypus.flowables import Image as ReportLabImage
 from reportlab.platypus.flowables import KeepTogether
 

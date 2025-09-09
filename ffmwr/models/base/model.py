@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Union
@@ -10,7 +9,8 @@ from ffmwr.features.bad_boy import BadBoyFeature
 from ffmwr.features.beef import BeefFeature
 from ffmwr.features.high_roller import HighRollerFeature
 from ffmwr.utilities.settings import AppSettings
-from ffmwr.utilities.utils import FFMWRPythonObjectJson, generate_normalized_player_key
+from ffmwr.utilities.utils import (FFMWRPythonObjectJson,
+                                   generate_normalized_player_key)
 
 
 class BaseLeague(FFMWRPythonObjectJson):
