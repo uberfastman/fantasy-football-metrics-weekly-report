@@ -17,7 +17,6 @@ from typing import Optional, Union
 import colorama
 from colorama import Fore, Style
 
-from ffmwr.integrations.groupme import GroupMeIntegration
 from ffmwr.report.builder import FantasyFootballReport
 from ffmwr.utilities.logger import get_logger
 from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
@@ -290,27 +289,8 @@ def main() -> None:
         args.offline,
         args.test,
     )
-    report_pdf: Path = report.create_pdf_report()
+    report.create_pdf_report()
 
-    if app_settings.integration_settings.groupme_post_bool:
-        if not args.skip_uploads and not args.test:
-            groupme_integration = GroupMeIntegration(
-                app_settings, root_directory, report.league.week_for_report
-            )
-
-            # upload PDF report directly to GroupMe
-            groupme_response = groupme_integration.upload_file(report_pdf)
-
-            if groupme_response == 202 or groupme_response["meta"]["code"] == 201:
-                logger.info(f"Report {str(report_pdf)} successfully posted to GroupMe!")
-            else:
-                logger.error(
-                    f"Report {str(report_pdf)} was NOT posted to GroupMe with error: {groupme_response}"
-                )
-        else:
-            logger.info(
-                f"Report NOT posted to GroupMe with command line arguments: {args}"
-            )
 
 
 # RUN FANTASY FOOTBALL REPORT PROGRAM

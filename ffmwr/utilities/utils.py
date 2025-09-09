@@ -27,13 +27,6 @@ class FFMWRPythonObjectJson(PythonObjectJson):
                 "cbs_username",
                 "cbs_password",
                 "cbs_auth_token",
-                "google_drive_client_id",
-                "google_drive_client_secret",
-                "google_drive_auth_token_json",
-                "slack_auth_token",
-                "groupme_access_token",
-                "groupme_bot_id",
-                "discord_webhook_id",
             ]
         )
 
