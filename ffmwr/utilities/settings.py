@@ -11,10 +11,15 @@ from camel_converter import to_snake
 from colorama import Fore, Style
 import yaml
 from pydantic import Field, computed_field
+
 # noinspection PyProtectedMember
 from pydantic.fields import FieldInfo
-from pydantic_settings import (BaseSettings, EnvSettingsSource,
-                               PydanticBaseSettingsSource, SettingsConfigDict)
+from pydantic_settings import (
+    BaseSettings,
+    EnvSettingsSource,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
 
 from ffmwr.utilities.logger import get_logger
 from ffmwr.utilities.utils import FFMWRPythonObjectJson
@@ -292,8 +297,6 @@ class ReportSettings(CustomSettings):
     )
 
 
-
-
 class AppSettings(CustomSettings):
     model_config = SettingsConfigDict(
         # env_file=".env",
@@ -346,7 +349,7 @@ class AppSettings(CustomSettings):
         description='value can be "default" or an integer between 1 and 18 defining the chosen week',
     )
     num_playoff_simulations: int = Field(
-        10000,
+        int(1e6),
         title=__qualname__,
         description=(
             "select how many Monte Carlo simulations are used for playoff predictions, keeping in mind that while more "
@@ -377,6 +380,11 @@ class AppSettings(CustomSettings):
             "with no spaces between items and surrounded by quotes), for example: "
             'COACHING_EFFICIENCY_DISQUALIFIED_TEAMS_LIST="Team One,Team Two"'
         ),
+    )
+    refresh_feature_web_data: bool = Field(
+        False,
+        title=__qualname__,
+        description="refresh Bad Boy, Beef, and High Roller data from external sources",
     )
 
     platform_settings: PlatformSettings = PlatformSettings()
@@ -556,21 +564,23 @@ def get_app_settings_from_yaml_file(yaml_file_path: Path) -> AppSettings:
     if not yaml_file_path.is_file():
         logger.error(f'Configuration file "{yaml_file_path}" not found.')
         sys.exit(1)
-    
+
     if not os.access(yaml_file_path, mode=os.R_OK):
-        logger.error(f'Unable to access configuration file "{yaml_file_path}". Please check file permissions.')
+        logger.error(
+            f'Unable to access configuration file "{yaml_file_path}". Please check file permissions.'
+        )
         sys.exit(1)
-    
+
     try:
-        with open(yaml_file_path, 'r') as f:
+        with open(yaml_file_path, "r") as f:
             config_data = yaml.safe_load(f)
-        
+
         logger.debug(f'Loaded configuration from "{yaml_file_path}"')
-        
+
         # Convert YAML data to environment variables temporarily
         # since CustomSettings only reads from environment
         original_env = {}
-        
+
         def set_env_from_dict(data, prefix=""):
             for key, value in data.items():
                 env_key = f"{prefix}{key}".upper()
@@ -583,14 +593,80 @@ def get_app_settings_from_yaml_file(yaml_file_path: Path) -> AppSettings:
                         if env_key not in os.environ:
                             original_env[env_key] = os.environ.get(env_key)
                         os.environ[env_key] = str(value)
-        
-        # Set environment variables from YAML
-        set_env_from_dict(config_data)
-        
+
+        # Add sensible defaults for missing settings
+        defaults = {
+            "platform": "espn",
+            "data_dir_path": "output/data",
+            "output_dir_path": "output/reports",
+            "nfl_season_length": 18,
+            "week_for_report": "default",
+            "num_playoff_simulations": 10000,
+            "num_playoff_slots": 6,
+            "num_playoff_slots_per_division": 1,
+            "num_regular_season_weeks": 14,
+            "coaching_efficiency_disqualified_teams_list": [],
+            "refresh_feature_web_data": False,
+            "platform_settings": {
+                "espn_username": "",
+                "espn_password": "",
+                "espn_cookie_swid": "",
+                "espn_cookie_espn_s2": "",
+            },
+            "report_settings": {
+                # All report settings enabled by default
+                "league_standings_bool": True,
+                "league_playoff_probs_bool": True,
+                "league_median_standings_bool": True,
+                "league_power_rankings_bool": True,
+                "league_z_score_rankings_bool": True,
+                "league_score_rankings_bool": True,
+                "league_coaching_efficiency_rankings_bool": True,
+                "league_luck_rankings_bool": True,
+                "league_optimal_score_rankings_bool": True,
+                "league_bad_boy_rankings_bool": True,
+                "league_beef_rankings_bool": True,
+                "league_high_roller_rankings_bool": True,
+                "league_weekly_top_scorers_bool": True,
+                "league_weekly_low_scorers_bool": True,
+                "league_weekly_highest_ce_bool": True,
+                "league_time_series_charts_bool": True,
+                "team_points_by_position_charts_bool": True,
+                "team_bad_boy_stats_bool": True,
+                "team_beef_stats_bool": True,
+                "team_high_roller_stats_bool": True,
+                "team_boom_or_bust_bool": True,
+                # Fixed PDF styling
+                "font": "helvetica",
+                "font_size": 12,
+                "image_quality": 75,
+                "max_data_chars": 20,
+            },
+        }
+
+        # Merge defaults with config data (config data takes precedence)
+        def merge_dicts(default, config):
+            result = default.copy()
+            for key, value in config.items():
+                if (
+                    key in result
+                    and isinstance(result[key], dict)
+                    and isinstance(value, dict)
+                ):
+                    result[key] = merge_dicts(result[key], value)
+                else:
+                    result[key] = value
+            return result
+
+        merged_config = merge_dicts(defaults, config_data)
+
+        # Set environment variables from merged config
+        set_env_from_dict(merged_config)
+
         try:
             # Create AppSettings (will read from environment variables)
             app_settings = AppSettings()
-            logger.debug(f'Created AppSettings with season: {app_settings.season}')
+            logger.debug(f"Created AppSettings with season: {app_settings.season}")
             return app_settings
         finally:
             # Clean up environment variables
@@ -599,12 +675,12 @@ def get_app_settings_from_yaml_file(yaml_file_path: Path) -> AppSettings:
                     os.environ.pop(env_key, None)
                 else:
                     os.environ[env_key] = original_env[env_key]
-        
+
     except yaml.YAMLError as e:
-        logger.error(f'Error parsing YAML configuration file: {e}')
+        logger.error(f"Error parsing YAML configuration file: {e}")
         sys.exit(1)
     except Exception as e:
-        logger.error(f'Error loading configuration: {e}')
+        logger.error(f"Error loading configuration: {e}")
         sys.exit(1)
 
 

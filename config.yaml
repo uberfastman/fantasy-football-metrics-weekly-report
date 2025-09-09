@@ -1,57 +1,13 @@
 # Fantasy Football Metrics Weekly Report - ESPN Configuration
 
-# App Settings
+# Essential Settings
 log_level: info
-data_dir_path: output/data
-output_dir_path: output/reports
-
-# League Settings
-platform: espn
 league_id: "1271142"
 season: 2025
-nfl_season_length: 18
 current_nfl_week: 2
-week_for_report: default  # "default" or integer 1-18
-num_playoff_simulations: 10000
-num_playoff_slots: 6
-num_playoff_slots_per_division: 1
-num_regular_season_weeks: 14
-coaching_efficiency_disqualified_teams_list: []
+refresh_feature_web_data: false  # Set to true to refresh Bad Boy/Beef/High Roller data
 
-# Platform Settings (nested)
+# ESPN Authentication (optional - leave empty for public leagues)
 platform_settings:
-  # ESPN Authentication (optional - leave empty for public leagues)
-  espn_username: ""
-  espn_password: ""
   espn_cookie_swid: ""
   espn_cookie_espn_s2: ""
-
-# Report Settings (nested) - what to include in the PDF
-report_settings:
-  league_standings_bool: true
-  league_playoff_probs_bool: true
-  league_median_standings_bool: true
-  league_power_rankings_bool: true
-  league_z_score_rankings_bool: true
-  league_score_rankings_bool: true
-  league_coaching_efficiency_rankings_bool: true
-  league_luck_rankings_bool: true
-  league_optimal_score_rankings_bool: true
-  league_bad_boy_rankings_bool: true
-  league_beef_rankings_bool: true
-  league_high_roller_rankings_bool: true
-  league_weekly_top_scorers_bool: true
-  league_weekly_low_scorers_bool: true
-  league_weekly_highest_ce_bool: true
-  league_time_series_charts_bool: true
-  team_points_by_position_charts_bool: true
-  team_bad_boy_stats_bool: true
-  team_beef_stats_bool: true
-  team_high_roller_stats_bool: true
-  team_boom_or_bust_bool: true
-  
-  # PDF Styling
-  font: helvetica
-  font_size: 12  # min: 10, max: 14
-  image_quality: 75  # 1-100%
-  max_data_chars: 20
