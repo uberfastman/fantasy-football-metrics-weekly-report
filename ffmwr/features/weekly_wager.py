@@ -164,24 +164,33 @@ class WeeklyWager:
                     team_aggregates[team_name] = {
                         "team": player_data["team"],
                         "value": 0,
-                        "players": [],
+                        "player_data": [],  # Store full player data including individual values
                     }
                     team_player_counts[team_name] = 0
 
                 team_aggregates[team_name]["value"] += player_data["value"]
-                team_aggregates[team_name]["players"].append(player_data["player"])
+                team_aggregates[team_name]["player_data"].append(
+                    player_data
+                )  # Store full data
                 team_player_counts[team_name] += 1
 
             # Convert to list format and sort by aggregated value
             team_rankings = []
             for team_name, aggregate_data in team_aggregates.items():
+                # Sort players within the group by their individual target metric (best first)
+                sorted_player_data = sorted(
+                    aggregate_data["player_data"],
+                    key=lambda x: x["value"],
+                    reverse=reverse_sort,
+                )
+
                 # Create a representative "player" entry for the group
                 team_rankings.append(
                     {
                         "team": aggregate_data["team"],
                         "value": aggregate_data["value"],
                         "player_count": team_player_counts[team_name],
-                        "players": aggregate_data["players"],
+                        "player_data": sorted_player_data,  # Store sorted player data
                     }
                 )
 
@@ -222,20 +231,25 @@ class WeeklyWager:
                     }
                 )
             else:
-                # Group mode: show team aggregate with all player names
-                players = ranking_data["players"]
+                # Group mode: show team aggregate with all player names and individual metrics
+                player_data_list = ranking_data["player_data"]
                 player_count = ranking_data["player_count"]
 
-                # Create a list of player names for display (comma-separated with wrapping)
-                player_names = [p.full_name for p in players]
-                player_names_text = ", ".join(player_names)
+                # Create a list of player names with individual metrics in parentheses (rounded to 1 decimal)
+                player_names_with_metrics = [
+                    f"{pd['player'].full_name} ({pd['value']:.1f})"
+                    for pd in player_data_list
+                ]
+                player_names_text = ", ".join(player_names_with_metrics)
 
                 # Use first player for team info, but show group details
-                representative_player = players[0] if players else None
+                representative_player = (
+                    player_data_list[0]["player"] if player_data_list else None
+                )
                 all_players.append(
                     {
                         "rank": rank,
-                        "name": player_names_text,  # Show all player names
+                        "name": player_names_text,  # Show all player names with individual metrics
                         "position": (
                             f"{self.settings.position}"
                             if isinstance(self.settings.position, str)
