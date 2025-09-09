@@ -246,6 +246,11 @@ class WeeklyWagerSettings(CustomSettings):
         title=__qualname__,
         description="Target metric: points, touchdowns, yards, receptions"
     )
+    direction: str = Field(
+        "most",
+        title=__qualname__,
+        description="Direction for comparison: most or least"
+    )
     description: Optional[str] = Field(
         None,
         title=__qualname__,
@@ -708,6 +713,7 @@ def get_app_settings_from_yaml_file(yaml_file_path: Path) -> AppSettings:
                     'position': wager_config.get('position', None),
                     'filter': wager_config.get('filter', 'starter'),
                     'target': wager_config.get('target', 'points'),
+                    'direction': wager_config.get('direction', 'most'),
                     'description': wager_config.get('description', None)
                 })
                 logger.debug(f"Weekly wager settings initialized: enabled={app_settings.weekly_wager_settings.enabled}")

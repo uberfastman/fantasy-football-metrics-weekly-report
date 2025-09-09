@@ -27,7 +27,12 @@ class WeeklyWager:
     
     VALID_POSITIONS = {'QB', 'RB', 'WR', 'TE', 'K', 'D/ST', 'DEF'}
     VALID_FILTERS = {'starter', 'bench', 'all'}
-    VALID_TARGETS = {'points', 'touchdowns', 'yards', 'receptions'}
+    VALID_TARGETS = {
+        'points', 'touchdowns', 'yards', 'receptions',
+        'interceptions', 'fumbles', 'fumbles_lost', 'completions', 
+        'attempts', 'rushing_attempts', 'receiving_yards', 'rushing_yards'
+    }
+    VALID_DIRECTIONS = {'most', 'least'}
     
     def __init__(self, settings: WeeklyWagerSettings):
         self.settings = settings
@@ -53,6 +58,9 @@ class WeeklyWager:
         
         if self.settings.target not in self.VALID_TARGETS:
             raise ValueError(f"Invalid target: {self.settings.target}. Must be one of: {self.VALID_TARGETS}")
+        
+        if self.settings.direction not in self.VALID_DIRECTIONS:
+            raise ValueError(f"Invalid direction: {self.settings.direction}. Must be one of: {self.VALID_DIRECTIONS}")
     
     def calculate_wager_result(self, league: BaseLeague, week_for_report: int) -> Optional[WagerResult]:
         """Calculate the wager result for the specified week."""
@@ -84,23 +92,31 @@ class WeeklyWager:
             logger.warning("No eligible players found for weekly wager")
             return None
         
-        # Sort all players by target value (highest first)
-        player_values.sort(key=lambda x: x['value'], reverse=True)
+        # Sort all players by target value (direction determines order)
+        reverse_sort = self.settings.direction == 'most'
+        player_values.sort(key=lambda x: x['value'], reverse=reverse_sort)
         
-        # Find the maximum value and all players who achieved it (for tie detection)
-        max_value = player_values[0]['value'] if player_values else 0
-        winners = [p for p in player_values if p['value'] == max_value]
+        # Find the winning value and all players who achieved it (for tie detection)
+        winning_value = player_values[0]['value'] if player_values else 0
+        winners = [p for p in player_values if p['value'] == winning_value]
         
-        # Get top player per team for team-vs-team comparison
+        # Get best player per team for team-vs-team comparison (direction-aware)
         team_best_players = {}
         for player_data in player_values:
             team_name = player_data['team'].name
-            if team_name not in team_best_players or player_data['value'] > team_best_players[team_name]['value']:
+            if team_name not in team_best_players:
                 team_best_players[team_name] = player_data
+            else:
+                current_best = team_best_players[team_name]['value']
+                player_value = player_data['value']
+                # For "most": higher is better, for "least": lower is better
+                if ((self.settings.direction == 'most' and player_value > current_best) or
+                    (self.settings.direction == 'least' and player_value < current_best)):
+                    team_best_players[team_name] = player_data
         
-        # Convert to list and sort by value
+        # Convert to list and sort by value (direction-aware)
         team_rankings = list(team_best_players.values())
-        team_rankings.sort(key=lambda x: x['value'], reverse=True)
+        team_rankings.sort(key=lambda x: x['value'], reverse=reverse_sort)
         
         # Build team comparison list
         all_players = []
@@ -123,11 +139,11 @@ class WeeklyWager:
                 'team_abbr': player.nfl_team_abbr,
                 'owner_team': team.name,
                 'value': player_data['value'],
-                'is_winner': player_data['value'] == max_value
+                'is_winner': player_data['value'] == winning_value
             })
             
             # Track winning teams
-            if player_data['value'] == max_value and team.name not in winning_teams:
+            if player_data['value'] == winning_value and team.name not in winning_teams:
                 winning_teams.append(team.name)
         
         description = self._generate_description()
@@ -135,7 +151,7 @@ class WeeklyWager:
         return WagerResult(
             winning_players=all_players,  # Now contains top player per team with ranking info
             winning_teams=winning_teams,
-            target_value=max_value,
+            target_value=winning_value,
             total_participants=len(team_rankings),
             is_tie=len(winners) > 1,
             wager_description=description
@@ -218,21 +234,53 @@ class WeeklyWager:
             return 0.0
         
         for stat in player.stats:
+            if not hasattr(stat, 'stat_id'):
+                continue
+                
             if self.settings.target == 'touchdowns':
                 # Look for touchdown stats (passing, rushing, receiving TDs)
-                if hasattr(stat, 'stat_id'):
-                    if stat.stat_id in ['passTD', 'rushTD', 'recTD', 'TD']:
-                        return float(getattr(stat, 'value', 0))
+                if stat.stat_id in ['passTD', 'rushTD', 'recTD', 'TD', '25', '44']:  # 25=rushTD, 44=recTD
+                    return float(getattr(stat, 'value', 0))
             elif self.settings.target == 'yards':
                 # Look for yardage stats (passing, rushing, receiving yards)
-                if hasattr(stat, 'stat_id'):
-                    if stat.stat_id in ['passYds', 'rushYds', 'recYds', 'yards']:
-                        return float(getattr(stat, 'value', 0))
+                if stat.stat_id in ['passYds', 'rushYds', 'recYds', 'yards', '24', '43']:  # 24=rushYds, 43=recYds
+                    return float(getattr(stat, 'value', 0))
             elif self.settings.target == 'receptions':
                 # Look for reception stats
-                if hasattr(stat, 'stat_id'):
-                    if stat.stat_id in ['rec', 'receptions']:
-                        return float(getattr(stat, 'value', 0))
+                if stat.stat_id in ['rec', 'receptions', '42']:  # 42=receptions
+                    return float(getattr(stat, 'value', 0))
+            elif self.settings.target == 'interceptions':
+                # Look for interceptions thrown (negative stat for QBs)
+                if stat.stat_id in ['18']:  # 18=interceptions
+                    return float(getattr(stat, 'value', 0))
+            elif self.settings.target == 'fumbles':
+                # Look for fumbles
+                if stat.stat_id in ['67']:  # 67=fumbles
+                    return float(getattr(stat, 'value', 0))
+            elif self.settings.target == 'fumbles_lost':
+                # Look for fumbles lost (negative stat)
+                if stat.stat_id in ['68']:  # 68=fumbles lost
+                    return float(getattr(stat, 'value', 0))
+            elif self.settings.target == 'completions':
+                # Look for passing completions (QB stat)
+                if stat.stat_id in ['1']:  # 1=completions
+                    return float(getattr(stat, 'value', 0))
+            elif self.settings.target == 'attempts':
+                # Look for passing attempts (QB stat)
+                if stat.stat_id in ['0']:  # 0=passing attempts
+                    return float(getattr(stat, 'value', 0))
+            elif self.settings.target == 'rushing_attempts':
+                # Look for rushing attempts
+                if stat.stat_id in ['23']:  # 23=rushing attempts
+                    return float(getattr(stat, 'value', 0))
+            elif self.settings.target == 'receiving_yards':
+                # Look for receiving yards specifically
+                if stat.stat_id in ['43']:  # 43=receiving yards
+                    return float(getattr(stat, 'value', 0))
+            elif self.settings.target == 'rushing_yards':
+                # Look for rushing yards specifically
+                if stat.stat_id in ['24']:  # 24=rushing yards
+                    return float(getattr(stat, 'value', 0))
         
         return 0.0
     
@@ -262,7 +310,15 @@ class WeeklyWager:
             'points': 'fantasy points',
             'touchdowns': 'touchdowns',
             'yards': 'yards',
-            'receptions': 'receptions'
+            'receptions': 'receptions',
+            'interceptions': 'interceptions thrown',
+            'fumbles': 'fumbles',
+            'fumbles_lost': 'fumbles lost',
+            'completions': 'pass completions',
+            'attempts': 'pass attempts',
+            'rushing_attempts': 'rushing attempts',
+            'receiving_yards': 'receiving yards',
+            'rushing_yards': 'rushing yards'
         }.get(self.settings.target, self.settings.target)
         
         parts = []
@@ -273,4 +329,4 @@ class WeeklyWager:
         
         player_desc = " ".join(parts).strip() if parts else "player"
         
-        return f"{player_desc} with the most {target_text}".strip()
+        return f"{player_desc} with the {self.settings.direction} {target_text}".strip()
