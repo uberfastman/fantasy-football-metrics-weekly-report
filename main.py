@@ -19,7 +19,7 @@ from colorama import Fore, Style
 
 from ffmwr.report.builder import FantasyFootballReport
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
+from ffmwr.utilities.settings import AppSettings, get_app_settings_from_yaml_file
 from ffmwr.utilities.utils import normalize_dependency_package_name
 
 colorama.init()
@@ -124,7 +124,7 @@ def main() -> None:
 
     root_directory = Path(__file__).parent
 
-    app_settings: AppSettings = get_app_settings_from_env_file(root_directory / ".env")
+    app_settings: AppSettings = get_app_settings_from_yaml_file(root_directory / "config.yaml")
 
     arg_parser = ArgumentParser(
         prog="python main.py",
@@ -190,7 +190,7 @@ def main() -> None:
         "--use-default",
         action="store_true",
         required=False,
-        help="Run the report using the default settings (in .env file) without user input",
+        help="Run the report using the default settings (in config.yaml) without user input",
     )
 
     report_run_group = arg_parser.add_argument_group("report run (optional)")

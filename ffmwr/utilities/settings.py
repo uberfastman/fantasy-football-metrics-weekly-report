@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 
 from camel_converter import to_snake
 from colorama import Fore, Style
-from dotenv import dotenv_values
+import yaml
 from pydantic import Field, computed_field
 # noinspection PyProtectedMember
 from pydantic.fields import FieldInfo
@@ -549,6 +549,63 @@ def create_env_file_from_settings(
     app_settings.write_settings_to_env_file(env_file_path)
 
     return app_settings
+
+
+def get_app_settings_from_yaml_file(yaml_file_path: Path) -> AppSettings:
+    """Load application settings from a YAML configuration file."""
+    if not yaml_file_path.is_file():
+        logger.error(f'Configuration file "{yaml_file_path}" not found.')
+        sys.exit(1)
+    
+    if not os.access(yaml_file_path, mode=os.R_OK):
+        logger.error(f'Unable to access configuration file "{yaml_file_path}". Please check file permissions.')
+        sys.exit(1)
+    
+    try:
+        with open(yaml_file_path, 'r') as f:
+            config_data = yaml.safe_load(f)
+        
+        logger.debug(f'Loaded configuration from "{yaml_file_path}"')
+        
+        # Convert YAML data to environment variables temporarily
+        # since CustomSettings only reads from environment
+        original_env = {}
+        
+        def set_env_from_dict(data, prefix=""):
+            for key, value in data.items():
+                env_key = f"{prefix}{key}".upper()
+                if isinstance(value, dict):
+                    # Handle nested dictionaries
+                    set_env_from_dict(value, f"{prefix}{key}_")
+                else:
+                    # Convert values to strings for environment variables
+                    if value is not None:
+                        if env_key not in os.environ:
+                            original_env[env_key] = os.environ.get(env_key)
+                        os.environ[env_key] = str(value)
+        
+        # Set environment variables from YAML
+        set_env_from_dict(config_data)
+        
+        try:
+            # Create AppSettings (will read from environment variables)
+            app_settings = AppSettings()
+            logger.debug(f'Created AppSettings with season: {app_settings.season}')
+            return app_settings
+        finally:
+            # Clean up environment variables
+            for env_key in original_env:
+                if original_env[env_key] is None:
+                    os.environ.pop(env_key, None)
+                else:
+                    os.environ[env_key] = original_env[env_key]
+        
+    except yaml.YAMLError as e:
+        logger.error(f'Error parsing YAML configuration file: {e}')
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f'Error loading configuration: {e}')
+        sys.exit(1)
 
 
 if __name__ == "__main__":
