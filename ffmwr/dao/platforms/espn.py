@@ -34,6 +34,7 @@ from ffmwr.models.base.model import (
     BaseTeam,
 )
 from ffmwr.utilities.logger import get_logger
+from ffmwr.utilities.name_mapping import apply_nickname_mapping
 from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
 
 colorama.init()
@@ -397,20 +398,27 @@ class ESPNPlatform(BasePlatform):
 
                         base_manager.manager_id = manager["id"]
                         base_manager.email = None
-                        manager_first_name = manager.get(
-                            "firstName", f"Manager {matchup_team.team_id}"
-                        )
+                        manager_first_name = manager.get("firstName", "")
                         manager_last_name = manager.get("lastName", "")
-                        base_manager.name = re.sub(
-                            r"\W+", " ", f"{manager_first_name} {manager_last_name}"
-                        ).strip()
+                        
+                        # Build full name, fallback to Manager {team_id} if no name available
+                        if manager_first_name or manager_last_name:
+                            full_name = f"{manager_first_name} {manager_last_name}".strip()
+                        else:
+                            full_name = f"Manager {matchup_team.team_id}"
+                            
+                        # Store full name for nickname mapping
+                        base_manager.full_name = re.sub(r"\W+", " ", full_name).strip()
+                        # Set name (which will be abbreviated by __setattr__)
+                        base_manager.name = re.sub(r"\W+", " ", full_name).strip()
                         base_manager.nickname = manager.get("displayName", None)
 
                         base_team.managers.append(base_manager)
 
-                    base_team.manager_str = ", ".join(
-                        [manager.name_str for manager in base_team.managers]
+                    manager_names = ", ".join(
+                        [manager.full_name for manager in base_team.managers]
                     )
+                    base_team.manager_str = apply_nickname_mapping(manager_names, self.root_dir)
                     base_team.team_id = str(matchup_team.team_id)
 
                     team_is_home = False

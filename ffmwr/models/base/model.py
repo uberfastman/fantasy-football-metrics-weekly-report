@@ -649,6 +649,7 @@ class BaseManager(FFMWRPythonObjectJson):
         self.email: Optional[str] = None
         self.name: Optional[str] = None
         self.name_str: Optional[str] = None
+        self.full_name: Optional[str] = None
         self.nickname: Optional[str] = None
 
     def __setattr__(self, key: str, value: Any):
