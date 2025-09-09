@@ -5,8 +5,7 @@ import requests
 from pyobjson import PythonObjectJson
 from requests import Response
 
-from ffmwr.utilities.constants import (player_name_punctuation,
-                                       player_name_suffixes)
+from ffmwr.utilities.constants import player_name_punctuation, player_name_suffixes
 from ffmwr.utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)

@@ -11,10 +11,15 @@ import yaml
 from camel_converter import to_snake
 from colorama import Fore, Style
 from pydantic import Field, computed_field
+
 # noinspection PyProtectedMember
 from pydantic.fields import FieldInfo
-from pydantic_settings import (BaseSettings, EnvSettingsSource,
-                               PydanticBaseSettingsSource, SettingsConfigDict)
+from pydantic_settings import (
+    BaseSettings,
+    EnvSettingsSource,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
 
 from ffmwr.utilities.logger import get_logger
 from ffmwr.utilities.utils import FFMWRPythonObjectJson
@@ -229,6 +234,38 @@ class PlatformSettings(CustomSettings):
     cbs_auth_token: Optional[str] = Field(None, title=__qualname__)
 
 
+class WeeklyWagerSettings(CustomSettings):
+    enabled: bool = Field(False, title=__qualname__)
+    position: Optional[Union[str, List[str]]] = Field(
+        None,
+        title=__qualname__,
+        description="Position(s) to filter by. Single position (e.g., 'TE') or list of positions (e.g., ['RB', 'WR']) or None for all positions",
+    )
+    filter: str = Field(
+        "starter",
+        title=__qualname__,
+        description="Player filter: starter, bench, or all",
+    )
+    target: str = Field(
+        "points",
+        title=__qualname__,
+        description="Target metric: points, touchdowns, yards, receptions",
+    )
+    direction: str = Field(
+        "most",
+        title=__qualname__,
+        description="Direction for comparison: most or least",
+    )
+    aggregation: str = Field(
+        "individual",
+        title=__qualname__,
+        description="Aggregation method: individual (best player per team) or group (sum across all players per team)",
+    )
+    description: Optional[str] = Field(
+        None, title=__qualname__, description="Custom description for the wager"
+    )
+
+
 class ReportSettings(CustomSettings):
     league_standings_bool: bool = Field(True, title=__qualname__)
     league_playoff_probs_bool: bool = Field(True, title=__qualname__)
@@ -384,6 +421,7 @@ class AppSettings(CustomSettings):
 
     platform_settings: PlatformSettings = PlatformSettings()
     report_settings: ReportSettings = ReportSettings()
+    weekly_wager_settings: WeeklyWagerSettings = WeeklyWagerSettings()
 
 
 def get_app_settings_from_env_file(env_file_path: Path) -> AppSettings:
@@ -637,6 +675,13 @@ def get_app_settings_from_yaml_file(yaml_file_path: Path) -> AppSettings:
                 "image_quality": 75,
                 "max_data_chars": 20,
             },
+            "weekly_wager_settings": {
+                "enabled": False,
+                "position": None,
+                "filter": "starter",
+                "target": "points",
+                "description": None,
+            },
         }
 
         # Merge defaults with config data (config data takes precedence)
@@ -662,6 +707,32 @@ def get_app_settings_from_yaml_file(yaml_file_path: Path) -> AppSettings:
             # Create AppSettings (will read from environment variables)
             app_settings = AppSettings()
             logger.debug(f"Created AppSettings with season: {app_settings.season}")
+
+            # Manually initialize nested settings from merged config
+            # This is needed because CustomSettings only reads from environment variables,
+            # but nested settings aren't initialized properly from env vars due to cleanup timing
+            if "weekly_wager_settings" in merged_config:
+                wager_config = merged_config["weekly_wager_settings"]
+                logger.debug(
+                    f"Initializing weekly_wager_settings from config: {wager_config}"
+                )
+
+                # Use __dict__ update since CustomSettings constructor ignores explicit parameters
+                app_settings.weekly_wager_settings.__dict__.update(
+                    {
+                        "enabled": wager_config.get("enabled", False),
+                        "position": wager_config.get("position", None),
+                        "filter": wager_config.get("filter", "starter"),
+                        "target": wager_config.get("target", "points"),
+                        "direction": wager_config.get("direction", "most"),
+                        "aggregation": wager_config.get("aggregation", "individual"),
+                        "description": wager_config.get("description", None),
+                    }
+                )
+                logger.debug(
+                    f"Weekly wager settings initialized: enabled={app_settings.weekly_wager_settings.enabled}"
+                )
+
             return app_settings
         finally:
             # Clean up environment variables

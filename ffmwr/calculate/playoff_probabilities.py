@@ -12,13 +12,10 @@ from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
 import numpy as np
 
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.settings import (AppSettings,
-                                      get_app_settings_from_env_file)
+from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
 from ffmwr.utilities.utils import FFMWRPythonObjectJson
 
 # code snippets: https://github.com/cdtdev/ff_monte_carlo (originally written by https://github.com/cdtdev)
-
-
 
 
 if TYPE_CHECKING:
@@ -107,11 +104,11 @@ class TeamWithPlayoffProbs(FFMWRPythonObjectJson):
         return self.division_wins + (self.division_points_for / 1000000)
 
     def get_playoff_chance_percentage(self):
-        return round((self.playoff_tally / self.simulations) * 100.0, 2)
+        return round((self.playoff_tally / self.simulations) * 100.0, 1)
 
     def get_playoff_stats(self):
         return [
-            round((stat / self.simulations) * 100.0, 2) for stat in self.playoff_stats
+            round((stat / self.simulations) * 100.0, 1) for stat in self.playoff_stats
         ]
 
     def reset_to_base_record(self):

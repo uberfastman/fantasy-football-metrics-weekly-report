@@ -20,8 +20,15 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen.canvas import Canvas
-from reportlab.platypus import (Flowable, PageBreak, Paragraph,
-                                SimpleDocTemplate, Spacer, Table, TableStyle)
+from reportlab.platypus import (
+    Flowable,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 from reportlab.platypus.flowables import Image as ReportLabImage
 from reportlab.platypus.flowables import KeepTogether
 
@@ -1235,25 +1242,8 @@ class PdfGenerator(object):
             display_row = []
             for cell_ndx, cell in enumerate(row):
                 if isinstance(cell, str):
-                    if cell_ndx not in sesqui_max_chars_col_ndxs:
-                        # truncate data cell contents to specified max characters and half of specified max characters
-                        # if cell is a team manager header
-                        display_row.append(
-                            truncate_cell_for_display(
-                                cell,
-                                max_chars=self.settings.report_settings.max_data_chars,
-                                halve_max_chars=(cell_ndx == manager_header_ndx),
-                            )
-                        )
-                    else:
-                        display_row.append(
-                            truncate_cell_for_display(
-                                cell,
-                                max_chars=self.settings.report_settings.max_data_chars,
-                                sesqui_max_chars=True,
-                            )
-                        )
-
+                    # Use Paragraph for text wrapping instead of truncating with ellipses
+                    display_row.append(Paragraph(cell, self.text_style))
                 else:
                     display_row.append(cell)
             table_data.append(display_row)
@@ -2144,9 +2134,182 @@ class PdfGenerator(object):
                     )
                 )
 
+        # weekly wager section
+        if (
+            self.settings.weekly_wager_settings.enabled
+            and self.report_data.data_for_weekly_wager
+        ):
+
+            wager_data = self.report_data.data_for_weekly_wager
+
+            # Create wager display data
+            wager_display_data = []
+
+            # Import required classes for text wrapping
+            from reportlab.platypus import Paragraph
+            from reportlab.lib.styles import getSampleStyleSheet
+
+            if wager_data.winning_players:
+                # Add header row - extract target metric name from description
+                description = wager_data.wager_description.lower()
+                if "most " in description:
+                    target_metric = description.split("most ")[-1].title()
+                elif "least " in description:
+                    target_metric = description.split("least ")[-1].title()
+                else:
+                    target_metric = "Value"
+
+                # Add line breaks to long metric names for better table formatting
+                if len(target_metric) > 15:
+                    words = target_metric.split()
+                    if len(words) > 1:
+                        mid = len(words) // 2
+                        target_metric = (
+                            " ".join(words[:mid]) + "\n" + " ".join(words[mid:])
+                        )
+
+                wager_display_data.append(["Rank", "Player(s)", "Owner", target_metric])
+
+                # Add all players with their rankings
+                for player in wager_data.winning_players:
+                    # Format rank with trophy/medal emojis for top positions
+                    rank_display = str(player["rank"])
+                    if player["is_winner"]:
+                        rank_display = f"🏆 {player['rank']}"
+                    elif player["rank"] == 2:
+                        rank_display = f"🥈 {player['rank']}"
+                    elif player["rank"] == 3:
+                        rank_display = f"🥉 {player['rank']}"
+
+                    # For now, just use the string - we'll handle wrapping at the table level
+                    player_name_cell = player["name"]
+
+                    wager_display_data.append(
+                        [
+                            rank_display,
+                            player_name_cell,
+                            player["owner_team"],
+                            f"{player['value']:.1f}",
+                        ]
+                    )
+
+            if wager_display_data:
+                # Check if we have group aggregation (move this first)
+                has_groups = any(
+                    player.get("is_group", False)
+                    for player in wager_data.winning_players
+                )
+
+                # Create table style for wager
+                wager_style = deepcopy(self.style)
+
+                # Enable text wrapping for all cells
+                wager_style.add(
+                    "VALIGN", (0, 0), (-1, -1), "TOP"
+                )  # Align to top for wrapped text
+                wager_style.add(
+                    "FONTNAME", (1, 1), (1, -1), self.font
+                )  # Use regular font for player names
+
+                # For group mode, we need to handle longer text in the player column
+                if has_groups:
+                    # Allow the player name column to wrap text by setting a smaller font if needed
+                    wager_style.add(
+                        "FONTSIZE", (1, 1), (1, -1), self.font_size - 1
+                    )  # Slightly smaller font for names
+
+                # Style the winners (first place) in green
+                winner_count = sum(
+                    1 for p in wager_data.winning_players if p["is_winner"]
+                )
+                if winner_count > 0:
+                    wager_style.add(
+                        "TEXTCOLOR", (0, 1), (-1, winner_count), colors.green
+                    )
+                    wager_style.add("FONT", (0, 1), (-1, winner_count), self.font_bold)
+
+                # Style second place in blue if it exists
+                second_place_players = [
+                    p for p in wager_data.winning_players if p["rank"] == 2
+                ]
+                if second_place_players:
+                    start_row = winner_count + 1
+                    end_row = start_row + len(second_place_players) - 1
+                    wager_style.add(
+                        "TEXTCOLOR", (0, start_row), (-1, end_row), colors.blue
+                    )
+
+                # Column widths for wager table (removed Team and Position columns)
+                if has_groups:
+                    # Much wider player column for comma-separated player names
+                    wager_widths = [
+                        0.75 * inch,  # Rank
+                        4.5
+                        * inch,  # Player(s) - extra wide for wrapped comma-separated names
+                        1.5 * inch,  # Owner - smaller to make room
+                        1.0 * inch,  # Value
+                    ]
+                else:
+                    # Standard widths for individual players
+                    wager_widths = [
+                        0.75 * inch,  # Rank
+                        3.5 * inch,  # Player
+                        2.5 * inch,  # Owner
+                        1.0 * inch,  # Value
+                    ]
+
+                # Create subtitle based on aggregation method and add wager description
+                if has_groups:
+                    subtitle = f"Team groups ({wager_data.total_participants} teams) ranked by combined performance"
+                else:
+                    subtitle = f"Top player from each team ({wager_data.total_participants} teams) ranked by performance"
+
+                # Add tie information if applicable
+                if wager_data.is_tie:
+                    winner_count_display = sum(
+                        1 for p in wager_data.winning_players if p["is_winner"]
+                    )
+                    subtitle += (
+                        f" • Tie for 1st place between {winner_count_display} players"
+                    )
+
+                # Add the wager description as additional context
+                subtitle += f"\n\nWager: {wager_data.wager_description.capitalize()}"
+
+                # Convert long player names to wrapped format by inserting line breaks
+                for i, row in enumerate(wager_display_data[1:], 1):  # Skip header row
+                    player_name = row[1]
+                    if isinstance(player_name, str) and len(player_name) > 60:
+                        # Split long comma-separated names into multiple lines
+                        names = player_name.split(", ")
+                        if len(names) > 2:
+                            mid = len(names) // 2
+                            wrapped_name = (
+                                ", ".join(names[:mid]) + ",\n" + ", ".join(names[mid:])
+                            )
+                            wager_display_data[i][1] = wrapped_name
+
+                elements.append(
+                    self.create_section(
+                        "Weekly Wager",
+                        "metrics",
+                        [wager_display_data[0]],  # Headers
+                        wager_display_data[1:],  # Data
+                        wager_style,
+                        wager_style,
+                        wager_widths,
+                        subtitle_text=subtitle,
+                        metric_type="weekly_wager",
+                    )
+                )
+
         if (
             self.settings.report_settings.league_standings_bool
             or self.settings.report_settings.league_playoff_probs_bool
+            or (
+                self.settings.weekly_wager_settings.enabled
+                and self.report_data.data_for_weekly_wager
+            )
         ):
             elements.append(self.add_page_break())
 
