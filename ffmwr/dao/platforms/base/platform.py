@@ -58,7 +58,9 @@ class BasePlatform(ABC):
         # retrieve current NFL week
         self.current_week: int = get_current_nfl_week_function(self.settings, offline)
         # validate user selection of week for which to generate report
-        self.week_for_report = week_validation_function(self.settings, week_for_report, self.current_week, self.season)
+        self.week_for_report = week_validation_function(
+            self.settings, week_for_report, self.current_week, self.season
+        )
 
         self.save_data: bool = save_data
         self.offline: bool = offline
@@ -80,7 +82,9 @@ class BasePlatform(ABC):
         if not Path(self.league.data_dir).exists():
             os.makedirs(self.league.data_dir)
 
-        self.position_mapping: Dict[str, Dict[str, Any]] = self._get_platform_position_mapping()
+        self.position_mapping: Dict[str, Dict[str, Any]] = (
+            self._get_platform_position_mapping()
+        )
         self.league.offensive_positions = [
             pos_attributes.get("base")
             for pos_attributes in self.position_mapping.values()
@@ -98,14 +102,18 @@ class BasePlatform(ABC):
         ]
 
     def query(self, url: str, headers: Dict[str, str] = None):
-        logger.debug(f"Retrieving {self.platform_display} web data from endpoint: {url}")
+        logger.debug(
+            f"Retrieving {self.platform_display} web data from endpoint: {url}"
+        )
         response = requests.get(url, headers=headers)
 
         try:
             response.raise_for_status()
         except HTTPError as e:
             # log error and terminate query if status code is not 200
-            logger.error(f"REQUEST FAILED WITH STATUS CODE: {response.status_code} - {e}")
+            logger.error(
+                f"REQUEST FAILED WITH STATUS CODE: {response.status_code} - {e}"
+            )
             sys.exit(1)
 
         response_json = response.json()
@@ -114,7 +122,9 @@ class BasePlatform(ABC):
         return response_json
 
     def _get_platform_position_mapping(self) -> Dict[str, Dict]:
-        with open(Path(__file__).parent / "position_mapping.json", "r") as pos_mapping_file:
+        with open(
+            Path(__file__).parent / "position_mapping.json", "r"
+        ) as pos_mapping_file:
             pos_mapping_json = json.load(pos_mapping_file)
 
         base_positions = pos_mapping_json.get("base")
@@ -138,15 +148,25 @@ class BasePlatform(ABC):
             if not pos_attributes.get("is_flex")
         }
 
-        mapped_base_and_platform_positions = unmapped_base_positions | mapped_platform_positions
+        mapped_base_and_platform_positions = (
+            unmapped_base_positions | mapped_platform_positions
+        )
 
         unmapped_idp_positions = {}
         for pos_attributes in mapped_base_and_platform_positions.values():
-            if pos_attributes.get("type") == "defensive" and pos_attributes.get("is_flex"):
+            if pos_attributes.get("type") == "defensive" and pos_attributes.get(
+                "is_flex"
+            ):
                 for pos in pos_attributes.get("positions"):
-                    unmapped_idp_positions[pos] = {"base": pos, "type": "defensive", "is_flex": False}
+                    unmapped_idp_positions[pos] = {
+                        "base": pos,
+                        "type": "defensive",
+                        "is_flex": False,
+                    }
 
-        return unmapped_base_positions | unmapped_idp_positions | mapped_platform_positions
+        return (
+            unmapped_base_positions | unmapped_idp_positions | mapped_platform_positions
+        )
 
     def get_mapped_position(self, platform_position: str) -> str:
         return self.position_mapping.get(platform_position).get("base")
@@ -173,7 +193,9 @@ class BasePlatform(ABC):
                     f"PREVIOUSLY SAVED DATA!"
                 )
             else:
-                logger.debug(f"Loading saved {self.platform_display} data from {self.league.league_data_file_path}")
+                logger.debug(
+                    f"Loading saved {self.platform_display} data from {self.league.league_data_file_path}"
+                )
 
                 # load league feature data (must have previously run application with -s flag)
                 self.league.load_from_json_file(self.league.league_data_file_path)
@@ -188,7 +210,9 @@ class BasePlatform(ABC):
             self.map_data_to_base()
 
         if self.league.save_data:
-            logger.debug(f"Saving {self.platform_display} data to {self.league.league_data_file_path}")
+            logger.debug(
+                f"Saving {self.platform_display} data to {self.league.league_data_file_path}"
+            )
             self.league.save_to_json_file(self.league.league_data_file_path)
 
         delta = datetime.now() - begin

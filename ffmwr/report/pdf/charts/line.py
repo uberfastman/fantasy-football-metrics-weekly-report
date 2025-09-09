@@ -10,7 +10,6 @@ from reportlab.graphics.charts.axes import XValueAxis
 from reportlab.graphics.charts.legends import LineLegend
 from reportlab.graphics.charts.lineplots import LinePlot
 from reportlab.graphics.charts.textlabels import Label
-
 # noinspection PyProtectedMember,PyUnresolvedReferences
 from reportlab.graphics.shapes import Drawing, Rect, _DrawingEditorMixin
 from reportlab.graphics.widgets.markers import makeMarker
@@ -54,7 +53,9 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         *args,
         **kw,
     ):
-        logger.debug(f"Generating line chart with data:\n{json.dumps(data, indent=2)}\n")
+        logger.debug(
+            f"Generating line chart with data:\n{json.dumps(data, indent=2)}\n"
+        )
 
         Drawing.__init__(self, width, height, *args, **kw)
         Drawing.hAlign = "CENTER"
@@ -76,7 +77,9 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
 
         index = 0
         for color in series_colors_cmyk:
-            self.chart.lines[index].strokeColor = PCMYKColor(color[0], color[1], color[2], color[3], alpha=color[4])
+            self.chart.lines[index].strokeColor = PCMYKColor(
+                color[0], color[1], color[2], color[3], alpha=color[4]
+            )
             self.chart.lines[index].symbol = makeMarker("FilledCircle")
             self.chart.lines[index].symbol.strokeColor = PCMYKColor(
                 color[0], color[1], color[2], color[3], alpha=color[4]
@@ -86,22 +89,37 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         self.chart.lines.strokeWidth = 2
 
         self.legend.colorNamePairs = Auto(obj=self.chart)
-        self.legend.x = 10 * (len(series_names) // 5)  # adjust how far to the left/right the legend labels are
-        self.legend.y = 12 * (len(series_names) // 5)  # adjust how far up/down the legend labels are
+        self.legend.x = 10 * (
+            len(series_names) // 5
+        )  # adjust how far to the left/right the legend labels are
+        self.legend.y = 12 * (
+            len(series_names) // 5
+        )  # adjust how far up/down the legend labels are
         # set size of swatches
         self.legend.dx = 0
         self.legend.dy = -5
         self.legend.fontName = font
         self.legend.fontSize = 100 // len(series_names)
         self.legend.alignment = "right"
-        self.legend.columnMaximum = (len(series_names) // 5) + 1  # adjust number of ROWS allowed in legend
+        self.legend.columnMaximum = (
+            len(series_names) // 5
+        ) + 1  # adjust number of ROWS allowed in legend
         self.legend.dxTextSpace = 4
         self.legend.variColumn = 1
         self.legend.boxAnchor = "nw"
         self.legend.deltay = 10  # adjust the space between legend rows
-        self.legend.autoXPadding = 15 * ((len(series_names) // 5) + 1)  # adjust the space between legend columns
+        self.legend.autoXPadding = 15 * (
+            (len(series_names) // 5) + 1
+        )  # adjust the space between legend columns
 
-        self.background = Rect(0, 0, self.width, self.height, strokeWidth=0, fillColor=PCMYKColor(0, 0, 10, 0))
+        self.background = Rect(
+            0,
+            0,
+            self.width,
+            self.height,
+            strokeWidth=0,
+            fillColor=PCMYKColor(0, 0, 10, 0),
+        )
         self.background.strokeColor = black
         self.background.fillOpacity = 0.25
         self.background.strokeWidth = 0
@@ -115,7 +133,13 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         self.make_series_labels(series_names)
 
     def make_title(self, title: str, font: str = "Helvetica"):
-        self._add(self, Label(), name="Title", validate=None, desc="The title at the top of the chart")
+        self._add(
+            self,
+            Label(),
+            name="Title",
+            validate=None,
+            desc="The title at the top of the chart",
+        )
 
         self.Title.fontName = font
         self.Title.fontSize = 14
@@ -126,8 +150,16 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         self.Title.height = 20
         self.Title.textAnchor = "middle"
 
-    def make_x_axis(self, x_label: str, x_min: int, x_max: int, x_step: int, font: str = "Helvetica"):
-        self._add(self, Label(), name="XLabel", validate=None, desc="The label on the horizontal axis")
+    def make_x_axis(
+        self, x_label: str, x_min: int, x_max: int, x_step: int, font: str = "Helvetica"
+    ):
+        self._add(
+            self,
+            Label(),
+            name="XLabel",
+            validate=None,
+            desc="The label on the horizontal axis",
+        )
 
         self.XLabel.fontName = font
         self.XLabel.fontSize = 10
@@ -153,8 +185,16 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         # logger.info(self.chart.xValueAxis.getProperties())
         # self.chart.xValueAxis.labels.angle = 45
 
-    def make_y_axis(self, y_label: str, y_min: int, y_max: int, y_step: int, font: str = "Helvetica"):
-        self._add(self, Label(), name="YLabel", validate=None, desc="The label on the vertical axis")
+    def make_y_axis(
+        self, y_label: str, y_min: int, y_max: int, y_step: int, font: str = "Helvetica"
+    ):
+        self._add(
+            self,
+            Label(),
+            name="YLabel",
+            validate=None,
+            desc="The label on the vertical axis",
+        )
 
         self.YLabel.fontName = font
         self.YLabel.fontSize = 10
@@ -183,7 +223,9 @@ class LineChartGenerator(_DrawingEditorMixin, Drawing):
         self.chart.yValueAxis.avoidBoundFrac = 0.1
         self.chart.yValueAxis.labels.dx = 3
         self.chart.yValueAxis.forceZero = 0
-        self.chart.yValueAxis.gridStrokeColor = PCMYKColor(100, 100, 100, 100, alpha=100)
+        self.chart.yValueAxis.gridStrokeColor = PCMYKColor(
+            100, 100, 100, 100, alpha=100
+        )
         self.chart.yValueAxis.visible = 1
         self.chart.yValueAxis.strokeColor = black
         self.chart.yValueAxis.labelTextScale = 1

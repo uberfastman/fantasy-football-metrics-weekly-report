@@ -8,7 +8,6 @@ from typing import Any, List
 
 from reportlab.graphics.charts.legends import Legend
 from reportlab.graphics.charts.piecharts import Pie
-
 # noinspection PyProtectedMember,PyUnresolvedReferences
 from reportlab.graphics.shapes import Drawing, _DrawingEditorMixin
 from reportlab.lib.colors import HexColor, black, white
@@ -104,7 +103,11 @@ class BreakdownPieDrawing(_DrawingEditorMixin, Drawing):
         data_len = len(self.pie.data)
         self.set_items(data_len, self.pie.slices, "fillColor", pdf_chart_colors)
         self.legend.colorNamePairs = [
-            (self.pie.slices[i].fillColor, (self.pie.labels[i][0:20], f"{data[i]:0.2f}")) for i in range(data_len)
+            (
+                self.pie.slices[i].fillColor,
+                (self.pie.labels[i][0:20], f"{data[i]:0.2f}"),
+            )
+            for i in range(data_len)
         ]
 
     @staticmethod

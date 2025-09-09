@@ -27,8 +27,10 @@ from ffmwr.integrations.slack import SlackIntegration
 from ffmwr.report.builder import FantasyFootballReport
 from ffmwr.utilities.app import check_github_for_updates
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
-from ffmwr.utilities.utils import format_platform_display, normalize_dependency_package_name
+from ffmwr.utilities.settings import (AppSettings,
+                                      get_app_settings_from_env_file)
+from ffmwr.utilities.utils import (format_platform_display,
+                                   normalize_dependency_package_name)
 
 colorama.init()
 
@@ -70,7 +72,9 @@ def select_league(
                 f"({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
             ).lower()
         else:
-            logger.info('Use-default is set to "true". Automatically running the report for the default league.')
+            logger.info(
+                'Use-default is set to "true". Automatically running the report for the default league.'
+            )
             selection = "y"
     else:
         selection = "selected"
@@ -179,7 +183,9 @@ def select_platform(settings: AppSettings, use_default: bool = False) -> str:
             f"-> {Style.RESET_ALL}"
         ).lower()
     else:
-        logger.info('Use-default is set to "true". Automatically running the report for the default platform.')
+        logger.info(
+            'Use-default is set to "true". Automatically running the report for the default platform.'
+        )
         selection = "y"
 
     if selection == "y":
@@ -204,9 +210,9 @@ def select_platform(settings: AppSettings, use_default: bool = False) -> str:
         else:
             logger.warning(
                 f'Generating fantasy football reports for the "{format_platform_display(chosen_platform)}" fantasy '
-                f'football platform is not currently supported. Please select a valid platform from '
+                f"football platform is not currently supported. Please select a valid platform from "
                 f'{"/".join(settings.supported_platforms_list)}. '
-                f'-> {Style.RESET_ALL}'
+                f"-> {Style.RESET_ALL}"
             )
             time.sleep(0.25)
             return select_platform(settings, use_default=use_default)
@@ -242,7 +248,9 @@ def select_week(settings: AppSettings, use_default: bool = False) -> Optional[in
         if 0 < chosen_week <= settings.nfl_season_length:
             return chosen_week
         else:
-            logger.warning(f"Please select a valid week number between 1 and {settings.nfl_season_length}.")
+            logger.warning(
+                f"Please select a valid week number between 1 and {settings.nfl_season_length}."
+            )
             time.sleep(0.25)
             return select_week(settings, use_default=use_default)
     else:
@@ -257,10 +265,15 @@ def main() -> None:
         for line in reqs.readlines():
             if not line.startswith("#"):
                 dep, dep_version = line.strip().split("==")
-                dependencies.append(f"{normalize_dependency_package_name(dep)}=={dep_version}")
+                dependencies.append(
+                    f"{normalize_dependency_package_name(dep)}=={dep_version}"
+                )
 
     installed_dependencies = sorted(
-        [f"{normalize_dependency_package_name(x.name)}=={x.version}" for x in distributions()]
+        [
+            f"{normalize_dependency_package_name(x.name)}=={x.version}"
+            for x in distributions()
+        ]
     )
 
     missing_dependency_count = 0
@@ -273,7 +286,8 @@ def main() -> None:
 
     if missing_dependency_count > 0:
         logger.error(
-            f"MISSING {missing_dependency_count} " + ("DEPENDENCY" if missing_dependency_count == 1 else "DEPENDENCIES")
+            f"MISSING {missing_dependency_count} "
+            + ("DEPENDENCY" if missing_dependency_count == 1 else "DEPENDENCIES")
         )
         sys.exit(1)
 
@@ -288,11 +302,15 @@ def main() -> None:
             "PDF file that contains a host of metrics and rankings for teams in a given fantasy football league."
         ),
         epilog="The FFWMR is developed and maintained by Wren J. R. (uberfastman).",
-        formatter_class=lambda prog: HelpFormatter(prog, max_help_position=40, width=120),
+        formatter_class=lambda prog: HelpFormatter(
+            prog, max_help_position=40, width=120
+        ),
         add_help=True,
     )
 
-    report_configuration_group = arg_parser.add_argument_group("report generation (optional)")
+    report_configuration_group = arg_parser.add_argument_group(
+        "report generation (optional)"
+    )
     report_configuration_group.add_argument(
         "-p",
         "--fantasy-platform",
@@ -425,7 +443,10 @@ def main() -> None:
     f_str_newline = "\n"
     args_display = f"{f_str_newline}".join(
         # [f"{' ' * (len(max(vars(args).keys(), key=len)) - len(k))}{k} = {v}" for k, v in vars(args).items()]
-        [f"  {k}{'.' * (len(max(vars(args).keys(), key=len)) - len(k))}...{v}" for k, v in vars(args).items()]
+        [
+            f"  {k}{'.' * (len(max(vars(args).keys(), key=len)) - len(k))}...{v}"
+            for k, v in vars(args).items()
+        ]
     )
     # verification output message
     logger.info(
@@ -468,11 +489,15 @@ def main() -> None:
             upload_message = google_drive_integration.upload_file(report_pdf)
             logger.info(upload_message)
         else:
-            logger.info(f"Report NOT uploaded to Google Drive with command line arguments: {args}")
+            logger.info(
+                f"Report NOT uploaded to Google Drive with command line arguments: {args}"
+            )
 
     if app_settings.integration_settings.slack_post_bool:
         if not args.skip_uploads and not args.test:
-            slack_integration = SlackIntegration(app_settings, root_directory, report.league.week_for_report)
+            slack_integration = SlackIntegration(
+                app_settings, root_directory, report.league.week_for_report
+            )
 
             # post PDF or link to PDF to Slack
             slack_response = None
@@ -482,7 +507,9 @@ def main() -> None:
                     # post shareable link to uploaded Google Drive PDF on Slack
                     slack_response = slack_integration.post_message(upload_message)
                 else:
-                    logger.warning("Unable to post Google Drive link to Slack when GOOGLE_DRIVE_UPLOAD_BOOL=False.")
+                    logger.warning(
+                        "Unable to post Google Drive link to Slack when GOOGLE_DRIVE_UPLOAD_BOOL=False."
+                    )
             elif post_or_file == "file":
                 # upload PDF report directly to Slack
                 slack_response = slack_integration.upload_file(report_pdf)
@@ -496,13 +523,19 @@ def main() -> None:
             if slack_response and slack_response.get("ok"):
                 logger.info(f"Report {str(report_pdf)} successfully posted to Slack!")
             else:
-                logger.error(f"Report {str(report_pdf)} was NOT posted to Slack with error: {slack_response}")
+                logger.error(
+                    f"Report {str(report_pdf)} was NOT posted to Slack with error: {slack_response}"
+                )
         else:
-            logger.info(f"Report NOT posted to Slack with command line arguments: {args}")
+            logger.info(
+                f"Report NOT posted to Slack with command line arguments: {args}"
+            )
 
     if app_settings.integration_settings.groupme_post_bool:
         if not args.skip_uploads and not args.test:
-            groupme_integration = GroupMeIntegration(app_settings, root_directory, report.league.week_for_report)
+            groupme_integration = GroupMeIntegration(
+                app_settings, root_directory, report.league.week_for_report
+            )
 
             # post PDF or link to PDF to GroupMe
             groupme_response = None
@@ -512,7 +545,9 @@ def main() -> None:
                     # post shareable link to uploaded Google Drive PDF on GroupMe
                     groupme_response = groupme_integration.post_message(upload_message)
                 else:
-                    logger.warning("Unable to post Google Drive link to GroupMe when GOOGLE_DRIVE_UPLOAD_BOOL=False.")
+                    logger.warning(
+                        "Unable to post Google Drive link to GroupMe when GOOGLE_DRIVE_UPLOAD_BOOL=False."
+                    )
             elif post_or_file == "file":
                 # upload PDF report directly to GroupMe
                 groupme_response = groupme_integration.upload_file(report_pdf)
@@ -526,13 +561,19 @@ def main() -> None:
             if groupme_response == 202 or groupme_response["meta"]["code"] == 201:
                 logger.info(f"Report {str(report_pdf)} successfully posted to GroupMe!")
             else:
-                logger.error(f"Report {str(report_pdf)} was NOT posted to GroupMe with error: {groupme_response}")
+                logger.error(
+                    f"Report {str(report_pdf)} was NOT posted to GroupMe with error: {groupme_response}"
+                )
         else:
-            logger.info(f"Report NOT posted to GroupMe with command line arguments: {args}")
+            logger.info(
+                f"Report NOT posted to GroupMe with command line arguments: {args}"
+            )
 
     if app_settings.integration_settings.discord_post_bool:
         if not args.skip_uploads and not args.test:
-            discord_integration = DiscordIntegration(app_settings, root_directory, report.league.week_for_report)
+            discord_integration = DiscordIntegration(
+                app_settings, root_directory, report.league.week_for_report
+            )
 
             # post PDF or link to PDF to Discord
             discord_response = None
@@ -542,7 +583,9 @@ def main() -> None:
                     # post shareable link to uploaded Google Drive PDF on Discord
                     discord_response = discord_integration.post_message(upload_message)
                 else:
-                    logger.warning("Unable to post Google Drive link to Discord when GOOGLE_DRIVE_UPLOAD_BOOL=False.")
+                    logger.warning(
+                        "Unable to post Google Drive link to Discord when GOOGLE_DRIVE_UPLOAD_BOOL=False."
+                    )
 
             elif post_or_file == "file":
                 # upload PDF report directly to Discord
@@ -557,9 +600,13 @@ def main() -> None:
             if discord_response and discord_response.get("type") == 0:
                 logger.info(f"Report {str(report_pdf)} successfully posted to Discord!")
             else:
-                logger.error(f"Report {str(report_pdf)} was NOT posted to Discord with error: {discord_response}")
+                logger.error(
+                    f"Report {str(report_pdf)} was NOT posted to Discord with error: {discord_response}"
+                )
         else:
-            logger.info(f"Report NOT posted to Discord with command line arguments: {args}")
+            logger.info(
+                f"Report NOT posted to Discord with command line arguments: {args}"
+            )
 
 
 # RUN FANTASY FOOTBALL REPORT PROGRAM

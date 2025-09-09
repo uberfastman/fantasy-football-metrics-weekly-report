@@ -11,10 +11,10 @@ from camel_converter import to_snake
 from colorama import Fore, Style
 from dotenv import dotenv_values
 from pydantic import Field, computed_field
-
 # noinspection PyProtectedMember
 from pydantic.fields import FieldInfo
-from pydantic_settings import BaseSettings, EnvSettingsSource, PydanticBaseSettingsSource, SettingsConfigDict
+from pydantic_settings import (BaseSettings, EnvSettingsSource,
+                               PydanticBaseSettingsSource, SettingsConfigDict)
 
 from ffmwr.utilities.logger import get_logger
 from ffmwr.utilities.utils import FFMWRPythonObjectJson
@@ -24,8 +24,12 @@ logger = get_logger(__name__, propagate=False)
 
 class CustomSettingsSource(EnvSettingsSource):
     @classmethod
-    def convert_env_field_value_to_settings(cls, field_key: str, field_value: Any) -> Any:
-        if isinstance(field_value, str):  # check if incoming field value is coming from a .env file or not
+    def convert_env_field_value_to_settings(
+        cls, field_key: str, field_value: Any
+    ) -> Any:
+        if isinstance(
+            field_value, str
+        ):  # check if incoming field value is coming from a .env file or not
             if field_key.endswith("_int"):
                 settings_field_value = int(field_value)
             elif field_key.endswith("_bool"):
@@ -45,7 +49,9 @@ class CustomSettingsSource(EnvSettingsSource):
 
         return settings_field_value
 
-    def prepare_field_value(self, field_name: str, field: FieldInfo, value: Any, value_is_complex: bool) -> Any:
+    def prepare_field_value(
+        self, field_name: str, field: FieldInfo, value: Any, value_is_complex: bool
+    ) -> Any:
         if value is None:
             settings_field_value = None
         elif field_name == "league_id":
@@ -56,7 +62,9 @@ class CustomSettingsSource(EnvSettingsSource):
             except (ValueError, TypeError):
                 settings_field_value = value
         else:
-            settings_field_value = self.__class__.convert_env_field_value_to_settings(field_name, value)
+            settings_field_value = self.__class__.convert_env_field_value_to_settings(
+                field_name, value
+            )
 
         return settings_field_value
 
@@ -94,7 +102,10 @@ class CustomSettings(BaseSettings, FFMWRPythonObjectJson):
                 if issubclass(v.annotation, CustomSettings):
                     field: Tuple[str, str, str]  # noqa: F842
                     settings_field_keys.update(
-                        [(str(field[0]).upper(), field[1], field[2]) for field in v.annotation.get_fields(cls.__name__)]
+                        [
+                            (str(field[0]).upper(), field[1], field[2])
+                            for field in v.annotation.get_fields(cls.__name__)
+                        ]
                     )
                 else:
                     settings_field_keys.add((str(k).upper(), v.title, parent_cls))
@@ -106,7 +117,9 @@ class CustomSettings(BaseSettings, FFMWRPythonObjectJson):
     def get_fields_by_title_group(self) -> Dict[str, Dict[str, Field]]:
         fields_by_title: Dict = {}
         for field_key, field in self.model_fields.items():
-            if isclass(field.annotation) and issubclass(field.annotation, CustomSettings):
+            if isclass(field.annotation) and issubclass(
+                field.annotation, CustomSettings
+            ):
                 settings_field: CustomSettings = getattr(self, field_key)
                 fields_by_title.update(**settings_field.get_fields_by_title_group())
             else:
@@ -115,9 +128,14 @@ class CustomSettings(BaseSettings, FFMWRPythonObjectJson):
                 if not isinstance(field_value, bool) and not field_value:
                     field_value = field.default
                 if field_title_key in fields_by_title.keys():
-                    fields_by_title[field_title_key][field_key] = (field_value, field.description)
+                    fields_by_title[field_title_key][field_key] = (
+                        field_value,
+                        field.description,
+                    )
                 else:
-                    fields_by_title[field_title_key] = {field_key: (field_value, field.description)}
+                    fields_by_title[field_title_key] = {
+                        field_key: (field_value, field.description)
+                    }
 
         return fields_by_title
 
@@ -151,12 +169,16 @@ class CustomSettings(BaseSettings, FFMWRPythonObjectJson):
     def write_settings_to_env_file(self, env_file_path: Path) -> None:
         with open(env_file_path, "w") as ef:
             for field_type, fields in self.get_fields_by_title_group().items():
-                ef.write(f"\n# # # # # {field_type.replace('_', ' ').upper()} # # # # #\n\n")
+                ef.write(
+                    f"\n# # # # # {field_type.replace('_', ' ').upper()} # # # # #\n\n"
+                )
 
                 for field_key, (field_value, field_description) in fields.items():
                     if field_description:
                         ef.write(f"# {field_description}\n")
-                    ef.write(f"{str(field_key).upper()}={self.convert_field_value_to_env(field_value)}\n")
+                    ef.write(
+                        f"{str(field_key).upper()}={self.convert_field_value_to_env(field_value)}\n"
+                    )
 
     def replace_field_values_with_default(self):
         for field_key, field in self.model_fields.items():
@@ -230,9 +252,20 @@ class ReportSettings(CustomSettings):
     team_high_roller_stats_bool: bool = Field(True, title=__qualname__)
     team_boom_or_bust_bool: bool = Field(True, title=__qualname__)
 
-    font: str = Field("helvetica", title=__qualname__, description="set font for report (defaults to Helvetica)")
+    font: str = Field(
+        "helvetica",
+        title=__qualname__,
+        description="set font for report (defaults to Helvetica)",
+    )
     supported_fonts_list: List[str] = Field(
-        ["helvetica", "times", "symbola", "opensansemoji", "sketchcollege", "leaguegothic"],
+        [
+            "helvetica",
+            "times",
+            "symbola",
+            "opensansemoji",
+            "sketchcollege",
+            "leaguegothic",
+        ],
         title=__qualname__,
         description="supported fonts (comma-delimited list with no spaces between items)",
     )
@@ -276,7 +309,9 @@ class IntegrationSettings(CustomSettings):
     )
     google_drive_client_id: Optional[str] = Field(None, title=__qualname__)
     google_drive_client_secret: Optional[str] = Field(None, title=__qualname__)
-    google_drive_auth_token_json: Optional[Dict[str, Any]] = Field(None, title=__qualname__)
+    google_drive_auth_token_json: Optional[Dict[str, Any]] = Field(
+        None, title=__qualname__
+    )
     google_drive_default_folder: str = Field("Fantasy_Football", title=__qualname__)
     google_drive_folder: Optional[str] = Field(None, title=__qualname__)
 
@@ -351,7 +386,9 @@ class AppSettings(CustomSettings):
     )
 
     log_level: str = Field(
-        "info", title=__qualname__, description="logger output level: notset, debug, info, warning, error, critical"
+        "info",
+        title=__qualname__,
+        description="logger output level: notset, debug, info, warning, error, critical",
     )
     check_for_updates: bool = Field(
         True,
@@ -408,7 +445,9 @@ class AppSettings(CustomSettings):
         ),
     )
     num_playoff_slots: int = Field(
-        6, title=__qualname__, description="FLEAFLICKER: default if number of playoff slots cannot be scraped"
+        6,
+        title=__qualname__,
+        description="FLEAFLICKER: default if number of playoff slots cannot be scraped",
     )
     num_playoff_slots_per_division: int = Field(
         1,
@@ -442,23 +481,29 @@ def get_app_settings_from_env_file(env_file_path: Path) -> AppSettings:
     if env_file_path.is_file():
         if os.access(env_file_path, mode=os.R_OK):
             env_vars_from_file = set(dotenv_values(env_file_path).keys())
-            missing_env_vars = set([field[0] for field in env_fields]).difference(env_vars_from_file)
+            missing_env_vars = set([field[0] for field in env_fields]).difference(
+                env_vars_from_file
+            )
 
             if missing_env_vars:
                 logger.error(
-                    f"Your local \".env\" file is missing the following variables:\n\n"
+                    f'Your local ".env" file is missing the following variables:\n\n'
                     f"{', '.join(missing_env_vars)}\n\n"
-                    f"Please update your \".env\" file and try again."
+                    f'Please update your ".env" file and try again.'
                 )
                 sys.exit(1)
             else:
                 logger.debug('All required local ".env" file variables present.')
 
-            logger.debug('The ".env" file is available. Running Fantasy Football Metrics Weekly Report app...')
+            logger.debug(
+                'The ".env" file is available. Running Fantasy Football Metrics Weekly Report app...'
+            )
 
             return AppSettings(_env_file=env_file_path, _env_file_encoding="utf-8")
         else:
-            logger.error('Unable to access ".env" file. Please check that file permissions are properly set.')
+            logger.error(
+                'Unable to access ".env" file. Please check that file permissions are properly set.'
+            )
             sys.exit(1)
 
     else:
@@ -470,7 +515,9 @@ def get_app_settings_from_env_file(env_file_path: Path) -> AppSettings:
         if create_env_file == "y":
             return create_env_file_from_settings(env_fields, env_file_path)
         elif create_env_file == "n":
-            logger.error('Local ".env" not found. Please make sure that it exists in project root directory.')
+            logger.error(
+                'Local ".env" not found. Please make sure that it exists in project root directory.'
+            )
             sys.exit(1)
         else:
             logger.warning('Please only select "y" or "n".')
@@ -511,7 +558,9 @@ def create_env_file_from_settings(
 
     if not league_id:
         league_id = input(f"{Fore.GREEN}What is your league ID? -> {Style.RESET_ALL}")
-        logger.debug(f'Retrieved fantasy football league ID for ".env" file: {league_id}')
+        logger.debug(
+            f'Retrieved fantasy football league ID for ".env" file: {league_id}'
+        )
 
     app_settings.league_id = league_id
 
@@ -522,18 +571,28 @@ def create_env_file_from_settings(
         )
         try:
             if int(season) > datetime.today().year:
-                logger.warning("This report cannot predict the future. Please only input a current or past NFL season.")
+                logger.warning(
+                    "This report cannot predict the future. Please only input a current or past NFL season."
+                )
                 sleep(0.25)
-                return create_env_file_from_settings(env_fields, env_file_path, platform=platform, league_id=league_id)
+                return create_env_file_from_settings(
+                    env_fields, env_file_path, platform=platform, league_id=league_id
+                )
             elif int(season) < 2019 and platform == "espn":
-                logger.warning("ESPN leagues prior to 2019 are not supported. Please select a later NFL season.")
+                logger.warning(
+                    "ESPN leagues prior to 2019 are not supported. Please select a later NFL season."
+                )
                 sleep(0.25)
-                return create_env_file_from_settings(env_fields, env_file_path, platform=platform, league_id=league_id)
+                return create_env_file_from_settings(
+                    env_fields, env_file_path, platform=platform, league_id=league_id
+                )
 
         except ValueError:
             logger.warning("You must input a valid year in the format YYYY.")
             sleep(0.25)
-            return create_env_file_from_settings(env_fields, env_file_path, platform=platform, league_id=league_id)
+            return create_env_file_from_settings(
+                env_fields, env_file_path, platform=platform, league_id=league_id
+            )
 
         logger.debug(f'Retrieved fantasy football season for ".env" file: {season}')
 
@@ -545,20 +604,33 @@ def create_env_file_from_settings(
             f"{Style.RESET_ALL}"
         )
         try:
-            if int(current_week) < 0 or int(current_week) > app_settings.nfl_season_length:
+            if (
+                int(current_week) < 0
+                or int(current_week) > app_settings.nfl_season_length
+            ):
                 logger.warning(
                     f"Week {current_week} is not a valid NFL week. Please select a week from 1 to "
                     f"{app_settings.nfl_season_length}."
                 )
                 sleep(0.25)
                 return create_env_file_from_settings(
-                    env_fields, env_file_path, platform=platform, league_id=league_id, season=season
+                    env_fields,
+                    env_file_path,
+                    platform=platform,
+                    league_id=league_id,
+                    season=season,
                 )
         except ValueError:
-            logger.warning("You must input a valid integer to represent the current NFL week.")
+            logger.warning(
+                "You must input a valid integer to represent the current NFL week."
+            )
             sleep(0.25)
             return create_env_file_from_settings(
-                env_fields, env_file_path, platform=platform, league_id=league_id, season=season
+                env_fields,
+                env_file_path,
+                platform=platform,
+                league_id=league_id,
+                season=season,
             )
 
         logger.debug(f'Retrieved current NFL week for ".env" file: {current_week}')
@@ -573,6 +645,8 @@ def create_env_file_from_settings(
 if __name__ == "__main__":
     local_root_directory = Path(__file__).parent.parent.parent
 
-    local_settings: AppSettings = get_app_settings_from_env_file(local_root_directory / ".env")
+    local_settings: AppSettings = get_app_settings_from_env_file(
+        local_root_directory / ".env"
+    )
 
     logger.info(local_settings)

@@ -9,9 +9,11 @@ from typing import Dict
 import requests
 
 from ffmwr.features.base.feature import BaseFeature
-from ffmwr.utilities.constants import nfl_team_abbreviation_conversions, nfl_team_abbreviations
+from ffmwr.utilities.constants import (nfl_team_abbreviation_conversions,
+                                       nfl_team_abbreviations)
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
+from ffmwr.utilities.settings import (AppSettings,
+                                      get_app_settings_from_env_file)
 from ffmwr.utilities.utils import generate_normalized_player_key
 
 logger = get_logger(__name__, propagate=False)
@@ -99,24 +101,35 @@ class BeefFeature(BaseFeature):
 
             if player_team_abbr not in nfl_team_abbreviations:
                 if player_team_abbr in nfl_team_abbreviation_conversions.keys():
-                    player_team_abbr = nfl_team_abbreviation_conversions[player_team_abbr]
+                    player_team_abbr = nfl_team_abbreviation_conversions[
+                        player_team_abbr
+                    ]
                 else:
                     player_team_abbr = "?"
 
             if player_position == "DEF":
                 normalized_player_key = player_position
             else:
-                normalized_player_key = generate_normalized_player_key(player_full_name, player_team_abbr)
+                normalized_player_key = generate_normalized_player_key(
+                    player_full_name, player_team_abbr
+                )
 
             # add raw player data json to raw_player_data for reference
             self.raw_feature_data[normalized_player_key] = player_data_json
 
             if player_position != "DEF":
-                player_weight = int(player_data_json.get("weight")) if player_data_json.get("weight") else 0.0
+                player_weight = (
+                    int(player_data_json.get("weight"))
+                    if player_data_json.get("weight")
+                    else 0.0
+                )
                 player_tabbu = player_weight / float(self.tabbu_value)
                 player_beef_dict = {
                     **self._get_feature_data_template(
-                        player_full_name, player_team_abbr, player_position, player_position_type
+                        player_full_name,
+                        player_team_abbr,
+                        player_position,
+                        player_position_type,
                     ),
                     "weight": player_weight,
                     "tabbu": player_tabbu,
@@ -126,7 +139,11 @@ class BeefFeature(BaseFeature):
                     self.feature_data[normalized_player_key] = player_beef_dict
 
                 position_types = player_data_json.get("fantasy_positions")
-                if player_team_abbr != "?" and position_types and ("DL" in position_types or "DB" in position_types):
+                if (
+                    player_team_abbr != "?"
+                    and position_types
+                    and ("DL" in position_types or "DB" in position_types)
+                ):
                     if player_team_abbr not in self.feature_data.keys():
                         self.feature_data[player_team_abbr] = {
                             "position": "D/ST",
@@ -135,30 +152,56 @@ class BeefFeature(BaseFeature):
                             "tabbu": player_tabbu,
                         }
                     else:
-                        self.feature_data[player_team_abbr]["players"][normalized_player_key] = player_beef_dict
+                        self.feature_data[player_team_abbr]["players"][
+                            normalized_player_key
+                        ] = player_beef_dict
                         self.feature_data[player_team_abbr]["weight"] += player_weight
                         self.feature_data[player_team_abbr]["tabbu"] += player_tabbu
 
     def get_player_weight(
-        self, player_first_name: str, player_last_name: str, player_team_abbr: str, player_position: str
+        self,
+        player_first_name: str,
+        player_last_name: str,
+        player_team_abbr: str,
+        player_position: str,
     ) -> int:
         return self._get_player_feature_stats(
-            player_first_name, player_last_name, player_team_abbr, player_position, "weight", int
+            player_first_name,
+            player_last_name,
+            player_team_abbr,
+            player_position,
+            "weight",
+            int,
         )
 
     def get_player_tabbu(
-        self, player_first_name: str, player_last_name: str, player_team_abbr: str, player_position: str
+        self,
+        player_first_name: str,
+        player_last_name: str,
+        player_team_abbr: str,
+        player_position: str,
     ) -> float:
         return round(
             self._get_player_feature_stats(
-                player_first_name, player_last_name, player_team_abbr, player_position, "tabbu", float
+                player_first_name,
+                player_last_name,
+                player_team_abbr,
+                player_position,
+                "tabbu",
+                float,
             ),
             3,
         )
 
     def generate_player_info_json(self):
-        ordered_player_data = OrderedDict(sorted(self.raw_feature_data.items(), key=lambda k_v: k_v[0]))
-        with open(self.data_dir / f"{self.feature_type_str}_raw.json", mode="w", encoding="utf-8") as player_data:
+        ordered_player_data = OrderedDict(
+            sorted(self.raw_feature_data.items(), key=lambda k_v: k_v[0])
+        )
+        with open(
+            self.data_dir / f"{self.feature_type_str}_raw.json",
+            mode="w",
+            encoding="utf-8",
+        ) as player_data:
             # noinspection PyTypeChecker
             json.dump(ordered_player_data, player_data, ensure_ascii=False, indent=2)
 
@@ -166,7 +209,9 @@ class BeefFeature(BaseFeature):
 if __name__ == "__main__":
     local_root_directory = Path(__file__).parent.parent.parent
 
-    local_settings: AppSettings = get_app_settings_from_env_file(local_root_directory / ".env")
+    local_settings: AppSettings = get_app_settings_from_env_file(
+        local_root_directory / ".env"
+    )
 
     local_beef_feature = BeefFeature(
         1,

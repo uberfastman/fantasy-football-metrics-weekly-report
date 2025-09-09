@@ -12,7 +12,8 @@ from ffmwr.features.bad_boy import BadBoyFeature
 from ffmwr.features.beef import BeefFeature
 from ffmwr.features.high_roller import HighRollerFeature
 from ffmwr.utilities.settings import AppSettings
-from ffmwr.utilities.utils import FFMWRPythonObjectJson, generate_normalized_player_key
+from ffmwr.utilities.utils import (FFMWRPythonObjectJson,
+                                   generate_normalized_player_key)
 
 
 class BaseLeague(FFMWRPythonObjectJson):
@@ -37,8 +38,12 @@ class BaseLeague(FFMWRPythonObjectJson):
         self.season: int = season
         self.week_for_report: int = week_for_report
         self.root_dir: Path = root_dir
-        self.data_dir: Path = data_dir / f"{self.season}" / self.platform / self.league_id
-        self.league_data_file_path: Path = self.data_dir / f"week_{self.week_for_report}" / f"{self.league_id}.json"
+        self.data_dir: Path = (
+            data_dir / f"{self.season}" / self.platform / self.league_id
+        )
+        self.league_data_file_path: Path = (
+            self.data_dir / f"week_{self.week_for_report}" / f"{self.league_id}.json"
+        )
         self.save_data: bool = save_data
         self.offline: bool = offline
 
@@ -92,7 +97,9 @@ class BaseLeague(FFMWRPythonObjectJson):
     # def get_player_data_by_week(self, player_id: str, week: int = None) -> Any:
     #     return getattr(self.player_data_by_week_function(player_id, week), self.player_data_by_week_key)
 
-    def get_custom_weekly_matchups(self, week_for_report: int) -> List[Dict[str, Dict[str, Any]]]:
+    def get_custom_weekly_matchups(
+        self, week_for_report: int
+    ) -> List[Dict[str, Dict[str, Any]]]:
         """
         get weekly matchup data
         result format is like:
@@ -154,12 +161,19 @@ class BaseLeague(FFMWRPythonObjectJson):
                     opponent: BaseTeam = matchup.teams[0]
 
                 teams[str(team.team_id)] = {
-                    "result": "T" if is_tied else "W" if team.team_id == winning_team else "L",
+                    "result": (
+                        "T" if is_tied else "W" if team.team_id == winning_team else "L"
+                    ),
                     "points_for": team.points,
                     "points_against": opponent.points,
-                    "division": True
-                    if ((team.division or team.division == 0) and team.division == opponent.division)
-                    else False,
+                    "division": (
+                        True
+                        if (
+                            (team.division or team.division == 0)
+                            and team.division == opponent.division
+                        )
+                        else False
+                    ),
                 }
 
             matchup_list.append(teams)
@@ -177,7 +191,11 @@ class BaseLeague(FFMWRPythonObjectJson):
         }
 
     def get_playoff_probs(
-        self, playoff_prob_sims: int = None, save_data: bool = False, offline: bool = False, recalculate: bool = True
+        self,
+        playoff_prob_sims: int = None,
+        save_data: bool = False,
+        offline: bool = False,
+        recalculate: bool = True,
     ) -> PlayoffProbabilities:
         # TODO: UPDATE USAGE OF recalculate PARAM (could use self.offline)
         return PlayoffProbabilities(
@@ -192,19 +210,39 @@ class BaseLeague(FFMWRPythonObjectJson):
             offline=offline,
         )
 
-    def get_bad_boy_stats(self, refresh: bool = False, save_data: bool = False, offline: bool = False) -> BadBoyFeature:
+    def get_bad_boy_stats(
+        self, refresh: bool = False, save_data: bool = False, offline: bool = False
+    ) -> BadBoyFeature:
         return BadBoyFeature(
-            self.week_for_report, self.root_dir, self.data_dir, refresh=refresh, save_data=save_data, offline=offline
+            self.week_for_report,
+            self.root_dir,
+            self.data_dir,
+            refresh=refresh,
+            save_data=save_data,
+            offline=offline,
         )
 
-    def get_beef_stats(self, refresh: bool = False, save_data: bool = False, offline: bool = False) -> BeefFeature:
-        return BeefFeature(self.week_for_report, self.data_dir, refresh=refresh, save_data=save_data, offline=offline)
+    def get_beef_stats(
+        self, refresh: bool = False, save_data: bool = False, offline: bool = False
+    ) -> BeefFeature:
+        return BeefFeature(
+            self.week_for_report,
+            self.data_dir,
+            refresh=refresh,
+            save_data=save_data,
+            offline=offline,
+        )
 
     def get_high_roller_stats(
         self, refresh: bool = False, save_data: bool = False, offline: bool = False
     ) -> HighRollerFeature:
         return HighRollerFeature(
-            self.season, self.week_for_report, self.data_dir, refresh=refresh, save_data=save_data, offline=offline
+            self.season,
+            self.week_for_report,
+            self.data_dir,
+            refresh=refresh,
+            save_data=save_data,
+            offline=offline,
         )
 
 
@@ -347,10 +385,16 @@ class BaseRecord(FFMWRPythonObjectJson):
         self._streak_len: int = streak_len
         self.rank: int = rank
         self._percentage: float = (
-            percentage if percentage else self._calculate_percentage(self._wins, self._ties, self._losses)
+            percentage
+            if percentage
+            else self._calculate_percentage(self._wins, self._ties, self._losses)
         )
-        self._record_str: str = self._format_record(self._wins, self._ties, self._losses)
-        self._record_and_pf_str: str = self._format_record(self._wins, self._ties, self._losses, self._points_for)
+        self._record_str: str = self._format_record(
+            self._wins, self._ties, self._losses
+        )
+        self._record_and_pf_str: str = self._format_record(
+            self._wins, self._ties, self._losses, self._points_for
+        )
 
         self.division: str = division
         self._division_wins: int = division_wins
@@ -364,10 +408,15 @@ class BaseRecord(FFMWRPythonObjectJson):
         self._division_percentage: float = (
             division_percentage
             if division_percentage
-            else self._calculate_percentage(self._division_wins, self._division_ties, self._division_losses)
+            else self._calculate_percentage(
+                self._division_wins, self._division_ties, self._division_losses
+            )
         )
         self._division_record_str: str = self._format_record(
-            self._division_wins, self._division_ties, self._division_losses, self._division_points_for
+            self._division_wins,
+            self._division_ties,
+            self._division_losses,
+            self._division_points_for,
         )
         self._division_opponents_dict: Dict = division_opponents_dict
 
@@ -389,14 +438,18 @@ class BaseRecord(FFMWRPythonObjectJson):
             percentage = round(0, 3)
         return percentage
 
-    def _format_record(self, wins: int, ties: int, losses: int, points_for: float = None) -> str:
+    def _format_record(
+        self, wins: int, ties: int, losses: int, points_for: float = None
+    ) -> str:
         if points_for is not None:
             return self._format_record_with_points_for(wins, ties, losses, points_for)
         else:
             return self._format_record_without_points_for(wins, ties, losses)
 
     @staticmethod
-    def _format_record_with_points_for(wins: int, ties: int, losses: int, points_for: float) -> str:
+    def _format_record_with_points_for(
+        wins: int, ties: int, losses: int, points_for: float
+    ) -> str:
         if ties > 0:
             record_str = f"{wins}-{losses}-{ties} ({round(points_for, 2)})"
         else:
@@ -423,9 +476,13 @@ class BaseRecord(FFMWRPythonObjectJson):
 
     def add_win(self, wins: int = 1):
         self._wins += wins
-        self._percentage = self._calculate_percentage(self._wins, self._ties, self._losses)
+        self._percentage = self._calculate_percentage(
+            self._wins, self._ties, self._losses
+        )
         self._record_str = self._format_record(self._wins, self._ties, self._losses)
-        self._record_and_pf_str = self._format_record(self._wins, self._ties, self._losses, self._points_for)
+        self._record_and_pf_str = self._format_record(
+            self._wins, self._ties, self._losses, self._points_for
+        )
         self._update_streak("W")
 
     def get_losses(self) -> int:
@@ -433,9 +490,13 @@ class BaseRecord(FFMWRPythonObjectJson):
 
     def add_loss(self, losses: int = 1):
         self._losses += losses
-        self._percentage = self._calculate_percentage(self._wins, self._ties, self._losses)
+        self._percentage = self._calculate_percentage(
+            self._wins, self._ties, self._losses
+        )
         self._record_str = self._format_record(self._wins, self._ties, self._losses)
-        self._record_and_pf_str = self._format_record(self._wins, self._ties, self._losses, self._points_for)
+        self._record_and_pf_str = self._format_record(
+            self._wins, self._ties, self._losses, self._points_for
+        )
         self._update_streak("L")
 
     def get_ties(self) -> int:
@@ -443,9 +504,13 @@ class BaseRecord(FFMWRPythonObjectJson):
 
     def add_tie(self, ties: int = 1):
         self._ties += ties
-        self._percentage = self._calculate_percentage(self._wins, self._ties, self._losses)
+        self._percentage = self._calculate_percentage(
+            self._wins, self._ties, self._losses
+        )
         self._record_str = self._format_record(self._wins, self._ties, self._losses)
-        self._record_and_pf_str = self._format_record(self._wins, self._ties, self._losses, self._points_for)
+        self._record_and_pf_str = self._format_record(
+            self._wins, self._ties, self._losses, self._points_for
+        )
         self._update_streak("T")
 
     def get_points_for(self) -> float:
@@ -454,7 +519,9 @@ class BaseRecord(FFMWRPythonObjectJson):
     def add_points_for(self, points: float):
         self._points_for += points
         self._record_str = self._format_record(self._wins, self._ties, self._losses)
-        self._record_and_pf_str = self._format_record(self._wins, self._ties, self._losses, self._points_for)
+        self._record_and_pf_str = self._format_record(
+            self._wins, self._ties, self._losses, self._points_for
+        )
 
     def get_points_against(self) -> float:
         return self._points_against
@@ -495,9 +562,14 @@ class BaseRecord(FFMWRPythonObjectJson):
         self._division_percentage = self._calculate_percentage(
             self._division_wins, self._division_ties, self._division_losses
         )
-        self._record_str = self._format_record(self._division_wins, self._division_ties, self._division_losses)
+        self._record_str = self._format_record(
+            self._division_wins, self._division_ties, self._division_losses
+        )
         self._record_and_pf_str = self._format_record(
-            self._division_wins, self._division_ties, self._division_losses, self._division_points_for
+            self._division_wins,
+            self._division_ties,
+            self._division_losses,
+            self._division_points_for,
         )
         self._update_division_streak("W")
 
@@ -509,9 +581,14 @@ class BaseRecord(FFMWRPythonObjectJson):
         self._division_percentage = self._calculate_percentage(
             self._division_wins, self._division_ties, self._division_losses
         )
-        self._record_str = self._format_record(self._division_wins, self._division_ties, self._division_losses)
+        self._record_str = self._format_record(
+            self._division_wins, self._division_ties, self._division_losses
+        )
         self._record_and_pf_str = self._format_record(
-            self._division_wins, self._division_ties, self._division_losses, self._division_points_for
+            self._division_wins,
+            self._division_ties,
+            self._division_losses,
+            self._division_points_for,
         )
         self._update_division_streak("L")
 
@@ -523,9 +600,14 @@ class BaseRecord(FFMWRPythonObjectJson):
         self._division_percentage = self._calculate_percentage(
             self._division_wins, self._division_ties, self._division_losses
         )
-        self._record_str = self._format_record(self._division_wins, self._division_ties, self._division_losses)
+        self._record_str = self._format_record(
+            self._division_wins, self._division_ties, self._division_losses
+        )
         self._record_and_pf_str = self._format_record(
-            self._division_wins, self._division_ties, self._division_losses, self._division_points_for
+            self._division_wins,
+            self._division_ties,
+            self._division_losses,
+            self._division_points_for,
         )
         self._update_division_streak("T")
 
@@ -535,7 +617,10 @@ class BaseRecord(FFMWRPythonObjectJson):
     def add_division_points_for(self, points: float):
         self._division_points_for += points
         self._division_record_str = self._format_record(
-            self._division_wins, self._division_ties, self._division_losses, self._division_points_for
+            self._division_wins,
+            self._division_ties,
+            self._division_losses,
+            self._division_points_for,
         )
 
     def get_division_points_against(self) -> float:

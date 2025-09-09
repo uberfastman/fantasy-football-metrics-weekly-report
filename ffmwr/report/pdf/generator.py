@@ -23,7 +23,8 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen.canvas import Canvas
-from reportlab.platypus import Flowable, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import (Flowable, PageBreak, Paragraph,
+                                SimpleDocTemplate, Spacer, Table, TableStyle)
 from reportlab.platypus.flowables import Image as ReportLabImage
 from reportlab.platypus.flowables import KeepTogether
 
@@ -73,7 +74,9 @@ def get_player_image(
                             f"Unable to retrieve player "
                             f"headshot{f' for player {player_name}' if player_name else ''} at url {url}"
                         )
-                        local_img_path = Path("resources") / "images" / "photo-not-available.png"
+                        local_img_path = (
+                            Path("resources") / "images" / "photo-not-available.png"
+                        )
                 else:
                     logger.error(
                         f"FILE {local_img_jpg_path} DOES NOT EXIST. CANNOT LOAD DATA LOCALLY WITHOUT HAVING PREVIOUSLY "
@@ -96,7 +99,9 @@ def get_player_image(
             local_img_path = local_img_jpg_path
 
     else:
-        logger.error(f"No available URL for player{f' {player_name}' if player_name else ''}.")
+        logger.error(
+            f"No available URL for player{f' {player_name}' if player_name else ''}."
+        )
         img_name = "photo-not-available.png"
         local_img_path = Path("resources") / "images" / img_name
 
@@ -132,7 +137,9 @@ class HyperlinkedImage(ReportLabImage, object):
 
         It defaults to None for the if statement used later.
         """
-        super(HyperlinkedImage, self).__init__(file_path, width, height, kind, mask, lazy, hAlign=hAlign)
+        super(HyperlinkedImage, self).__init__(
+            file_path, width, height, kind, mask, lazy, hAlign=hAlign
+        )
         self.hyperlink = hyperlink
 
     def drawOn(self, canvas: Canvas, x: int, y: int, _sW: int = 0):
@@ -143,7 +150,9 @@ class HyperlinkedImage(ReportLabImage, object):
             y1 = y
             x2 = x1 + self._width
             y2 = y1 + self._height
-            canvas.linkURL(url=self.hyperlink, rect=(x1, y1, x2, y2), thickness=0, relative=1)
+            canvas.linkURL(
+                url=self.hyperlink, rect=(x1, y1, x2, y2), thickness=0, relative=1
+            )
         # noinspection PyArgumentList
         super(HyperlinkedImage, self).drawOn(canvas, x, y, _sW)
 
@@ -322,7 +331,9 @@ class PdfGenerator(object):
             ] * self.playoff_slots  # 8.20 inches
 
         self.line_separator = Drawing(100, 1)
-        self.line_separator.add(Line(0, -65, 550, -65, strokeColor=colors.black, strokeWidth=1))
+        self.line_separator.add(
+            Line(0, -65, 550, -65, strokeColor=colors.black, strokeWidth=1)
+        )
         self.spacer_twentieth_inch = Spacer(1, 0.05 * inch)
         self.spacer_tenth_inch = Spacer(1, 0.10 * inch)
         self.spacer_quarter_inch = Spacer(1, 0.25 * inch)
@@ -392,10 +403,18 @@ class PdfGenerator(object):
             self.font_bold_italic = "Helvetica-BoldOblique"
 
         if use_custom_font:
-            pdfmetrics.registerFont(TTFont(self.font, "resources/fonts/" + self.font + ".ttf"))
-            pdfmetrics.registerFont(TTFont(self.font_bold, "resources/fonts/" + self.font + ".ttf"))
-            pdfmetrics.registerFont(TTFont(self.font_italic, "resources/fonts/" + self.font + ".ttf"))
-            pdfmetrics.registerFont(TTFont(self.font_bold_italic, "resources/fonts/" + self.font + ".ttf"))
+            pdfmetrics.registerFont(
+                TTFont(self.font, "resources/fonts/" + self.font + ".ttf")
+            )
+            pdfmetrics.registerFont(
+                TTFont(self.font_bold, "resources/fonts/" + self.font + ".ttf")
+            )
+            pdfmetrics.registerFont(
+                TTFont(self.font_italic, "resources/fonts/" + self.font + ".ttf")
+            )
+            pdfmetrics.registerFont(
+                TTFont(self.font_bold_italic, "resources/fonts/" + self.font + ".ttf")
+            )
 
         styles._baseFontName = self.font
         self.stylesheet = styles.getSampleStyleSheet()
@@ -444,8 +463,12 @@ class PdfGenerator(object):
         self.text_style_italics = ParagraphStyle(
             name="italics", fontSize=10, alignment=TA_CENTER, fontName=self.font_italic
         )
-        self.text_style_small = ParagraphStyle(name="small", fontSize=5, alignment=TA_CENTER)
-        self.text_style_invisible = ParagraphStyle(name="invisible", fontSize=0, textColor=colors.white)
+        self.text_style_small = ParagraphStyle(
+            name="small", fontSize=5, alignment=TA_CENTER
+        )
+        self.text_style_invisible = ParagraphStyle(
+            name="invisible", fontSize=0, textColor=colors.white
+        )
 
         # set word wrap
         self.text_style.wordWrap = "CJK"
@@ -482,7 +505,12 @@ class PdfGenerator(object):
             ("BOX", (0, 0), (-1, -1), 0.5, colors.black),
             ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.black),
             ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
-            ("ROWBACKGROUNDS", (0, 0), (-1, -1), [colors.white, colors.whitesmoke]),  # alternate row colors
+            (
+                "ROWBACKGROUNDS",
+                (0, 0),
+                (-1, -1),
+                [colors.white, colors.whitesmoke],
+            ),  # alternate row colors
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
         ]
 
@@ -534,7 +562,15 @@ class PdfGenerator(object):
             ]
         ]
         self.median_standings_headers = [
-            ["Place", "Team", "Manager", "Combined Record", "Median Record", "Season +/- Median", "Median Streak"]
+            [
+                "Place",
+                "Team",
+                "Manager",
+                "Combined Record",
+                "Median Record",
+                "Season +/- Median",
+                "Median Streak",
+            ]
         ]
 
         ordinal_dict = {
@@ -564,23 +600,63 @@ class PdfGenerator(object):
         while playoff_places <= self.playoff_slots:
             ordinal_list.append(ordinal_dict[playoff_places])
             playoff_places += 1
-        self.playoff_probs_headers = [["Team", "Manager", "Record", "Playoffs", "Needed"] + ordinal_list]
-        self.power_ranking_headers = [["Power Rank", "Team", "Manager", "Season Avg. (Place)"]]
+        self.playoff_probs_headers = [
+            ["Team", "Manager", "Record", "Playoffs", "Needed"] + ordinal_list
+        ]
+        self.power_ranking_headers = [
+            ["Power Rank", "Team", "Manager", "Season Avg. (Place)"]
+        ]
         self.zscores_headers = [["Place", "Team", "Manager", "Z-Score"]]
-        self.scores_headers = [["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]]
-        self.efficiency_headers = [["Place", "Team", "Manager", "Coaching Efficiency (%)", "Season Avg. (Place)"]]
-        self.luck_headers = [["Place", "Team", "Manager", "Luck", "Season Avg. (Place)", "Weekly Record (W-L)"]]
-        self.optimal_scores_headers = [["Place", "Team", "Manager", "Optimal Points", "Season Total (Place)"]]
-        self.bad_boy_headers = [["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]]
+        self.scores_headers = [
+            ["Place", "Team", "Manager", "Points", "Season Avg. (Place)"]
+        ]
+        self.efficiency_headers = [
+            [
+                "Place",
+                "Team",
+                "Manager",
+                "Coaching Efficiency (%)",
+                "Season Avg. (Place)",
+            ]
+        ]
+        self.luck_headers = [
+            [
+                "Place",
+                "Team",
+                "Manager",
+                "Luck",
+                "Season Avg. (Place)",
+                "Weekly Record (W-L)",
+            ]
+        ]
+        self.optimal_scores_headers = [
+            ["Place", "Team", "Manager", "Optimal Points", "Season Total (Place)"]
+        ]
+        self.bad_boy_headers = [
+            ["Place", "Team", "Manager", "Bad Boy Pts", "Worst Offense", "# Offenders"]
+        ]
         self.beef_headers = [["Place", "Team", "Manager", "TABBU(s)"]]
-        self.high_roller_headers = [["Place", "Team", "Manager", "Fines Total ($)", "Worst Violation", "Fine ($)"]]
+        self.high_roller_headers = [
+            [
+                "Place",
+                "Team",
+                "Manager",
+                "Fines Total ($)",
+                "Worst Violation",
+                "Fine ($)",
+            ]
+        ]
         self.weekly_top_scorer_headers = [["Week", "Team", "Manager", "Score"]]
         self.weekly_low_scorer_headers = [["Week", "Team", "Manager", "Score"]]
-        self.weekly_highest_ce_headers = [["Week", "Team", "Manager", "Coaching Efficiency (%)"]]
+        self.weekly_highest_ce_headers = [
+            ["Week", "Team", "Manager", "Coaching Efficiency (%)"]
+        ]
         self.tie_for_first_footer = "<i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*Tie(s).</i>"
 
         # options: "document", "section", or None
-        self.report_title = self.create_title(report_title_text, element_type="document")
+        self.report_title = self.create_title(
+            report_title_text, element_type="document"
+        )
 
         footer_title = [
             [self.spacer_three_inch],
@@ -629,12 +705,20 @@ class PdfGenerator(object):
             ],
             [
                 Paragraph("PayPal", self.text_style_small),
-                Paragraph("bc1qataspvklhewtswm357m0677q4raag5new2xt3e", self.text_style_small),
-                Paragraph("0x5eAa522e66a90577D49e9E72f253EC952CDB4059", self.text_style_small),
+                Paragraph(
+                    "bc1qataspvklhewtswm357m0677q4raag5new2xt3e", self.text_style_small
+                ),
+                Paragraph(
+                    "0x5eAa522e66a90577D49e9E72f253EC952CDB4059", self.text_style_small
+                ),
             ],
         ]
-        self.report_footer_title = Table(footer_title, colWidths=7.75 * inch, style=self.title_style)
-        self.report_footer = Table(footer_data, colWidths=2.50 * inch, style=self.title_style)
+        self.report_footer_title = Table(
+            footer_title, colWidths=7.75 * inch, style=self.title_style
+        )
+        self.report_footer = Table(
+            footer_data, colWidths=2.50 * inch, style=self.title_style
+        )
 
         # data for report
         self.report_data = report_data
@@ -648,11 +732,21 @@ class PdfGenerator(object):
         self.data_for_bad_boy_rankings = report_data.data_for_bad_boy_rankings
         self.data_for_beef_rankings = report_data.data_for_beef_rankings
         self.data_for_high_roller_rankings = report_data.data_for_high_roller_rankings
-        self.data_for_weekly_points_by_position = report_data.data_for_weekly_points_by_position
-        self.data_for_season_average_team_points_by_position = report_data.data_for_season_avg_points_by_position
-        self.data_for_season_weekly_top_scorers = report_data.data_for_season_weekly_top_scorers
-        self.data_for_season_weekly_low_scorers = report_data.data_for_season_weekly_low_scorers
-        self.data_for_season_weekly_highest_ce = report_data.data_for_season_weekly_highest_ce
+        self.data_for_weekly_points_by_position = (
+            report_data.data_for_weekly_points_by_position
+        )
+        self.data_for_season_average_team_points_by_position = (
+            report_data.data_for_season_avg_points_by_position
+        )
+        self.data_for_season_weekly_top_scorers = (
+            report_data.data_for_season_weekly_top_scorers
+        )
+        self.data_for_season_weekly_low_scorers = (
+            report_data.data_for_season_weekly_low_scorers
+        )
+        self.data_for_season_weekly_highest_ce = (
+            report_data.data_for_season_weekly_highest_ce
+        )
 
         # dynamically create table styles based on number of ties in metrics
         self.style_efficiency_dqs = None
@@ -660,9 +754,13 @@ class PdfGenerator(object):
             self.report_data.ties_for_scores, table_style_list, "scores"
         )
         self.style_tied_efficiencies = self.set_tied_values_style(
-            self.report_data.ties_for_coaching_efficiency, table_style_list, "coaching_efficiency"
+            self.report_data.ties_for_coaching_efficiency,
+            table_style_list,
+            "coaching_efficiency",
         )
-        self.style_tied_luck = self.set_tied_values_style(self.report_data.ties_for_luck, table_style_list, "luck")
+        self.style_tied_luck = self.set_tied_values_style(
+            self.report_data.ties_for_luck, table_style_list, "luck"
+        )
         self.style_tied_power_rankings = self.set_tied_values_style(
             self.report_data.ties_for_power_rankings, table_style_list, "power_ranking"
         )
@@ -670,10 +768,14 @@ class PdfGenerator(object):
             self.report_data.ties_for_bad_boy_rankings, table_style_list, "bad_boy"
         )
         self.style_tied_beef = self.set_tied_values_style(
-            self.report_data.ties_for_beef_rankings, style_left_alight_right_col_list, "beef"
+            self.report_data.ties_for_beef_rankings,
+            style_left_alight_right_col_list,
+            "beef",
         )
         self.style_tied_high_roller = self.set_tied_values_style(
-            self.report_data.ties_for_high_roller_rankings, table_style_list, "high_roller"
+            self.report_data.ties_for_high_roller_rankings,
+            table_style_list,
+            "high_roller",
         )
 
         # table of contents
@@ -705,7 +807,9 @@ class PdfGenerator(object):
         self.toc.add_toc_page()
         return PageBreak()
 
-    def set_tied_values_style(self, num_ties: int, table_style_list: List[Tuple[Any]], metric_type: str):
+    def set_tied_values_style(
+        self, num_ties: int, table_style_list: List[Tuple[Any]], metric_type: str
+    ):
         num_first_places = num_ties
         if metric_type == "scores":
             if not self.report_data.num_first_place_for_score > 0:
@@ -716,7 +820,9 @@ class PdfGenerator(object):
             if not self.report_data.num_first_place_for_coaching_efficiency > 0:
                 num_first_places = 0
             else:
-                num_first_places = self.report_data.num_first_place_for_coaching_efficiency
+                num_first_places = (
+                    self.report_data.num_first_place_for_coaching_efficiency
+                )
         elif metric_type == "luck":
             if not self.report_data.num_first_place_for_luck > 0:
                 num_first_places = 0
@@ -741,12 +847,18 @@ class PdfGenerator(object):
             if not self.report_data.num_first_place_for_high_roller_rankings > 0:
                 num_first_places = 0
             else:
-                num_first_places = self.report_data.num_first_place_for_high_roller_rankings
+                num_first_places = (
+                    self.report_data.num_first_place_for_high_roller_rankings
+                )
 
         tied_values_table_style_list = list(table_style_list)
         if metric_type == "scores" and self.break_ties:
-            tied_values_table_style_list.append(("TEXTCOLOR", (0, 1), (-1, 1), colors.green))
-            tied_values_table_style_list.append(("FONT", (0, 1), (-1, 1), self.font_italic))
+            tied_values_table_style_list.append(
+                ("TEXTCOLOR", (0, 1), (-1, 1), colors.green)
+            )
+            tied_values_table_style_list.append(
+                ("FONT", (0, 1), (-1, 1), self.font_italic)
+            )
         else:
             iterator = num_first_places
             index = 1
@@ -755,23 +867,33 @@ class PdfGenerator(object):
             else:
                 color = colors.green
             while iterator > 0:
-                tied_values_table_style_list.append(("TEXTCOLOR", (0, index), (-1, index), color))
-                tied_values_table_style_list.append(("FONT", (0, index), (-1, index), self.font_italic))
+                tied_values_table_style_list.append(
+                    ("TEXTCOLOR", (0, index), (-1, index), color)
+                )
+                tied_values_table_style_list.append(
+                    ("FONT", (0, index), (-1, index), self.font_italic)
+                )
                 iterator -= 1
                 index += 1
 
         if metric_type == "coaching_efficiency":
             if self.num_coaching_efficiency_dqs > 0:
-                dq_index = len(self.data_for_scores) - self.num_coaching_efficiency_dqs + 1
+                dq_index = (
+                    len(self.data_for_scores) - self.num_coaching_efficiency_dqs + 1
+                )
 
                 if self.report_data.ties_for_coaching_efficiency > 0:
-                    efficiencies_dq_table_style_list = list(tied_values_table_style_list)
+                    efficiencies_dq_table_style_list = list(
+                        tied_values_table_style_list
+                    )
                 else:
                     efficiencies_dq_table_style_list = list(table_style_list)
 
                 eff_dq_count = self.num_coaching_efficiency_dqs
                 while eff_dq_count > 0:
-                    efficiencies_dq_table_style_list.append(("TEXTCOLOR", (0, dq_index), (-1, -1), colors.red))
+                    efficiencies_dq_table_style_list.append(
+                        ("TEXTCOLOR", (0, dq_index), (-1, -1), colors.red)
+                    )
                     eff_dq_count -= 1
                     dq_index += 1
                 self.style_efficiency_dqs = TableStyle(efficiencies_dq_table_style_list)
@@ -810,7 +932,9 @@ class PdfGenerator(object):
             self.appendix.add_entry(
                 title_text,
                 section_anchor,
-                getattr(descriptions, title_text.replace(" ", "_").replace("-", "_").lower()),
+                getattr(
+                    descriptions, title_text.replace(" ", "_").replace("-", "_").lower()
+                ),
             )
             appendix_anchor = self.appendix.get_last_entry_anchor()
             title = self.create_title(
@@ -827,7 +951,10 @@ class PdfGenerator(object):
                 color=(
                     "green"
                     if self.break_ties
-                    and (title_text == "Team Score Rankings" or title_text == "Team Coaching Efficiency Rankings")
+                    and (
+                        title_text == "Team Score Rankings"
+                        or title_text == "Team Coaching Efficiency Rankings"
+                    )
                     else None
                 ),
             )
@@ -836,7 +963,9 @@ class PdfGenerator(object):
             font_reduction = 0
             for x in range(1, (len(data) % 12) + 1, 4):
                 font_reduction += 1
-            table_style.add("FONTSIZE", (0, 0), (-1, -1), (self.font_size - 2) - font_reduction)
+            table_style.add(
+                "FONTSIZE", (0, 0), (-1, -1), (self.font_size - 2) - font_reduction
+            )
             if self.report_data.is_faab:
                 if self.report_data.has_waiver_priorities:
                     if self.report_data.has_divisions:
@@ -866,7 +995,9 @@ class PdfGenerator(object):
             if self.has_divisions:
                 font_reduction += 2
 
-            table_style.add("FONTSIZE", (0, 0), (-1, -1), (self.font_size - 2) - font_reduction)
+            table_style.add(
+                "FONTSIZE", (0, 0), (-1, -1), (self.font_size - 2) - font_reduction
+            )
 
         if metric_type == "scores":
             if self.break_ties and self.report_data.ties_for_scores > 0:
@@ -909,9 +1040,15 @@ class PdfGenerator(object):
                 data = temp_data
 
         if metric_type == "beef":
-            cow_icon = self.get_img(Path("resources") / "images" / "cow.png", width=0.20 * inch)
-            beef_icon = self.get_img(Path("resources") / "images" / "beef.png", width=0.20 * inch)
-            half_beef_icon = self.get_img(Path("resources") / "images" / "beef-half.png", width=0.10 * inch)
+            cow_icon = self.get_img(
+                Path("resources") / "images" / "cow.png", width=0.20 * inch
+            )
+            beef_icon = self.get_img(
+                Path("resources") / "images" / "beef.png", width=0.20 * inch
+            )
+            half_beef_icon = self.get_img(
+                Path("resources") / "images" / "beef-half.png", width=0.10 * inch
+            )
 
             for team in data:
                 num_cows = int(float(team[3]) // 5)
@@ -919,7 +1056,9 @@ class PdfGenerator(object):
 
                 if num_cows > 0:
                     num_beefs += 10
-                    beefs = [cow_icon] * (num_cows - 1)  # subtract one to make sure there are always beef icons
+                    beefs = [cow_icon] * (
+                        num_cows - 1
+                    )  # subtract one to make sure there are always beef icons
                 else:
                     beefs = []
 
@@ -932,9 +1071,13 @@ class PdfGenerator(object):
                 # noinspection PyTypeChecker
                 beefs.insert(0, f"{team[-1]} ")
                 beefs = [beefs]
-                beefs_col_widths = [0.20 * inch] * (num_beefs if num_beefs > 0 else num_cows)
+                beefs_col_widths = [0.20 * inch] * (
+                    num_beefs if num_beefs > 0 else num_cows
+                )
                 beefs_col_widths.insert(0, 0.50 * inch)
-                tabbu_column_table = Table(beefs, colWidths=beefs_col_widths, rowHeights=0.25 * inch)
+                tabbu_column_table = Table(
+                    beefs, colWidths=beefs_col_widths, rowHeights=0.25 * inch
+                )
 
                 tabbu_column_table_style_list = [
                     ("FONT", (0, 0), (-1, -1), self.font),
@@ -942,21 +1085,43 @@ class PdfGenerator(object):
                 ]
                 if data.index(team) == 0:
                     tabbu_column_table_style_list.extend(
-                        [("TEXTCOLOR", (0, 0), (-1, -1), colors.green), ("FONT", (0, 0), (-1, -1), self.font_italic)]
+                        [
+                            ("TEXTCOLOR", (0, 0), (-1, -1), colors.green),
+                            ("FONT", (0, 0), (-1, -1), self.font_italic),
+                        ]
                     )
                 tabbu_column_table.setStyle(TableStyle(tabbu_column_table_style_list))
                 team[-1] = tabbu_column_table
 
         if metric_type == "high_roller":
             font_reduction = 0
-            for x in range(1, (len(data[0][5:]) % 6) + 2):
-                font_reduction += 1
-            table_style.add("FONTSIZE", (0, 0), (-1, -1), (self.font_size - 2) - font_reduction)
+            if len(data) > 0 and len(data[0]) > 5:
+                for x in range(1, (len(data[0][5:]) % 6) + 2):
+                    font_reduction += 1
+            table_style.add(
+                "FONTSIZE", (0, 0), (-1, -1), (self.font_size - 2) - font_reduction
+            )
 
             temp_data = []
             row: List[Any]
             for row in data:
-                entry = [row[0], row[1], row[2], f"${float(row[3]):,.0f}", row[4], f"${float(row[5]):,.0f}"]
+                if len(row) >= 6:
+                    entry = [
+                        row[0],
+                        row[1],
+                        row[2],
+                        f"${float(row[3]):,.0f}",
+                        row[4],
+                        f"${float(row[5]):,.0f}",
+                    ]
+                else:
+                    # Handle rows with insufficient data
+                    entry = (
+                        row[:3]
+                        + ["$0"]
+                        + (row[3:5] if len(row) > 3 else ["", ""])
+                        + ["$0"]
+                    )
                 temp_data.append(entry)
             data = temp_data
 
@@ -1007,7 +1172,11 @@ class PdfGenerator(object):
             tied_metric_footer = self.get_tied_metric_footer(metric_type)
             if tied_metric_footer:
                 table_content.append([tied_metric_footer])
-        table_with_info = KeepTogether(Table(table_content, style=TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER")])))
+        table_with_info = KeepTogether(
+            Table(
+                table_content, style=TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER")])
+            )
+        )
 
         return table_with_info
 
@@ -1040,7 +1209,9 @@ class PdfGenerator(object):
         else:
             title_text_style = self.text_style_h3
 
-        title = Paragraph(f"<para align=center><b>{anchor}{title_text}</b></para>", title_text_style)
+        title = Paragraph(
+            f"<para align=center><b>{anchor}{title_text}</b></para>", title_text_style
+        )
 
         rows = [[title]]
 
@@ -1049,7 +1220,10 @@ class PdfGenerator(object):
                 subtitle_text = [subtitle_text]
 
             subtitle_text_str = "<br/>".join(subtitle_text)
-            subtitle = Paragraph(f"<para align=center>{subtitle_text_str}</para>", self.text_style_subtitles)
+            subtitle = Paragraph(
+                f"<para align=center>{subtitle_text_str}</para>",
+                self.text_style_subtitles,
+            )
             rows.append([subtitle])
 
         if subsubtitle_text:
@@ -1057,7 +1231,10 @@ class PdfGenerator(object):
                 subsubtitle_text = [subsubtitle_text]
 
             subsubtitle_text_str = "<br/>".join(subsubtitle_text)
-            subsubtitle = Paragraph(f"<para align=center>{subsubtitle_text_str}</para>", self.text_style_subsubtitles)
+            subsubtitle = Paragraph(
+                f"<para align=center>{subsubtitle_text_str}</para>",
+                self.text_style_subsubtitles,
+            )
             rows.append([subsubtitle])
 
         title_table = Table(rows, colWidths=[title_width * inch] * 1)
@@ -1065,7 +1242,11 @@ class PdfGenerator(object):
         return title_table
 
     def create_anchored_title(
-        self, title_text: str, title_width: float = 8.5, element_type: str = None, anchor: str = ""
+        self,
+        title_text: str,
+        title_width: float = 8.5,
+        element_type: str = None,
+        anchor: str = "",
     ) -> Table:
         if element_type == "document":
             title_text_style = self.text_style_h1
@@ -1074,7 +1255,9 @@ class PdfGenerator(object):
         else:
             title_text_style = self.text_style_h3
 
-        title = Paragraph(f"<para align=center><b>{anchor}{title_text}</b></para>", title_text_style)
+        title = Paragraph(
+            f"<para align=center><b>{anchor}{title_text}</b></para>", title_text_style
+        )
         title_table = Table([[title]], colWidths=[title_width * inch] * 1)
         title_table.setStyle(self.title_style)
         return title_table
@@ -1120,7 +1303,9 @@ class PdfGenerator(object):
                     else:
                         display_row.append(
                             truncate_cell_for_display(
-                                cell, max_chars=self.settings.report_settings.max_data_chars, sesqui_max_chars=True
+                                cell,
+                                max_chars=self.settings.report_settings.max_data_chars,
+                                sesqui_max_chars=True,
                             )
                         )
 
@@ -1159,7 +1344,9 @@ class PdfGenerator(object):
         for name in series_names:
             # truncate series name to specified max characters
             display_series_names.append(
-                truncate_cell_for_display(str(name), self.settings.report_settings.max_data_chars)
+                truncate_cell_for_display(
+                    str(name), self.settings.report_settings.max_data_chars
+                )
             )
 
         series_names = display_series_names
@@ -1229,7 +1416,9 @@ class PdfGenerator(object):
         x_step = 1
 
         # fit y-axis of table
-        y_values_flattened = [weeks[1] if weeks[1] != "DQ" else 0.0 for teams in data for weeks in teams]
+        y_values_flattened = [
+            weeks[1] if weeks[1] != "DQ" else 0.0 for teams in data for weeks in teams
+        ]
         y_values_min = min(y_values_flattened)
         y_values_max = max(y_values_flattened)
 
@@ -1250,7 +1439,9 @@ class PdfGenerator(object):
 
         return line_chart
 
-    def create_3d_horizontal_bar_chart(self, data: List[List[Any]], x_axis_title: str, x_step: int):
+    def create_3d_horizontal_bar_chart(
+        self, data: List[List[Any]], x_axis_title: str, x_step: int
+    ):
         data = [[team[0], team[1], team[2], int(team[3])] for team in data]
 
         box_width = 425
@@ -1272,13 +1463,17 @@ class PdfGenerator(object):
         return horizontal_bar_chart
 
     @staticmethod
-    def get_img(path: Union[Path, str], width: float = 1.0 * inch, hyperlink: str = None) -> ReportLabImage:
+    def get_img(
+        path: Union[Path, str], width: float = 1.0 * inch, hyperlink: str = None
+    ) -> ReportLabImage:
         img = ImageReader(path)
         iw, ih = img.getSize()
         aspect = ih / float(iw)
 
         if hyperlink:
-            image = HyperlinkedImage(path, hyperlink=hyperlink, width=width, height=(width * aspect))
+            image = HyperlinkedImage(
+                path, hyperlink=hyperlink, width=width, height=(width * aspect)
+            )
         else:
             image = ReportLabImage(path, width=width, height=(width * aspect))
 
@@ -1330,20 +1525,28 @@ class PdfGenerator(object):
                 title = self.create_title(
                     "<i>" + team_graphics_page_title + "</i>",
                     element_type="section",
-                    anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>",
+                    anchor="<a name = page.html#"
+                    + str(self.toc.get_current_anchor())
+                    + "></a>",
                 )
 
                 if has_team_tables_page:
-                    self.toc.add_toc_entry(team_result.name, "teams", truncate_title=True, team_page=1)
+                    self.toc.add_toc_entry(
+                        team_result.name, "teams", truncate_title=True, team_page=1
+                    )
                 else:
-                    self.toc.add_toc_entry(team_result.name, "teams", truncate_title=True)
+                    self.toc.add_toc_entry(
+                        team_result.name, "teams", truncate_title=True
+                    )
 
                 doc_elements.append(title)
 
             if self.settings.report_settings.team_points_by_position_charts_bool:
                 labels = []
                 weekly_data = []
-                season_data = [x[1] for x in season_average_team_data_by_position.get(team_id)]
+                season_data = [
+                    x[1] for x in season_average_team_data_by_position.get(team_id)
+                ]
                 for week in team_weekly_points_by_position:
                     labels.append(week[0])
                     weekly_data.append(week[1])
@@ -1351,8 +1554,12 @@ class PdfGenerator(object):
                 team_table = Table(
                     [
                         [
-                            self.create_title("Weekly Points by Position", title_width=2.00),
-                            self.create_title("Season Average Points by Position", title_width=2.00),
+                            self.create_title(
+                                "Weekly Points by Position", title_width=2.00
+                            ),
+                            self.create_title(
+                                "Season Average Points by Position", title_width=2.00
+                            ),
                         ],
                         [
                             BreakdownPieDrawing(labels, weekly_data, font=self.font),
@@ -1377,17 +1584,26 @@ class PdfGenerator(object):
                     starting_players = []
                     player: BasePlayer
                     for player in player_info:
-                        if player.selected_position not in self.report_data.bench_positions:
+                        if (
+                            player.selected_position
+                            not in self.report_data.bench_positions
+                        ):
                             if player.season_points and player.week_for_report > 1:
                                 player.season_average_points = round(
-                                    (player.season_points - player.points) / (player.week_for_report - 1), 2
+                                    (player.season_points - player.points)
+                                    / (player.week_for_report - 1),
+                                    2,
                                 )
                                 player.season_average_points = round(
                                     (
                                         player.season_points
                                         - player.points
                                         - (
-                                            (self.report_data.week - player.week_for_report - 1)
+                                            (
+                                                self.report_data.week
+                                                - player.week_for_report
+                                                - 1
+                                            )
                                             * player.season_average_points
                                         )
                                     )
@@ -1405,21 +1621,43 @@ class PdfGenerator(object):
                     ):
                         starting_players = sorted(
                             starting_players,
-                            key=lambda x: round(
-                                ((x.points - x.season_average_points) / x.season_average_points) * 100, 2
-                            )
-                            if x.season_average_points > 0
-                            else 100
-                            if x.points > 0
-                            else 0
-                            if x.points == 0
-                            else round(((x.points - x.season_average_points) / x.season_average_points) * -100, 2)
-                            if x.season_average_points > 0
-                            else -100,
+                            key=lambda x: (
+                                round(
+                                    (
+                                        (x.points - x.season_average_points)
+                                        / x.season_average_points
+                                    )
+                                    * 100,
+                                    2,
+                                )
+                                if x.season_average_points > 0
+                                else (
+                                    100
+                                    if x.points > 0
+                                    else (
+                                        0
+                                        if x.points == 0
+                                        else (
+                                            round(
+                                                (
+                                                    (x.points - x.season_average_points)
+                                                    / x.season_average_points
+                                                )
+                                                * -100,
+                                                2,
+                                            )
+                                            if x.season_average_points > 0
+                                            else -100
+                                        )
+                                    )
+                                )
+                            ),
                             reverse=True,
                         )
                     else:
-                        starting_players = sorted(starting_players, key=lambda x: x.points, reverse=True)
+                        starting_players = sorted(
+                            starting_players, key=lambda x: x.points, reverse=True
+                        )
 
                     best_weekly_player = starting_players[0]
                     worst_weekly_player = starting_players[-1]
@@ -1488,10 +1726,18 @@ class PdfGenerator(object):
                         [
                             best_weekly_player.full_name
                             + " -- "
-                            + (best_weekly_player.nfl_team_name if best_weekly_player.nfl_team_name else "N/A"),
+                            + (
+                                best_weekly_player.nfl_team_name
+                                if best_weekly_player.nfl_team_name
+                                else "N/A"
+                            ),
                             worst_weekly_player.full_name
                             + " -- "
-                            + (worst_weekly_player.nfl_team_name if worst_weekly_player.nfl_team_name else "N/A"),
+                            + (
+                                worst_weekly_player.nfl_team_name
+                                if worst_weekly_player.nfl_team_name
+                                else "N/A"
+                            ),
                         ],
                         [best_player_headshot, worst_player_headshot],
                     ]
@@ -1502,7 +1748,10 @@ class PdfGenerator(object):
                         if best_weekly_player.season_average_points > 0:
                             boom_pct_above_avg = round(
                                 (
-                                    (best_weekly_player.points - best_weekly_player.season_average_points)
+                                    (
+                                        best_weekly_player.points
+                                        - best_weekly_player.season_average_points
+                                    )
                                     / best_weekly_player.season_average_points
                                 )
                                 * 100,
@@ -1513,7 +1762,10 @@ class PdfGenerator(object):
                         else:
                             boom_pct_above_avg = round(
                                 (
-                                    (best_weekly_player.season_average_points - best_weekly_player.points)
+                                    (
+                                        best_weekly_player.season_average_points
+                                        - best_weekly_player.points
+                                    )
                                     / best_weekly_player.season_average_points
                                 )
                                 * -100,
@@ -1523,7 +1775,10 @@ class PdfGenerator(object):
                         if worst_weekly_player.season_average_points > 0:
                             bust_pct_above_avg = round(
                                 (
-                                    (worst_weekly_player.season_average_points - worst_weekly_player.points)
+                                    (
+                                        worst_weekly_player.season_average_points
+                                        - worst_weekly_player.points
+                                    )
                                     / worst_weekly_player.season_average_points
                                 )
                                 * 100,
@@ -1534,7 +1789,10 @@ class PdfGenerator(object):
                         else:
                             bust_pct_above_avg = round(
                                 (
-                                    (worst_weekly_player.season_average_points - worst_weekly_player.points)
+                                    (
+                                        worst_weekly_player.season_average_points
+                                        - worst_weekly_player.points
+                                    )
                                     / worst_weekly_player.season_average_points
                                 )
                                 * -100,
@@ -1554,12 +1812,19 @@ class PdfGenerator(object):
                             ]
                         )
                     else:
-                        data.append([round(best_weekly_player.points, 2), round(worst_weekly_player.points, 2)])
+                        data.append(
+                            [
+                                round(best_weekly_player.points, 2),
+                                round(worst_weekly_player.points, 2),
+                            ]
+                        )
 
                     table = Table(data, colWidths=4.0 * inch)
                     table.setStyle(self.boom_bust_table_style)
                     doc_elements.append(self.spacer_half_inch)
-                    doc_elements.append(self.create_title("Boom... or Bust", 8.5, "section"))
+                    doc_elements.append(
+                        self.create_title("Boom... or Bust", 8.5, "section")
+                    )
                     doc_elements.append(self.spacer_tenth_inch)
                     doc_elements.append(KeepTogether(table))
 
@@ -1570,13 +1835,19 @@ class PdfGenerator(object):
                 title = self.create_title(
                     "<i>" + team_tables_page_title + "</i>",
                     element_type="section",
-                    anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>",
+                    anchor="<a name = page.html#"
+                    + str(self.toc.get_current_anchor())
+                    + "></a>",
                 )
 
                 if has_team_graphics_page:
-                    self.toc.add_toc_entry(team_result.name, "teams", truncate_title=True, team_page=2)
+                    self.toc.add_toc_entry(
+                        team_result.name, "teams", truncate_title=True, team_page=2
+                    )
                 else:
-                    self.toc.add_toc_entry(team_result.name, "teams", truncate_title=True)
+                    self.toc.add_toc_entry(
+                        team_result.name, "teams", truncate_title=True
+                    )
 
                 doc_elements.append(title)
 
@@ -1590,13 +1861,23 @@ class PdfGenerator(object):
                         if player.bad_boy_points > 0:
                             offending_players.append(player)
 
-                    offending_players = sorted(offending_players, key=lambda x: x.bad_boy_points, reverse=True)
+                    offending_players = sorted(
+                        offending_players, key=lambda x: x.bad_boy_points, reverse=True
+                    )
                     offending_players_data = []
                     for player in offending_players:
-                        offending_players_data.append([player.full_name, player.bad_boy_points, player.bad_boy_crime])
+                        offending_players_data.append(
+                            [
+                                player.full_name,
+                                player.bad_boy_points,
+                                player.bad_boy_crime,
+                            ]
+                        )
                     # if there are no offending players, skip table
                     if offending_players_data:
-                        doc_elements.append(self.create_title("Whodunnit?", 8.5, "section"))
+                        doc_elements.append(
+                            self.create_title("Whodunnit?", 8.5, "section")
+                        )
                         doc_elements.append(self.spacer_tenth_inch)
                         bad_boys_table = self.create_data_table(
                             "bad_boy",
@@ -1614,10 +1895,16 @@ class PdfGenerator(object):
                 and self.settings.report_settings.team_beef_stats_bool
             ):
                 if player_info:
-                    doc_elements.append(self.create_title("Beefiest Bois", 8.5, "section"))
+                    doc_elements.append(
+                        self.create_title("Beefiest Bois", 8.5, "section")
+                    )
                     doc_elements.append(self.spacer_tenth_inch)
                     beefy_players = sorted(
-                        [player for player in player_info if player.primary_position != "D/ST"],
+                        [
+                            player
+                            for player in player_info
+                            if player.primary_position != "D/ST"
+                        ],
                         key=lambda x: x.beef_tabbu,
                         reverse=True,
                     )
@@ -1629,7 +1916,11 @@ class PdfGenerator(object):
                         player: BasePlayer = beefy_players[ndx]
                         if player.last_name:
                             beefy_players_data.append(
-                                [player.full_name, f"{player.beef_tabbu:.3f}", player.beef_weight]
+                                [
+                                    player.full_name,
+                                    f"{player.beef_tabbu:.3f}",
+                                    player.beef_weight,
+                                ]
                             )
                             count += 1
                         ndx += 1
@@ -1654,7 +1945,11 @@ class PdfGenerator(object):
                         if player.high_roller_fines_total > 0:
                             violating_players.append(player)
 
-                    violating_players = sorted(violating_players, key=lambda x: x.high_roller_fines_total, reverse=True)
+                    violating_players = sorted(
+                        violating_players,
+                        key=lambda x: x.high_roller_fines_total,
+                        reverse=True,
+                    )
                     violating_players_data = []
                     for player in violating_players:
                         violating_players_data.append(
@@ -1667,16 +1962,27 @@ class PdfGenerator(object):
                         )
                     # if there are no violating players, skip table
                     if violating_players_data:
-                        doc_elements.append(self.create_title("Paid the Piper", 8.5, "section"))
+                        doc_elements.append(
+                            self.create_title("Paid the Piper", 8.5, "section")
+                        )
                         doc_elements.append(self.spacer_tenth_inch)
                         high_rollers_table = self.create_data_table(
                             "high_roller",
-                            [["Starting Player", "Fines Total ($)", "Worst Violation", "Fine ($)"]],
+                            [
+                                [
+                                    "Starting Player",
+                                    "Fines Total ($)",
+                                    "Worst Violation",
+                                    "Fine ($)",
+                                ]
+                            ],
                             violating_players_data,
                             self.style_red_highlight,
                             self.style_tied_high_roller,
                             [2.50 * inch, 1.25 * inch, 2.75 * inch, 1.25 * inch],
-                            sesqui_max_chars_col_ndxs=[2],  # increased allowed max chars of "Worst Violation" column
+                            sesqui_max_chars_col_ndxs=[
+                                2
+                            ],  # increased allowed max chars of "Worst Violation" column
                         )
                         doc_elements.append(KeepTogether(high_rollers_table))
                         doc_elements.append(self.spacer_tenth_inch)
@@ -1684,7 +1990,9 @@ class PdfGenerator(object):
             if has_team_tables_page:
                 doc_elements.append(self.add_page_break())
 
-    def generate_pdf(self, filename_with_path: Path, line_chart_data_list: List[List[Any]]) -> Path:
+    def generate_pdf(
+        self, filename_with_path: Path, line_chart_data_list: List[List[Any]]
+    ) -> Path:
         logger.debug("Generating report PDF.")
 
         elements: List[Flowable] = []
@@ -1708,7 +2016,8 @@ class PdfGenerator(object):
         donate_header_data = [
             [
                 Paragraph(
-                    "Enjoying the app? Please consider donating to support its development:", self.text_style_italics
+                    "Enjoying the app? Please consider donating to support its development:",
+                    self.text_style_italics,
                 ),
                 self.get_img(
                     "resources/images/donate.png",
@@ -1716,7 +2025,13 @@ class PdfGenerator(object):
                 ),
             ]
         ]
-        elements.append(Table(donate_header_data, colWidths=[4.65 * inch, 1.00 * inch], style=self.header_style))
+        elements.append(
+            Table(
+                donate_header_data,
+                colWidths=[4.65 * inch, 1.00 * inch],
+                style=self.header_style,
+            )
+        )
         elements.append(self.spacer_tenth_inch)
 
         elements.append(self.add_page_break())
@@ -1739,7 +2054,9 @@ class PdfGenerator(object):
                     if division_count == 1:
                         table_title = "League Standings"
                         table_footer = None
-                    elif division_count == len(self.report_data.data_for_current_division_standings):
+                    elif division_count == len(
+                        self.report_data.data_for_current_division_standings
+                    ):
                         table_title = None
                         table_footer = "† Division Leaders"
                     else:
@@ -1786,14 +2103,21 @@ class PdfGenerator(object):
             elements.append(standings)
             elements.append(self.spacer_tenth_inch)
 
-        if self.settings.report_settings.league_playoff_probs_bool and self.playoff_slots > 0:
+        if (
+            self.settings.report_settings.league_playoff_probs_bool
+            and self.playoff_slots > 0
+        ):
             # update playoff probabilities style to make playoff teams green
             playoff_probs_style = deepcopy(self.style)
-            playoff_probs_style.add("TEXTCOLOR", (0, 1), (-1, self.playoff_slots), colors.green)
+            playoff_probs_style.add(
+                "TEXTCOLOR", (0, 1), (-1, self.playoff_slots), colors.green
+            )
             playoff_probs_style.add("FONT", (0, 1), (-1, -1), self.font)
             if self.report_data.has_divisions:
                 self.playoff_probs_headers[0].insert(3, "Division")
-                playoff_probs_style.add("FONTSIZE", (0, 0), (-1, -1), self.font_size - 4)
+                playoff_probs_style.add(
+                    "FONTSIZE", (0, 0), (-1, -1), self.font_size - 4
+                )
                 self.widths_n_cols_no_1 = [
                     1.35 * inch,
                     0.90 * inch,
@@ -1812,20 +2136,40 @@ class PdfGenerator(object):
                         prob_ndx = 4
                     # if float(team[prob_ndx].split("%")[0]) == 100.00 and int(team[prob_ndx + 1].split(" ")[0]) == 0:
                     if float(team[prob_ndx].split("%")[0]) == 100.00:
-                        playoff_probs_style.add("TEXTCOLOR", (0, team_num), (-1, team_num), colors.darkgreen)
-                        playoff_probs_style.add("FONT", (0, team_num), (-1, team_num), self.font_bold_italic)
+                        playoff_probs_style.add(
+                            "TEXTCOLOR", (0, team_num), (-1, team_num), colors.darkgreen
+                        )
+                        playoff_probs_style.add(
+                            "FONT", (0, team_num), (-1, team_num), self.font_bold_italic
+                        )
 
                     if (
-                        (int(team[prob_ndx + 1].split(" ")[0]) + int(self.week_for_report))
+                        (
+                            int(team[prob_ndx + 1].split(" ")[0])
+                            + int(self.week_for_report)
+                        )
                         > self.num_regular_season_weeks
                     ) or (float(team[prob_ndx].split("%")[0]) == 0.00):
                         playoff_probs_style.add(
-                            "TEXTCOLOR", (prob_ndx + 1, team_num), (prob_ndx + 1, team_num), colors.red
+                            "TEXTCOLOR",
+                            (prob_ndx + 1, team_num),
+                            (prob_ndx + 1, team_num),
+                            colors.red,
                         )
 
                         if float(team[prob_ndx].split("%")[0]) == 0.00:
-                            playoff_probs_style.add("TEXTCOLOR", (0, team_num), (-1, team_num), colors.darkred)
-                            playoff_probs_style.add("FONT", (0, team_num), (-1, team_num), self.font_bold_italic)
+                            playoff_probs_style.add(
+                                "TEXTCOLOR",
+                                (0, team_num),
+                                (-1, team_num),
+                                colors.darkred,
+                            )
+                            playoff_probs_style.add(
+                                "FONT",
+                                (0, team_num),
+                                (-1, team_num),
+                                self.font_bold_italic,
+                            )
 
                     team_num += 1
 
@@ -1838,9 +2182,7 @@ class PdfGenerator(object):
                 )
 
                 if self.report_data.has_divisions:
-                    subtitle_text_for_divisions = (
-                        "\nProbabilities account for division winners in addition to overall win/loss/tie record."
-                    )
+                    subtitle_text_for_divisions = "\nProbabilities account for division winners in addition to overall win/loss/tie record."
 
                     if self.settings.num_playoff_slots_per_division > 1:
                         footer_text_for_divisions_with_extra_qualifiers = (
@@ -1851,9 +2193,7 @@ class PdfGenerator(object):
                     else:
                         footer_text_for_divisions_with_extra_qualifiers = ""
 
-                    footer_text_for_divisions = (
-                        f"† Predicted Division Leaders{footer_text_for_divisions_with_extra_qualifiers}"
-                    )
+                    footer_text_for_divisions = f"† Predicted Division Leaders{footer_text_for_divisions_with_extra_qualifiers}"
                 else:
                     subtitle_text_for_divisions = ""
                     footer_text_for_divisions = None
@@ -2087,7 +2427,9 @@ class PdfGenerator(object):
                     self.widths_06_cols_no_4,
                     tied_metric=self.report_data.ties_for_high_roller_rankings > 0,
                     metric_type="high_roller",
-                    sesqui_max_chars_col_ndxs=[4],  # increased allowed max chars of "Worst Violation" column
+                    sesqui_max_chars_col_ndxs=[
+                        4
+                    ],  # increased allowed max chars of "Worst Violation" column
                 )
             )
             elements.append(self.spacer_twentieth_inch)
@@ -2104,7 +2446,9 @@ class PdfGenerator(object):
             weekly_top_scorers_page_title = self.create_title(
                 "<i>" + weekly_top_scorers_title_str + "</i>",
                 element_type="chart",
-                anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>",
+                anchor="<a name = page.html#"
+                + str(self.toc.get_current_anchor())
+                + "></a>",
             )
             elements.append(weekly_top_scorers_page_title)
 
@@ -2128,7 +2472,9 @@ class PdfGenerator(object):
             weekly_low_scorers_page_title = self.create_title(
                 "<i>" + weekly_low_scorers_title_str + "</i>",
                 element_type="chart",
-                anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>",
+                anchor="<a name = page.html#"
+                + str(self.toc.get_current_anchor())
+                + "></a>",
             )
             elements.append(weekly_low_scorers_page_title)
 
@@ -2152,7 +2498,9 @@ class PdfGenerator(object):
             weekly_highest_ce_page_title = self.create_title(
                 "<i>" + weekly_highest_ce_title_str + "</i>",
                 element_type="chart",
-                anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>",
+                anchor="<a name = page.html#"
+                + str(self.toc.get_current_anchor())
+                + "></a>",
             )
             elements.append(weekly_highest_ce_page_title)
 
@@ -2201,7 +2549,9 @@ class PdfGenerator(object):
             charts_time_series_page_title = self.create_title(
                 "<i>" + charts_time_series_page_title_str + "</i>",
                 element_type="chart",
-                anchor="<a name = page.html#" + str(self.toc.get_current_anchor()) + "></a>",
+                anchor="<a name = page.html#"
+                + str(self.toc.get_current_anchor())
+                + "></a>",
             )
             self.toc.add_toc_entry(charts_time_series_page_title_str, "charts")
             elements.append(charts_time_series_page_title)
@@ -2237,7 +2587,13 @@ class PdfGenerator(object):
             elements.append(
                 KeepTogether(
                     self.create_line_chart(
-                        luck_data, len(luck_data[0]), series_names, "Weekly Luck", "Weeks", "Luck (%)", 20.00
+                        luck_data,
+                        len(luck_data[0]),
+                        series_names,
+                        "Weekly Luck",
+                        "Weeks",
+                        "Luck (%)",
+                        20.00,
                     )
                 )
             )
@@ -2255,7 +2611,9 @@ class PdfGenerator(object):
         ):
             # dynamically build additional pages for individual team stats
             self.create_team_stats_pages(
-                elements, self.data_for_weekly_points_by_position, self.data_for_season_average_team_points_by_position
+                elements,
+                self.data_for_weekly_points_by_position,
+                self.data_for_season_average_team_points_by_position,
             )
 
         # add appendix for metrics
@@ -2299,7 +2657,9 @@ class TableOfContents(object):
             name="tocr", alignment=TA_RIGHT, fontSize=self.toc_font_size, fontName=font
         )
 
-        self.toc_style_left = ParagraphStyle(name="tocl", alignment=TA_LEFT, fontSize=self.toc_font_size, fontName=font)
+        self.toc_style_left = ParagraphStyle(
+            name="tocl", alignment=TA_LEFT, fontSize=self.toc_font_size, fontName=font
+        )
         self.toc_style_right = ParagraphStyle(
             name="tocr", alignment=TA_RIGHT, fontSize=self.toc_font_size, fontName=font
         )
@@ -2348,11 +2708,15 @@ class TableOfContents(object):
                     has_table_feature = True
 
             if has_table_feature:
-                self.toc_entries_for_sections[table_name] = self._format_toc_section_header(
-                    table_name.replace("_", " ").title()
+                self.toc_entries_for_sections[table_name] = (
+                    self._format_toc_section_header(
+                        table_name.replace("_", " ").title()
+                    )
                 )
 
-        self.toc_entries_for_appendix_section = self._format_toc_section_header("Appendices")
+        self.toc_entries_for_appendix_section = self._format_toc_section_header(
+            "Appendices"
+        )
 
     def add_toc_page(self, pages_to_add: int = 1) -> None:
         self.toc_page += pages_to_add
@@ -2368,7 +2732,9 @@ class TableOfContents(object):
     def _format_toc_section_header(self, header_text: str) -> List[List[Paragraph]]:
         return [
             [
-                Paragraph(f"<b><i>{header_text}</i></b>", self.toc_section_header_style_left),
+                Paragraph(
+                    f"<b><i>{header_text}</i></b>", self.toc_section_header_style_left
+                ),
                 # "",
                 Paragraph("<b><i>Page</i></b>", self.toc_section_header_style_right),
             ]
@@ -2377,7 +2743,8 @@ class TableOfContents(object):
     def _format_toc_entry(self, text: str, color: str = "blue") -> List[Paragraph]:
         return [
             Paragraph(
-                f"<a href = #page.html#{self.toc_anchor} color={color}><b><u>{text}</u></b></a>", self.toc_style_left
+                f"<a href = #page.html#{self.toc_anchor} color={color}><b><u>{text}</u></b></a>",
+                self.toc_style_left,
             ),
             Paragraph(str(self.toc_page), self.toc_style_right),
         ]
@@ -2397,7 +2764,11 @@ class TableOfContents(object):
                 f"{f' (Part {team_page})' if team_page else ''}"
             )
 
-        toc_section = self._format_toc_entry(title, color) if color else self._format_toc_entry(title)
+        toc_section = (
+            self._format_toc_entry(title, color)
+            if color
+            else self._format_toc_entry(title)
+        )
 
         self.toc_entries_for_sections[section_key].append(toc_section)
         self.toc_anchor += 1
@@ -2435,7 +2806,12 @@ class TableOfContents(object):
                                 (-1, -1),
                                 [colors.white, colors.whitesmoke],
                             ),  # alternate row colors
-                            ("BACKGROUND", (0, -1), (-1, -1), colors.white),  # make the ending spacer row white
+                            (
+                                "BACKGROUND",
+                                (0, -1),
+                                (-1, -1),
+                                colors.white,
+                            ),  # make the ending spacer row white
                         ]
                     ),
                 )

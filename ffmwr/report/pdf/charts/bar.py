@@ -8,7 +8,6 @@ from typing import Any, List
 
 from reportlab.graphics.charts.barcharts import HorizontalBarChart3D
 from reportlab.graphics.charts.textlabels import Label
-
 # noinspection PyProtectedMember,PyUnresolvedReferences
 from reportlab.graphics.shapes import Drawing, _DrawingEditorMixin
 from reportlab.lib.colors import PCMYKColor
@@ -35,7 +34,9 @@ class HorizontalBarChart3DGenerator(_DrawingEditorMixin, Drawing):
         *args,
         **kw,
     ):
-        logger.debug(f"Generating 3D horizontal bar chart with data:\n{json.dumps(data, indent=2)}\n")
+        logger.debug(
+            f"Generating 3D horizontal bar chart with data:\n{json.dumps(data, indent=2)}\n"
+        )
 
         num_teams = len(data)
         sorted_data = sorted(data, key=lambda x: x[3])
@@ -52,12 +53,24 @@ class HorizontalBarChart3DGenerator(_DrawingEditorMixin, Drawing):
 
         count = 1
         for team in data_without_min_max:
-            data_colors[team[0]] = [100 - ((100 / num_teams) * count), (100 / num_teams) * count, 100, 0, 100]
+            data_colors[team[0]] = [
+                100 - ((100 / num_teams) * count),
+                (100 / num_teams) * count,
+                100,
+                0,
+                100,
+            ]
             count += 1
 
         Drawing.__init__(self, width, height, *args, **kw)
         self._add(self, HorizontalBarChart3D(), name="chart", validate=None, desc=None)
-        self._add(self, Label(), name="XLabel", validate=None, desc="The label on the horizontal axis")
+        self._add(
+            self,
+            Label(),
+            name="XLabel",
+            validate=None,
+            desc="The label on the horizontal axis",
+        )
 
         self.width = box_width
         self.height = box_height

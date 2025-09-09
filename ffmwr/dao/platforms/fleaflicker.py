@@ -12,8 +12,9 @@ from typing import Callable, Dict, Union
 import requests
 from bs4 import BeautifulSoup
 
-from ffmwr.models.base.model import BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
 from ffmwr.dao.platforms.base.platform import BasePlatform
+from ffmwr.models.base.model import (BaseManager, BaseMatchup, BasePlayer,
+                                     BaseRecord, BaseStat, BaseTeam)
 from ffmwr.utilities.logger import get_logger
 from ffmwr.utilities.settings import AppSettings
 
@@ -75,7 +76,9 @@ class FleaflickerPlatform(BasePlatform):
         return html_soup
 
     def map_data_to_base(self) -> None:
-        logger.debug(f"Retrieving {self.platform_display} league data and mapping it to base objects.")
+        logger.debug(
+            f"Retrieving {self.platform_display} league data and mapping it to base objects."
+        )
 
         self.league.url = f"{self.base_url}/nfl/leagues/{self.league.league_id}"
         # scraped_league_info = self._scrape(self.league.url)
@@ -102,29 +105,46 @@ class FleaflickerPlatform(BasePlatform):
         for elem in elements:
             if elem.text.strip() == "Playoffs":
                 if elements[elements.index(elem) + 1].span:
-                    self.league.num_playoff_slots = int(elements[elements.index(elem) + 1].span.text.strip())
+                    self.league.num_playoff_slots = int(
+                        elements[elements.index(elem) + 1].span.text.strip()
+                    )
                 else:
                     self.league.num_playoff_slots = 0
 
-                playoff_weeks_elements = elements[elements.index(elem) + 1].find_all(text=True, recursive=False)
-                if any((text.strip() and "Weeks" in text) for text in playoff_weeks_elements):
+                playoff_weeks_elements = elements[elements.index(elem) + 1].find_all(
+                    text=True, recursive=False
+                )
+                if any(
+                    (text.strip() and "Weeks" in text)
+                    for text in playoff_weeks_elements
+                ):
                     for text in playoff_weeks_elements:
                         if text.strip() and "Weeks" in text:
                             for txt in text.split():
                                 if "-" in txt:
-                                    self.league.num_regular_season_weeks = int(txt.split("-")[0]) - 1
+                                    self.league.num_regular_season_weeks = (
+                                        int(txt.split("-")[0]) - 1
+                                    )
                 elif self.league.num_playoff_slots == 0:
                     # TODO: figure out how to get total number of regular season weeks when league has no playoffs
-                    self.league.num_regular_season_weeks = 18 if int(self.league.season) > 2020 else 17
+                    self.league.num_regular_season_weeks = (
+                        18 if int(self.league.season) > 2020 else 17
+                    )
                 else:
-                    self.league.num_regular_season_weeks = self.settings.num_regular_season_weeks
+                    self.league.num_regular_season_weeks = (
+                        self.settings.num_regular_season_weeks
+                    )
                 break
             else:
                 self.league.num_playoff_slots = self.settings.num_playoff_slots
-                self.league.num_regular_season_weeks = self.settings.num_regular_season_weeks
+                self.league.num_regular_season_weeks = (
+                    self.settings.num_regular_season_weeks
+                )
 
         # TODO: how to get league rules for LAST YEAR from Fleaflicker API
-        league_rules = self.query(f"https://www.fleaflicker.com/api/FetchLeagueRules?leagueId={self.league.league_id}")
+        league_rules = self.query(
+            f"https://www.fleaflicker.com/api/FetchLeagueRules?leagueId={self.league.league_id}"
+        )
 
         league_standings = self.query(
             f"https://www.fleaflicker.com/api/FetchLeagueStandings"
@@ -145,7 +165,11 @@ class FleaflickerPlatform(BasePlatform):
                 ranked_league_teams.append(team)
 
         ranked_league_teams.sort(
-            key=lambda x: x.get("recordOverall").get("rank") if x.get("recordOverall").get("rank") else 0
+            key=lambda x: (
+                x.get("recordOverall").get("rank")
+                if x.get("recordOverall").get("rank")
+                else 0
+            )
         )
 
         median_score_by_week = {}
@@ -161,7 +185,9 @@ class FleaflickerPlatform(BasePlatform):
                 scores = []
                 for matchup in matchups_by_week[str(wk)].get("games"):
                     for key in ["home", "away"]:
-                        team_score = matchup.get(key + "Score").get("score").get("value")
+                        team_score = (
+                            matchup.get(key + "Score").get("score").get("value")
+                        )
                         if team_score:
                             scores.append(team_score)
 
@@ -207,28 +233,37 @@ class FleaflickerPlatform(BasePlatform):
                     is_trade = False
                     if "TRADE" in transaction_type:
                         is_trade = True
-                    elif any(transaction_str in transaction_type for transaction_str in ["CLAIM", "ADD", "DROP"]):
+                    elif any(
+                        transaction_str in transaction_type
+                        for transaction_str in ["CLAIM", "ADD", "DROP"]
+                    ):
                         is_move = True
 
-                    if not league_transactions_by_team[str(activity.get("transaction").get("team").get("id"))]:
-                        league_transactions_by_team[str(activity.get("transaction").get("team").get("id"))] = {
+                    if not league_transactions_by_team[
+                        str(activity.get("transaction").get("team").get("id"))
+                    ]:
+                        league_transactions_by_team[
+                            str(activity.get("transaction").get("team").get("id"))
+                        ] = {
                             "transactions": [transaction_type],
                             "moves": 1 if is_move else 0,
                             "trades": 1 if is_trade else 0,
                         }
                     else:
-                        league_transactions_by_team[str(activity.get("transaction").get("team").get("id"))][
-                            "transactions"
-                        ].append(transaction_type)
-                        league_transactions_by_team[str(activity.get("transaction").get("team").get("id"))][
-                            "moves"
-                        ] += 1 if is_move else 0
-                        league_transactions_by_team[str(activity.get("transaction").get("team").get("id"))][
-                            "trades"
-                        ] += 1 if is_trade else 0
+                        league_transactions_by_team[
+                            str(activity.get("transaction").get("team").get("id"))
+                        ]["transactions"].append(transaction_type)
+                        league_transactions_by_team[
+                            str(activity.get("transaction").get("team").get("id"))
+                        ]["moves"] += (1 if is_move else 0)
+                        league_transactions_by_team[
+                            str(activity.get("transaction").get("team").get("id"))
+                        ]["trades"] += (1 if is_trade else 0)
 
         self.league.name = league_info.get("name")
-        self.league.week = int(scraped_current_week) if scraped_current_week else self.current_week
+        self.league.week = (
+            int(scraped_current_week) if scraped_current_week else self.current_week
+        )
         # TODO: figure out how to get league starting week
         self.league.start_week = self.start_week
         self.league.num_teams = int(league_info.get("size"))
@@ -254,13 +289,16 @@ class FleaflickerPlatform(BasePlatform):
 
             if pos_attributes.get("is_flex"):
                 self.league.__setattr__(
-                    pos_attributes.get("league_positions_attribute"), pos_attributes.get("positions")
+                    pos_attributes.get("league_positions_attribute"),
+                    pos_attributes.get("positions"),
                 )
 
             self.league.roster_positions.append(pos_name)
             self.league.roster_position_counts[pos_name] = pos_count
             self.league.roster_active_slots.extend(
-                [pos_name] * pos_count if pos_name not in self.league.bench_positions else []
+                [pos_name] * pos_count
+                if pos_name not in self.league.bench_positions
+                else []
             )
 
         league_median_records_by_team = {}
@@ -275,8 +313,12 @@ class FleaflickerPlatform(BasePlatform):
                 base_matchup = BaseMatchup()
 
                 base_matchup.week = int(matchups_week)
-                base_matchup.complete = True if bool(matchup.get("isFinalScore")) else False
-                base_matchup.tied = True if matchup.get("homeResult") == "TIE" else False
+                base_matchup.complete = (
+                    True if bool(matchup.get("isFinalScore")) else False
+                )
+                base_matchup.tied = (
+                    True if matchup.get("homeResult") == "TIE" else False
+                )
 
                 for key in ["home", "away"]:
                     team_data: Dict = matchup.get(key)
@@ -284,8 +326,14 @@ class FleaflickerPlatform(BasePlatform):
 
                     opposite_key = "away" if key == "home" else "home"
                     team_division = league_teams[team_data.get("id")].get("division_id")
-                    opponent_division = league_teams[matchup.get(opposite_key).get("id")].get("division_id")
-                    if team_division and opponent_division and team_division == opponent_division:
+                    opponent_division = league_teams[
+                        matchup.get(opposite_key).get("id")
+                    ].get("division_id")
+                    if (
+                        team_division
+                        and opponent_division
+                        and team_division == opponent_division
+                    ):
                         base_matchup.division_matchup = True
 
                     base_team.week = int(matchups_week)
@@ -302,10 +350,14 @@ class FleaflickerPlatform(BasePlatform):
 
                             base_team.managers.append(base_manager)
 
-                    base_team.manager_str = ", ".join([manager.name_str for manager in base_team.managers])
+                    base_team.manager_str = ", ".join(
+                        [manager.name_str for manager in base_team.managers]
+                    )
 
                     base_team.team_id = str(team_data.get("id"))
-                    base_team.points = float(matchup.get(key + "Score", {}).get("score", {}).get("value", 0))
+                    base_team.points = float(
+                        matchup.get(key + "Score", {}).get("score", {}).get("value", 0)
+                    )
                     base_team.projected_points = None
 
                     # TODO: currently the fleaflicker API call only returns 1st PAGE of transactions... figure this out!
@@ -314,7 +366,9 @@ class FleaflickerPlatform(BasePlatform):
 
                     base_team.waiver_priority = team_data.get("waiverPosition", 0)
                     self.league.has_waiver_priorities = base_team.waiver_priority > 0
-                    base_team.faab = team_data.get("waiverAcquisitionBudget", {}).get("value", 0)
+                    base_team.faab = team_data.get("waiverAcquisitionBudget", {}).get(
+                        "value", 0
+                    )
                     base_team.url = (
                         f"https://www.fleaflicker.com"
                         f"/nfl/leagues/{self.league.league_id}/teams/{str(team_data.get('id'))}"
@@ -336,36 +390,68 @@ class FleaflickerPlatform(BasePlatform):
                         losses=int(team_data.get("recordOverall", {}).get("losses", 0)),
                         ties=int(team_data.get("recordOverall", {}).get("ties", 0)),
                         percentage=round(
-                            float(team_data.get("recordOverall", {}).get("winPercentage", {}).get("value", 0)), 3
+                            float(
+                                team_data.get("recordOverall", {})
+                                .get("winPercentage", {})
+                                .get("value", 0)
+                            ),
+                            3,
                         ),
-                        points_for=float(team_data.get("pointsFor", {}).get("value", 0)),
-                        points_against=float(team_data.get("pointsAgainst", {}).get("value", 0)),
+                        points_for=float(
+                            team_data.get("pointsFor", {}).get("value", 0)
+                        ),
+                        points_against=float(
+                            team_data.get("pointsAgainst", {}).get("value", 0)
+                        ),
                         streak_type=streak_type,
-                        streak_len=int(abs(team_data.get("streak", {}).get("value", 0))),
+                        streak_len=int(
+                            abs(team_data.get("streak", {}).get("value", 0))
+                        ),
                         team_id=base_team.team_id,
                         team_name=base_team.name,
                         rank=int(team_data.get("recordOverall", {}).get("rank", 0)),
                         division=base_team.division,
-                        division_wins=int(team_data.get("recordDivision", {}).get("wins", 0)),
-                        division_losses=int(team_data.get("recordDivision", {}).get("losses", 0)),
-                        division_ties=int(team_data.get("recordDivision", {}).get("ties", 0)),
-                        division_percentage=round(
-                            float(team_data.get("recordDivision", {}).get("winPercentage", {}).get("value", 0)), 3
+                        division_wins=int(
+                            team_data.get("recordDivision", {}).get("wins", 0)
                         ),
-                        division_rank=int(team_data.get("recordDivision", {}).get("rank", 0)),
+                        division_losses=int(
+                            team_data.get("recordDivision", {}).get("losses", 0)
+                        ),
+                        division_ties=int(
+                            team_data.get("recordDivision", {}).get("ties", 0)
+                        ),
+                        division_percentage=round(
+                            float(
+                                team_data.get("recordDivision", {})
+                                .get("winPercentage", {})
+                                .get("value", 0)
+                            ),
+                            3,
+                        ),
+                        division_rank=int(
+                            team_data.get("recordDivision", {}).get("rank", 0)
+                        ),
                     )
                     base_team.streak_str = base_team.current_record.get_streak_str()
                     if base_matchup.division_matchup:
-                        base_team.division_streak_str = base_team.current_record.get_division_streak_str()
+                        base_team.division_streak_str = (
+                            base_team.current_record.get_division_streak_str()
+                        )
 
                     # get median for week
                     week_median = median_score_by_week.get(str(week))
 
-                    median_record: BaseRecord = league_median_records_by_team.get(str(base_team.team_id))
+                    median_record: BaseRecord = league_median_records_by_team.get(
+                        str(base_team.team_id)
+                    )
 
                     if not median_record:
-                        median_record = BaseRecord(team_id=base_team.team_id, team_name=base_team.name)
-                        league_median_records_by_team[str(base_team.team_id)] = median_record
+                        median_record = BaseRecord(
+                            team_id=base_team.team_id, team_name=base_team.name
+                        )
+                        league_median_records_by_team[str(base_team.team_id)] = (
+                            median_record
+                        )
 
                     if week_median:
                         # use this if you want the tie-break to be season total points over/under median score
@@ -373,7 +459,9 @@ class FleaflickerPlatform(BasePlatform):
                         # use this if you want the tie-break to be current week points over/under median score
                         # median_record.add_points_for(
                         #     (median_record.get_points_for() * -1) + (base_team.points - week_median))
-                        median_record.add_points_against((median_record.get_points_against() * -1) + week_median)
+                        median_record.add_points_against(
+                            (median_record.get_points_against() * -1) + week_median
+                        )
                         if base_team.points > week_median:
                             median_record.add_win()
                         elif base_team.points < week_median:
@@ -387,7 +475,9 @@ class FleaflickerPlatform(BasePlatform):
                     base_matchup.teams.append(base_team)
 
                     # add team to league teams by week
-                    self.league.teams_by_week[str(week)][str(base_team.team_id)] = base_team
+                    self.league.teams_by_week[str(week)][
+                        str(base_team.team_id)
+                    ] = base_team
 
                     # no winner/loser if matchup is tied
                     if matchup.get(key + "Result") == "WIN":
@@ -401,9 +491,15 @@ class FleaflickerPlatform(BasePlatform):
         for week, rosters in rosters_by_week.items():
             self.league.players_by_week[str(week)] = {}
             for team_id, roster in rosters.items():
-                league_team: BaseTeam = self.league.teams_by_week.get(str(week)).get(str(team_id))
+                league_team: BaseTeam = self.league.teams_by_week.get(str(week)).get(
+                    str(team_id)
+                )
 
-                for player in [slot for group in roster.get("groups") for slot in group.get("slots")]:
+                for player in [
+                    slot
+                    for group in roster.get("groups")
+                    for slot in group.get("slots")
+                ]:
                     flea_player_position = player.get("position")
                     flea_league_player = player.get("leaguePlayer")
 
@@ -423,9 +519,15 @@ class FleaflickerPlatform(BasePlatform):
                         #     f"&playerId={flea_pro_player.get('id')}"
                         # )
                         # base_player.jersey_number = flea_player_profile.get("detail").get("jerseyNumber")
-                        base_player.display_position = self.get_mapped_position(flea_pro_player.get("position"))
+                        base_player.display_position = self.get_mapped_position(
+                            flea_pro_player.get("position")
+                        )
                         base_player.nfl_team_id = None
-                        base_player.nfl_team_abbr = flea_pro_player.get("proTeam", {}).get("abbreviation").upper()
+                        base_player.nfl_team_abbr = (
+                            flea_pro_player.get("proTeam", {})
+                            .get("abbreviation")
+                            .upper()
+                        )
                         base_player.nfl_team_name = (
                             f"{flea_pro_player.get('proTeam', {}).get('location')} "
                             f"{flea_pro_player.get('proTeam', {}).get('name')}"
@@ -438,13 +540,23 @@ class FleaflickerPlatform(BasePlatform):
                         else:
                             base_player.first_name = flea_pro_player.get("nameFirst")
                             base_player.last_name = flea_pro_player.get("nameLast")
-                            base_player.headshot_url = flea_pro_player.get("headshotUrl")
+                            base_player.headshot_url = flea_pro_player.get(
+                                "headshotUrl"
+                            )
 
                         base_player.full_name = flea_pro_player.get("nameFull")
-                        base_player.owner_team_id = flea_league_player.get("owner", {}).get("id")
-                        base_player.owner_team_name = flea_league_player.get("owner", {}).get("name")
+                        base_player.owner_team_id = flea_league_player.get(
+                            "owner", {}
+                        ).get("id")
+                        base_player.owner_team_name = flea_league_player.get(
+                            "owner", {}
+                        ).get("name")
                         base_player.percent_owned = 0
-                        base_player.points = float(flea_league_player.get("viewingActualPoints", {}).get("value", 0))
+                        base_player.points = float(
+                            flea_league_player.get("viewingActualPoints", {}).get(
+                                "value", 0
+                            )
+                        )
                         # TODO: get season total points via summation, since this gives the end of season total, not
                         #  the total as of the selected week
                         # base_player.season_points = float(flea_league_player.get("seasonTotal", {}).get("value", 0))
@@ -458,33 +570,48 @@ class FleaflickerPlatform(BasePlatform):
                             in self.league.offensive_positions
                             else "D"
                         )
-                        base_player.primary_position = self.get_mapped_position(flea_pro_player.get("position"))
+                        base_player.primary_position = self.get_mapped_position(
+                            flea_pro_player.get("position")
+                        )
 
                         eligible_positions = [
                             position
-                            for position in flea_league_player.get("proPlayer", {}).get("positionEligibility", [])
+                            for position in flea_league_player.get("proPlayer", {}).get(
+                                "positionEligibility", []
+                            )
                         ]
                         for position in eligible_positions:
                             base_position = self.get_mapped_position(position)
                             base_player.eligible_positions.add(base_position)
-                            for flex_position, positions in self.league.get_flex_positions_dict().items():
+                            for (
+                                flex_position,
+                                positions,
+                            ) in self.league.get_flex_positions_dict().items():
                                 if base_position in positions:
                                     base_player.eligible_positions.add(flex_position)
 
-                        base_player.selected_position = self.get_mapped_position(flea_player_position.get("label"))
-                        base_player.selected_position_is_flex = self.position_mapping.get(
-                            flea_pro_player.get("position")
-                        ).get("is_flex")
+                        base_player.selected_position = self.get_mapped_position(
+                            flea_player_position.get("label")
+                        )
+                        base_player.selected_position_is_flex = (
+                            self.position_mapping.get(
+                                flea_pro_player.get("position")
+                            ).get("is_flex")
+                        )
 
                         # typeAbbreviaition is misspelled in API data
                         # noinspection SpellCheckingInspection
-                        base_player.status = flea_pro_player.get("injury", {}).get("typeAbbreviaition")
+                        base_player.status = flea_pro_player.get("injury", {}).get(
+                            "typeAbbreviaition"
+                        )
 
                         for stat in flea_league_player.get("viewingActualStats"):
                             base_stat = BaseStat()
 
                             base_stat.stat_id = stat.get("category", {}).get("id")
-                            base_stat.name = stat.get("category", {}).get("abbreviation")
+                            base_stat.name = stat.get("category", {}).get(
+                                "abbreviation"
+                            )
                             base_stat.value = stat.get("value", {}).get("value", 0)
 
                             base_player.stats.append(base_stat)
@@ -493,7 +620,9 @@ class FleaflickerPlatform(BasePlatform):
                         league_team.roster.append(base_player)
 
                         # add player to league players by week
-                        self.league.players_by_week[str(week)][base_player.player_id] = base_player
+                        self.league.players_by_week[str(week)][
+                            base_player.player_id
+                        ] = base_player
 
         self.league.current_standings = sorted(
             self.league.teams_by_week.get(str(self.league.week_for_report)).values(),

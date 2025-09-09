@@ -4,7 +4,6 @@ __email__ = "uberfastman@uberfastman.dev"
 import logging
 from collections.abc import Callable
 from pathlib import Path
-
 # from collections import defaultdict
 # from concurrent.futures import ThreadPoolExecutor
 from statistics import median
@@ -14,8 +13,10 @@ from yfpy.data import Data
 from yfpy.models import League, Manager, Matchup, Player, RosterPosition, Team
 from yfpy.query import YahooFantasySportsQuery
 
-from ffmwr.models.base.model import BaseLeague, BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
 from ffmwr.dao.platforms.base.platform import BasePlatform
+from ffmwr.models.base.model import (BaseLeague, BaseManager, BaseMatchup,
+                                     BasePlayer, BaseRecord, BaseStat,
+                                     BaseTeam)
 from ffmwr.utilities.logger import get_logger
 from ffmwr.utilities.settings import AppSettings
 
@@ -91,7 +92,9 @@ class YahooPlatform(BasePlatform):
 
         self.game_id = game_id or self.settings.platform_settings.yahoo_game_id
 
-        self.yahoo_data = Data(self.league.data_dir, save_data=False, dev_offline=self.league.offline)
+        self.yahoo_data = Data(
+            self.league.data_dir, save_data=False, dev_offline=self.league.offline
+        )
         self.yahoo_query = None
 
     def _authenticate(self) -> None:
@@ -115,7 +118,9 @@ class YahooPlatform(BasePlatform):
             browser_callback=False,
             offline=self.league.offline,
         )
-        self.yahoo_query.save_access_token_data_to_env_file(env_file_location=self.root_dir, save_json_to_var_only=True)
+        self.yahoo_query.save_access_token_data_to_env_file(
+            env_file_location=self.root_dir, save_json_to_var_only=True
+        )
 
     # TODO: find better pattern for player points retrieval instead of passing around a class method object
     # def get_player_data(self, player_key: str, week: int = None):
@@ -142,7 +147,9 @@ class YahooPlatform(BasePlatform):
 
     # noinspection PyTypeChecker
     def map_data_to_base(self) -> None:
-        logger.debug(f"Retrieving {self.platform_display} league data and mapping it to base objects.")
+        logger.debug(
+            f"Retrieving {self.platform_display} league data and mapping it to base objects."
+        )
 
         # YAHOO API QUERY: run query to retrieve all league information, including current standings
         league_info: League = self.yahoo_data.retrieve(
@@ -171,22 +178,29 @@ class YahooPlatform(BasePlatform):
         #                 self.player_season_stats[player_id] = self.get_player_data(player_key=player_key)
 
         self.league.name = league_info.name.decode()
-        self.league.season = league_info.season  # this gets set already in BaseLeague by the run parameters
+        self.league.season = (
+            league_info.season
+        )  # this gets set already in BaseLeague by the run parameters
         self.league.week = int(league_info.current_week) or self.current_week
         self.league.start_week = int(self.start_week or league_info.start_week)
-        self.league.num_regular_season_weeks = int(league_info.settings.playoff_start_week) - 1
+        self.league.num_regular_season_weeks = (
+            int(league_info.settings.playoff_start_week) - 1
+        )
         self.league.num_teams = int(league_info.num_teams)
         self.league.num_playoff_slots = int(league_info.settings.num_playoff_teams)
         self.league.num_divisions = len(league_info.settings.divisions)
         self.league.divisions = {
-            str(division.division_id): division.name for division in league_info.settings.divisions
+            str(division.division_id): division.name
+            for division in league_info.settings.divisions
         }
         self.league.has_divisions = self.league.num_divisions > 0
         self.league.has_median_matchup = bool(league_info.settings.uses_median_score)
         self.league.median_score = 0
         self.league.is_faab = bool(league_info.settings.uses_faab)
         if self.league.is_faab:
-            self.league.faab_budget = self.settings.platform_settings.yahoo_initial_faab_budget or 100
+            self.league.faab_budget = (
+                self.settings.platform_settings.yahoo_initial_faab_budget or 100
+            )
         self.league.url = league_info.url
 
         # TODO: find better pattern for player points retrieval instead of passing around a class method object
@@ -201,13 +215,16 @@ class YahooPlatform(BasePlatform):
 
             if pos_attributes.get("is_flex"):
                 self.league.__setattr__(
-                    pos_attributes.get("league_positions_attribute"), pos_attributes.get("positions")
+                    pos_attributes.get("league_positions_attribute"),
+                    pos_attributes.get("positions"),
                 )
 
             self.league.roster_positions.append(pos_name)
             self.league.roster_position_counts[pos_name] = pos_count
             self.league.roster_active_slots.extend(
-                [pos_name] * pos_count if pos_name not in self.league.bench_positions else []
+                [pos_name] * pos_count
+                if pos_name not in self.league.bench_positions
+                else []
             )
 
         logger.debug("Getting Yahoo matchups by week data.")
@@ -258,7 +275,11 @@ class YahooPlatform(BasePlatform):
                     opposite_key = 1 if matchup.teams.index(team) == 0 else 0
                     team_division = team.division_id
                     opponent_division = matchup.teams[opposite_key].division_id
-                    if team_division and opponent_division and team_division == opponent_division:
+                    if (
+                        team_division
+                        and opponent_division
+                        and team_division == opponent_division
+                    ):
                         base_matchup.division_matchup = True
 
                     base_team.week = matchup.week
@@ -281,7 +302,9 @@ class YahooPlatform(BasePlatform):
 
                         base_team.managers.append(base_manager)
 
-                    base_team.manager_str = ", ".join([manager.name_str for manager in base_team.managers])
+                    base_team.manager_str = ", ".join(
+                        [manager.name_str for manager in base_team.managers]
+                    )
 
                     base_team.team_id = str(team.team_id)
                     base_team.points = team.points
@@ -306,59 +329,111 @@ class YahooPlatform(BasePlatform):
 
                     base_team.division = team_division
                     base_team.current_record = BaseRecord(
-                        wins=int(team_standings_info.wins) if team_standings_info.wins else 0,
-                        losses=int(team_standings_info.losses) if team_standings_info.losses else 0,
-                        ties=int(team_standings_info.ties) if team_standings_info.ties else 0,
-                        percentage=float(team_standings_info.percentage) if team_standings_info.percentage else 0.0,
-                        points_for=float(team_standings_info.points_for) if team_standings_info.points_for else 0.0,
-                        points_against=float(team_standings_info.points_against)
-                        if team_standings_info.points_against
-                        else 0.0,
+                        wins=(
+                            int(team_standings_info.wins)
+                            if team_standings_info.wins
+                            else 0
+                        ),
+                        losses=(
+                            int(team_standings_info.losses)
+                            if team_standings_info.losses
+                            else 0
+                        ),
+                        ties=(
+                            int(team_standings_info.ties)
+                            if team_standings_info.ties
+                            else 0
+                        ),
+                        percentage=(
+                            float(team_standings_info.percentage)
+                            if team_standings_info.percentage
+                            else 0.0
+                        ),
+                        points_for=(
+                            float(team_standings_info.points_for)
+                            if team_standings_info.points_for
+                            else 0.0
+                        ),
+                        points_against=(
+                            float(team_standings_info.points_against)
+                            if team_standings_info.points_against
+                            else 0.0
+                        ),
                         streak_type=streak_type,
-                        streak_len=int(team_standings_info.streak_length) if team_standings_info.streak_type else 0,
+                        streak_len=(
+                            int(team_standings_info.streak_length)
+                            if team_standings_info.streak_type
+                            else 0
+                        ),
                         team_id=team.team_id,
                         team_name=team.name,
-                        rank=int(team_standings_info.rank) if team_standings_info.rank else 0,
+                        rank=(
+                            int(team_standings_info.rank)
+                            if team_standings_info.rank
+                            else 0
+                        ),
                         division=base_team.division,
-                        division_wins=int(team_standings_info.team_standings.divisional_outcome_totals.wins)
-                        if team_standings_info.team_standings.divisional_outcome_totals.wins
-                        else 0,
-                        division_losses=int(team_standings_info.team_standings.divisional_outcome_totals.losses)
-                        if team_standings_info.team_standings.divisional_outcome_totals.losses
-                        else 0,
-                        division_ties=int(team_standings_info.team_standings.divisional_outcome_totals.ties)
-                        if team_standings_info.team_standings.divisional_outcome_totals.ties
-                        else 0,
-                        division_percentage=round(
-                            float(
+                        division_wins=(
+                            int(
                                 team_standings_info.team_standings.divisional_outcome_totals.wins
-                                / (
+                            )
+                            if team_standings_info.team_standings.divisional_outcome_totals.wins
+                            else 0
+                        ),
+                        division_losses=(
+                            int(
+                                team_standings_info.team_standings.divisional_outcome_totals.losses
+                            )
+                            if team_standings_info.team_standings.divisional_outcome_totals.losses
+                            else 0
+                        ),
+                        division_ties=(
+                            int(
+                                team_standings_info.team_standings.divisional_outcome_totals.ties
+                            )
+                            if team_standings_info.team_standings.divisional_outcome_totals.ties
+                            else 0
+                        ),
+                        division_percentage=(
+                            round(
+                                float(
                                     team_standings_info.team_standings.divisional_outcome_totals.wins
-                                    + team_standings_info.team_standings.divisional_outcome_totals.ties
-                                    + team_standings_info.team_standings.divisional_outcome_totals.losses
-                                )
-                            ),
-                            3,
-                        )
-                        if (
-                            team_standings_info.team_standings.divisional_outcome_totals.wins
-                            + team_standings_info.team_standings.divisional_outcome_totals.ties
-                            + team_standings_info.team_standings.divisional_outcome_totals.losses
-                        )
-                        > 0
-                        else 0,
+                                    / (
+                                        team_standings_info.team_standings.divisional_outcome_totals.wins
+                                        + team_standings_info.team_standings.divisional_outcome_totals.ties
+                                        + team_standings_info.team_standings.divisional_outcome_totals.losses
+                                    )
+                                ),
+                                3,
+                            )
+                            if (
+                                team_standings_info.team_standings.divisional_outcome_totals.wins
+                                + team_standings_info.team_standings.divisional_outcome_totals.ties
+                                + team_standings_info.team_standings.divisional_outcome_totals.losses
+                            )
+                            > 0
+                            else 0
+                        ),
                     )
                     base_team.streak_str = base_team.current_record.get_streak_str()
                     if base_matchup.division_matchup:
-                        base_team.division_streak_str = base_team.current_record.get_division_streak_str()
+                        base_team.division_streak_str = (
+                            base_team.current_record.get_division_streak_str()
+                        )
 
                     # get median for week
                     week_median = median_score_by_week.get(str(week))
 
-                    median_record: BaseRecord = league_median_records_by_team.get(str(base_team.team_id))
+                    median_record: BaseRecord = league_median_records_by_team.get(
+                        str(base_team.team_id)
+                    )
                     if not median_record:
-                        median_record = BaseRecord(team_id=base_team.team_id, team_name=base_team.name)
-                        league_median_records_by_team[str(base_team.team_id)] = median_record
+                        median_record = BaseRecord(
+                            team_id=base_team.team_id, team_name=base_team.name
+                        )
+                        league_median_records_by_team[str(base_team.team_id)] = (
+                            median_record
+                        )
 
                     if week_median:
                         # use this if you want the tie-break to be season total points over/under median score
@@ -366,7 +441,9 @@ class YahooPlatform(BasePlatform):
                         # use this if you want the tie-break to be current week points over/under median score
                         # median_record.add_points_for(
                         #     (median_record.get_points_for() * -1) + (base_team.points - week_median))
-                        median_record.add_points_against((median_record.get_points_against() * -1) + week_median)
+                        median_record.add_points_against(
+                            (median_record.get_points_against() * -1) + week_median
+                        )
                         if base_team.points > week_median:
                             median_record.add_win()
                         elif base_team.points < week_median:
@@ -380,7 +457,9 @@ class YahooPlatform(BasePlatform):
                     base_matchup.teams.append(base_team)
 
                     # add team to league teams by week
-                    self.league.teams_by_week[str(week)][str(base_team.team_id)] = base_team
+                    self.league.teams_by_week[str(week)][
+                        str(base_team.team_id)
+                    ] = base_team
 
                     # no winner/loser if matchup is tied
                     if not base_matchup.tied:
@@ -410,7 +489,9 @@ class YahooPlatform(BasePlatform):
             self.league.players_by_week[str(week)] = {}
             roster: List[Player]
             for team_id, roster in rosters.items():
-                league_team: BaseTeam = self.league.teams_by_week.get(str(week)).get(str(team_id))
+                league_team: BaseTeam = self.league.teams_by_week.get(str(week)).get(
+                    str(team_id)
+                )
                 for player in roster:
                     base_player = BasePlayer()
 
@@ -419,7 +500,12 @@ class YahooPlatform(BasePlatform):
                     base_player.bye_week = player.bye or 0
                     base_player.jersey_number = player.uniform_number
                     base_player.display_position = (
-                        ", ".join([self.get_mapped_position(pos.strip()) for pos in player.display_position.split(",")])
+                        ", ".join(
+                            [
+                                self.get_mapped_position(pos.strip())
+                                for pos in player.display_position.split(",")
+                            ]
+                        )
                         if "," in player.display_position
                         else self.get_mapped_position(player.display_position)
                     )
@@ -430,21 +516,31 @@ class YahooPlatform(BasePlatform):
                     base_player.last_name = player.last_name
                     base_player.full_name = player.full_name
                     if base_player.display_position != "D/ST":
-                        base_player.headshot_url = f"https:{player.headshot_url.split(':')[-1]}"
+                        base_player.headshot_url = (
+                            f"https:{player.headshot_url.split(':')[-1]}"
+                        )
                     else:
                         # use ESPN D/ST team logo (higher resolution)
-                        base_player.headshot_url = (
-                            f"https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/{base_player.nfl_team_abbr}.png"
-                        )
+                        base_player.headshot_url = f"https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/{base_player.nfl_team_abbr}.png"
                         # base_player.headshot_url = player.headshot_url
                     base_player.owner_team_id = player.ownership.owner_team_key
                     base_player.owner_team_name = player.ownership.owner_team_name
-                    base_player.percent_owned = player.percent_owned_value if player.percent_owned_value else 0
-                    base_player.points = player.player_points_value if player.player_points_value else 0
+                    base_player.percent_owned = (
+                        player.percent_owned_value if player.percent_owned_value else 0
+                    )
+                    base_player.points = (
+                        player.player_points_value if player.player_points_value else 0
+                    )
                     base_player.position_type = player.position_type
-                    base_player.primary_position = self.get_mapped_position(player.primary_position)
-                    base_player.selected_position = self.get_mapped_position(player.selected_position_value)
-                    base_player.selected_position_is_flex = bool(player.selected_position.is_flex)
+                    base_player.primary_position = self.get_mapped_position(
+                        player.primary_position
+                    )
+                    base_player.selected_position = self.get_mapped_position(
+                        player.selected_position_value
+                    )
+                    base_player.selected_position_is_flex = bool(
+                        player.selected_position.is_flex
+                    )
 
                     base_player.status = player.status
 
@@ -452,7 +548,10 @@ class YahooPlatform(BasePlatform):
                     for position in eligible_positions:
                         base_position = self.get_mapped_position(position)
                         base_player.eligible_positions.add(base_position)
-                        for flex_position, positions in self.league.get_flex_positions_dict().items():
+                        for (
+                            flex_position,
+                            positions,
+                        ) in self.league.get_flex_positions_dict().items():
                             if base_position in positions:
                                 base_player.eligible_positions.add(flex_position)
 
@@ -469,7 +568,9 @@ class YahooPlatform(BasePlatform):
                     league_team.roster.append(base_player)
 
                     # add player to league players by week
-                    self.league.players_by_week[str(week)][base_player.player_id] = base_player
+                    self.league.players_by_week[str(week)][
+                        base_player.player_id
+                    ] = base_player
 
         self.league.current_standings = sorted(
             self.league.teams_by_week.get(str(self.league.week_for_report)).values(),

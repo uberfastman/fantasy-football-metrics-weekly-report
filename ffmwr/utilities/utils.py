@@ -9,7 +9,8 @@ from tornado.gen import WaitIterator, coroutine
 from tornado.httpclient import AsyncHTTPClient, HTTPRequest, HTTPResponse
 from tornado.ioloop import IOLoop
 
-from ffmwr.utilities.constants import player_name_punctuation, player_name_suffixes
+from ffmwr.utilities.constants import (player_name_punctuation,
+                                       player_name_suffixes)
 from ffmwr.utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)
@@ -52,7 +53,10 @@ def format_platform_display(platform: str) -> str:
 
 
 def truncate_cell_for_display(
-    cell_text: str, max_chars: int, halve_max_chars: bool = False, sesqui_max_chars: bool = False
+    cell_text: str,
+    max_chars: int,
+    halve_max_chars: bool = False,
+    sesqui_max_chars: bool = False,
 ) -> str:
     if halve_max_chars and sesqui_max_chars:
         logger.warning(
@@ -77,12 +81,16 @@ def truncate_cell_for_display(
         return cell_text
 
 
-def generate_normalized_player_key(player_full_name: str, player_nfl_team_abbr: str) -> str:
+def generate_normalized_player_key(
+    player_full_name: str, player_nfl_team_abbr: str
+) -> str:
     """Remove all punctuation and name suffixes from player names, combine whitespace, covert them to snake case, and
     append player NFL team abbreviation.
     """
     regex_all_whitespace = re.compile(r"\s+")
-    normalized_player_name: str = regex_all_whitespace.sub(" ", player_full_name).strip()
+    normalized_player_name: str = regex_all_whitespace.sub(
+        " ", player_full_name
+    ).strip()
 
     if any(punc in player_full_name for punc in player_name_punctuation) or any(
         suffix in player_full_name for suffix in player_name_suffixes
@@ -93,9 +101,7 @@ def generate_normalized_player_key(player_full_name: str, player_nfl_team_abbr: 
         for suffix in player_name_suffixes:
             normalized_player_name = normalized_player_name.removesuffix(suffix)
 
-    return (
-        f"{regex_all_whitespace.sub('_', normalized_player_name.strip().lower())}-{player_nfl_team_abbr.lower()}"
-    )
+    return f"{regex_all_whitespace.sub('_', normalized_player_name.strip().lower())}-{player_nfl_team_abbr.lower()}"
 
 
 def get_data_from_web(
@@ -149,7 +155,9 @@ def get_data_from_web(
                     f"Result {result} received from {wait_iterator.current_future} at {wait_iterator.current_index}"
                 )
                 results[result.effective_url] = (
-                    bytes.decode(result.body, "utf-8") if return_responses_as_body_strings else result
+                    bytes.decode(result.body, "utf-8")
+                    if return_responses_as_body_strings
+                    else result
                 )
 
         return results

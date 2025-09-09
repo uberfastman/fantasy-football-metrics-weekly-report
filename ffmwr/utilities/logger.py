@@ -4,7 +4,6 @@ import os
 import re
 import sys
 import time
-
 # from logging.handlers import RotatingFileHandler
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
@@ -74,8 +73,20 @@ class SizedTimedRotatingFileHandler(TimedRotatingFileHandler):
     timed intervals
     """
 
-    def __init__(self, filename, maxBytes=0, backupCount=0, encoding=None, delay=0, when="h", interval=1, utc=False):
-        handlers.TimedRotatingFileHandler.__init__(self, filename, when, interval, backupCount, encoding, delay, utc)
+    def __init__(
+        self,
+        filename,
+        maxBytes=0,
+        backupCount=0,
+        encoding=None,
+        delay=0,
+        when="h",
+        interval=1,
+        utc=False,
+    ):
+        handlers.TimedRotatingFileHandler.__init__(
+            self, filename, when, interval, backupCount, encoding, delay, utc
+        )
         self.maxBytes = maxBytes
         # noinspection PyTypeChecker
         self.stream = None

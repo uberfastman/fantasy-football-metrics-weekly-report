@@ -10,7 +10,8 @@ from requests import get, post
 
 from ffmwr.integrations.base.integration import BaseIntegration
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
+from ffmwr.utilities.settings import (AppSettings,
+                                      get_app_settings_from_env_file)
 
 logger = get_logger(__name__, propagate=False)
 
@@ -53,7 +54,8 @@ class GroupMeIntegration(BaseIntegration):
 
     def _list_groups(self) -> List[Dict]:
         return get(
-            f"{self.base_url}/groups?omit=memberships", headers={"Host": "api.groupme.com", **self.headers}
+            f"{self.base_url}/groups?omit=memberships",
+            headers={"Host": "api.groupme.com", **self.headers},
         ).json()["response"]
 
     def _upload_file_to_file_service(self, file_path: Path) -> Optional[str]:
@@ -91,7 +93,10 @@ class GroupMeIntegration(BaseIntegration):
         return uploaded_file_id
 
     def _post_as_bot(self, message: str, file_path: Optional[Path] = None) -> int:
-        post_content = {"bot_id": self.settings.integration_settings.groupme_bot_id, "text": message}
+        post_content = {
+            "bot_id": self.settings.integration_settings.groupme_bot_id,
+            "text": message,
+        }
 
         if file_path:
             post_content.update(
@@ -167,13 +172,21 @@ class GroupMeIntegration(BaseIntegration):
 if __name__ == "__main__":
     local_root_directory = Path(__file__).parent.parent.parent
 
-    local_settings: AppSettings = get_app_settings_from_env_file(local_root_directory / ".env")
+    local_settings: AppSettings = get_app_settings_from_env_file(
+        local_root_directory / ".env"
+    )
 
-    reupload_file = local_root_directory / local_settings.integration_settings.reupload_file_path
+    reupload_file = (
+        local_root_directory / local_settings.integration_settings.reupload_file_path
+    )
 
     logger.info(f"Re-uploading {reupload_file.name} ({reupload_file}) to GroupMe...")
 
-    groupme_integration = GroupMeIntegration(local_settings, local_root_directory, local_settings.week_for_report)
+    groupme_integration = GroupMeIntegration(
+        local_settings, local_root_directory, local_settings.week_for_report
+    )
 
     # logger.info(f"{json.dumps(groupme_integration.post_message('test message'), indent=2)}")
-    logger.info(f"{json.dumps(groupme_integration.upload_file(reupload_file), indent=2)}")
+    logger.info(
+        f"{json.dumps(groupme_integration.upload_file(reupload_file), indent=2)}"
+    )

@@ -46,7 +46,14 @@ class ReportData(object):
 
         self.teams_results = {
             team.team_id: add_report_team_stats(
-                settings, team, league, week_counter, metrics_calculator, metrics, dq_ce, inactive_players
+                settings,
+                team,
+                league,
+                week_counter,
+                metrics_calculator,
+                metrics,
+                dq_ce,
+                inactive_players,
             )
             for team in league.teams_by_week.get(str(week_counter)).values()
         }
@@ -89,7 +96,9 @@ class ReportData(object):
                     remaining_matchups[str(week)].append(tuple(matchup_teams))
 
         # calculate z-scores (dependent on all previous weeks scores)
-        z_score_results = metrics_calculator.calculate_z_scores(season_weekly_teams_results + [self.teams_results])
+        z_score_results = metrics_calculator.calculate_z_scores(
+            season_weekly_teams_results + [self.teams_results]
+        )
 
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ REPORT DATA ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
@@ -110,10 +119,14 @@ class ReportData(object):
         self.data_for_current_division_standings = None
         if self.has_divisions:
             self.divisions = league.divisions
-            self.data_for_current_division_standings = metrics_calculator.get_division_standings_data(league)
+            self.data_for_current_division_standings = (
+                metrics_calculator.get_division_standings_data(league)
+            )
 
         # current median standings data
-        self.data_for_current_median_standings = metrics_calculator.get_median_standings_data(league)
+        self.data_for_current_median_standings = (
+            metrics_calculator.get_median_standings_data(league)
+        )
 
         if league.num_playoff_slots > 0:
             # playoff probabilities data
@@ -138,13 +151,16 @@ class ReportData(object):
         elif any(z_score_val is None for z_score_val in z_score_results.values()):
             create_z_score_data = True
             z_score_results = {
-                team_id: 0 if not z_score_val else z_score_val for team_id, z_score_val in z_score_results.items()
+                team_id: 0 if not z_score_val else z_score_val
+                for team_id, z_score_val in z_score_results.items()
             }
         else:
             create_z_score_data = True
 
         if create_z_score_data:
-            for k_v in sorted(z_score_results.items(), key=lambda x: x[1], reverse=True):
+            for k_v in sorted(
+                z_score_results.items(), key=lambda x: x[1], reverse=True
+            ):
                 z_score = k_v[1]
                 if z_score:
                     z_score = round(float(z_score), 2)
@@ -152,12 +168,16 @@ class ReportData(object):
                     z_score = "N/A"
 
                 team = self.teams_results[k_v[0]]
-                self.data_for_z_scores.append([z_score_rank, team.name, team.manager_str, z_score])
+                self.data_for_z_scores.append(
+                    [z_score_rank, team.name, team.manager_str, z_score]
+                )
                 z_score_rank += 1
 
         # points by position data
         points_by_position = PointsByPosition(league, week_for_report)
-        self.data_for_weekly_points_by_position = points_by_position.get_weekly_points_by_position(self.teams_results)
+        self.data_for_weekly_points_by_position = (
+            points_by_position.get_weekly_points_by_position(self.teams_results)
+        )
 
         # teams data and season average points by position data
         self.data_for_teams = []
@@ -180,33 +200,55 @@ class ReportData(object):
 
         # scores data
         self.data_for_scores = metrics_calculator.get_score_data(
-            sorted(self.teams_results.values(), key=lambda x: float(x.points), reverse=True)
+            sorted(
+                self.teams_results.values(), key=lambda x: float(x.points), reverse=True
+            )
         )
 
         # coaching efficiency data
-        self.data_for_coaching_efficiency = metrics_calculator.get_coaching_efficiency_data(
-            sorted(
-                self.teams_results.values(),
-                key=lambda x: float(x.coaching_efficiency) if x.coaching_efficiency != "DQ" else 0,
-                reverse=True,
+        self.data_for_coaching_efficiency = (
+            metrics_calculator.get_coaching_efficiency_data(
+                sorted(
+                    self.teams_results.values(),
+                    key=lambda x: (
+                        float(x.coaching_efficiency)
+                        if x.coaching_efficiency != "DQ"
+                        else 0
+                    ),
+                    reverse=True,
+                )
             )
         )
-        self.num_coaching_efficiency_dqs = metrics_calculator.coaching_efficiency_dq_count
-        self.coaching_efficiency_dqs.update(metrics.get("coaching_efficiency").coaching_efficiency_dqs)
+        self.num_coaching_efficiency_dqs = (
+            metrics_calculator.coaching_efficiency_dq_count
+        )
+        self.coaching_efficiency_dqs.update(
+            metrics.get("coaching_efficiency").coaching_efficiency_dqs
+        )
 
         # luck data
         self.data_for_luck = metrics_calculator.get_luck_data(
-            sorted(self.teams_results.values(), key=lambda x: float(x.luck), reverse=True)
+            sorted(
+                self.teams_results.values(), key=lambda x: float(x.luck), reverse=True
+            )
         )
 
         # optimal score data
         self.data_for_optimal_scores = metrics_calculator.get_optimal_score_data(
-            sorted(self.teams_results.values(), key=lambda x: float(x.optimal_points), reverse=True)
+            sorted(
+                self.teams_results.values(),
+                key=lambda x: float(x.optimal_points),
+                reverse=True,
+            )
         )
 
         # bad boy data
         self.data_for_bad_boy_rankings = metrics_calculator.get_bad_boy_data(
-            sorted(self.teams_results.values(), key=lambda x: x.bad_boy_points, reverse=True)
+            sorted(
+                self.teams_results.values(),
+                key=lambda x: x.bad_boy_points,
+                reverse=True,
+            )
         )
 
         # beef rank data
@@ -216,7 +258,9 @@ class ReportData(object):
 
         # high roller data
         self.data_for_high_roller_rankings = metrics_calculator.get_high_roller_data(
-            sorted(self.teams_results.values(), key=lambda x: x.fines_total, reverse=True)
+            sorted(
+                self.teams_results.values(), key=lambda x: x.fines_total, reverse=True
+            )
         )
 
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
@@ -225,17 +269,33 @@ class ReportData(object):
         logger.debug("Counting metric ties.")
 
         # get number of scores ties and ties for first
-        self.ties_for_scores = metrics_calculator.get_ties_count(self.data_for_scores, "score", self.break_ties)
+        self.ties_for_scores = metrics_calculator.get_ties_count(
+            self.data_for_scores, "score", self.break_ties
+        )
         self.num_first_place_for_score_before_resolution = len(
-            [list(group) for key, group in itertools.groupby(self.data_for_scores, lambda x: x[3])][0]
+            [
+                list(group)
+                for key, group in itertools.groupby(
+                    self.data_for_scores, lambda x: x[3]
+                )
+            ][0]
         )
 
         # reorder score data based on bench points if there are ties and break_ties = True
         if self.ties_for_scores > 0:
-            self.data_for_scores = metrics_calculator.resolve_score_ties(self.data_for_scores, self.break_ties)
-            metrics_calculator.get_ties_count(self.data_for_scores, "score", self.break_ties)
+            self.data_for_scores = metrics_calculator.resolve_score_ties(
+                self.data_for_scores, self.break_ties
+            )
+            metrics_calculator.get_ties_count(
+                self.data_for_scores, "score", self.break_ties
+            )
         self.num_first_place_for_score = len(
-            [list(group) for key, group in itertools.groupby(self.data_for_scores, lambda x: x[3])][0]
+            [
+                list(group)
+                for key, group in itertools.groupby(
+                    self.data_for_scores, lambda x: x[3]
+                )
+            ][0]
         )
 
         # get number of coaching efficiency ties and ties for first
@@ -243,27 +303,44 @@ class ReportData(object):
             self.data_for_coaching_efficiency, "coaching_efficiency", self.break_ties
         )
         self.num_first_place_for_coaching_efficiency_before_resolution = len(
-            [list(group) for key, group in itertools.groupby(self.data_for_coaching_efficiency, lambda x: x[0])][0]
+            [
+                list(group)
+                for key, group in itertools.groupby(
+                    self.data_for_coaching_efficiency, lambda x: x[0]
+                )
+            ][0]
         )
 
         if self.ties_for_coaching_efficiency > 0:
-            self.data_for_coaching_efficiency = metrics_calculator.resolve_coaching_efficiency_ties(
-                self.data_for_coaching_efficiency,
-                self.ties_for_coaching_efficiency,
-                league,
-                self.teams_results,
-                int(week_counter),
-                int(week_for_report),
-                self.break_ties,
+            self.data_for_coaching_efficiency = (
+                metrics_calculator.resolve_coaching_efficiency_ties(
+                    self.data_for_coaching_efficiency,
+                    self.ties_for_coaching_efficiency,
+                    league,
+                    self.teams_results,
+                    int(week_counter),
+                    int(week_for_report),
+                    self.break_ties,
+                )
             )
         self.num_first_place_for_coaching_efficiency = len(
-            [list(group) for key, group in itertools.groupby(self.data_for_coaching_efficiency, lambda x: x[0])][0]
+            [
+                list(group)
+                for key, group in itertools.groupby(
+                    self.data_for_coaching_efficiency, lambda x: x[0]
+                )
+            ][0]
         )
 
         # get number of luck ties and ties for first
-        self.ties_for_luck = metrics_calculator.get_ties_count(self.data_for_luck, "luck", self.break_ties)
+        self.ties_for_luck = metrics_calculator.get_ties_count(
+            self.data_for_luck, "luck", self.break_ties
+        )
         self.num_first_place_for_luck = len(
-            [list(group) for key, group in itertools.groupby(self.data_for_luck, lambda x: x[3])][0]
+            [
+                list(group)
+                for key, group in itertools.groupby(self.data_for_luck, lambda x: x[3])
+            ][0]
         )
 
         # get number of bad boy rankings ties and ties for first
@@ -271,17 +348,29 @@ class ReportData(object):
             self.data_for_bad_boy_rankings, "bad_boy", self.break_ties
         )
         self.num_first_place_for_bad_boy_rankings = len(
-            [list(group) for key, group in itertools.groupby(self.data_for_bad_boy_rankings, lambda x: x[3])][0]
+            [
+                list(group)
+                for key, group in itertools.groupby(
+                    self.data_for_bad_boy_rankings, lambda x: x[3]
+                )
+            ][0]
         )
         # filter out teams that have no bad boys in their starting lineup
-        self.data_for_bad_boy_rankings = [result for result in self.data_for_bad_boy_rankings if int(result[-1]) != 0]
+        self.data_for_bad_boy_rankings = [
+            result for result in self.data_for_bad_boy_rankings if int(result[-1]) != 0
+        ]
 
         # get number of beef rankings ties and ties for first
         self.ties_for_beef_rankings = metrics_calculator.get_ties_count(
             self.data_for_beef_rankings, "beef", self.break_ties
         )
         self.num_first_place_for_beef_rankings = len(
-            [list(group) for key, group in itertools.groupby(self.data_for_beef_rankings, lambda x: x[3])][0]
+            [
+                list(group)
+                for key, group in itertools.groupby(
+                    self.data_for_beef_rankings, lambda x: x[3]
+                )
+            ][0]
         )
 
         # get number of high roller rankings ties and ties for first
@@ -289,11 +378,18 @@ class ReportData(object):
             self.data_for_high_roller_rankings, "high_roller", self.break_ties
         )
         self.num_first_place_for_high_roller_rankings = len(
-            [list(group) for key, group in itertools.groupby(self.data_for_high_roller_rankings, lambda x: x[3])][0]
+            [
+                list(group)
+                for key, group in itertools.groupby(
+                    self.data_for_high_roller_rankings, lambda x: x[3]
+                )
+            ][0]
         )
         # filter out teams that have no high rollers in their starting lineup
         self.data_for_high_roller_rankings = [
-            result for result in self.data_for_high_roller_rankings if float(result[3]) != 0.0
+            result
+            for result in self.data_for_high_roller_rankings
+            if float(result[3]) != 0.0
         ]
 
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
@@ -303,7 +399,10 @@ class ReportData(object):
 
         # calculate power ranking last to account for metric rankings that have been reordered due to tiebreakers
         power_ranking_results = metrics_calculator.calculate_power_rankings(
-            self.teams_results, self.data_for_scores, self.data_for_coaching_efficiency, self.data_for_luck
+            self.teams_results,
+            self.data_for_scores,
+            self.data_for_coaching_efficiency,
+            self.data_for_luck,
         )
 
         # update data_for_teams with power rankings
@@ -314,10 +413,16 @@ class ReportData(object):
 
         # power rankings data
         self.data_for_power_rankings = []
-        for k_v in sorted(power_ranking_results.items(), key=lambda x: x[1]["power_ranking"]):
+        for k_v in sorted(
+            power_ranking_results.items(), key=lambda x: x[1]["power_ranking"]
+        ):
             # season avg calc does something where it _keys off the second value in the array
             self.data_for_power_rankings.append(
-                [k_v[1]["power_ranking"], power_ranking_results[k_v[0]]["name"], k_v[1]["manager_str"]]
+                [
+                    k_v[1]["power_ranking"],
+                    power_ranking_results[k_v[0]]["name"],
+                    k_v[1]["manager_str"],
+                ]
             )
 
         # get number of power rankings ties and ties for first
@@ -325,7 +430,12 @@ class ReportData(object):
             self.data_for_power_rankings, "power_ranking", self.break_ties
         )
         self.ties_for_first_for_power_rankings = len(
-            [list(group) for key, group in itertools.groupby(self.data_for_power_rankings, lambda x: x[0])][0]
+            [
+                list(group)
+                for key, group in itertools.groupby(
+                    self.data_for_power_rankings, lambda x: x[0]
+                )
+            ][0]
         )
 
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
@@ -342,7 +452,10 @@ class ReportData(object):
         ce_dq_str = None
         if self.num_coaching_efficiency_dqs > 0:
             ce_dqs = []
-            for team_name, ineligible_players_count in self.coaching_efficiency_dqs.items():
+            for (
+                team_name,
+                ineligible_players_count,
+            ) in self.coaching_efficiency_dqs.items():
                 if ineligible_players_count == -1:
                     ce_dqs.append(f"{team_name} (incomplete active squad)")
                 elif ineligible_players_count == -2:

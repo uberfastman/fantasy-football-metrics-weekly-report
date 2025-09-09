@@ -8,7 +8,8 @@ from requests import Response
 
 from ffmwr.integrations.base.integration import BaseIntegration
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
+from ffmwr.utilities.settings import (AppSettings,
+                                      get_app_settings_from_env_file)
 
 logger = get_logger(__name__, propagate=False)
 
@@ -25,9 +26,13 @@ class DiscordIntegration(BaseIntegration):
             )
             self.settings.write_settings_to_env_file(self.root_dir / ".env")
 
-        self.webhook_url = f"{self.base_url}/{self.settings.integration_settings.discord_webhook_id}"
+        self.webhook_url = (
+            f"{self.base_url}/{self.settings.integration_settings.discord_webhook_id}"
+        )
 
-        self.client = DiscordWebhook(url=self.webhook_url, allowed_mentions={"parse": ["everyone"]})
+        self.client = DiscordWebhook(
+            url=self.webhook_url, allowed_mentions={"parse": ["everyone"]}
+        )
 
     def post_message(self, message: str) -> Dict:
         logger.debug(f"Posting message to Discord: \n{message}")
@@ -61,13 +66,21 @@ class DiscordIntegration(BaseIntegration):
 if __name__ == "__main__":
     local_root_directory = Path(__file__).parent.parent.parent
 
-    local_settings: AppSettings = get_app_settings_from_env_file(local_root_directory / ".env")
+    local_settings: AppSettings = get_app_settings_from_env_file(
+        local_root_directory / ".env"
+    )
 
-    reupload_file = local_root_directory / local_settings.integration_settings.reupload_file_path
+    reupload_file = (
+        local_root_directory / local_settings.integration_settings.reupload_file_path
+    )
 
     logger.info(f"Re-uploading {reupload_file.name} ({reupload_file}) to Discord...")
 
-    discord_integration = DiscordIntegration(local_settings, local_root_directory, local_settings.week_for_report)
+    discord_integration = DiscordIntegration(
+        local_settings, local_root_directory, local_settings.week_for_report
+    )
 
     # logger.info(f"{json.dumps(discord_integration.post_message('test message'), indent=2)}")
-    logger.info(f"{json.dumps(discord_integration.upload_file(reupload_file), indent=2)}")
+    logger.info(
+        f"{json.dumps(discord_integration.upload_file(reupload_file), indent=2)}"
+    )

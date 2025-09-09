@@ -37,7 +37,11 @@ nfl_team_abbreviations: List[str] = [
 ]
 
 # reference dict to convert between commonly used alternate team abbreviations
-nfl_team_abbreviation_conversions: Dict[str, str] = {"JAC": "JAX", "LA": "LAR", "WSH": "WAS"}
+nfl_team_abbreviation_conversions: Dict[str, str] = {
+    "JAC": "JAX",
+    "LA": "LAR",
+    "WSH": "WAS",
+}
 
 # reference dict to convert between full NFL team names and their abbreviations
 nfl_team_names_to_abbreviations: Dict[str, str] = {
@@ -138,4 +142,12 @@ prohibited_statuses: Dict[str, str] = {
 
 player_name_punctuation: List[str] = [".", "'"]
 
-player_name_suffixes: List[str] = ["Jr", "Sr", "V", "IV", "III", "II", "I"]  # ordered for str.removesuffix support
+player_name_suffixes: List[str] = [
+    "Jr",
+    "Sr",
+    "V",
+    "IV",
+    "III",
+    "II",
+    "I",
+]  # ordered for str.removesuffix support
