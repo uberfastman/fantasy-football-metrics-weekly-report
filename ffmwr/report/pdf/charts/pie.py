@@ -1,6 +1,3 @@
-__author__ = "Wren J. R. (uberfastman)"
-__email__ = "uberfastman@uberfastman.dev"
-
 # code snippets: https://www.reportlab.com/snippets/4/
 
 import json

@@ -1,6 +1,3 @@
-__author__ = "Wren J. R. (uberfastman)"
-__email__ = "uberfastman@uberfastman.dev"
-
 import itertools
 from collections import OrderedDict, defaultdict
 from statistics import mean

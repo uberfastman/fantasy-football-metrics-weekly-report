@@ -1,0 +1,13 @@
+# Fantasy Football Metrics Weekly Report - ESPN Configuration
+
+# Essential Settings
+log_level: info
+league_id: "1271142"
+season: 2025
+current_nfl_week: 2
+refresh_feature_web_data: false  # Set to true to refresh Bad Boy/Beef/High Roller data
+
+# ESPN Authentication (optional - leave empty for public leagues)
+platform_settings:
+  espn_cookie_swid: ""
+  espn_cookie_espn_s2: ""

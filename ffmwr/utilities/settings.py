@@ -7,9 +7,9 @@ from pathlib import Path
 from time import sleep
 from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 
+import yaml
 from camel_converter import to_snake
 from colorama import Fore, Style
-from dotenv import dotenv_values
 from pydantic import Field, computed_field
 # noinspection PyProtectedMember
 from pydantic.fields import FieldInfo
@@ -292,91 +292,6 @@ class ReportSettings(CustomSettings):
     )
 
 
-class IntegrationSettings(CustomSettings):
-    reupload_file_path: Optional[Path] = Field(
-        "resources/files/example_report.pdf",
-        title=__qualname__,
-        description="file to reupload to third-party integrations",
-    )
-
-    # google drive
-    google_drive_upload_bool: bool = Field(
-        False,
-        title=__qualname__,
-        description=(
-            "change GOOGLE_DRIVE_UPLOAD_BOOL to True/False to turn on/off uploading of the report to Google Drive"
-        ),
-    )
-    google_drive_client_id: Optional[str] = Field(None, title=__qualname__)
-    google_drive_client_secret: Optional[str] = Field(None, title=__qualname__)
-    google_drive_auth_token_json: Optional[Dict[str, Any]] = Field(
-        None, title=__qualname__
-    )
-    google_drive_default_folder: str = Field("Fantasy_Football", title=__qualname__)
-    google_drive_folder: Optional[str] = Field(None, title=__qualname__)
-
-    # slack
-    slack_post_bool: bool = Field(
-        False,
-        title=__qualname__,
-        description="change SLACK_POST_BOOL to True/False to turn on/off posting of the report to Slack",
-    )
-    slack_post_or_file: str = Field(
-        "file",
-        title=__qualname__,
-        description=(
-            "options for SLACK_POST_OR_FILE: post (if you wish to post a link to the report), file (if you wish to "
-            "post the report PDF)"
-        ),
-    )
-    slack_auth_token: Optional[str] = Field(None, title=__qualname__)
-    slack_channel: Optional[str] = Field(None, title=__qualname__)
-    slack_channel_notify_bool: bool = Field(False, title=__qualname__)
-
-    # groupme
-    groupme_post_bool: bool = Field(
-        False,
-        title=__qualname__,
-        description="change GROUPME_POST_BOOL to True/False to turn on/off posting of the report to GroupMe",
-    )
-    groupme_post_or_file: str = Field(
-        "file",
-        title=__qualname__,
-        description=(
-            "options for GROUPME_POST_OR_FILE: post (if you wish to post a link to the report), file (if you wish to "
-            "post the report PDF)"
-        ),
-    )
-    groupme_bot_or_user: str = Field(
-        "bot",
-        title=__qualname__,
-        description=(
-            "options for GROUPME_BOT_OR_USER: bot (if you wish to post as a bot account), user (if you with to post as "
-            "your user account)"
-        ),
-    )
-    groupme_access_token: Optional[str] = Field(None, title=__qualname__)
-    groupme_bot_id: Optional[str] = Field(None, title=__qualname__)
-    groupme_group: Optional[str] = Field(None, title=__qualname__)
-
-    # discord
-    discord_post_bool: bool = Field(
-        False,
-        title=__qualname__,
-        description="change DISCORD_POST_BOOL to True/False to turn on/off posting of the report to Discord",
-    )
-    discord_post_or_file: str = Field(
-        "file",
-        title=__qualname__,
-        description=(
-            "options for DISCORD_POST_OR_FILE: post (if you wish to post a link to the report), file (if you wish to "
-            "post the report PDF)"
-        ),
-    )
-    discord_webhook_id: Optional[str] = Field(None, title=__qualname__)
-    discord_channel_notify_bool: bool = Field(False, title=__qualname__)
-
-
 class AppSettings(CustomSettings):
     model_config = SettingsConfigDict(
         # env_file=".env",
@@ -389,13 +304,6 @@ class AppSettings(CustomSettings):
         "info",
         title=__qualname__,
         description="logger output level: notset, debug, info, warning, error, critical",
-    )
-    check_for_updates: bool = Field(
-        True,
-        title=__qualname__,
-        description=(
-            "automatically check GitHub for app updates and prompt user to update if local installation is out of date"
-        ),
     )
     data_dir_path: Path = Field(
         Path("output/data"),
@@ -415,10 +323,10 @@ class AppSettings(CustomSettings):
         description="fantasy football platform for which you are running the report",
     )
     supported_platforms_list: List[str] = Field(
-        ["yahoo", "espn", "sleeper", "fleaflicker", "cbs"],
+        ["espn"],
         validate_default=False,
         title=__qualname__,
-        description="supported fantasy football platforms (comma-delimited list with no spaces between items)",
+        description="supported fantasy football platforms (only ESPN is supported)",
     )
     league_id: Optional[str] = Field(
         None,
@@ -436,7 +344,7 @@ class AppSettings(CustomSettings):
         description='value can be "default" or an integer between 1 and 18 defining the chosen week',
     )
     num_playoff_simulations: int = Field(
-        10000,
+        int(1e6),
         title=__qualname__,
         description=(
             "select how many Monte Carlo simulations are used for playoff predictions, keeping in mind that while more "
@@ -468,10 +376,14 @@ class AppSettings(CustomSettings):
             'COACHING_EFFICIENCY_DISQUALIFIED_TEAMS_LIST="Team One,Team Two"'
         ),
     )
+    refresh_feature_web_data: bool = Field(
+        False,
+        title=__qualname__,
+        description="refresh Bad Boy, Beef, and High Roller data from external sources",
+    )
 
     platform_settings: PlatformSettings = PlatformSettings()
     report_settings: ReportSettings = ReportSettings()
-    integration_settings: IntegrationSettings = IntegrationSettings()
 
 
 def get_app_settings_from_env_file(env_file_path: Path) -> AppSettings:
@@ -640,6 +552,131 @@ def create_env_file_from_settings(
     app_settings.write_settings_to_env_file(env_file_path)
 
     return app_settings
+
+
+def get_app_settings_from_yaml_file(yaml_file_path: Path) -> AppSettings:
+    """Load application settings from a YAML configuration file."""
+    if not yaml_file_path.is_file():
+        logger.error(f'Configuration file "{yaml_file_path}" not found.')
+        sys.exit(1)
+
+    if not os.access(yaml_file_path, mode=os.R_OK):
+        logger.error(
+            f'Unable to access configuration file "{yaml_file_path}". Please check file permissions.'
+        )
+        sys.exit(1)
+
+    try:
+        with open(yaml_file_path, "r") as f:
+            config_data = yaml.safe_load(f)
+
+        logger.debug(f'Loaded configuration from "{yaml_file_path}"')
+
+        # Convert YAML data to environment variables temporarily
+        # since CustomSettings only reads from environment
+        original_env = {}
+
+        def set_env_from_dict(data, prefix=""):
+            for key, value in data.items():
+                env_key = f"{prefix}{key}".upper()
+                if isinstance(value, dict):
+                    # Handle nested dictionaries
+                    set_env_from_dict(value, f"{prefix}{key}_")
+                else:
+                    # Convert values to strings for environment variables
+                    if value is not None:
+                        if env_key not in os.environ:
+                            original_env[env_key] = os.environ.get(env_key)
+                        os.environ[env_key] = str(value)
+
+        # Add sensible defaults for missing settings
+        defaults = {
+            "platform": "espn",
+            "data_dir_path": "output/data",
+            "output_dir_path": "output/reports",
+            "nfl_season_length": 18,
+            "week_for_report": "default",
+            "num_playoff_simulations": 10000,
+            "num_playoff_slots": 6,
+            "num_playoff_slots_per_division": 1,
+            "num_regular_season_weeks": 14,
+            "coaching_efficiency_disqualified_teams_list": [],
+            "refresh_feature_web_data": False,
+            "platform_settings": {
+                "espn_username": "",
+                "espn_password": "",
+                "espn_cookie_swid": "",
+                "espn_cookie_espn_s2": "",
+            },
+            "report_settings": {
+                # All report settings enabled by default
+                "league_standings_bool": True,
+                "league_playoff_probs_bool": True,
+                "league_median_standings_bool": True,
+                "league_power_rankings_bool": True,
+                "league_z_score_rankings_bool": True,
+                "league_score_rankings_bool": True,
+                "league_coaching_efficiency_rankings_bool": True,
+                "league_luck_rankings_bool": True,
+                "league_optimal_score_rankings_bool": True,
+                "league_bad_boy_rankings_bool": True,
+                "league_beef_rankings_bool": True,
+                "league_high_roller_rankings_bool": True,
+                "league_weekly_top_scorers_bool": True,
+                "league_weekly_low_scorers_bool": True,
+                "league_weekly_highest_ce_bool": True,
+                "league_time_series_charts_bool": True,
+                "team_points_by_position_charts_bool": True,
+                "team_bad_boy_stats_bool": True,
+                "team_beef_stats_bool": True,
+                "team_high_roller_stats_bool": True,
+                "team_boom_or_bust_bool": True,
+                # Fixed PDF styling
+                "font": "helvetica",
+                "font_size": 12,
+                "image_quality": 75,
+                "max_data_chars": 20,
+            },
+        }
+
+        # Merge defaults with config data (config data takes precedence)
+        def merge_dicts(default, config):
+            result = default.copy()
+            for key, value in config.items():
+                if (
+                    key in result
+                    and isinstance(result[key], dict)
+                    and isinstance(value, dict)
+                ):
+                    result[key] = merge_dicts(result[key], value)
+                else:
+                    result[key] = value
+            return result
+
+        merged_config = merge_dicts(defaults, config_data)
+
+        # Set environment variables from merged config
+        set_env_from_dict(merged_config)
+
+        try:
+            # Create AppSettings (will read from environment variables)
+            app_settings = AppSettings()
+            logger.debug(f"Created AppSettings with season: {app_settings.season}")
+            return app_settings
+        finally:
+            # Clean up environment variables
+            for env_key in original_env:
+                if original_env[env_key] is None:
+                    os.environ.pop(env_key, None)
+                else:
+                    os.environ[env_key] = original_env[env_key]
+
+    except yaml.YAMLError as e:
+        logger.error(f"Error parsing YAML configuration file: {e}")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Error loading configuration: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

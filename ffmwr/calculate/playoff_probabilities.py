@@ -1,10 +1,5 @@
 from __future__ import annotations
 
-__author__ = "Wren J. R. (uberfastman)"
-__email__ = "uberfastman@uberfastman.dev"
-
-# code snippets: https://github.com/cdtdev/ff_monte_carlo (originally written by https://github.com/cdtdev)
-
 import datetime
 import itertools
 import json
@@ -20,6 +15,11 @@ from ffmwr.utilities.logger import get_logger
 from ffmwr.utilities.settings import (AppSettings,
                                       get_app_settings_from_env_file)
 from ffmwr.utilities.utils import FFMWRPythonObjectJson
+
+# code snippets: https://github.com/cdtdev/ff_monte_carlo (originally written by https://github.com/cdtdev)
+
+
+
 
 if TYPE_CHECKING:
     from ffmwr.models.base.model import BaseMatchup, BaseTeam

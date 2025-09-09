@@ -1,6 +1,3 @@
-__author__ = "Wren J. R. (uberfastman)"
-__email__ = "uberfastman@uberfastman.dev"
-
 import json
 import logging
 import os
@@ -662,63 +659,11 @@ class PdfGenerator(object):
             [self.spacer_three_inch],
             [Paragraph(report_footer_text, self.text_style_normal)],
         ]
-        footer_data = [
-            [
-                [
-                    self.get_img(
-                        "resources/images/donate-paypal.png",
-                        hyperlink="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=VZZCNLRHH9BQS",
-                    )
-                ],
-                [
-                    self.get_img(
-                        "resources/images/donate-bitcoin.png",
-                        hyperlink="https://blockstream.info/address/bc1qataspvklhewtswm357m0677q4raag5new2xt3e",
-                    )
-                ],
-                [
-                    self.get_img(
-                        "resources/images/donate-ethereum.png",
-                        hyperlink="https://etherscan.io/address/0x5eAa522e66a90577D49e9E72f253EC952CDB4059",
-                    )
-                ],
-            ],
-            [
-                [
-                    self.get_img(
-                        "resources/images/donate-paypal-qr.png",
-                        hyperlink="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=VZZCNLRHH9BQS",
-                    )
-                ],
-                [
-                    self.get_img(
-                        "resources/images/donate-bitcoin-qr.png",
-                        hyperlink="https://blockstream.info/address/bc1qataspvklhewtswm357m0677q4raag5new2xt3e",
-                    )
-                ],
-                [
-                    self.get_img(
-                        "resources/images/donate-ethereum-qr.png",
-                        hyperlink="https://etherscan.io/address/0x5eAa522e66a90577D49e9E72f253EC952CDB4059",
-                    )
-                ],
-            ],
-            [
-                Paragraph("PayPal", self.text_style_small),
-                Paragraph(
-                    "bc1qataspvklhewtswm357m0677q4raag5new2xt3e", self.text_style_small
-                ),
-                Paragraph(
-                    "0x5eAa522e66a90577D49e9E72f253EC952CDB4059", self.text_style_small
-                ),
-            ],
-        ]
         self.report_footer_title = Table(
             footer_title, colWidths=7.75 * inch, style=self.title_style
         )
-        self.report_footer = Table(
-            footer_data, colWidths=2.50 * inch, style=self.title_style
-        )
+        # Remove donation footer for personal use
+        self.report_footer = None
 
         # data for report
         self.report_data = report_data
@@ -2013,26 +1958,8 @@ class PdfGenerator(object):
         # document title
         elements.append(self.report_title)
         elements.append(self.spacer_tenth_inch)
-        donate_header_data = [
-            [
-                Paragraph(
-                    "Enjoying the app? Please consider donating to support its development:",
-                    self.text_style_italics,
-                ),
-                self.get_img(
-                    "resources/images/donate.png",
-                    hyperlink="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=VZZCNLRHH9BQS",
-                ),
-            ]
-        ]
-        elements.append(
-            Table(
-                donate_header_data,
-                colWidths=[4.65 * inch, 1.00 * inch],
-                style=self.header_style,
-            )
-        )
-        elements.append(self.spacer_tenth_inch)
+        elements.append(self.spacer_tenth_inch)  # Extra spacing before TOC
+        # Removed donation header for personal use
 
         elements.append(self.add_page_break())
 
@@ -2626,10 +2553,11 @@ class PdfGenerator(object):
         toc_elements.reverse()  # reverse toc tables so that they are inserted in the correct order
 
         for toc in toc_elements:
-            elements.insert(4, toc)
+            elements.insert(3, toc)  # Insert after title and spacers, before page break
 
         elements.append(self.report_footer_title)
-        elements.append(self.report_footer)
+        if self.report_footer:
+            elements.append(self.report_footer)
 
         # build pdf
         logger.info(f"generating PDF ({str(filename_with_path).split('/')[-1]})...")

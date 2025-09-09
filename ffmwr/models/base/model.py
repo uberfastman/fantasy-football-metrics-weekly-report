@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-__author__ = "Wren J. R. (uberfastman)"
-__email__ = "uberfastman@uberfastman.dev"
-
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Union
