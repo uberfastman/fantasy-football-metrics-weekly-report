@@ -374,14 +374,7 @@ class FantasyFootballReport(object):
             )
         )
 
-        filename = (
-            self.league.name.replace(" ", "-")
-            + "("
-            + str(self.league_id)
-            + ")_week-"
-            + str(self.league.week_for_report)
-            + "_report.pdf"
-        )
+        filename = "week-" + str(self.league.week_for_report) + ".pdf"
         report_save_dir = (
             self.settings.output_dir_path
             / str(self.league.season)

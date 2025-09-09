@@ -288,7 +288,7 @@ class CalculateMetrics(object):
                 -1
             )  # remove "division winner" bool (original index: -2)
             team_playoff_probs_data[prob_ndx] = (
-                f"{team_playoff_probs_data[prob_ndx]:.2f}%"
+                f"{team_playoff_probs_data[prob_ndx]:.1f}%"
             )
             if team_playoff_probs_data[prob_ndx + 1] == 1:
                 team_playoff_probs_data[prob_ndx + 1] = (
@@ -300,7 +300,7 @@ class CalculateMetrics(object):
                 )
             ndx = prob_ndx + 2
             for stat in team_playoff_probs_data[prob_ndx + 2 :]:
-                team_playoff_probs_data[ndx] = f"{stat:.2f}%"
+                team_playoff_probs_data[ndx] = f"{stat:.1f}%"
                 ndx += 1
 
         return sorted_playoff_probs_data
