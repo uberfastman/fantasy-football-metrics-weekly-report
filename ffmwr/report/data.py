@@ -3,6 +3,7 @@ from typing import List
 
 from ffmwr.calculate.metrics import CalculateMetrics
 from ffmwr.calculate.points_by_position import PointsByPosition
+from ffmwr.features.weekly_wager import WeeklyWager
 from ffmwr.models.base.model import BaseLeague, BaseMatchup, BaseTeam
 from ffmwr.utilities.app import add_report_team_stats, get_inactive_players
 from ffmwr.utilities.logger import get_logger
@@ -434,6 +435,22 @@ class ReportData(object):
                 )
             ][0]
         )
+
+        # weekly wager calculation
+        self.data_for_weekly_wager = None
+        if settings.weekly_wager_settings.enabled:
+            try:
+                weekly_wager = WeeklyWager(settings.weekly_wager_settings)
+                self.data_for_weekly_wager = weekly_wager.calculate_wager_result(
+                    league, week_counter
+                )
+                if self.data_for_weekly_wager:
+                    logger.info(f"Weekly wager calculated: {self.data_for_weekly_wager.wager_description}")
+                else:
+                    logger.warning("Weekly wager enabled but no result calculated")
+            except Exception as e:
+                logger.error(f"Error calculating weekly wager: {e}")
+                self.data_for_weekly_wager = None
 
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
         # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ LOGGER OUTPUT ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~

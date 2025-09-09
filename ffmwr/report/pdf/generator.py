@@ -2143,10 +2143,91 @@ class PdfGenerator(object):
                         footer_text=footer_text_for_divisions,
                     )
                 )
+        
+        # weekly wager section
+        if (self.settings.weekly_wager_settings.enabled 
+            and self.report_data.data_for_weekly_wager):
+            
+            wager_data = self.report_data.data_for_weekly_wager
+            
+            # Create wager display data
+            wager_display_data = []
+            
+            if wager_data.winning_players:
+                # Add header row - extract target metric name from description
+                target_metric = wager_data.wager_description.split('most ')[-1].title()
+                wager_display_data.append(["Rank", "Player", "Position", "Team", "Owner", target_metric])
+                
+                # Add all players with their rankings
+                for player in wager_data.winning_players:
+                    # Format rank with trophy/medal emojis for top positions
+                    rank_display = str(player['rank'])
+                    if player['is_winner']:
+                        rank_display = f"🏆 {player['rank']}"
+                    elif player['rank'] == 2:
+                        rank_display = f"🥈 {player['rank']}"
+                    elif player['rank'] == 3:
+                        rank_display = f"🥉 {player['rank']}"
+                    
+                    wager_display_data.append([
+                        rank_display,
+                        player['name'],
+                        player['position'], 
+                        player['team_abbr'],
+                        player['owner_team'],
+                        f"{player['value']:.1f}"
+                    ])
+            
+            if wager_display_data:
+                # Create table style for wager
+                wager_style = deepcopy(self.style)
+                
+                # Style the winners (first place) in green
+                winner_count = sum(1 for p in wager_data.winning_players if p['is_winner'])
+                if winner_count > 0:
+                    wager_style.add("TEXTCOLOR", (0, 1), (-1, winner_count), colors.green)
+                    wager_style.add("FONT", (0, 1), (-1, winner_count), self.font_bold)
+                
+                # Style second place in blue if it exists
+                second_place_players = [p for p in wager_data.winning_players if p['rank'] == 2]
+                if second_place_players:
+                    start_row = winner_count + 1
+                    end_row = start_row + len(second_place_players) - 1
+                    wager_style.add("TEXTCOLOR", (0, start_row), (-1, end_row), colors.blue)
+                
+                # Column widths for wager table
+                wager_widths = [
+                    0.75 * inch,  # Rank
+                    2.25 * inch,  # Player
+                    0.75 * inch,  # Position
+                    0.75 * inch,  # Team
+                    2.0 * inch,   # Owner
+                    1.0 * inch,   # Value
+                ]
+                
+                subtitle = f"Top player from each team ({wager_data.total_participants} teams) ranked by performance"
+                if wager_data.is_tie:
+                    winner_count_display = sum(1 for p in wager_data.winning_players if p['is_winner'])
+                    subtitle += f" • Tie for 1st place between {winner_count_display} players"
+                
+                elements.append(
+                    self.create_section(
+                        "Weekly Wager",
+                        "metrics", 
+                        [wager_display_data[0]],  # Headers
+                        wager_display_data[1:],   # Data
+                        wager_style,
+                        wager_style,
+                        wager_widths,
+                        subtitle_text=subtitle,
+                        metric_type="weekly_wager"
+                    )
+                )
 
         if (
             self.settings.report_settings.league_standings_bool
             or self.settings.report_settings.league_playoff_probs_bool
+            or (self.settings.weekly_wager_settings.enabled and self.report_data.data_for_weekly_wager)
         ):
             elements.append(self.add_page_break())
 

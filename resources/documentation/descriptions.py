@@ -104,3 +104,9 @@ weekly_highest_coaching_efficiency = (
     "Running list of each week's team with the highest coaching efficiency. Can be used for weekly highest coaching "
     "efficiency payouts."
 )
+
+weekly_wager = (
+    "Configurable weekly wager that determines winners based on specific player criteria. Filter by position "
+    "(QB, RB, WR, TE, K, D/ST), roster status (starters, bench players, or all), and target metric (fantasy points, "
+    "touchdowns, yards, or receptions). Perfect for weekly side bets and competitions within your league."
+)

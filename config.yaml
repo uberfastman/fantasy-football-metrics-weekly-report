@@ -1,7 +1,7 @@
 # Fantasy Football Metrics Weekly Report - ESPN Configuration
 
 # Essential Settings
-log_level: info
+log_level: debug
 league_id: "1271142"
 season: 2025
 current_nfl_week: 2
@@ -11,3 +11,12 @@ refresh_feature_web_data: false  # Set to true to refresh Bad Boy/Beef/High Roll
 platform_settings:
   espn_cookie_swid: ""
   espn_cookie_espn_s2: ""
+
+# Weekly Wager Configuration
+weekly_wager_settings:
+  enabled: true                     # Set to true to enable weekly wager calculation
+  position: ["RB", "WR"]            # Position to filter by (QB, RB, WR, TE, K, D/ST) or null for all positions
+  filter: "starter"                 # Player filter: "starter", "bench", or "all"
+  target: "points"                  # Target metric: "points", "touchdowns", "yards", "receptions"
+  # description: "Starting TE with the most fantasy points"  # Custom description (optional)
+
