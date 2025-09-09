@@ -16,7 +16,8 @@ from pydrive2.files import GoogleDriveFile
 
 from ffmwr.integrations.base.integration import BaseIntegration
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
+from ffmwr.utilities.settings import (AppSettings,
+                                      get_app_settings_from_env_file)
 
 logger = get_logger(__name__, propagate=False)
 
@@ -24,7 +25,9 @@ logger = get_logger(__name__, propagate=False)
 logging.getLogger("googleapiclient").setLevel(level=logging.ERROR)
 logging.getLogger("googleapiclient.discovery").setLevel(level=logging.ERROR)
 logging.getLogger("googleapiclient.discovery_cache").setLevel(level=logging.ERROR)
-logging.getLogger("googleapiclient.discovery_cache.file_cache").setLevel(level=logging.ERROR)
+logging.getLogger("googleapiclient.discovery_cache.file_cache").setLevel(
+    level=logging.ERROR
+)
 
 
 class GoogleDriveIntegration(BaseIntegration):
@@ -47,7 +50,9 @@ class GoogleDriveIntegration(BaseIntegration):
             self.settings.write_settings_to_env_file(self.root_dir / ".env")
 
         if self.settings.integration_settings.google_drive_auth_token_json:
-            credentials = json.dumps(self.settings.integration_settings.google_drive_auth_token_json)
+            credentials = json.dumps(
+                self.settings.integration_settings.google_drive_auth_token_json
+            )
         else:
             credentials = None
 
@@ -79,14 +84,18 @@ class GoogleDriveIntegration(BaseIntegration):
             google_auth.Authorize()
 
         google_auth.SaveCredentials(backend="dictionary")
-        self.settings.integration_settings.google_drive_auth_token_json = google_auth.credentials.to_json()
+        self.settings.integration_settings.google_drive_auth_token_json = (
+            google_auth.credentials.to_json()
+        )
         self.settings.write_settings_to_env_file(self.root_dir / ".env")
 
         # Create GoogleDrive instance with authenticated GoogleAuth instance.
         self.client = GoogleDrive(google_auth)
 
     @staticmethod
-    def _check_file_existence(file_name: str, file_list: List[GoogleDriveFile], parent_id: str) -> GoogleDriveFile:
+    def _check_file_existence(
+        file_name: str, file_list: List[GoogleDriveFile], parent_id: str
+    ) -> GoogleDriveFile:
         drive_file_name = file_name
         google_drive_file = None
 
@@ -103,7 +112,9 @@ class GoogleDriveIntegration(BaseIntegration):
             new_root_folder = self.client.CreateFile(
                 {
                     "title": folder_name,
-                    "parents": [{"kind": "drive#fileLink", "isRoot": True, "id": "root"}],
+                    "parents": [
+                        {"kind": "drive#fileLink", "isRoot": True, "id": "root"}
+                    ],
                     "mimeType": "application/vnd.google-apps.folder",
                 }
             )
@@ -114,7 +125,9 @@ class GoogleDriveIntegration(BaseIntegration):
 
         return root_folder_id
 
-    def _make_parent_folder(self, folder: GoogleDriveFile, folder_name: str, parent_folder_id: str) -> str:
+    def _make_parent_folder(
+        self, folder: GoogleDriveFile, folder_name: str, parent_folder_id: str
+    ) -> str:
         if not folder:
             new_parent_folder = self.client.CreateFile(
                 {
@@ -137,16 +150,24 @@ class GoogleDriveIntegration(BaseIntegration):
 
         # Get lists of folders
         root_folders = self.client.ListFile(
-            {"q": "'root' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"}
+            {
+                "q": "'root' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
+            }
         ).GetList()
 
-        google_drive_folder_path_default = self.settings.integration_settings.google_drive_default_folder
+        google_drive_folder_path_default = (
+            self.settings.integration_settings.google_drive_default_folder
+        )
         google_drive_folder_path = Path(
-            self.settings.integration_settings.google_drive_folder or google_drive_folder_path_default
+            self.settings.integration_settings.google_drive_folder
+            or google_drive_folder_path_default
         ).parts
 
         google_drive_root_folder_id = self._make_root_folder(
-            self._check_file_existence(google_drive_folder_path[0], root_folders, "root"), google_drive_folder_path[0]
+            self._check_file_existence(
+                google_drive_folder_path[0], root_folders, "root"
+            ),
+            google_drive_folder_path[0],
         )
 
         if not test:
@@ -163,7 +184,9 @@ class GoogleDriveIntegration(BaseIntegration):
             for folder in google_drive_folder_path[1:]:
                 # create folder chain in Google Drive
                 parent_folder_id = self._make_parent_folder(
-                    self._check_file_existence(folder, parent_folder_content_folders, parent_folder_id),
+                    self._check_file_existence(
+                        folder, parent_folder_content_folders, parent_folder_id
+                    ),
                     folder,
                     parent_folder_id,
                 )
@@ -182,7 +205,9 @@ class GoogleDriveIntegration(BaseIntegration):
             season_folder_name = file_for_upload.parts[-3]
 
             season_folder_id = self._make_parent_folder(
-                self._check_file_existence(season_folder_name, parent_folder_content_folders, parent_folder_id),
+                self._check_file_existence(
+                    season_folder_name, parent_folder_content_folders, parent_folder_id
+                ),
                 season_folder_name,
                 parent_folder_id,
             )
@@ -199,19 +224,29 @@ class GoogleDriveIntegration(BaseIntegration):
             # Check for league folder and create it if it does not exist
             league_folder_name = file_for_upload.parts[-2].replace("-", "_")
             league_folder_id = self._make_parent_folder(
-                self._check_file_existence(league_folder_name, season_folder_content_folders, season_folder_id),
+                self._check_file_existence(
+                    league_folder_name, season_folder_content_folders, season_folder_id
+                ),
                 league_folder_name,
                 season_folder_id,
             )
             league_folder_content_pdfs = self.client.ListFile(
-                {"q": f"'{league_folder_id}' in parents and " f"mimeType='application/pdf' and " f"trashed=false"}
+                {
+                    "q": f"'{league_folder_id}' in parents and "
+                    f"mimeType='application/pdf' and "
+                    f"trashed=false"
+                }
             ).GetList()
 
             # Check for league report and create it if it does not exist
             report_file_name = file_for_upload.parts[-1]
-            report_file = self._check_file_existence(report_file_name, league_folder_content_pdfs, league_folder_id)
+            report_file = self._check_file_existence(
+                report_file_name, league_folder_content_pdfs, league_folder_id
+            )
         else:
-            all_pdfs = self.client.ListFile({"q": "mimeType='application/pdf' and trashed=false"}).GetList()
+            all_pdfs = self.client.ListFile(
+                {"q": "mimeType='application/pdf' and trashed=false"}
+            ).GetList()
 
             report_file_name = file_for_upload.name
             report_file = self._check_file_existence(report_file_name, all_pdfs, "root")
@@ -232,19 +267,29 @@ class GoogleDriveIntegration(BaseIntegration):
         # Upload the file.
         upload_file.Upload()
 
-        upload_file.InsertPermission({"type": "anyone", "role": "reader", "withLink": True})
+        upload_file.InsertPermission(
+            {"type": "anyone", "role": "reader", "withLink": True}
+        )
 
-        return self._upload_success_message(upload_file["title"], drive_link=upload_file["alternateLink"])
+        return self._upload_success_message(
+            upload_file["title"], drive_link=upload_file["alternateLink"]
+        )
 
 
 if __name__ == "__main__":
     local_root_directory = Path(__file__).parent.parent.parent
 
-    local_settings: AppSettings = get_app_settings_from_env_file(local_root_directory / ".env")
+    local_settings: AppSettings = get_app_settings_from_env_file(
+        local_root_directory / ".env"
+    )
 
-    reupload_file = local_root_directory / local_settings.integration_settings.reupload_file_path
+    reupload_file = (
+        local_root_directory / local_settings.integration_settings.reupload_file_path
+    )
 
-    logger.info(f"Re-uploading {reupload_file.name} ({reupload_file}) to Google Drive...")
+    logger.info(
+        f"Re-uploading {reupload_file.name} ({reupload_file}) to Google Drive..."
+    )
 
     google_drive_integration = GoogleDriveIntegration(
         local_settings, local_root_directory, local_settings.week_for_report

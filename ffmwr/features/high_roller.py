@@ -9,9 +9,11 @@ import requests
 from bs4 import BeautifulSoup
 
 from ffmwr.features.base.feature import BaseFeature
-from ffmwr.utilities.constants import nfl_team_abbreviation_conversions, nfl_team_abbreviations
+from ffmwr.utilities.constants import (nfl_team_abbreviation_conversions,
+                                       nfl_team_abbreviations)
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
+from ffmwr.utilities.settings import (AppSettings,
+                                      get_app_settings_from_env_file)
 from ffmwr.utilities.utils import generate_normalized_player_key
 
 logger = get_logger(__name__, propagate=False)
@@ -113,22 +115,32 @@ class HighRollerFeature(BaseFeature):
         for player in fined_players:
             player_full_name = player.find("a", {"class": "link"}).getText().strip()
             player_team_abbr = player.find("img", {"class": "me-2"}).getText().strip()
-            player_position = player.find("td", {"class": "text-left details-sm"}).getText().strip()
+            player_position = (
+                player.find("td", {"class": "text-left details-sm"}).getText().strip()
+            )
             player_position_type = self.position_types[player_position]
 
             if not player_team_abbr:
                 # attempt to retrieve team abbreviation from parent element if img element is missing closing tag
-                player_team_abbr = player.find("td", {"class": "text-left details"}).getText().strip()
+                player_team_abbr = (
+                    player.find("td", {"class": "text-left details"}).getText().strip()
+                )
 
             # replace player team abbreviation with universal team abbreviation as needed
             if player_team_abbr not in nfl_team_abbreviations:
                 if player_team_abbr in nfl_team_abbreviation_conversions.keys():
-                    player_team_abbr = nfl_team_abbreviation_conversions[player_team_abbr]
+                    player_team_abbr = nfl_team_abbreviation_conversions[
+                        player_team_abbr
+                    ]
 
             try:
-                player_violation = player.find("span", {"class": "text-muted"}).getText()[2:].strip()
+                player_violation = (
+                    player.find("span", {"class": "text-muted"}).getText()[2:].strip()
+                )
             except AttributeError as e:
-                logger.debug(f"Unable to parse violation for {player_full_name} with error: {repr(e)}")
+                logger.debug(
+                    f"Unable to parse violation for {player_full_name} with error: {repr(e)}"
+                )
                 player_violation = None
 
             player_fine_info = {
@@ -137,18 +149,27 @@ class HighRollerFeature(BaseFeature):
                     "".join(
                         [
                             ch
-                            for ch in player.find("td", {"class": "text-center details highlight"}).getText().strip()
+                            for ch in player.find(
+                                "td", {"class": "text-center details highlight"}
+                            )
+                            .getText()
+                            .strip()
                             if ch.isdigit()
                         ]
                     )
                 ),
                 "violation_season": self.season,
                 "violation_date": datetime.strptime(
-                    player.find("td", {"class": "text-right details"}).getText().strip(), "%m/%d/%y"
+                    player.find("td", {"class": "text-right details"})
+                    .getText()
+                    .strip(),
+                    "%m/%d/%y",
                 ).isoformat(),
             }
 
-            normalized_player_key = generate_normalized_player_key(player_full_name, player_team_abbr)
+            normalized_player_key = generate_normalized_player_key(
+                player_full_name, player_team_abbr
+            )
 
             # add raw player data json to raw_player_data for reference
             self.raw_feature_data[normalized_player_key] = player.prettify()
@@ -156,7 +177,10 @@ class HighRollerFeature(BaseFeature):
             if normalized_player_key not in self.feature_data.keys():
                 self.feature_data[normalized_player_key] = {
                     **self._get_feature_data_template(
-                        player_full_name, player_team_abbr, player_position, player_position_type
+                        player_full_name,
+                        player_team_abbr,
+                        player_position,
+                        player_position_type,
                     ),
                     "fines": [player_fine_info],
                     "fines_count": 1,
@@ -165,16 +189,27 @@ class HighRollerFeature(BaseFeature):
                     "worst_violation_fine": player_fine_info["violation_fine"],
                 }
             else:
-                self.feature_data[normalized_player_key]["fines"].append(player_fine_info)
+                self.feature_data[normalized_player_key]["fines"].append(
+                    player_fine_info
+                )
                 self.feature_data[normalized_player_key]["fines"].sort(
-                    key=lambda x: (-x["violation_fine"], -datetime.fromisoformat(x["violation_date"]).timestamp())
+                    key=lambda x: (
+                        -x["violation_fine"],
+                        -datetime.fromisoformat(x["violation_date"]).timestamp(),
+                    )
                 )
                 self.feature_data[normalized_player_key]["fines_count"] += 1
-                self.feature_data[normalized_player_key]["fines_total"] += player_fine_info["violation_fine"]
+                self.feature_data[normalized_player_key][
+                    "fines_total"
+                ] += player_fine_info["violation_fine"]
 
                 worst_violation = self.feature_data[normalized_player_key]["fines"][0]
-                self.feature_data[normalized_player_key]["worst_violation"] = worst_violation["violation"]
-                self.feature_data[normalized_player_key]["worst_violation_fine"] = worst_violation["violation_fine"]
+                self.feature_data[normalized_player_key]["worst_violation"] = (
+                    worst_violation["violation"]
+                )
+                self.feature_data[normalized_player_key]["worst_violation_fine"] = (
+                    worst_violation["violation_fine"]
+                )
 
         for player_key in self.feature_data.keys():
             if self.feature_data[player_key]["position"] != "D/ST":
@@ -183,52 +218,103 @@ class HighRollerFeature(BaseFeature):
                 if player_key not in self.feature_data[player_team_abbr]["players"]:
                     player = self.feature_data[player_key]
                     self.feature_data[player_team_abbr]["players"][player_key] = player
-                    self.feature_data[player_team_abbr]["violators"].append(player["full_name"])
+                    self.feature_data[player_team_abbr]["violators"].append(
+                        player["full_name"]
+                    )
                     self.feature_data[player_team_abbr]["violators"] = list(
                         set(self.feature_data[player_team_abbr]["violators"])
                     )
                     self.feature_data[player_team_abbr]["violators_count"] = len(
                         self.feature_data[player_team_abbr]["violators"]
                     )
-                    self.feature_data[player_team_abbr]["fines_count"] += player["fines_count"]
-                    self.feature_data[player_team_abbr]["fines_total"] += player["fines_total"]
-                    if player["worst_violation_fine"] >= self.feature_data[player_team_abbr]["worst_violation_fine"]:
-                        self.feature_data[player_team_abbr]["worst_violation"] = player["worst_violation"]
-                        self.feature_data[player_team_abbr]["worst_violation_fine"] = player["worst_violation_fine"]
+                    self.feature_data[player_team_abbr]["fines_count"] += player[
+                        "fines_count"
+                    ]
+                    self.feature_data[player_team_abbr]["fines_total"] += player[
+                        "fines_total"
+                    ]
+                    if (
+                        player["worst_violation_fine"]
+                        >= self.feature_data[player_team_abbr]["worst_violation_fine"]
+                    ):
+                        self.feature_data[player_team_abbr]["worst_violation"] = player[
+                            "worst_violation"
+                        ]
+                        self.feature_data[player_team_abbr]["worst_violation_fine"] = (
+                            player["worst_violation_fine"]
+                        )
 
     def get_player_worst_violation(
-        self, player_first_name: str, player_last_name: str, player_team_abbr: str, player_position: str
+        self,
+        player_first_name: str,
+        player_last_name: str,
+        player_team_abbr: str,
+        player_position: str,
     ) -> str:
         return self._get_player_feature_stats(
-            player_first_name, player_last_name, player_team_abbr, player_position, "worst_violation", str
+            player_first_name,
+            player_last_name,
+            player_team_abbr,
+            player_position,
+            "worst_violation",
+            str,
         )
 
     def get_player_worst_violation_fine(
-        self, player_first_name: str, player_last_name: str, player_team_abbr: str, player_position: str
+        self,
+        player_first_name: str,
+        player_last_name: str,
+        player_team_abbr: str,
+        player_position: str,
     ) -> float:
         return self._get_player_feature_stats(
-            player_first_name, player_last_name, player_team_abbr, player_position, "worst_violation_fine", float
+            player_first_name,
+            player_last_name,
+            player_team_abbr,
+            player_position,
+            "worst_violation_fine",
+            float,
         )
 
     def get_player_fines_total(
-        self, player_first_name: str, player_last_name: str, player_team_abbr: str, player_position: str
+        self,
+        player_first_name: str,
+        player_last_name: str,
+        player_team_abbr: str,
+        player_position: str,
     ) -> float:
         return self._get_player_feature_stats(
-            player_first_name, player_last_name, player_team_abbr, player_position, "fines_total", float
+            player_first_name,
+            player_last_name,
+            player_team_abbr,
+            player_position,
+            "fines_total",
+            float,
         )
 
     def get_player_num_violators(
-        self, player_first_name: str, player_last_name: str, player_team_abbr: str, player_position: str
+        self,
+        player_first_name: str,
+        player_last_name: str,
+        player_team_abbr: str,
+        player_position: str,
     ) -> int:
         return self._get_player_feature_stats(
-            player_first_name, player_last_name, player_team_abbr, player_position, "violators_count", int
+            player_first_name,
+            player_last_name,
+            player_team_abbr,
+            player_position,
+            "violators_count",
+            int,
         )
 
 
 if __name__ == "__main__":
     local_root_directory = Path(__file__).parent.parent.parent
 
-    local_settings: AppSettings = get_app_settings_from_env_file(local_root_directory / ".env")
+    local_settings: AppSettings = get_app_settings_from_env_file(
+        local_root_directory / ".env"
+    )
 
     local_high_roller_feature = HighRollerFeature(
         local_settings.season,

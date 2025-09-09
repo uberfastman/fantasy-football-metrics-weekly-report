@@ -14,7 +14,8 @@ from bs4 import BeautifulSoup
 from ffmwr.features.base.feature import BaseFeature
 from ffmwr.utilities.constants import nfl_team_abbreviations
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
+from ffmwr.utilities.settings import (AppSettings,
+                                      get_app_settings_from_env_file)
 from ffmwr.utilities.utils import generate_normalized_player_key
 
 logger = get_logger(__name__, propagate=False)
@@ -74,7 +75,11 @@ class BadBoyFeature(BaseFeature):
         self.resource_files_dir = root_dir / "resources" / "files"
 
         # Load the scoring based on crime categories
-        with open(self.resource_files_dir / "crime_categories.json", mode="r", encoding="utf-8") as crimes:
+        with open(
+            self.resource_files_dir / "crime_categories.json",
+            mode="r",
+            encoding="utf-8",
+        ) as crimes:
             self.crime_rankings = json.load(crimes)
             logger.debug("Crime categories loaded.")
 
@@ -98,10 +103,14 @@ class BadBoyFeature(BaseFeature):
 
         res = requests.get(self.feature_web_base_url)
         soup = BeautifulSoup(res.text, "html.parser")
-        cdata = re.search("var sitedata = (.*);", soup.find(string=re.compile("CDATA"))).group(1)
+        cdata = re.search(
+            "var sitedata = (.*);", soup.find(string=re.compile("CDATA"))
+        ).group(1)
         ajax_nonce = json.loads(cdata)["ajax_nonce"]
 
-        usa_today_nfl_arrest_url = "https://databases.usatoday.com/wp-admin/admin-ajax.php"
+        usa_today_nfl_arrest_url = (
+            "https://databases.usatoday.com/wp-admin/admin-ajax.php"
+        )
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
         """
@@ -129,7 +138,9 @@ class BadBoyFeature(BaseFeature):
                 f'&searches={{"Team":"{team}"}}'
             )
 
-            res_json = requests.post(usa_today_nfl_arrest_url, data=body, headers=headers).json()
+            res_json = requests.post(
+                usa_today_nfl_arrest_url, data=body, headers=headers
+            ).json()
 
             arrests_data = res_json["data"]["Result"]
 
@@ -139,7 +150,10 @@ class BadBoyFeature(BaseFeature):
                         "full_name": f"{arrest['First_name']} {arrest['Last_name']}",
                         "team_abbr": (
                             "FA"
-                            if (arrest["Team"] == "Free agent" or arrest["Team"] == "Free Agent")
+                            if (
+                                arrest["Team"] == "Free agent"
+                                or arrest["Team"] == "Free Agent"
+                            )
                             else arrest["Team"]
                         ),
                         "date": arrest["Date"],
@@ -171,7 +185,9 @@ class BadBoyFeature(BaseFeature):
                         f'&searches={{"Team":"{team}"}}'
                     )
 
-                    r = requests.post(usa_today_nfl_arrest_url, data=body, headers=headers)
+                    r = requests.post(
+                        usa_today_nfl_arrest_url, data=body, headers=headers
+                    )
                     resp_json = r.json()
 
                     arrests_data = resp_json["data"]["Result"]
@@ -182,12 +198,17 @@ class BadBoyFeature(BaseFeature):
                                 "full_name": f"{arrest['First_name']} {arrest['Last_name']}",
                                 "team_abbr": (
                                     "FA"
-                                    if (arrest["Team"] == "Free agent" or arrest["Team"] == "Free Agent")
+                                    if (
+                                        arrest["Team"] == "Free agent"
+                                        or arrest["Team"] == "Free Agent"
+                                    )
                                     else arrest["Team"]
                                 ),
                                 "date": arrest["Date"],
                                 "position": arrest["Position"],
-                                "position_type": self.position_types[arrest["Position"]],
+                                "position_type": self.position_types[
+                                    arrest["Position"]
+                                ],
                                 "case": arrest["Case_1"].upper(),
                                 "crime": arrest["Category"].upper(),
                                 "description": arrest["Description"],
@@ -197,7 +218,9 @@ class BadBoyFeature(BaseFeature):
 
         arrests_by_team = {
             key: list(group)
-            for key, group in itertools.groupby(sorted(arrests, key=lambda x: x["team_abbr"]), lambda x: x["team_abbr"])
+            for key, group in itertools.groupby(
+                sorted(arrests, key=lambda x: x["team_abbr"]), lambda x: x["team_abbr"]
+            )
         }
 
         for team_abbr in nfl_team_abbreviations:
@@ -218,13 +241,15 @@ class BadBoyFeature(BaseFeature):
                     player_position_type = player_arrest.get("position_type")
                     offense_category = str.upper(player_arrest.get("crime"))
 
-                    normalized_player_key = generate_normalized_player_key(player_full_name, team_abbr)
+                    normalized_player_key = generate_normalized_player_key(
+                        player_full_name, team_abbr
+                    )
 
                     # Add each crime to output categories for generation of crime_categories.new.json file, which can
                     # be used to replace the existing crime_categories.json file. Each new crime categories will default
                     # to a score of 0, and must have its score manually assigned within the json file.
-                    self.unique_crime_categories_for_output[offense_category] = self.crime_rankings.get(
-                        offense_category, 0
+                    self.unique_crime_categories_for_output[offense_category] = (
+                        self.crime_rankings.get(offense_category, 0)
                     )
 
                     # add raw player data json to raw_player_data for reference
@@ -234,11 +259,16 @@ class BadBoyFeature(BaseFeature):
                         offense_points = self.crime_rankings.get(offense_category)
                     else:
                         offense_points = 0
-                        logger.warning(f'Crime ranking not found: "{offense_category}". Assigning score of 0.')
+                        logger.warning(
+                            f'Crime ranking not found: "{offense_category}". Assigning score of 0.'
+                        )
 
                     nfl_player = {
                         **self._get_feature_data_template(
-                            player_full_name, team_abbr, player_position, self.position_types[player_position]
+                            player_full_name,
+                            team_abbr,
+                            player_position,
+                            self.position_types[player_position],
                         ),
                         "offenses": [],
                         "worst_offense": None,
@@ -258,7 +288,9 @@ class BadBoyFeature(BaseFeature):
 
                     # update team DEF entry
                     if player_position_type == "D":
-                        nfl_team["players"][normalized_player_key] = self.feature_data[normalized_player_key]
+                        nfl_team["players"][normalized_player_key] = self.feature_data[
+                            normalized_player_key
+                        ]
                         nfl_team["bad_boy_points_total"] += offense_points
                         nfl_team["offenders"].append(player_full_name)
                         nfl_team["offenders"] = list(set(nfl_team["offenders"]))
@@ -271,29 +303,64 @@ class BadBoyFeature(BaseFeature):
                 self.feature_data[team_abbr] = nfl_team
 
     def get_player_bad_boy_crime(
-        self, player_first_name: str, player_last_name: str, player_team_abbr: str, player_position: str
+        self,
+        player_first_name: str,
+        player_last_name: str,
+        player_team_abbr: str,
+        player_position: str,
     ) -> str:
         return self._get_player_feature_stats(
-            player_first_name, player_last_name, player_team_abbr, player_position, "worst_offense", str
+            player_first_name,
+            player_last_name,
+            player_team_abbr,
+            player_position,
+            "worst_offense",
+            str,
         )
 
     def get_player_bad_boy_points(
-        self, player_first_name: str, player_last_name: str, player_team_abbr: str, player_position: str
+        self,
+        player_first_name: str,
+        player_last_name: str,
+        player_team_abbr: str,
+        player_position: str,
     ) -> int:
         return self._get_player_feature_stats(
-            player_first_name, player_last_name, player_team_abbr, player_position, "bad_boy_points_total", int
+            player_first_name,
+            player_last_name,
+            player_team_abbr,
+            player_position,
+            "bad_boy_points_total",
+            int,
         )
 
     def get_player_bad_boy_num_offenders(
-        self, player_first_name: str, player_last_name: str, player_team_abbr: str, player_position: str
+        self,
+        player_first_name: str,
+        player_last_name: str,
+        player_team_abbr: str,
+        player_position: str,
     ) -> int:
         return self._get_player_feature_stats(
-            player_first_name, player_last_name, player_team_abbr, player_position, "offenders_count", int
+            player_first_name,
+            player_last_name,
+            player_team_abbr,
+            player_position,
+            "offenders_count",
+            int,
         )
 
     def generate_crime_categories_json(self):
-        unique_crimes = OrderedDict(sorted(self.unique_crime_categories_for_output.items(), key=lambda k_v: k_v[0]))
-        with open(self.resource_files_dir / "crime_categories.new.json", mode="w", encoding="utf-8") as crimes:
+        unique_crimes = OrderedDict(
+            sorted(
+                self.unique_crime_categories_for_output.items(), key=lambda k_v: k_v[0]
+            )
+        )
+        with open(
+            self.resource_files_dir / "crime_categories.new.json",
+            mode="w",
+            encoding="utf-8",
+        ) as crimes:
             # noinspection PyTypeChecker
             json.dump(unique_crimes, crimes, ensure_ascii=False, indent=2)
 
@@ -301,7 +368,9 @@ class BadBoyFeature(BaseFeature):
 if __name__ == "__main__":
     local_root_directory = Path(__file__).parent.parent.parent
 
-    local_settings: AppSettings = get_app_settings_from_env_file(local_root_directory / ".env")
+    local_settings: AppSettings = get_app_settings_from_env_file(
+        local_root_directory / ".env"
+    )
 
     local_bad_boy_feature = BadBoyFeature(
         1,

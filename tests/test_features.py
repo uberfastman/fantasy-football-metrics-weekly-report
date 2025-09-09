@@ -42,18 +42,26 @@ def test_bad_boy_init():
     player_bad_boy_crime = bad_boy_feature.get_player_bad_boy_crime(
         player_first_name, player_last_name, player_team_abbr, player_position
     )
-    logger.info(f"\nPlayer Bad Boy crime for {player_first_name} {player_last_name}: {player_bad_boy_crime}")
+    logger.info(
+        f"\nPlayer Bad Boy crime for {player_first_name} {player_last_name}: {player_bad_boy_crime}"
+    )
     player_bad_boy_points = bad_boy_feature.get_player_bad_boy_points(
         player_first_name, player_last_name, player_team_abbr, player_position
     )
-    logger.info(f"\nPlayer Bad Boy points for {player_first_name} {player_last_name}: {player_bad_boy_points}")
+    logger.info(
+        f"\nPlayer Bad Boy points for {player_first_name} {player_last_name}: {player_bad_boy_points}"
+    )
 
     assert bad_boy_feature.feature_data is not None
 
 
 def test_beef_init():
     beef_feature = BeefFeature(
-        week_for_report=week_for_report, data_dir=test_data_dir, refresh=True, save_data=True, offline=False
+        week_for_report=week_for_report,
+        data_dir=test_data_dir,
+        refresh=True,
+        save_data=True,
+        offline=False,
     )
     beef_feature.generate_player_info_json()
 
@@ -82,11 +90,15 @@ def test_high_roller_init():
     player_worst_violation = high_roller_feature.get_player_worst_violation(
         player_first_name, player_last_name, player_team_abbr, player_position
     )
-    logger.info(f"\nPlayer worst violation for {player_full_name}: {player_worst_violation}")
+    logger.info(
+        f"\nPlayer worst violation for {player_full_name}: {player_worst_violation}"
+    )
     player_worst_violation_fine = high_roller_feature.get_player_worst_violation_fine(
         player_first_name, player_last_name, player_team_abbr, player_position
     )
-    logger.info(f"\nPlayer worst violation fine for {player_full_name}: {player_worst_violation_fine}")
+    logger.info(
+        f"\nPlayer worst violation fine for {player_full_name}: {player_worst_violation_fine}"
+    )
     player_fines_total = high_roller_feature.get_player_fines_total(
         player_first_name, player_last_name, player_team_abbr, player_position
     )

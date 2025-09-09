@@ -10,7 +10,13 @@ logger = get_logger(__name__, propagate=False)
 
 
 class BaseIntegration(ABC):
-    def __init__(self, settings: AppSettings, root_directory: Path, integration_type: str, week: int):
+    def __init__(
+        self,
+        settings: AppSettings,
+        root_directory: Path,
+        integration_type: str,
+        week: int,
+    ):
         self.settings = settings
 
         self.root_dir = root_directory

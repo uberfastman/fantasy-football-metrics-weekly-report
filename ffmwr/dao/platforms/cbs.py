@@ -8,10 +8,12 @@ from typing import Any, Callable, Dict
 import requests
 from colorama import Fore, Style
 
-from ffmwr.models.base.model import BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
 from ffmwr.dao.platforms.base.platform import BasePlatform
+from ffmwr.models.base.model import (BaseManager, BaseMatchup, BasePlayer,
+                                     BaseRecord, BaseStat, BaseTeam)
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
+from ffmwr.utilities.settings import (AppSettings,
+                                      get_app_settings_from_env_file)
 
 logger = get_logger(__name__, propagate=False)
 
@@ -86,9 +88,13 @@ class CBSPlatform(BasePlatform):
                 )
                 self.settings.write_settings_to_env_file(self.root_dir / ".env")
 
-            logger.info("Retrieving your CBS access token using your configured CBS credentials...")
+            logger.info(
+                "Retrieving your CBS access token using your configured CBS credentials..."
+            )
 
-            self.settings.platform_settings.cbs_auth_token = self._retrieve_access_token()
+            self.settings.platform_settings.cbs_auth_token = (
+                self._retrieve_access_token()
+            )
             self.settings.write_settings_to_env_file(self.root_dir / ".env")
 
             logger.info("...CBS access token retrieved and written to your .env file.")
@@ -109,9 +115,13 @@ class CBSPlatform(BasePlatform):
             }
         )
 
-        auth_url = f"{self.auth_base_url}/general/oauth/mobile/login?response_format=json"
+        auth_url = (
+            f"{self.auth_base_url}/general/oauth/mobile/login?response_format=json"
+        )
 
-        response_json = requests.post(auth_url, headers=auth_query_headers, data=auth_query_data).json()
+        response_json = requests.post(
+            auth_url, headers=auth_query_headers, data=auth_query_data
+        ).json()
 
         return response_json.get("body").get("access_token")
 
@@ -119,7 +129,9 @@ class CBSPlatform(BasePlatform):
         api_url_query_parameters = f"version=3.0&response_format=json&sport=football&league_id={self.league.league_id}"
 
         if additional_parameters:
-            additional_parameters_str = "&".join([f"{k}={v}" for k, v in additional_parameters.items()])
+            additional_parameters_str = "&".join(
+                [f"{k}={v}" for k, v in additional_parameters.items()]
+            )
             return f"{self.api_base_url}{route}?{api_url_query_parameters}&{additional_parameters_str}"
         else:
             return f"{self.api_base_url}{route}?{api_url_query_parameters}"
@@ -130,30 +142,46 @@ class CBSPlatform(BasePlatform):
         return int("".join(filter(str.isdigit, str(input_with_embedded_int))))
 
     def map_data_to_base(self) -> None:
-        logger.debug(f"Retrieving {self.platform_display} league data and mapping it to base objects.")
-
-        league_details = (
-            self.query(self.build_api_url("/league/details"), self.query_headers).get("body").get("league_details")
+        logger.debug(
+            f"Retrieving {self.platform_display} league data and mapping it to base objects."
         )
 
-        league_rules = self.query(self.build_api_url("/league/rules"), self.query_headers).get("body").get("rules")
+        league_details = (
+            self.query(self.build_api_url("/league/details"), self.query_headers)
+            .get("body")
+            .get("league_details")
+        )
+
+        league_rules = (
+            self.query(self.build_api_url("/league/rules"), self.query_headers)
+            .get("body")
+            .get("rules")
+        )
 
         self.league.name = league_details.get("name")
-        self.league.week = int(league_details.get("current_period")) or self.current_week
+        self.league.week = (
+            int(league_details.get("current_period")) or self.current_week
+        )
         # TODO: figure out how to get CBS league start week
         self.league.start_week = self.start_week
         self.league.num_teams = int(league_details.get("num_teams"))
         self.league.num_playoff_slots = int(
-            league_rules.get("schedule").get("num_playoff_teams", {"value": 0}).get("value")
+            league_rules.get("schedule")
+            .get("num_playoff_teams", {"value": 0})
+            .get("value")
         )
-        self.league.num_regular_season_weeks = int(league_details.get("regular_season_periods"))
+        self.league.num_regular_season_weeks = int(
+            league_details.get("regular_season_periods")
+        )
         self.league.num_divisions = int(league_details.get("num_divisions", 0))
         self.league.divisions = {}
         self.league.has_divisions = self.league.num_divisions > 0
         # self.league.has_median_matchup = self.has_median_matchup
         self.league.median_score = 0
         self.league.faab_budget = self.extract_integer(
-            league_rules.get("transactions").get("add_drop_faab_starting_budget", {"value": 0}).get("value")
+            league_rules.get("transactions")
+            .get("add_drop_faab_starting_budget", {"value": 0})
+            .get("value")
         )
         self.league.is_faab = self.league.faab_budget > 0
         self.league.url = self.base_url
@@ -179,18 +207,24 @@ class CBSPlatform(BasePlatform):
 
             if pos_attributes.get("is_flex"):
                 self.league.__setattr__(
-                    pos_attributes.get("league_positions_attribute"), pos_attributes.get("positions")
+                    pos_attributes.get("league_positions_attribute"),
+                    pos_attributes.get("positions"),
                 )
 
             self.league.roster_positions.append(pos_name)
             self.league.roster_position_counts[pos_name] = pos_count
             self.league.roster_active_slots.extend(
-                [pos_name] * pos_count if pos_name not in self.league.bench_positions else []
+                [pos_name] * pos_count
+                if pos_name not in self.league.bench_positions
+                else []
             )
 
         league_schedule = (
             self.query(
-                self.build_api_url("/league/schedules", additional_parameters={"period": "all"}), self.query_headers
+                self.build_api_url(
+                    "/league/schedules", additional_parameters={"period": "all"}
+                ),
+                self.query_headers,
             )
             .get("body")
             .get("schedule")
@@ -199,13 +233,18 @@ class CBSPlatform(BasePlatform):
 
         league_teams = {
             t.get("id"): t
-            for t in self.query(self.build_api_url("/league/teams"), self.query_headers).get("body").get("teams")
+            for t in self.query(self.build_api_url("/league/teams"), self.query_headers)
+            .get("body")
+            .get("teams")
         }
 
         waiver_key = "faab_order" if self.league.is_faab else "waiver_order"
         league_waivers = {
             t.get("id"): t
-            for t in self.query(self.build_api_url("/league/transactions/waiver-order"), self.query_headers)
+            for t in self.query(
+                self.build_api_url("/league/transactions/waiver-order"),
+                self.query_headers,
+            )
             .get("body")
             .get(waiver_key)
             .get("teams")
@@ -227,7 +266,10 @@ class CBSPlatform(BasePlatform):
 
         league_transactions = (
             self.query(
-                self.build_api_url("/league/transaction-list/log", additional_parameters={"filter": "all_but_lineup"}),
+                self.build_api_url(
+                    "/league/transaction-list/log",
+                    additional_parameters={"filter": "all_but_lineup"},
+                ),
                 self.query_headers,
             )
             .get("body")
@@ -236,19 +278,27 @@ class CBSPlatform(BasePlatform):
 
         league_stat_categories = {
             s.get("abbr"): s
-            for s in self.query(self.build_api_url("/stats/categories"), self.query_headers)
+            for s in self.query(
+                self.build_api_url("/stats/categories"), self.query_headers
+            )
             .get("body")
             .get("stats_categories")
         }
 
         nfl_teams = {
             t.get("abbr"): t
-            for t in self.query(self.build_api_url("/pro-teams"), self.query_headers).get("body").get("pro_teams")
+            for t in self.query(self.build_api_url("/pro-teams"), self.query_headers)
+            .get("body")
+            .get("pro_teams")
         }
 
         nfl_player_injuries = {
             str(p.get("player").get("id")): p
-            for p in self.query(self.build_api_url("/players/injuries"), self.query_headers).get("body").get("injuries")
+            for p in self.query(
+                self.build_api_url("/players/injuries"), self.query_headers
+            )
+            .get("body")
+            .get("injuries")
         }
 
         rosters_by_week: Dict[str, Dict] = defaultdict(dict)
@@ -259,7 +309,10 @@ class CBSPlatform(BasePlatform):
             if wk <= int(self.league.week_for_report):
                 league_rosters = (
                     self.query(
-                        self.build_api_url("/league/rosters", additional_parameters={"team_id": "all", "period": wk}),
+                        self.build_api_url(
+                            "/league/rosters",
+                            additional_parameters={"team_id": "all", "period": wk},
+                        ),
                         self.query_headers,
                     )
                     .get("body")
@@ -270,7 +323,11 @@ class CBSPlatform(BasePlatform):
                 league_player_stats = (
                     self.query(
                         self.build_api_url(
-                            "/stats", additional_parameters={"timeframe": self.league.season, "period": wk}
+                            "/stats",
+                            additional_parameters={
+                                "timeframe": self.league.season,
+                                "period": wk,
+                            },
                         ),
                         self.query_headers,
                     )
@@ -280,10 +337,18 @@ class CBSPlatform(BasePlatform):
 
                 for team in league_rosters:
                     for player in team.get("players", []):
-                        player["weekly_scoring"] = league_team_rosters_weekly_scoring.get(str(player.get("id")))
-                        player["stats"] = league_player_stats.get(str(player.get("id")), {})
+                        player["weekly_scoring"] = (
+                            league_team_rosters_weekly_scoring.get(
+                                str(player.get("id"))
+                            )
+                        )
+                        player["stats"] = league_player_stats.get(
+                            str(player.get("id")), {}
+                        )
 
-                rosters_by_week[str(wk)] = {str(team.get("id")): team for team in league_rosters}
+                rosters_by_week[str(wk)] = {
+                    str(team.get("id")): team for team in league_rosters
+                }
 
                 league_weekly_matchups = None
                 for weekly_matchups in league_schedule:
@@ -294,7 +359,10 @@ class CBSPlatform(BasePlatform):
 
                 league_standings = (
                     self.query(
-                        self.build_api_url("/league/standings/overall", additional_parameters={"period": wk}),
+                        self.build_api_url(
+                            "/league/standings/overall",
+                            additional_parameters={"period": wk},
+                        ),
                         self.query_headers,
                     )
                     .get("body")
@@ -302,12 +370,16 @@ class CBSPlatform(BasePlatform):
                 )
                 if self.league.has_divisions:
                     league_standings = [
-                        team for division in league_standings.get("divisions") for team in division.get("teams")
+                        team
+                        for division in league_standings.get("divisions")
+                        for team in division.get("teams")
                     ]
                 else:
                     league_standings = league_standings.get("teams")
 
-                standings_by_week[str(wk)] = {str(team.get("id")): team for team in league_standings}
+                standings_by_week[str(wk)] = {
+                    str(team.get("id")): team for team in league_standings
+                }
 
                 scores = []
                 for matchup in league_weekly_matchups.get("matchups"):
@@ -338,7 +410,9 @@ class CBSPlatform(BasePlatform):
 
                 base_matchup.week = matchups_week
                 base_matchup.complete = matchups_week < self.league.week
-                base_matchup.tied = matchup.get("home_team").get("points") == matchup.get("away_team").get("points")
+                base_matchup.tied = matchup.get("home_team").get(
+                    "points"
+                ) == matchup.get("away_team").get("points")
 
                 for key in ["home_team", "away_team"]:
                     team_data: Dict = matchup.get(key)
@@ -350,7 +424,9 @@ class CBSPlatform(BasePlatform):
                     base_team.division = str(team_data.get("division", None))
 
                     team_division = league_teams[team_id].get("division")
-                    opponent_division = league_teams[matchup.get(opposite_key).get("id")].get("division")
+                    opponent_division = league_teams[
+                        matchup.get(opposite_key).get("id")
+                    ].get("division")
                     if (
                         team_division is not None
                         and opponent_division is not None
@@ -372,28 +448,39 @@ class CBSPlatform(BasePlatform):
 
                             base_team.managers.append(base_manager)
 
-                    base_team.manager_str = ", ".join([manager.name_str for manager in base_team.managers])
+                    base_team.manager_str = ", ".join(
+                        [manager.name_str for manager in base_team.managers]
+                    )
 
                     base_team.team_id = team_id
                     base_team.points = float(matchup.get(key).get("points", 0.0))
                     base_team.projected_points = 0.0
                     for p in rosters_by_week[week][team_id].get("players", []):
                         if p.get("roster_status") == "A":
-                            base_team.projected_points += float(p.get("projected_points"))
+                            base_team.projected_points += float(
+                                p.get("projected_points")
+                            )
 
                     base_team.num_moves = 0
                     base_team.num_trades = 0
                     for tx in league_transactions:
                         if tx.get("team").get("id") == team_id:
                             for move in tx.get("moves"):
-                                if move.get("type") == "won" or move.get("type") == "drop":
+                                if (
+                                    move.get("type") == "won"
+                                    or move.get("type") == "drop"
+                                ):
                                     base_team.num_moves += 1
                                 elif move.get("type") == "trade":
                                     base_team.num_trades += 1
 
-                    base_team.waiver_priority = league_waivers.get(team_id).get("order", 0)
+                    base_team.waiver_priority = league_waivers.get(team_id).get(
+                        "order", 0
+                    )
                     self.league.has_waiver_priorities = base_team.waiver_priority > 0
-                    base_team.faab = self.extract_integer(league_waivers.get(team_id).get("budget_remaining", "0"))
+                    base_team.faab = self.extract_integer(
+                        league_waivers.get(team_id).get("budget_remaining", "0")
+                    )
                     base_team.url = f"{self.league.url}/teams/{team_id}"
 
                     team_standings = standings_by_week[week].get(team_id)
@@ -410,11 +497,15 @@ class CBSPlatform(BasePlatform):
                         wins=int(team_standings.get("wins", 0)),
                         losses=int(team_standings.get("losses", 0)),
                         ties=int(team_standings.get("ties", 0)),
-                        percentage=round(float(team_standings.get("winning_pct", 0.0)), 3),
+                        percentage=round(
+                            float(team_standings.get("winning_pct", 0.0)), 3
+                        ),
                         points_for=float(team_standings.get("points_scored", 0)),
                         points_against=float(team_standings.get("points_against", 0)),
                         streak_type=streak_type,
-                        streak_len=int(self.extract_integer(team_standings.get("streak", "0"))),
+                        streak_len=int(
+                            self.extract_integer(team_standings.get("streak", "0"))
+                        ),
                         team_id=base_team.team_id,
                         team_name=base_team.name,
                         rank=int(team_standings.get("order", 0)),
@@ -422,35 +513,43 @@ class CBSPlatform(BasePlatform):
                         division_wins=int(team_standings.get("division_wins", 0)),
                         division_losses=int(team_standings.get("division_losses", 0)),
                         division_ties=int(team_standings.get("division_ties", 0)),
-                        division_percentage=round(
-                            float(
-                                team_standings.get("division_wins", 0)
-                                / (
-                                    team_standings.get("division_wins")
-                                    + team_standings.get("division_ties")
-                                    + team_standings.get("division_losses")
-                                )
-                            ),
-                            3,
-                        )
-                        if (
-                            team_standings.get("division_wins")
-                            + team_standings.get("division_ties")
-                            + team_standings.get("division_losses")
-                        )
-                        > 0
-                        else 0.0,
+                        division_percentage=(
+                            round(
+                                float(
+                                    team_standings.get("division_wins", 0)
+                                    / (
+                                        team_standings.get("division_wins")
+                                        + team_standings.get("division_ties")
+                                        + team_standings.get("division_losses")
+                                    )
+                                ),
+                                3,
+                            )
+                            if (
+                                team_standings.get("division_wins")
+                                + team_standings.get("division_ties")
+                                + team_standings.get("division_losses")
+                            )
+                            > 0
+                            else 0.0
+                        ),
                     )
                     base_team.streak_str = base_team.current_record.get_streak_str()
                     if base_matchup.division_matchup:
-                        base_team.division_streak_str = base_team.current_record.get_division_streak_str()
+                        base_team.division_streak_str = (
+                            base_team.current_record.get_division_streak_str()
+                        )
 
                     # get median for week
                     week_median: float = median_score_by_week[str(week)]
 
-                    median_record: BaseRecord = team_records_with_median.get(base_team.team_id)
+                    median_record: BaseRecord = team_records_with_median.get(
+                        base_team.team_id
+                    )
                     if not median_record:
-                        median_record = BaseRecord(team_id=base_team.team_id, team_name=base_team.name)
+                        median_record = BaseRecord(
+                            team_id=base_team.team_id, team_name=base_team.name
+                        )
                         team_records_with_median[base_team.team_id] = median_record
 
                     if week_median:
@@ -459,7 +558,9 @@ class CBSPlatform(BasePlatform):
                         # use this if you want the tie-break to be current week points over/under median score
                         # median_record.add_points_for(
                         #     (median_record.get_points_for() * -1) + (base_team.points - week_median))
-                        median_record.add_points_against((median_record.get_points_against() * -1) + week_median)
+                        median_record.add_points_against(
+                            (median_record.get_points_against() * -1) + week_median
+                        )
                         if base_team.points > week_median:
                             median_record.add_win()
                         elif base_team.points < week_median:
@@ -473,7 +574,9 @@ class CBSPlatform(BasePlatform):
                     base_matchup.teams.append(base_team)
 
                     # add team to league teams by week
-                    self.league.teams_by_week[str(week)][str(base_team.team_id)] = base_team
+                    self.league.teams_by_week[str(week)][
+                        str(base_team.team_id)
+                    ] = base_team
 
                     # no winner/loser if matchup is tied
                     if not base_matchup.tied:
@@ -488,14 +591,18 @@ class CBSPlatform(BasePlatform):
         for week, rosters in rosters_by_week.items():
             self.league.players_by_week[str(week)] = {}
             for team_id, roster in rosters.items():
-                league_team: BaseTeam = self.league.teams_by_week.get(str(week)).get(team_id)
+                league_team: BaseTeam = self.league.teams_by_week.get(str(week)).get(
+                    team_id
+                )
                 for player in roster.get("players"):
                     base_player = BasePlayer()
 
                     base_player.week_for_report = int(week)
                     base_player.player_id = player.get("id")
                     base_player.bye_week = int(player.get("bye_week"))
-                    base_player.display_position = self.get_mapped_position(player.get("position"))
+                    base_player.display_position = self.get_mapped_position(
+                        player.get("position")
+                    )
                     base_player.nfl_team_id = None
                     base_player.nfl_team_abbr = player.get("pro_team")
                     base_player.nfl_team_name = (
@@ -509,11 +616,17 @@ class CBSPlatform(BasePlatform):
 
                     if player.get("owned_by_team_id", None):
                         base_player.owner_team_id = player.get("owned_by_team_id")
-                        base_player.owner_team_name = league_teams.get(str(player.get("owned_by_team_id"))).get("name")
+                        base_player.owner_team_name = league_teams.get(
+                            str(player.get("owned_by_team_id"))
+                        ).get("name")
                     else:
                         base_player.owner_team_id = team_id
-                        base_player.owner_team_id = league_teams.get(team_id).get("name")
-                    base_player.percent_owned = self.extract_integer(player.get("percentowned", "0"))
+                        base_player.owner_team_id = league_teams.get(team_id).get(
+                            "name"
+                        )
+                    base_player.percent_owned = self.extract_integer(
+                        player.get("percentowned", "0")
+                    )
 
                     if not player.get("weekly_scoring"):
                         player["weekly_scoring"] = {
@@ -521,7 +634,9 @@ class CBSPlatform(BasePlatform):
                             for p in self.query(
                                 self.build_api_url(
                                     "/league/fantasy-points/weekly-scoring",
-                                    additional_parameters={"player_id": base_player.player_id},
+                                    additional_parameters={
+                                        "player_id": base_player.player_id
+                                    },
                                 ),
                                 self.query_headers,
                             )
@@ -535,16 +650,29 @@ class CBSPlatform(BasePlatform):
                             base_player.points = float(weekly_points.get("score"))
 
                     base_player.projected_points = float(player.get("projected_points"))
-                    base_player.season_points = float(player.get("weekly_scoring").get("total"))
-                    base_player.season_average_points = round(float(player.get("weekly_scoring").get("avg")), 2)
+                    base_player.season_points = float(
+                        player.get("weekly_scoring").get("total")
+                    )
+                    base_player.season_average_points = round(
+                        float(player.get("weekly_scoring").get("avg")), 2
+                    )
 
-                    for position in player.get("weekly_scoring").get("player").get("eligible_positions"):
-                        base_player.eligible_positions.add(self.get_mapped_position(position))
+                    for position in (
+                        player.get("weekly_scoring")
+                        .get("player")
+                        .get("eligible_positions")
+                    ):
+                        base_player.eligible_positions.add(
+                            self.get_mapped_position(position)
+                        )
 
-                    base_player.primary_position = self.get_mapped_position(player.get("position"))
+                    base_player.primary_position = self.get_mapped_position(
+                        player.get("position")
+                    )
                     base_player.position_type = (
                         "O"
-                        if self.get_mapped_position(player.get("position")) in self.league.offensive_positions
+                        if self.get_mapped_position(player.get("position"))
+                        in self.league.offensive_positions
                         else "D"
                     )
 
@@ -553,19 +681,25 @@ class CBSPlatform(BasePlatform):
                         player_selected_position = player.get("roster_status")
                     else:
                         player_selected_position = player.get("roster_pos")
-                    base_player.selected_position = self.get_mapped_position(player_selected_position)
-                    base_player.selected_position_is_flex = self.position_mapping.get(player_selected_position).get(
-                        "is_flex"
+                    base_player.selected_position = self.get_mapped_position(
+                        player_selected_position
                     )
+                    base_player.selected_position_is_flex = self.position_mapping.get(
+                        player_selected_position
+                    ).get("is_flex")
 
                     if base_player.player_id in nfl_player_injuries:
-                        base_player.status = nfl_player_injuries.get(base_player.player_id).get("status_full")
+                        base_player.status = nfl_player_injuries.get(
+                            base_player.player_id
+                        ).get("status_full")
 
                     for stat_abbr, stat_value in player.get("stats").items():
                         base_stat = BaseStat()
 
                         if stat_abbr in league_stat_categories:
-                            stat_name = league_stat_categories.get(stat_abbr).get("name")
+                            stat_name = league_stat_categories.get(stat_abbr).get(
+                                "name"
+                            )
                         else:
                             stat_name = stat_abbr
 
@@ -580,7 +714,9 @@ class CBSPlatform(BasePlatform):
                     league_team.roster.append(base_player)
 
                     # add player to league players by week
-                    self.league.players_by_week[str(week)][base_player.player_id] = base_player
+                    self.league.players_by_week[str(week)][
+                        base_player.player_id
+                    ] = base_player
 
         self.league.current_standings = sorted(
             self.league.teams_by_week.get(str(self.league.week_for_report)).values(),
@@ -602,7 +738,9 @@ class CBSPlatform(BasePlatform):
 if __name__ == "__main__":
     local_root_directory = Path(__file__).parent.parent.parent.parent
 
-    local_settings: AppSettings = get_app_settings_from_env_file(local_root_directory / ".env")
+    local_settings: AppSettings = get_app_settings_from_env_file(
+        local_root_directory / ".env"
+    )
 
     cbs_platform = CBSPlatform(
         local_settings,

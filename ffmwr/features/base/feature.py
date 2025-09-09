@@ -7,9 +7,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Type, Union
 
-from ffmwr.utilities.constants import nfl_team_abbreviation_conversions, nfl_team_abbreviations
+from ffmwr.utilities.constants import (nfl_team_abbreviation_conversions,
+                                       nfl_team_abbreviations)
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.utils import FFMWRPythonObjectJson, generate_normalized_player_key
+from ffmwr.utilities.utils import (FFMWRPythonObjectJson,
+                                   generate_normalized_player_key)
 
 logger = get_logger(__name__, propagate=False)
 
@@ -38,7 +40,9 @@ class BaseFeature(ABC, FFMWRPythonObjectJson):
         self.feature_web_base_url = feature_web_base_url
 
         self.data_dir: Path = data_dir / f"week_{week_for_report}" / "feature_data"
-        self.feature_data_file_path: Path = self.data_dir / f"{self.feature_type_str}.json"
+        self.feature_data_file_path: Path = (
+            self.data_dir / f"{self.feature_type_str}.json"
+        )
 
         self.refresh: bool = refresh
         self.save_data: bool = save_data
@@ -54,7 +58,9 @@ class BaseFeature(ABC, FFMWRPythonObjectJson):
         data_retrieved_from_web = False
         if not self.offline:
             if not self.feature_data_file_path.is_file() or self.refresh:
-                logger.info(f"Retrieving {self.feature_type_title} data from {self.feature_web_base_url}...")
+                logger.info(
+                    f"Retrieving {self.feature_type_title} data from {self.feature_web_base_url}..."
+                )
                 # fetch feature data from the web
                 self._get_feature_data()
                 data_retrieved_from_web = True
@@ -131,7 +137,9 @@ class BaseFeature(ABC, FFMWRPythonObjectJson):
             else:
                 normalized_player_key = player_team_abbr
         else:
-            normalized_player_key = generate_normalized_player_key(player_full_name, player_team_abbr)
+            normalized_player_key = generate_normalized_player_key(
+                player_full_name, player_team_abbr
+            )
 
         if normalized_player_key in self.feature_data.keys():
             return self.feature_data[normalized_player_key].get(key_str, key_type())
@@ -144,7 +152,10 @@ class BaseFeature(ABC, FFMWRPythonObjectJson):
 
     @staticmethod
     def _get_feature_data_template(
-        player_full_name: str, player_team_abbr: str, player_position: str, player_position_type: str
+        player_full_name: str,
+        player_team_abbr: str,
+        player_position: str,
+        player_position_type: str,
     ) -> Dict[str, Any]:
         return {
             "full_name": player_full_name,
