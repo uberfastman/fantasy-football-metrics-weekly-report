@@ -1,6 +1,3 @@
-__author__ = "Wren J. R. (uberfastman)"
-__email__ = "uberfastman@uberfastman.dev"
-
 import json
 import logging
 import os

@@ -1,6 +1,3 @@
-__author__ = "Wren J. R. (uberfastman)"
-__email__ = "uberfastman@uberfastman.dev"
-
 import os
 import re
 import socket
@@ -14,29 +11,26 @@ import colorama
 import requests
 from bs4 import BeautifulSoup
 from colorama import Fore, Style
-from git import Repo, TagReference, cmd
-from urllib3 import connectionpool, poolmanager
 
 from ffmwr.calculate.coaching_efficiency import CoachingEfficiency
 from ffmwr.calculate.metrics import CalculateMetrics
 from ffmwr.dao.platforms.base.platform import BasePlatform
-from ffmwr.dao.platforms.cbs import CBSPlatform
 from ffmwr.dao.platforms.espn import ESPNPlatform
-from ffmwr.dao.platforms.fleaflicker import FleaflickerPlatform
-from ffmwr.dao.platforms.sleeper import SleeperPlatform
-from ffmwr.dao.platforms.yahoo import YahooPlatform
 from ffmwr.features.bad_boy import BadBoyFeature
 from ffmwr.features.beef import BeefFeature
 from ffmwr.features.high_roller import HighRollerFeature
 from ffmwr.models.base.model import BaseLeague, BasePlayer, BaseTeam
-from ffmwr.utilities.constants import (nfl_team_names_to_abbreviations,
-                                       prohibited_statuses)
+from ffmwr.utilities.constants import (
+    nfl_team_names_to_abbreviations,
+    prohibited_statuses,
+)
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.settings import (AppSettings,
-                                      get_app_settings_from_env_file)
-from ffmwr.utilities.utils import (format_platform_display,
-                                   generate_normalized_player_key,
-                                   get_data_from_web)
+from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
+from ffmwr.utilities.utils import (
+    format_platform_display,
+    generate_normalized_player_key,
+    get_data_from_web,
+)
 
 logger = get_logger(__name__, propagate=False)
 
@@ -152,95 +146,23 @@ def platform_data_factory(
     save_data: bool,
     offline: bool,
 ) -> BasePlatform:
-    if platform in settings.supported_platforms_list:
-        if platform == "yahoo":
-            platform_data = YahooPlatform(
-                settings,
-                root_dir,
-                data_dir,
-                game_id,
-                league_id,
-                season,
-                start_week,
-                week_for_report,
-                get_current_nfl_week,
-                user_week_input_validation,
-                save_data,
-                offline,
-            )
-
-        elif platform == "fleaflicker":
-            platform_data = FleaflickerPlatform(
-                settings,
-                root_dir,
-                data_dir,
-                league_id,
-                season,
-                start_week,
-                week_for_report,
-                get_current_nfl_week,
-                user_week_input_validation,
-                save_data,
-                offline,
-            )
-
-        elif platform == "sleeper":
-            platform_data = SleeperPlatform(
-                settings,
-                root_dir,
-                data_dir,
-                league_id,
-                season,
-                start_week,
-                week_for_report,
-                get_current_nfl_week,
-                user_week_input_validation,
-                save_data,
-                offline,
-            )
-
-        elif platform == "espn":
-            platform_data = ESPNPlatform(
-                settings,
-                root_dir,
-                data_dir,
-                league_id,
-                season,
-                start_week,
-                week_for_report,
-                get_current_nfl_week,
-                user_week_input_validation,
-                save_data,
-                offline,
-            )
-
-        elif platform == "cbs":
-            platform_data = CBSPlatform(
-                settings,
-                root_dir,
-                data_dir,
-                league_id,
-                season,
-                start_week,
-                week_for_report,
-                get_current_nfl_week,
-                user_week_input_validation,
-                save_data,
-                offline,
-            )
-        else:
-            logger.error(
-                f'Generating fantasy football reports for the "{format_platform_display(platform)}" fantasy football '
-                f"platform is not currently supported. Please change the settings in your .env file and try again."
-            )
-            sys.exit(1)
-
-        return platform_data
-
+    if platform == "espn":
+        return ESPNPlatform(
+            settings,
+            root_dir,
+            data_dir,
+            league_id,
+            season,
+            start_week,
+            week_for_report,
+            get_current_nfl_week,
+            user_week_input_validation,
+            save_data,
+            offline,
+        )
     else:
         logger.error(
-            f'Generating fantasy football reports for the "{format_platform_display(platform)}" fantasy football '
-            f"platform is not currently supported. Please change the settings in your .env file and try again."
+            f'Only ESPN platform is supported. Platform "{platform}" is not supported.'
         )
         sys.exit(1)
 
@@ -686,200 +608,6 @@ def active_network_connection(host: str = "8.8.8.8", port: int = 53, timeout: in
     except socket.error as err:
         logger.error(err)
         return False
-
-
-def patch_http_connection_pool(**constructor_kwargs):
-    """This allows you to override the default parameters of the HTTPConnectionPool constructor. For example, to
-    increase the pool size to fix problems with "HttpConnectionPool is full, discarding connection" call this function
-    with maxsize=16 (or whatever size you want to give to the connection pool).
-    """
-
-    class MyHTTPSConnectionPool(connectionpool.HTTPSConnectionPool):
-        def __init__(self, *args, **kwargs):
-            kwargs.update(constructor_kwargs)
-            super(MyHTTPSConnectionPool, self).__init__(*args, **kwargs)
-
-    # noinspection PyUnresolvedReferences
-    poolmanager.pool_classes_by_scheme["https"] = MyHTTPSConnectionPool
-
-
-# function taken from https://stackoverflow.com/a/35585837 (written by morxa)
-def git_ls_remote(url: str):
-    remote_refs = {}
-    git = cmd.Git()
-    for ref in git.ls_remote(url).split("\n"):
-        hash_ref_list = ref.split("\t")
-        remote_refs[hash_ref_list[1]] = hash_ref_list[0]
-    return remote_refs
-
-
-def check_github_for_updates(use_default: bool = False):
-    if not active_network_connection():
-        logger.info(
-            "No active network connection found. Unable to check for updates for the Fantasy Football Metrics Weekly "
-            "Report app."
-        )
-    else:
-        logger.debug("Checking upstream remote for app updates.")
-        project_repo = Repo(Path(__file__).parent.parent.parent)
-
-        origin_url = str(project_repo.remotes.origin.url)
-        origin_url_with_https = None
-        # temporarily convert git remote URL from SSH to HTTPS if necessary
-        if "https" not in origin_url:
-            origin_url_with_https = f"https://github.com/{str(project_repo.remotes.origin.url).split(':')[1]}"
-            project_repo.remote(name="origin").set_url(origin_url_with_https)
-
-        project_repo.remote(name="origin").update()
-        project_repo.remote(name="origin").fetch(prune=True)
-
-        version_tags = sorted(
-            [
-                tag_ref
-                for tag_ref in project_repo.tags
-                if hasattr(tag_ref.tag, "tagged_date")
-            ],
-            key=lambda x: x.tag.tagged_date,
-            reverse=True,
-        )
-
-        last_local_version = None
-        tag_ndx = 0
-        while not last_local_version:
-            next_tag: TagReference = version_tags[tag_ndx]
-            for commit in project_repo.iter_commits():
-                if next_tag.commit == commit:
-                    last_local_version = next_tag
-            if not last_local_version:
-                tag_ndx += 1
-
-        ls_remote = git_ls_remote(origin_url_with_https or origin_url)
-        regex = re.compile("[^0-9.]")
-        remote_tags = sorted(
-            set(
-                [
-                    (
-                        regex.sub("", ref),
-                        ref.replace("^{}", "").replace("refs/tags/", ""),
-                    )
-                    for ref in ls_remote.keys()
-                    if "tags" in ref
-                ]
-            ),
-            key=lambda x: list(map(int, x[0].split("."))),
-            reverse=True,
-        )
-        last_remote_version = remote_tags[0][1]
-
-        target_branch = "main"
-        active_branch = project_repo.active_branch.name
-        if active_branch != target_branch:
-            if not use_default:
-                switch_branch = input(
-                    f"{Fore.YELLOW}You are {Fore.RED}not {Fore.YELLOW}on the deployment branch "
-                    f'({Fore.GREEN}"{target_branch}"{Fore.YELLOW}) of the Fantasy Football Metrics Weekly Report '
-                    f'app.\nDo you want to switch to the {Fore.GREEN}"{target_branch}"{Fore.YELLOW} branch? '
-                    f"({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
-                )
-
-                if switch_branch == "y":
-                    project_repo.git.checkout(target_branch)
-                elif switch_branch == "n":
-                    logger.warning(
-                        f'Running the app on a branch that is not "{target_branch}" could result in unexpected and '
-                        f"potentially incorrect output."
-                    )
-                else:
-                    logger.warning('You must select either "y" or "n".')
-                    project_repo.remote(name="origin").set_url(origin_url)
-                    return check_github_for_updates(use_default)
-            else:
-                logger.info(
-                    'Use-default is set to "true". Automatically switching to deployment branch "main".'
-                )
-                project_repo.git.checkout(target_branch)
-
-        num_commits_behind = len(
-            list(project_repo.iter_commits(f"{target_branch}..origin/{target_branch}"))
-        )
-
-        if str(last_local_version) == str(last_remote_version):
-            local_version_color = Fore.GREEN
-            remote_version_color = Fore.GREEN
-        else:
-            local_version_color = Fore.RED
-            remote_version_color = Fore.YELLOW
-
-        if num_commits_behind > 0:
-            num_commits_color = Fore.RED
-        else:
-            num_commits_color = Fore.GREEN
-
-        if num_commits_behind > 0:
-            up_to_date_status_msg = (
-                f"\n"
-                f"{Fore.YELLOW}The Fantasy Football Metrics Weekly Report app is {Fore.RED}OUT OF DATE:\n\n"
-                f"  {local_version_color}Locally installed version: {last_local_version}\n"
-                f"     {remote_version_color}Latest version on {target_branch}: {last_remote_version}\n"
-                f"        {num_commits_color}Commits behind {target_branch}: {num_commits_behind}\n\n"
-                f"{Fore.YELLOW}Please update the app and re-run to generate a report.{Style.RESET_ALL}"
-            )
-            logger.debug(up_to_date_status_msg)
-            confirm_update = input(
-                f"{up_to_date_status_msg} {Fore.GREEN}Do you wish to update the app? "
-                f"{Fore.YELLOW}({Fore.GREEN}y{Fore.YELLOW}/{Fore.RED}n{Fore.YELLOW}) -> {Style.RESET_ALL}"
-            )
-
-            not_up_to_date_status_message = (
-                f"Running {last_local_version} of app. Please update to {last_remote_version} for the latest "
-                f"features, improvements, and fixes."
-            )
-
-            if confirm_update == "y":
-                up_to_date = update_app(project_repo)
-                if up_to_date:
-                    logger.info(
-                        "The Fantasy Football Metrics Weekly Report app has been successfully updated!"
-                    )
-                else:
-                    logger.warning(not_up_to_date_status_message)
-                project_repo.remote(name="origin").set_url(origin_url)
-                return up_to_date
-
-            if confirm_update == "n":
-                logger.warning(not_up_to_date_status_message)
-                project_repo.remote(name="origin").set_url(origin_url)
-                return False
-            else:
-                logger.warning('Please only select "y" or "n".')
-                time.sleep(0.25)
-                check_github_for_updates()
-        else:
-            logger.info(
-                f"The Fantasy Football Metrics Weekly Report app is {Fore.GREEN}up to date{Fore.WHITE} and running "
-                f"{Fore.GREEN}{last_local_version}{Fore.WHITE}."
-            )
-            project_repo.remote(name="origin").set_url(origin_url)
-            return True
-
-
-def update_app(repository: Repo):
-    logger.debug("Updating app by pulling latest from main.")
-
-    diff = repository.index.diff(None)
-    if len(diff) > 0:
-        logger.error(
-            "There are changes to local files that could cause conflicts when updating the app automatically."
-        )
-        logger.warning(
-            f"Please update the app manually by running {Fore.WHITE}git pull origin main{Fore.YELLOW} and resolve any "
-            f"conflicts by hand to update."
-        )
-        sys.exit(2)
-
-    response = repository.git.pull("origin", "main")
-    logger.debug(response)
-    return True
 
 
 if __name__ == "__main__":

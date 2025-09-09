@@ -299,39 +299,6 @@ class IntegrationSettings(CustomSettings):
         description="file to reupload to third-party integrations",
     )
 
-    # google drive
-    google_drive_upload_bool: bool = Field(
-        False,
-        title=__qualname__,
-        description=(
-            "change GOOGLE_DRIVE_UPLOAD_BOOL to True/False to turn on/off uploading of the report to Google Drive"
-        ),
-    )
-    google_drive_client_id: Optional[str] = Field(None, title=__qualname__)
-    google_drive_client_secret: Optional[str] = Field(None, title=__qualname__)
-    google_drive_auth_token_json: Optional[Dict[str, Any]] = Field(
-        None, title=__qualname__
-    )
-    google_drive_default_folder: str = Field("Fantasy_Football", title=__qualname__)
-    google_drive_folder: Optional[str] = Field(None, title=__qualname__)
-
-    # slack
-    slack_post_bool: bool = Field(
-        False,
-        title=__qualname__,
-        description="change SLACK_POST_BOOL to True/False to turn on/off posting of the report to Slack",
-    )
-    slack_post_or_file: str = Field(
-        "file",
-        title=__qualname__,
-        description=(
-            "options for SLACK_POST_OR_FILE: post (if you wish to post a link to the report), file (if you wish to "
-            "post the report PDF)"
-        ),
-    )
-    slack_auth_token: Optional[str] = Field(None, title=__qualname__)
-    slack_channel: Optional[str] = Field(None, title=__qualname__)
-    slack_channel_notify_bool: bool = Field(False, title=__qualname__)
 
     # groupme
     groupme_post_bool: bool = Field(
@@ -359,22 +326,6 @@ class IntegrationSettings(CustomSettings):
     groupme_bot_id: Optional[str] = Field(None, title=__qualname__)
     groupme_group: Optional[str] = Field(None, title=__qualname__)
 
-    # discord
-    discord_post_bool: bool = Field(
-        False,
-        title=__qualname__,
-        description="change DISCORD_POST_BOOL to True/False to turn on/off posting of the report to Discord",
-    )
-    discord_post_or_file: str = Field(
-        "file",
-        title=__qualname__,
-        description=(
-            "options for DISCORD_POST_OR_FILE: post (if you wish to post a link to the report), file (if you wish to "
-            "post the report PDF)"
-        ),
-    )
-    discord_webhook_id: Optional[str] = Field(None, title=__qualname__)
-    discord_channel_notify_bool: bool = Field(False, title=__qualname__)
 
 
 class AppSettings(CustomSettings):
@@ -389,13 +340,6 @@ class AppSettings(CustomSettings):
         "info",
         title=__qualname__,
         description="logger output level: notset, debug, info, warning, error, critical",
-    )
-    check_for_updates: bool = Field(
-        True,
-        title=__qualname__,
-        description=(
-            "automatically check GitHub for app updates and prompt user to update if local installation is out of date"
-        ),
     )
     data_dir_path: Path = Field(
         Path("output/data"),
@@ -415,10 +359,10 @@ class AppSettings(CustomSettings):
         description="fantasy football platform for which you are running the report",
     )
     supported_platforms_list: List[str] = Field(
-        ["yahoo", "espn", "sleeper", "fleaflicker", "cbs"],
+        ["espn"],
         validate_default=False,
         title=__qualname__,
-        description="supported fantasy football platforms (comma-delimited list with no spaces between items)",
+        description="supported fantasy football platforms (only ESPN is supported)",
     )
     league_id: Optional[str] = Field(
         None,

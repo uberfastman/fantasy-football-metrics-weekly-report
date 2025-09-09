@@ -1,6 +1,3 @@
-__author__ = "Wren J. R. (uberfastman)"
-__email__ = "uberfastman@uberfastman.dev"
-
 league_standings = (
     "Overall standings for the chosen week. Dynamically adjusts information based on whether a league uses only "
     'waivers or has a FAAB (free agent acquisition budget). Data marked with an asterisk ("<b>*</b>") means that due '

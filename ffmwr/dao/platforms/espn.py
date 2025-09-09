@@ -1,6 +1,3 @@
-__author__ = "Wren J. R. (uberfastman)"
-__email__ = "uberfastman@uberfastman.dev"
-
 import json
 import logging
 import os
@@ -28,11 +25,16 @@ from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
 
 from ffmwr.dao.platforms.base.platform import BasePlatform
-from ffmwr.models.base.model import (BaseManager, BaseMatchup, BasePlayer,
-                                     BaseRecord, BaseStat, BaseTeam)
+from ffmwr.models.base.model import (
+    BaseManager,
+    BaseMatchup,
+    BasePlayer,
+    BaseRecord,
+    BaseStat,
+    BaseTeam,
+)
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.settings import (AppSettings,
-                                      get_app_settings_from_env_file)
+from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
 
 colorama.init()
 
@@ -104,52 +106,10 @@ class ESPNPlatform(BasePlatform):
             not self.settings.platform_settings.espn_cookie_swid
             or not self.settings.platform_settings.espn_cookie_espn_s2
         ):
-            user_input = input(
-                f"{Fore.YELLOW}"
-                f"Your .env file is missing the required authentication session cookies for ESPN private leagues.\n"
-                f'If generating the report for a PUBLIC league then ignore this message and type "y" to CONTINUE\n'
-                f"running the app. However, if generating the report for a PRIVATE league then type any other key to\n"
-                f"authenticate with your ESPN credentials. -> {Style.RESET_ALL}"
-            )
-
-            if user_input.lower() == "y":
-                return
-
-            if not self.settings.platform_settings.espn_username:
-                self.settings.platform_settings.espn_username = input(
-                    f"{Fore.GREEN}What is your ESPN username? -> {Style.RESET_ALL}"
-                )
-                self.settings.write_settings_to_env_file(self.root_dir / ".env")
-
-            if not self.settings.platform_settings.espn_password:
-                self.settings.platform_settings.espn_password = getpass(
-                    f"{Fore.GREEN}What is your ESPN password? -> {Style.RESET_ALL}"
-                )
-                self.settings.write_settings_to_env_file(self.root_dir / ".env")
-
-            if not self.settings.platform_settings.espn_chrome_user_profile_path:
-                self.settings.platform_settings.espn_chrome_user_profile_path = input(
-                    f'{Fore.GREEN}What is your Chrome user data profile path? (wrap your response in quotes ("") if '
-                    f"there are any spaces in it) -> {Style.RESET_ALL}"
-                )
-                self.settings.write_settings_to_env_file(self.root_dir / ".env")
-
             logger.info(
-                "Retrieving your ESPN session cookies using your configured ESPN credentials..."
+                "No ESPN authentication cookies found. Assuming this is a PUBLIC league and continuing..."
             )
-
-            espn_session_cookies = self._retrieve_session_cookies()
-            self.settings.platform_settings.espn_cookie_swid = espn_session_cookies[
-                "swid"
-            ]
-            self.settings.platform_settings.espn_cookie_espn_s2 = espn_session_cookies[
-                "espn_s2"
-            ]
-            self.settings.write_settings_to_env_file(self.root_dir / ".env")
-
-            logger.info(
-                "...ESPN session cookies retrieved and written to your .env file."
-            )
+            return
 
     @staticmethod
     def _get_espn_session_cookies(web_driver: WebDriver):

@@ -1,0 +1,21 @@
+[project]
+name = "fantasy-football-metrics-weekly-report"
+version = "0.1.0"
+description = "Fantasy Football Metrics Weekly Report - ESPN league analysis and PDF report generation"
+requires-python = ">=3.10"
+dependencies = [
+    "beautifulsoup4==4.12.3",
+    "camel-converter==4.0.1",
+    "colorama==0.4.6",
+    "espn-api==0.43.0",
+    "numpy==2.2.1",
+    "pillow==11.0.0",
+    "pydantic-settings==2.7.0",
+    "pydantic==2.10.4",
+    "pyobjson==6.2.0",
+    "python-dotenv==1.0.1",
+    "reportlab==4.2.5",
+    "requests==2.32.3",
+    "selenium==4.27.1",
+    "urllib3==2.3.0",
+]

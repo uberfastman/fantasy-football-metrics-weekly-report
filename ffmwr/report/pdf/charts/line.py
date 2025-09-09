@@ -1,6 +1,3 @@
-__author__ = "Wren J. R. (uberfastman)"
-__email__ = "uberfastman@uberfastman.dev"
-
 # code snippets: http://www.reportlab.com/chartgallery/
 
 import json
@@ -10,6 +7,7 @@ from reportlab.graphics.charts.axes import XValueAxis
 from reportlab.graphics.charts.legends import LineLegend
 from reportlab.graphics.charts.lineplots import LinePlot
 from reportlab.graphics.charts.textlabels import Label
+
 # noinspection PyProtectedMember,PyUnresolvedReferences
 from reportlab.graphics.shapes import Drawing, Rect, _DrawingEditorMixin
 from reportlab.graphics.widgets.markers import makeMarker

@@ -1,6 +1,3 @@
-__author__ = "Wren J. R. (uberfastman)"
-__email__ = "uberfastman@uberfastman.dev"
-
 import os
 from collections import defaultdict
 from datetime import datetime
@@ -15,8 +12,7 @@ from ffmwr.dao.platforms.base.platform import BasePlatform
 from ffmwr.models.base.model import BaseLeague, BaseTeam
 from ffmwr.report.data import ReportData
 from ffmwr.report.pdf.generator import PdfGenerator
-from ffmwr.utilities.app import (patch_http_connection_pool,
-                                 platform_data_factory)
+from ffmwr.utilities.app import platform_data_factory
 from ffmwr.utilities.logger import get_logger
 from ffmwr.utilities.settings import AppSettings
 from ffmwr.utilities.utils import format_platform_display
@@ -43,8 +39,6 @@ class FantasyFootballReport(object):
         test=False,
     ):
         logger.debug("Instantiating fantasy football report.")
-
-        patch_http_connection_pool(maxsize=100)
 
         self.settings = settings
 

@@ -1,6 +1,3 @@
-__author__ = "Wren J. R. (uberfastman)"
-__email__ = "uberfastman@uberfastman.dev"
-
 import itertools
 from collections import OrderedDict, defaultdict
 from statistics import mean
@@ -8,8 +5,7 @@ from typing import Any, Dict, List, Union
 
 import numpy as np
 
-from ffmwr.models.base.model import (BaseLeague, BasePlayer, BaseRecord,
-                                     BaseTeam)
+from ffmwr.models.base.model import BaseLeague, BasePlayer, BaseRecord, BaseTeam
 from ffmwr.utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-__author__ = "Wren J. R. (uberfastman)"
-__email__ = "uberfastman@uberfastman.dev"
 
 # code snippets: https://github.com/cdtdev/ff_monte_carlo (originally written by https://github.com/cdtdev)
 
@@ -17,8 +15,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
 import numpy as np
 
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.settings import (AppSettings,
-                                      get_app_settings_from_env_file)
+from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
 from ffmwr.utilities.utils import FFMWRPythonObjectJson
 
 if TYPE_CHECKING:

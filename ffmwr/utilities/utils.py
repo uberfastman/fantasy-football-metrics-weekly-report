@@ -1,16 +1,11 @@
-__author__ = "Wren J. R. (uberfastman)"
-__email__ = "uberfastman@uberfastman.dev"
-
 import re
 from typing import Any, Dict, List, Optional, Union
 
 from pyobjson import PythonObjectJson
-from tornado.gen import WaitIterator, coroutine
-from tornado.httpclient import AsyncHTTPClient, HTTPRequest, HTTPResponse
-from tornado.ioloop import IOLoop
+import requests
+from requests import Response
 
-from ffmwr.utilities.constants import (player_name_punctuation,
-                                       player_name_suffixes)
+from ffmwr.utilities.constants import player_name_punctuation, player_name_suffixes
 from ffmwr.utilities.logger import get_logger
 
 logger = get_logger(__name__, propagate=False)
@@ -110,57 +105,45 @@ def get_data_from_web(
     headers: Dict[str, str],
     return_responses_as_body_strings: bool = False,
     request_bodies: Optional[Dict[str, str]] = None,
-) -> Dict[str, Union[HTTPResponse, str]]:
-    """Asynchronously download the HTML contents of a list of URLs.
+) -> Dict[str, Union[Response, str]]:
+    """Download the HTML contents of a list of URLs using requests.
 
     Args:
         urls (list[str]): list of URLs for each target web page for retrieval
-        method (str): the reqeust method (GET, POST, etc.)
+        method (str): the request method (GET, POST, etc.)
         headers (dict[str, str]): dictionary of request headers
         return_responses_as_body_strings (bool, optional): whether to return responses or response body strings
         request_bodies (dict[str, str], optional): dictionary of URL keys and request bodies
 
     Returns:
-        dict[str, HTTPResponse | str]: dictionary of URL keys for the respective retrieved web page HTTP responses or
+        dict[str, Response | str]: dictionary of URL keys for the respective retrieved web page responses or
             response body strings
     """
+    results: Dict[str, Union[Response, str]] = {}
 
-    # noinspection PyTypeChecker
-    @coroutine
-    def get_web_page() -> List[Any]:
-        # AsyncHTTPClient.configure(None, defaults=dict(user_agent=user_agent))
-        async_http_client = AsyncHTTPClient()
-        wait_iterator = WaitIterator(
-            *[
-                async_http_client.fetch(
-                    HTTPRequest(
-                        url,
-                        method=method.upper(),
-                        headers=headers,
-                        body=request_bodies.get(url) if request_bodies else None,
-                    )
-                )
-                for url in urls
-            ]
-        )
-
-        results: Dict[str, Union[HTTPResponse, str]] = {}
-        while not wait_iterator.done():
-            try:
-                result: HTTPResponse = yield wait_iterator.next()
-            except Exception as e:
-                logger.warning(f"Error {e} from {wait_iterator.current_future}")
+    for url in urls:
+        try:
+            if method.upper() == "GET":
+                response = requests.get(url, headers=headers)
+            elif method.upper() == "POST":
+                body = request_bodies.get(url) if request_bodies else None
+                response = requests.post(url, headers=headers, data=body)
             else:
-                logger.debug(
-                    f"Result {result} received from {wait_iterator.current_future} at {wait_iterator.current_index}"
-                )
-                results[result.effective_url] = (
-                    bytes.decode(result.body, "utf-8")
-                    if return_responses_as_body_strings
-                    else result
+                response = requests.request(
+                    method.upper(),
+                    url,
+                    headers=headers,
+                    data=request_bodies.get(url) if request_bodies else None,
                 )
 
-        return results
+            response.raise_for_status()  # Raise an exception for bad status codes
 
-    io_loop = IOLoop.current()
-    return io_loop.run_sync(get_web_page)
+            results[url] = (
+                response.text if return_responses_as_body_strings else response
+            )
+
+        except Exception as e:
+            logger.warning(f"Error {e} from URL: {url}")
+            continue
+
+    return results
