@@ -4,11 +4,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Type, Union
 
-from ffmwr.utilities.constants import (nfl_team_abbreviation_conversions,
-                                       nfl_team_abbreviations)
+from ffmwr.utilities.constants import (
+    nfl_team_abbreviation_conversions,
+    nfl_team_abbreviations,
+)
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.utils import (FFMWRPythonObjectJson,
-                                   generate_normalized_player_key)
+from ffmwr.utilities.utils import FFMWRPythonObjectJson, generate_normalized_player_key
 
 logger = get_logger(__name__, propagate=False)
 

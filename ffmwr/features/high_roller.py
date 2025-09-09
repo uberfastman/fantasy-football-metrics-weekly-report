@@ -6,11 +6,12 @@ import requests
 from bs4 import BeautifulSoup
 
 from ffmwr.features.base.feature import BaseFeature
-from ffmwr.utilities.constants import (nfl_team_abbreviation_conversions,
-                                       nfl_team_abbreviations)
+from ffmwr.utilities.constants import (
+    nfl_team_abbreviation_conversions,
+    nfl_team_abbreviations,
+)
 from ffmwr.utilities.logger import get_logger
-from ffmwr.utilities.settings import (AppSettings,
-                                      get_app_settings_from_env_file)
+from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
 from ffmwr.utilities.utils import generate_normalized_player_key
 
 logger = get_logger(__name__, propagate=False)

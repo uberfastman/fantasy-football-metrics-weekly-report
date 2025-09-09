@@ -15,9 +15,10 @@ platform_settings:
 # Weekly Wager Configuration
 weekly_wager_settings:
   enabled: true                     # Set to true to enable weekly wager calculation
-  position: ["QB"]            # Position to filter by (QB, RB, WR, TE, K, D/ST) or null for all positions
-  filter: "all"                 # Player filter: "starter", "bench", or "all"
-  target: "interceptions"                  # Target metric: "points", "touchdowns", "yards", "receptions", "interceptions", "fumbles", "fumbles_lost", "completions", "attempts", "rushing_attempts", "receiving_yards", "rushing_yards"
+  position: ["QB", "WR"]            # Position to filter by (QB, RB, WR, TE, K, D/ST) or null for all positions
+  filter: "starter"                 # Player filter: "starter", "bench", or "all"
+  target: "rushing_yards"                  # Target metric: "points", "touchdowns", "yards", "receptions", "interceptions", "fumbles", "fumbles_lost", "completions", "attempts", "rushing_attempts", "receiving_yards", "rushing_yards"
   direction: "most"                 # Direction: "most" or "least"
+  aggregation: "group"         # Aggregation: "individual" (best player per team) or "group" (sum across all players per team)
   # description: "Starting TE with the most fantasy points"  # Custom description (optional)
 

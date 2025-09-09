@@ -445,7 +445,9 @@ class ReportData(object):
                     league, week_counter
                 )
                 if self.data_for_weekly_wager:
-                    logger.info(f"Weekly wager calculated: {self.data_for_weekly_wager.wager_description}")
+                    logger.info(
+                        f"Weekly wager calculated: {self.data_for_weekly_wager.wager_description}"
+                    )
                 else:
                     logger.warning("Weekly wager enabled but no result calculated")
             except Exception as e:
