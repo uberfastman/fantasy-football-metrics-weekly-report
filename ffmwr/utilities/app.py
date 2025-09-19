@@ -600,7 +600,7 @@ def check_github_for_updates(use_default: bool = False):
         )
     else:
         logger.debug("Checking upstream remote for app updates.")
-        project_repo = Repo(Path(__file__).parent.parent)
+        project_repo = Repo(Path(__file__).parent.parent.parent)
 
         origin_url = str(project_repo.remotes.origin.url)
         origin_url_with_https = None
