@@ -4,6 +4,8 @@ __email__ = "uberfastman@uberfastman.dev"
 import sys
 from pathlib import Path
 
+import pytest
+
 root_dir = Path(__file__).parent.parent
 sys.path.append(str(root_dir))
 
@@ -28,6 +30,7 @@ season = 2023
 week_for_report = 1
 
 
+@pytest.mark.integration
 def test_bad_boy_init():
     bad_boy_feature = BadBoyFeature(
         week_for_report=week_for_report,
@@ -51,6 +54,7 @@ def test_bad_boy_init():
     assert bad_boy_feature.feature_data is not None
 
 
+@pytest.mark.integration
 def test_beef_init():
     beef_feature = BeefFeature(
         week_for_report=week_for_report, data_dir=test_data_dir, refresh=True, save_data=True, offline=False
@@ -69,6 +73,7 @@ def test_beef_init():
     assert beef_feature.feature_data is not None
 
 
+@pytest.mark.integration
 def test_high_roller_init():
     high_roller_feature = HighRollerFeature(
         season=season,

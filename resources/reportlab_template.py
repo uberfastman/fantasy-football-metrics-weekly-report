@@ -4,7 +4,7 @@ from reportlab.platypus.frames import Frame
 from reportlab.platypus.paragraph import Paragraph
 
 
-# noinspection PyPep8Naming
+# noinspection PyPep8Naming,PyUnresolvedReferences
 class MyDocTemplate(SimpleDocTemplate):
 
     def __init__(self, filename, **kw):

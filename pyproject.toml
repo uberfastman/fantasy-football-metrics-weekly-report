@@ -1,0 +1,107 @@
+[project]
+name = "fantasy-football-metrics-weekly-report"
+version = "21.0.0" # DO NOT EDIT - VERSIONING SET AUTOMATICALLY
+authors = [
+    { name="Wren J. R. (uberfastman)", email="uberfastman@uberfastman.dev" },
+]
+license = "GPL-3.0-or-later" # SPDX license expression
+license-files = ["LICENSE"]
+description = "The Fantasy Football Metrics Weekly Report application automatically generates a report in the form of a PDF file that contains a host of metrics and rankings for teams in a given fantasy football league."
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "beautifulsoup4==4.13.5",
+    "camel-converter==4.0.1",
+    "colorama==0.4.6",
+    "discord-webhook==1.4.1",
+    "espn-api==0.45.1",
+    "gitpython==3.1.45",
+    "google-api-python-client==2.183.0",
+    "httplib2==0.31.0",
+    "numpy==2.3.3",
+    "oauth2client==4.1.3",
+    "pillow==11.3.0",
+    "pydantic-settings==2.10.1",
+    "pydantic==2.11.9",
+    "pydrive2==1.21.3",
+    "pyobjson==6.2.1",
+    "python-dotenv==1.1.1",
+    "reportlab==4.4.4",
+    "requests==2.32.5",
+    "selenium==4.30.0",
+    "slack-sdk==3.36.0",
+    "tornado==6.5.2",
+    "urllib3==2.2.3",
+    "yahoo-oauth==2.1.1",
+    "yfpy==17.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/uberfastman/fantasy-football-metrics-weekly-report"
+Issues = "https://github.com/uberfastman/fantasy-football-metrics-weekly-report/issues"
+
+[tool.uv]
+package = false
+dev-dependencies = [
+    "bandit[toml]>=1.8.6",
+    "black>=25.9.0",
+    "pygments>=2.18.0",
+    "pytest>=8.4.2",
+    "semver>=3.0.4",
+    "ruamel-yaml>=0.18.15",
+    "ruff>=0.8.4",
+    "tomlkit==0.13.3",
+]
+
+[tool.setuptools]
+py-modules = []
+
+[tool.ruff]
+exclude = [
+    ".git",
+    ".github",
+    ".idea",
+    ".pytest_cache",
+    ".python-venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "docker",
+    "docs",
+    "docs-mkdocs",
+    "logs",
+    "output",
+    "resources",
+]
+line-length = 120
+indent-width = 4
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint]
+extend-select = [
+    "E501"
+]
+
+[tool.bandit]
+exclude_dirs = [
+    "./.github",
+    "./.venv*",
+    "./logs",
+    "./output",
+    "./resources",
+    "./tests"
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "unit: tests that are self-contained without any external interactions",
+    "integration: tests that require interaction with external components (such as an API)"
+]
+
+[tool.custom]
+environment = ".venv-python_3.13.7"

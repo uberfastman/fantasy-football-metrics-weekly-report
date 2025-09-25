@@ -62,7 +62,6 @@
 * [Troubleshooting](#troubleshooting)
     * [Logs](#logs)
     * [Yahoo](#yahoo)
-    * [ESPN](#espn)
     * [Docker on Windows](#docker-on-windows)
     * [Reportlab](#reportlab)
 
@@ -120,7 +119,7 @@
         docker compose up -d
         ```
 
-      If you wish to see the Docker logs, then run `docker compose up` without the `-d` flag.
+        If you wish to see the Docker logs, then run `docker compose up` without the `-d` flag.
 
     * Wait for the above command to complete, then run:
 
@@ -170,7 +169,7 @@ If you wish to disable the automatic check for updates, you can set `CHECK_FOR_U
 
 The application is actively developed in macOS, but is cross-platform compatible. The app requires ***Python 3.11 or later***. To check if you have the minimum required version (or later) of Python installed, open up a window in Terminal (macOS), Command Prompt (Windows), or a command line shell of your choice, and run `python --version`. If the return value is `Python 3.x.x` where the first `x` is equal to or greater than the minimum required minor version, you are good to go. If the return is `Python 2.x.x`, you will need to install the correct Python 3 version. Check out the instructions [here](https://realpython.com/installing-python/) for how to install Python 3 on your system.
 
-Project dependencies can be viewed in the [`requirements.txt`](requirements.txt) file.
+Project dependencies can be viewed in the `dependencies` section of the [`pyproject.toml`](pyproject.toml) file.
 
 ---
 
@@ -253,23 +252,23 @@ Yahoo Fantasy Sports has a public API documented [here](https://developer.yahoo.
 
 2. Retrieve your Yahoo Fantasy football league id, which you can find by going to [https://football.fantasysports.yahoo.com](https://football.fantasysports.yahoo.com), clicking on your league, and looking here:
 
-   ![yahoo-fantasy-football-league-id-location.png](resources/images/yahoo-fantasy-football-league-id-location.png)
+    ![yahoo-fantasy-football-league-id-location.png](resources/images/yahoo-fantasy-football-league-id-location.png)
 
 3. Change the `LEAGUE_ID` value in your `.env` file to the above located league id.
 
 4. Go to [https://developer.yahoo.com/apps/create/](https://developer.yahoo.com/apps/create/) and create an app (you must be logged into your Yahoo account as stated above). For the app, fill out the following options:
 
-   1. `Application Name` (**Required**): `yahoo fantasy sports metrics` (you **must** fill out this field, but you can name your app whatever you want).
+    1. `Application Name` (**Required**): `yahoo fantasy sports metrics` (you **must** fill out this field, but you can name your app whatever you want).
 
-   2. `Description` (*Optional*): you *may* write a description of what the app does.
+    2. `Description` (*Optional*): you *may* write a description of what the app does.
 
-   3. `Home Page URL` (*Optional*): if you have a web address related to your app you *may* add it here.
+    3. `Home Page URL` (*Optional*): if you have a web address related to your app you *may* add it here.
 
-   4. `Redirect URI(s)` (**Required**): `localhost:8080` (you **must** fill out this field, but you can use whatever value you want as long as it is a valid redirect address).
+    4. `Redirect URI(s)` (**Required**): `localhost:8080` (you **must** fill out this field, but you can use whatever value you want as long as it is a valid redirect address).
 
-   5. `OAuth Client Type` (**Required**): this radio button should be automatically set to `Confidential Client`, so leave it as is (or set it to `Confidential Client` if it is not selected).
+    5. `OAuth Client Type` (**Required**): this radio button should be automatically set to `Confidential Client`, so leave it as is (or set it to `Confidential Client` if it is not selected).
 
-   6. `API Permissions` (**Required**): you **must** check the `Fantasy Sports` checkbox and leave the `Read` option selected (appears in an accordion expansion underneath the `Fantasy Sports` checkbox once you select it).
+    6. `API Permissions` (**Required**): you **must** check the `Fantasy Sports` checkbox and leave the `Read` option selected (appears in an accordion expansion underneath the `Fantasy Sports` checkbox once you select it).
 
 5. Click the `Create App` button.
 
@@ -292,7 +291,7 @@ Fleaflicker has a public API documented [here](https://www.fleaflicker.com/api-d
 
 1. Retrieve your Fleaflicker league ID. You can find it by looking at the URL of your league in your browser:
 
-   ![fleaflicker-fantasy-football-league-id-location.png](resources/images/fleaflicker-fantasy-football-league-id-location.png)
+    ![fleaflicker-fantasy-football-league-id-location.png](resources/images/fleaflicker-fantasy-football-league-id-location.png)
 
 2. Change the `LEAGUE_ID` value in the `.env` file to the above located league id.
 
@@ -313,7 +312,7 @@ Sleeper has a public API documented [here](https://docs.sleeper.app). The Fantas
 
 1. Retrieve your Sleeper league ID. You can find it by looking at the URL of your league in your browser:
 
-   ![sleeper-fantasy-football-league-id-location.png](resources/images/sleeper-fantasy-football-league-id-location.png)
+    ![sleeper-fantasy-football-league-id-location.png](resources/images/sleeper-fantasy-football-league-id-location.png)
 
 2. Change the `LEAGUE_ID` value in the `.env` file to the above located league id.
 
@@ -330,7 +329,7 @@ ESPN has an undocumented public API which changed from v2 to v3 in 2018 and intr
 
 1. Retrieve your ESPN league ID. You can find it by looking at the URL of your league in your browser:
 
-   ![espn-fantasy-football-league-id-location.png](resources/images/espn-fantasy-football-league-id-location.png)
+    ![espn-fantasy-football-league-id-location.png](resources/images/espn-fantasy-football-league-id-location.png)
 
 2. Change the `LEAGUE_ID` value in the `.env` file to the above located league id.
 
@@ -340,43 +339,39 @@ ESPN has an undocumented public API which changed from v2 to v3 in 2018 and intr
 
 5. Public ESPN leagues **do not** require any authentication to access their API at this time, so no additional steps are necessary for those leagues. However, certain data will not be available if you are not authenticated, so it is advised for you to still follow the below authentication steps anyway. For private leagues, you ***must*** complete one of the following authentication processes.
 
-   1. Allow the app to automatically retrieve your ESPN session cookies for you:
+    1. Allow the app to automatically retrieve your ESPN session cookies for you:
 
-      1. The first time you run the app for your private ESPN league, it will prompt you for the values of the below environment variable, and then automatically save them to your `.env` file:
+        1. The first time you run the app for your private ESPN league, it will prompt you for the values of the below environment variable, and then automatically save them to your `.env` file:
 
-         1. `ESPN_USERNAME`: This environment variable is your ESPN account username.
+            1. `ESPN_USERNAME`: This environment variable is your ESPN account username.
    
-         2. `ESPN_PASSWORD`: This environment variable is your ESPN account password.
+            2. `ESPN_PASSWORD`: This environment variable is your ESPN account password.
+    
+            ***Please note, the FFMWR app only stores your credentials locally on your own computer so that it can use them to log in to your account and obtain session cookies.*** The app uses [Selenium](https://www.selenium.dev) to run a headless browser to log in to ESPN on your behalf, so expect to see an email alerting you to a new device login. The Selenium process will retrieve your ESPN session cookies (`SWID` and `espn_s2`) and copy them into your `.env` file for reuse with future ESPN API authentication.
+
+    2. Manually retrieve your ESPN session cookies:
+
+        1. Steven Morse has done a great deal of fantastic work to help teach people how to use the ESPN fantasy API, and has a useful blog post [here](https://stmorse.github.io/journal/espn-fantasy-3-python.html) detailing how to get your own session cookies. As stated in the aforementioned blog, you can get the cookies following the subsequent steps.
+
+        2. *"A lot of the ESPN Fantasy tools are behind a login-wall. Since accounts are free, this is not a huge deal, but becomes slightly annoying for GET requests because now we somehow need to “login” through the request. One way to do this is to send session cookies along with the request. Again this can take us into a gray area, but to my knowledge there is nothing prohibited about using your own cookies for personal use within your own league."* 
    
-         3. `ESPN_CHROME_USER_PROFILE_PATH`: This environment variable is the value of the `Profile Path` field in your Google Chrome version info, which can be retrieved by opening Google Chrome and navigating to [chrome://version](chrome://version), where you will see the `Profile Path` field.
-   
-         ***Please note, the FFMWR app only stores your credentials locally on your own computer so that it can use them to log in to your account and obtain session cookies.*** The app uses [Selenium](https://www.selenium.dev) to run a headless browser to log in to ESPN on your behalf, so expect to see an email alerting you to a new device login. The Selenium process will retrieve your ESPN session cookies (`SWID` and `espn_s2`) and copy them into your `.env` file for reuse with future ESPN API authentication.
+            *Specifically, our GET request from the previous post is modified to look like, for example:*
 
-         **If you run into any issues during this automated credentials retrieval process, please check the [ESPN troubleshooting section](#espn).**
+            ```shell
+            r = requests.get(
+            'https://games.espn.com/ffl/api/v2/scoreboard', 
+                params={'leagueId': 123456, 'seasonId': 2023, 'matchupPeriodId': 1},
+                cookies={'swid': '{SWID-COOKIE-HERE}', 'espn_s2': 'LONG_ESPN_S2_COOKIE_HERE'}
+            )
+            ```
 
-   2. Manually retrieve your ESPN session cookies:
+            *This should return the info you want even for a private league. I saw that the SWID and the ESPN_S2 cookies were the magic tickets based on the similar coding endeavors here and here and here.*
 
-      1. Steven Morse has done a great deal of fantastic work to help teach people how to use the ESPN fantasy API, and has a useful blog post [here](https://stmorse.github.io/journal/espn-fantasy-3-python.html) detailing how to get your own session cookies. As stated in the aforementioned blog, you can get the cookies following the subsequent steps.
+            *You can find these cookies in Safari by opening the Storage tab of Developer tools (you can turn on developer tools in preferences), and looking under espn.com in the Cookies folder. In Chrome, you can go to Preferences -> Advanced -> Content Settings -> Cookies -> See all cookies and site data, and looking for ESPN.*
 
-      2. *"A lot of the ESPN Fantasy tools are behind a login-wall. Since accounts are free, this is not a huge deal, but becomes slightly annoying for GET requests because now we somehow need to “login” through the request. One way to do this is to send session cookies along with the request. Again this can take us into a gray area, but to my knowledge there is nothing prohibited about using your own cookies for personal use within your own league."* 
-   
-         *Specifically, our GET request from the previous post is modified to look like, for example:*
+        3. Depending on what web browser (Firefox, Chrome, Edge, Brave, etc.) you are using, the process for viewing your session cookies in the web inspector will be different. I recommend Googling *"how to inspect element in [browser]"* (for your specific browser) to learn how to use that browser's web inspector.
 
-         ```shell
-         r = requests.get(
-             'https://games.espn.com/ffl/api/v2/scoreboard', 
-             params={'leagueId': 123456, 'seasonId': 2023, 'matchupPeriodId': 1},
-             cookies={'swid': '{SWID-COOKIE-HERE}', 'espn_s2': 'LONG_ESPN_S2_COOKIE_HERE'}
-         )
-         ```
-
-         *This should return the info you want even for a private league. I saw that the SWID and the ESPN_S2 cookies were the magic tickets based on the similar coding endeavors here and here and here.*
-
-         *You can find these cookies in Safari by opening the Storage tab of Developer tools (you can turn on developer tools in preferences), and looking under espn.com in the Cookies folder. In Chrome, you can go to Preferences -> Advanced -> Content Settings -> Cookies -> See all cookies and site data, and looking for ESPN.*
-
-      3. Depending on what web browser (Firefox, Chrome, Edge, Brave, etc.) you are using, the process for viewing your session cookies in the web inspector will be different. I recommend Googling *"how to inspect element in [browser]"* (for your specific browser) to learn how to use that browser's web inspector.
-
-      4. Open your `.env` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then copy and paste the above cookies into their respective environment variables (`ESPN_COOKIE_SWID` and `ESPN_COOKIE_ESPN_S2`). ***Please note, the `swid` will be surrounded by curly braces (`{...}`), which must be included.***
+        4. Open your `.env` file with your preferred text editor (such as TexEdit in macOS or Notepad in Windows), then copy and paste the above cookies into their respective environment variables (`ESPN_COOKIE_SWID` and `ESPN_COOKIE_ESPN_S2`). ***Please note, the `swid` will be surrounded by curly braces (`{...}`), which must be included.***
 
 **NOTE**: *Because ESPN made the change to their API between 2018 and 2019, ESPN support in the Fantasy Football Metrics Weekly Report application is currently limited to the 2019 season and later. Support for historical seasons will (hopefully) be implemented at a later time.
 
@@ -391,7 +386,7 @@ CBS has a public API that was once documented, the last version of which can be 
 
 1. Retrieve your CBS league ID. You can find it by looking at the URL of your league in your browser:
 
-   ![cbs-fantasy-football-league-id-location.png](resources/images/cbs-fantasy-football-league-id-location.png)
+    ![cbs-fantasy-football-league-id-location.png](resources/images/cbs-fantasy-football-league-id-location.png)
 
 2. Change the `LEAGUE_ID` value in the `.env` file to the above located league id.
 
@@ -416,17 +411,17 @@ CBS has a public API that was once documented, the last version of which can be 
     docker compose up -d
     ```
 
-   1. *FIRST TIME RUNNING*: The first time you run the above command, you must wait for the Docker image to be pulled from the [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry). You will see output containing progress bars as the image layers are downloaded.
+    1. *FIRST TIME RUNNING*: The first time you run the above command, you must wait for the Docker image to be pulled from the [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry). You will see output containing progress bars as the image layers are downloaded.
 
-      **NOTE**: If you are running *Docker for Windows* and you see errors when trying to build the Docker container and/or run `docker compose up -d`, please go to the [Docker on Windows](#docker-on-windows) section in [Troubleshooting](#troubleshooting) for workarounds!
+        **NOTE**: If you are running *Docker for Windows* and you see errors when trying to build the Docker container and/or run `docker compose up -d`, please go to the [Docker on Windows](#docker-on-windows) section in [Troubleshooting](#troubleshooting) for workarounds!
 
-   2. *ALL RUNS*: After the initial run of the Docker container, you will not see all the image pull output as you did the first time. However, for all runs you will know when the app is ready when you see the below output:
+    2. *ALL RUNS*: After the initial run of the Docker container, you will not see all the image pull output as you did the first time. However, for all runs you will know when the app is ready when you see the below output:
 
-       ```bash
-       fantasy-football-metrics-weekly-report-app-1  | Fantasy Football Metrics Weekly Report app is ready!
-       ```
+        ```bash
+        fantasy-football-metrics-weekly-report-app-1  | Fantasy Football Metrics Weekly Report app is ready!
+        ```
 
-   3. The docker image is now running and ready for use!
+    3. The docker image is now running and ready for use!
 
 3. Run the report:
 
@@ -434,35 +429,35 @@ CBS has a public API that was once documented, the last version of which can be 
     docker exec -it fantasy-football-metrics-weekly-report-app-1 python main.py
     ```
 
-   1. You should see the following prompts:
+    1. You should see the following prompts:
 
-      1. `Generate report for default platform? (y/n) ->`
+        1. `Generate report for default platform? (y/n) ->`
 
-         Type `y` and hit enter.
+            Type `y` and hit enter.
 
-      2. `Generate report for default week? (y/n) ->`.
+        2. `Generate report for default week? (y/n) ->`.
 
-         Type `y` and hit enter.
+            Type `y` and hit enter.
 
-      3. `Generate report for default league? (y/n) -> `
+        3. `Generate report for default league? (y/n) -> `
 
-         Type `y` and hit enter.
+            Type `y` and hit enter.
 
-      4. <ins>**NOTE FOR YAHOO USERS ONLY**</ins>: The ***FIRST*** time you run the app, you will see an `AUTHORIZATION URL` (if you followed the instructions in the [Yahoo Setup](#yahoo-setup) section).
+        4. <ins>**NOTE FOR YAHOO USERS ONLY**</ins>: The ***FIRST*** time you run the app, you will see an `AUTHORIZATION URL` (if you followed the instructions in the [Yahoo Setup](#yahoo-setup) section).
 
-          1. Click the link (or copy and paste it into your web browser).
+            1. Click the link (or copy and paste it into your web browser).
 
-          2. The browser window should display a message asking for access to Yahoo Fantasy Sports on your account. Click `Accept`.
+            2. The browser window should display a message asking for access to Yahoo Fantasy Sports on your account. Click `Accept`.
 
-          3. You should then see a verifier code (something like `w6nwjvz`). Copy the verifier code and return to the command line window, where you should now see the following prompt:
+            3. You should then see a verifier code (something like `w6nwjvz`). Copy the verifier code and return to the command line window, where you should now see the following prompt:
 
-              ```bash
-              Enter verifier :
-              ```
+                ```bash
+                Enter verifier :
+                ```
                
-             Paste the verifier code there and hit enter.
+                Paste the verifier code there and hit enter.
 
-          4. Assuming the above went as expected, the application should now generate a report for your Yahoo fantasy league for the selected NFL week.
+            4. Assuming the above went as expected, the application should now generate a report for your Yahoo fantasy league for the selected NFL week.
 
 4. When you are *done* using the report app, it is recommended that you *shut down* the Docker container in which it is running. You can do so by running:
 
@@ -643,7 +638,7 @@ The following setup steps are ***required*** in order to allow the Google Drive 
 
     1. Change `GOOGLE_DRIVE_UPLOAD_BOOL` to `True` in the `.env` file and generate a new report. You will see a message at the end of the run that indicates the report PDF was successfully uploaded to Google Drive, and provides the direct share link to the file.
     
-       **OR**
+        **OR**
 
     2. Set the value of `GOOGLE_DRIVE_REUPLOAD_FILE_LOCAL_PATH` in the `.env` file to the local filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/drive.py`*. This only works for preexisting reports that you have already generated, and will then upload that report to Google Drive without generating a new one.
 
@@ -707,18 +702,18 @@ The following setup steps are ***required*** in order to allow the GroupMe integ
 3. Once logged in, click on `Access Token` on the top right of the menubar to the left of your username.
 4. When the modal pops up, copy the value of `Your access token` paste in into the `GROUPME_ACCESS_TOKEN` environment variable in your `.env` file.
 5. If you only want to post to GroupMe as your own user account, then you must change the value of the `GROUPME_BOT_OR_USER` environment variable in your `.env` file to `user` and you can skip to the last step. However, if you wish to post to GroupMe as a bot account, then you must follow the additional setup steps below:
-   1. In order to post reports to GroupMe from a bot account, you need to [create a new bot](https://dev.groupme.com/bots/new) by filling in the fields as follows:
-       * Select the target GroupMe group from the `Choose the group this bot will live in.` dropdown.
-       * `Name`: `Fantasy Football Metrics Weekly Report` (this name can be anything you want)
-       * `Callback URL`: Leave this field blank.
-       * `Avatar URL` *(Optional)*: If you wish for your bot to use have a profile picture, you can add a link to any image you wish to use here.
-   2. Click `Submit`, and you will be redirected to the `Bots` page where you should see your newly created bot listed.
-   3. Copy the `Bot ID` and paste in into the `GROUPME_BOT_ID` environment variable in your `.env` file.
+    1. In order to post reports to GroupMe from a bot account, you need to [create a new bot](https://dev.groupme.com/bots/new) by filling in the fields as follows:
+        * Select the target GroupMe group from the `Choose the group this bot will live in.` dropdown.
+        * `Name`: `Fantasy Football Metrics Weekly Report` (this name can be anything you want)
+        * `Callback URL`: Leave this field blank.
+        * `Avatar URL` *(Optional)*: If you wish for your bot to use have a profile picture, you can add a link to any image you wish to use here.
+    2. Click `Submit`, and you will be redirected to the `Bots` page where you should see your newly created bot listed.
+    3. Copy the `Bot ID` and paste in into the `GROUPME_BOT_ID` environment variable in your `.env` file.
 6. *You can now upload your reports to GroupMe, either by updating the following values in the `.env` file:*
     * `GROUPME_POST_BOOL=True`
     * `GROUPME_GROUP=<GROUP_NAME>` (this can be set to whichever group you wish to post as long as the user/bot has access to that group)
 
-   *Or by setting the value of `REUPLOAD_FILE_PATH` in the `.env` file to the filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/groupme.py`*.
+    *Or by setting the value of `REUPLOAD_FILE_PATH` in the `.env` file to the filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/groupme.py`*.
 
 ---
 
@@ -735,14 +730,14 @@ The following setup steps are ***required*** in order to allow the Discord integ
 4. Click on `Webhooks`.
 5. Click `New Webhook`.
 6. A new webhook will be created. Click the webhook to expand it and update the configuration:
-   1. `NAME`: `Fantasy Football Metrics Weekly Report` (this name can be anything you want)
-   2. Profile picture: Upload [football.png](resources/images/football.png) (this picture can be anything you want)
-   3. `CHANNEL`: Select the target Discord channel from the `CHANNEL` dropdown.
+    1. `NAME`: `Fantasy Football Metrics Weekly Report` (this name can be anything you want)
+    2. Profile picture: Upload [football.png](resources/images/football.png) (this picture can be anything you want)
+    3. `CHANNEL`: Select the target Discord channel from the `CHANNEL` dropdown.
 7. Click `Copy Webhook URL` to copy the value of the webhook URL and paste the webhook ID portion of the URL into the `DISCORD_WEBHOOK_ID` environment variable in your `.env` file.
 8. *You can now upload your reports to Discord, either by updating the following values in the `.env` file:*
     * `DISCORD_POST_BOOL=True`
 
-   *Or by setting the value of `REUPLOAD_FILE_PATH` in the `.env` file to the filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/discord.py`*.
+    *Or by setting the value of `REUPLOAD_FILE_PATH` in the `.env` file to the filepath of the report you wish to upload, opening a Terminal window, and running `python integrations/discord.py`*.
 
 ---
 
@@ -768,37 +763,6 @@ Occasionally when you use the Yahoo fantasy football API, there are hangups on t
 
 Typically, when the above error (or a similar error) occurs, it simply means that one of the Yahoo Fantasy Football API calls failed and so no data was retrieved. This can be fixed by simply re-running data query.
 
-<a name="espn"></a>
-#### ESPN
-
-If you are trying to automatically retrieve your ESPN session cookies for authentication with an ESPN private league, you might encounter an error similar to the following:
-
-    selenium.common.exceptions.SessionNotCreatedException: Message: session not created: Chrome failed to start: exited normally.
-    (session not created: DevToolsActivePort file doesn't exist)
-    (The process started from chrome location /Applications/Google Chrome.app/Contents/MacOS/Google Chrome is no longer running, so ChromeDriver is assuming that Chrome has crashed.)
-    Stacktrace:
-    0   chromedriver                        0x0000000104998274 cxxbridge1$str$ptr + 1907280
-    1   chromedriver                        0x000000010499075c cxxbridge1$str$ptr + 1875768
-    2   chromedriver                        0x00000001045a4260 cxxbridge1$string$len + 89488
-    3   chromedriver                        0x00000001045d4d04 cxxbridge1$string$len + 288820
-    4   chromedriver                        0x00000001045d16b8 cxxbridge1$string$len + 274920
-    5   chromedriver                        0x0000000104612184 cxxbridge1$string$len + 539828
-    6   chromedriver                        0x0000000104611ac4 cxxbridge1$string$len + 538100
-    7   chromedriver                        0x00000001045dd12c cxxbridge1$string$len + 322652
-    8   chromedriver                        0x00000001045ddd7c cxxbridge1$string$len + 325804
-    9   chromedriver                        0x0000000104960504 cxxbridge1$str$ptr + 1678560
-    10  chromedriver                        0x0000000104964e6c cxxbridge1$str$ptr + 1697352
-    11  chromedriver                        0x0000000104945618 cxxbridge1$str$ptr + 1568244
-    12  chromedriver                        0x000000010496573c cxxbridge1$str$ptr + 1699608
-    13  chromedriver                        0x0000000104936bbc cxxbridge1$str$ptr + 1508248
-    14  chromedriver                        0x0000000104981854 cxxbridge1$str$ptr + 1814576
-    15  chromedriver                        0x00000001049819ac cxxbridge1$str$ptr + 1814920
-    16  chromedriver                        0x00000001049903fc cxxbridge1$str$ptr + 1874904
-    17  libsystem_pthread.dylib             0x000000018cff2f94 _pthread_start + 136
-    18  libsystem_pthread.dylib             0x000000018cfedd34 thread_start + 8
-
-In the case of the above, it typically occurs when the app is using Selenium to log in to your ESPN account within Chrome, but you already have Chrome open. Chrome does not allow two processes to use the same user profile, and since this automation is configured to use your user profile it will cause a conflict. You can remedy this by simply quitting Google Chrome and then trying again.
-
 <a name="docker-on-windows"></a>
 #### Docker on Windows
 
@@ -806,17 +770,17 @@ If you are running Docker on Windows, you might encounter errors when trying to 
 
 1. If you are running on <ins>***Windows 10 Enterprise, Pro, or Education***</ins> (all of which support the Hyper-V feature), then the latest version of Docker for Windows requires you to specifically give Docker permission to access any files and directories you need it to be able to see.
 
-   1. In order to do so, open up Docker for Windows, and go to settings:
+    1. In order to do so, open up Docker for Windows, and go to settings:
 
-      ![docker-settings.png](resources/images/docker-settings.png)
+        ![docker-settings.png](resources/images/docker-settings.png)
 
-   2. Then click the following items in order (stop between 3 and 4):
+    2. Then click the following items in order (stop between 3 and 4):
 
-      ![docker-file-sharing.png](resources/images/docker-file-sharing.png)
+        ![docker-file-sharing.png](resources/images/docker-file-sharing.png)
 
-   3. After clicking the `+` button to add a directory, select the FFMWR app directory (which will be wherever you cloned it), or any parent directory of the app directory, and add it. Then click `Apply & Restart`.
+    3. After clicking the `+` button to add a directory, select the FFMWR app directory (which will be wherever you cloned it), or any parent directory of the app directory, and add it. Then click `Apply & Restart`.
 
-   4. Now go back to your command line shell, make sure you are in the FFMWR app directory, and re-run `docker compose up -d`. This time things should build and startup as expected without any errors, and you can pick up where you left of with [Running the Report Application](#running-the-report-application)!
+    4. Now go back to your command line shell, make sure you are in the FFMWR app directory, and re-run `docker compose up -d`. This time things should build and startup as expected without any errors, and you can pick up where you left of with [Running the Report Application](#running-the-report-application)!
 
 2. If you are running on <ins>***Windows 10 Home***</ins> (which does **not** support the Hyper-V feature), then Docker for Windows does not have the File Sharing option discussed above for Windows 10 Enterprise, Pro, and Education users. However, you might still run into similar permissions issues. The below steps should provide a workaround to just sharing the files in Docker Desktop for Windows:
 

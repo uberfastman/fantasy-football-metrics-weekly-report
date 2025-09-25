@@ -5,7 +5,6 @@ import json
 import logging
 from asyncio import Future
 from pathlib import Path
-from typing import Union
 
 from colorama import Fore, Style
 from slack_sdk import WebClient
@@ -23,6 +22,7 @@ logging.getLogger("slack.web.slack_response").setLevel(level=logging.INFO)
 logging.getLogger("slack.web.base_client").setLevel(level=logging.INFO)
 
 
+# noinspection PyTypeChecker
 class SlackIntegration(BaseIntegration):
     def __init__(self, settings: AppSettings, root_directory: Path, week: int):
         super().__init__(settings, root_directory, "slack", week)
@@ -43,7 +43,7 @@ class SlackIntegration(BaseIntegration):
         except SlackApiError as e:
             logger.error(f"Slack client error: {e}")
 
-    def _list_channels(self) -> Union[Future, SlackResponse]:
+    def _list_channels(self) -> Future | SlackResponse:
         """Required Slack app scopes: channels:read, groups:read, mpim:read, im:read"""
         logger.debug("Listing Slack channels.")
         try:
@@ -57,7 +57,7 @@ class SlackIntegration(BaseIntegration):
                 return channel.get("id")
         raise ValueError(f"Channel {channel_name} not found.")
 
-    def post_message(self, message: str) -> Union[Future, SlackResponse]:
+    def post_message(self, message: str) -> Future | SlackResponse:
         logger.debug(f"Posting message to Slack: \n{message}")
 
         try:
@@ -72,7 +72,7 @@ class SlackIntegration(BaseIntegration):
         except SlackApiError as e:
             logger.error(f"Slack client error: {e}")
 
-    def upload_file(self, file_path: Path) -> Union[Future, SlackResponse]:
+    def upload_file(self, file_path: Path) -> Future | SlackResponse:
         logger.debug(f"Uploading file to Slack: \n{file_path}")
 
         try:

@@ -3,7 +3,7 @@ __email__ = "uberfastman@uberfastman.dev"
 
 import math
 from collections import Counter, defaultdict
-from typing import Dict, List, Set, Union
+from typing import Dict, List, Set
 
 from ffmwr.models.base.model import BaseLeague, BasePlayer
 from ffmwr.utilities.constants import prohibited_statuses
@@ -30,7 +30,7 @@ class RosterSlot(object):
             f")"
         )
 
-    def add_player(self, player: BasePlayer) -> Union[str, None]:
+    def add_player(self, player: BasePlayer) -> str | None:
         if (self.assigned_count + 1) <= self.max_allowed:
             self.assigned_count += 1
             self.assigned_players.append(player)
@@ -109,7 +109,7 @@ class CoachingEfficiency(object):
     @staticmethod
     def _create_open_slot_if_possible(
         unassigned_player: BasePlayer,
-        players_with_open_slots: Dict[str, List[Dict[str, Union[BasePlayer, List[str]]]]],
+        players_with_open_slots: Dict[str, List[Dict[str, BasePlayer | List[str]]]],
         optimal_lineup: Dict[str, RosterSlot],
     ):
         for pos, assigned_players_info in players_with_open_slots.items():
@@ -144,7 +144,7 @@ class CoachingEfficiency(object):
 
         assigned_pos = None
         point_diffs: Dict[str, float] = {}
-        players_with_eligible_open_slots: Dict[str, List[Dict[str, Union[BasePlayer, List[str]]]]] = defaultdict(list)
+        players_with_eligible_open_slots: Dict[str, List[Dict[str, BasePlayer | List[str]]]] = defaultdict(list)
         for eligible_pos in eligible_primary_positions + eligible_flex_positions:
             if not optimal_lineup.get(eligible_pos).is_full():
                 # assign player to optimal lineup if eligible position has open slot

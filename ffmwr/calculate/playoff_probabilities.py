@@ -12,7 +12,7 @@ import random
 import traceback
 from copy import deepcopy
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple
 
 import numpy as np
 
@@ -154,7 +154,7 @@ class PlayoffProbabilities(FFMWRPythonObjectJson):
         week_for_report: int,
         standings: List[BaseTeam],
         remaining_matchups: Dict[str, List[Tuple[BaseMatchup]]],
-    ) -> Union[None, Dict[str, List[Any]]]:
+    ) -> Optional[Dict[str, List[Any]]]:
         logger.debug("Calculating playoff probabilities.")
 
         teams_for_playoff_probs = {}
@@ -197,6 +197,7 @@ class PlayoffProbabilities(FFMWRPythonObjectJson):
                         for wk, matchups in remaining_matchups.items():
                             for matchup in matchups:
                                 team_1 = teams_for_playoff_probs[matchup[0]]
+                                # noinspection PyTypeChecker
                                 team_2 = teams_for_playoff_probs[matchup[1]]
                                 result = int(random.getrandbits(1))
                                 if result == 1:

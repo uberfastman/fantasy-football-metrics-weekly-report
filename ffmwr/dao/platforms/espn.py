@@ -19,16 +19,16 @@ from espn_api.football.constant import POSITION_MAP
 from espn_api.football.league import League, Team
 from espn_api.football.settings import Settings
 from selenium.common.exceptions import TimeoutException
-from selenium.webdriver import Chrome
-from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver import Firefox
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
 
-from ffmwr.models.base.model import BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
 from ffmwr.dao.platforms.base.platform import BasePlatform
+from ffmwr.models.base.model import BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
 from ffmwr.utilities.logger import get_logger
 from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
 
@@ -121,13 +121,6 @@ class ESPNPlatform(BasePlatform):
                 )
                 self.settings.write_settings_to_env_file(self.root_dir / ".env")
 
-            if not self.settings.platform_settings.espn_chrome_user_profile_path:
-                self.settings.platform_settings.espn_chrome_user_profile_path = input(
-                    f'{Fore.GREEN}What is your Chrome user data profile path? (wrap your response in quotes ("") if '
-                    f"there are any spaces in it) -> {Style.RESET_ALL}"
-                )
-                self.settings.write_settings_to_env_file(self.root_dir / ".env")
-
             logger.info("Retrieving your ESPN session cookies using your configured ESPN credentials...")
 
             espn_session_cookies = self._retrieve_session_cookies()
@@ -150,11 +143,9 @@ class ESPNPlatform(BasePlatform):
 
     def _retrieve_session_cookies(self):
         # set web driver options
-        options = ChromeOptions()
-        options.add_argument("--headless=new")  # comment out this line if you wish to see live browser navigation
-        options.add_argument(f"--user-data-dir={self.settings.platform_settings.espn_chrome_user_data_dir}")
-        options.add_argument(f"--profile-directory={self.settings.platform_settings.espn_chrome_user_profile}")
-        driver = Chrome(options=options)
+        options = FirefoxOptions()
+        options.add_argument("--headless")  # comment out this line if you wish to see live browser navigation
+        driver = Firefox(options=options)
         driver.implicitly_wait(0.5)
 
         driver.get("https://www.espn.com/fantasy/football/")
@@ -207,10 +198,7 @@ class ESPNPlatform(BasePlatform):
             driver.switch_to.default_content()
 
         except TimeoutException:
-            logger.debug(
-                f"Already logged in to browser with user profile "
-                f'"{self.settings.platform_settings.espn_chrome_user_profile}".\n'
-            )
+            logger.debug("Login attempt timed out.")
 
         # retrieve and display session cookies needed for ESPN FF API authentication and extract their values
         espn_session_cookies = WebDriverWait(driver, timeout=60).until(lambda d: self._get_espn_session_cookies(d))

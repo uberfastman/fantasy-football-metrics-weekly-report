@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from itertools import groupby
 from pathlib import Path
 from statistics import median
-from typing import Callable, Union
+from typing import Callable
 
 from ffmwr.dao.platforms.base.platform import BasePlatform
 from ffmwr.models.base.model import BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
@@ -28,7 +28,7 @@ class SleeperPlatform(BasePlatform):
     def __init__(
         self,
         settings: AppSettings,
-        root_dir: Union[Path, None],
+        root_dir: Path | None,
         data_dir: Path,
         league_id: str,
         season: int,

@@ -10,7 +10,7 @@
 
 # environment
 *.env*
-.venv*/
+.venv*
 .python-venv
 
 # auth secrets

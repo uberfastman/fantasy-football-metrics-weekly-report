@@ -8,7 +8,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import colorama
 import requests
@@ -126,7 +126,7 @@ def platform_data_factory(
     root_dir: Path,
     data_dir: Path,
     platform: str,
-    game_id: Union[str, int],
+    game_id: str | int,
     league_id: str,
     season: int,
     start_week: int,
@@ -456,12 +456,16 @@ def get_inactive_players(week: int, league: BaseLeague) -> List[str]:
             player_team_abbr = nfl_team_names_to_abbreviations[player.find("b").text.strip()]
         else:
             player_info = player.find("a")
-            player_game_status = player.find("div", {"class": "td w20 hidden-xs"}).find("b")  # bolded game status
+            player_game_status = player.find(
+                "div", {"class": "td w20 d-none d-md-table-cell"}
+            ).find("b")  # bolded game status
 
             if player_game_status:
                 player_game_status_date_str = re.search(
                     r"(?<=\()(.+/.+)(?=\))",  # match strings with a forward slash between parentheses
-                    player.find("div", {"class": "td w20 hidden-xs"}).text,  # text with game status, date, and opponent
+                    player.find(
+                        "div", {"class": "td w20 d-none d-md-table-cell"}
+                    ).text,  # text with game status, date, and opponent
                 ).group(0)
 
                 # noinspection PyUnboundLocalVariable
@@ -510,7 +514,7 @@ def get_inactive_players(week: int, league: BaseLeague) -> List[str]:
 
         player_page_html_soup = BeautifulSoup(player_page_html, "html.parser")
 
-        player_banner = player_page_html_soup.find("div", {"id": "playerbanner"}).find("b")
+        player_banner = player_page_html_soup.find("div", {"class": "sectiontop sectiontop-players"}).find("b")
         player_team = player_banner.find("a").text.strip()
         if player_team:
             injury_report_player.set_player_team_abbr(nfl_team_names_to_abbreviations[player_team])
@@ -522,7 +526,7 @@ def get_inactive_players(week: int, league: BaseLeague) -> List[str]:
         game_logs_table = player_page_html_soup.find("div", {"data-title": re.compile("Game Logs")})
         for row in game_logs_table.find_all("tr"):
             if not {"header", "preseason", "row_playerstats"}.intersection(set(row.get("class"))):
-                game_date = datetime.strptime(row.find("td", {"class": "center nowrap"}).text, "%m/%d/%y")
+                game_date = datetime.strptime(row.find("td", {"class": "center nowrap datecell"}).text, "%m/%d/%y")
                 game_no_stat_msg = row.find("div", {"class": "nostatmsg"})
 
                 if game_date >= injury_report_player.game_status_date and game_no_stat_msg:
@@ -592,21 +596,23 @@ def git_ls_remote(url: str):
     return remote_refs
 
 
-def check_github_for_updates(use_default: bool = False):
+def check_github_for_updates(use_default: bool = False) -> bool:
     if not active_network_connection():
         logger.info(
             "No active network connection found. Unable to check for updates for the Fantasy Football Metrics Weekly "
             "Report app."
         )
+        return False
     else:
         logger.debug("Checking upstream remote for app updates.")
         project_repo = Repo(Path(__file__).parent.parent.parent)
 
+        # noinspection PyUnresolvedReferences
         origin_url = str(project_repo.remotes.origin.url)
         origin_url_with_https = None
         # temporarily convert git remote URL from SSH to HTTPS if necessary
         if "https" not in origin_url:
-            origin_url_with_https = f"https://github.com/{str(project_repo.remotes.origin.url).split(':')[1]}"
+            origin_url_with_https = f"https://github.com/{origin_url.split(':')[1]}"
             project_repo.remote(name="origin").set_url(origin_url_with_https)
 
         project_repo.remote(name="origin").update()
@@ -719,7 +725,7 @@ def check_github_for_updates(use_default: bool = False):
             else:
                 logger.warning('Please only select "y" or "n".')
                 time.sleep(0.25)
-                check_github_for_updates()
+                return check_github_for_updates()
         else:
             logger.info(
                 f"The Fantasy Football Metrics Weekly Report app is {Fore.GREEN}up to date{Fore.WHITE} and running "

@@ -82,6 +82,7 @@ class HighRollerFeature(BaseFeature):
             offline,
         )
 
+    # noinspection PyCallingNonCallable
     def _get_feature_data(self):
         for team in nfl_team_abbreviations:
             self.feature_data[team] = {

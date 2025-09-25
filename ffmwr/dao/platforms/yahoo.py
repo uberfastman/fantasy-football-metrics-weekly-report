@@ -4,18 +4,17 @@ __email__ = "uberfastman@uberfastman.dev"
 import logging
 from collections.abc import Callable
 from pathlib import Path
-
 # from collections import defaultdict
 # from concurrent.futures import ThreadPoolExecutor
 from statistics import median
-from typing import List, Union
+from typing import List
 
 from yfpy.data import Data
 from yfpy.models import League, Manager, Matchup, Player, RosterPosition, Team
 from yfpy.query import YahooFantasySportsQuery
 
-from ffmwr.models.base.model import BaseLeague, BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
 from ffmwr.dao.platforms.base.platform import BasePlatform
+from ffmwr.models.base.model import BaseLeague, BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
 from ffmwr.utilities.logger import get_logger
 from ffmwr.utilities.settings import AppSettings
 
@@ -33,6 +32,7 @@ def get_yahoo_player_data(
         # YAHOO API QUERY: run query to retrieve stats for specific player for chosen week if supplied, else for season
         params = {"player_key": player_key}
         if week:
+            # noinspection PyTypeChecker
             params["chosen_week"] = week
 
             return yahoo_data.retrieve(
@@ -61,7 +61,7 @@ class YahooPlatform(BasePlatform):
         settings: AppSettings,
         root_dir: Path,
         data_dir: Path,
-        game_id: Union[str, int],
+        game_id: str | int,
         league_id: str,
         season: int,
         start_week: int,

@@ -87,7 +87,7 @@
     Congratulations, you have successfully created a Python 3 virtual environment for the project to run in!
             
         
-* Finally, run `pip install -r requirements.txt -r requirements-dev.txt`.
+* Finally, run `uv pip install -r pyproject.toml --all-extras`.
 
 ---
 
