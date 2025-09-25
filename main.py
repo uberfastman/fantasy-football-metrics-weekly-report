@@ -10,15 +10,15 @@ if not sys.warnoptions:
     warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 import os
+import colorama
 import time
 from argparse import ArgumentParser, HelpFormatter, Namespace
+from colorama import Fore, Style
 from datetime import datetime
 from importlib.metadata import distributions
 from pathlib import Path
-from typing import Optional, Union
-
-import colorama
-from colorama import Fore, Style
+from tomllib import load as load_toml
+from typing import Optional
 
 from ffmwr.integrations.discord import DiscordIntegration
 from ffmwr.integrations.drive import GoogleDriveIntegration
@@ -39,8 +39,8 @@ def select_league(
     settings: AppSettings,
     use_default: bool,
     platform: str,
-    game_id: Union[int, str],
-    league_id: Union[str, None],
+    game_id: int | str,
+    league_id: Optional[str],
     season: int,
     start_week: int,
     week_for_report: int,
@@ -115,7 +115,7 @@ def select_league(
             )
         except IndexError:
             logger.error("The league ID you have selected is not valid.")
-            select_league(
+            return select_league(
                 settings,
                 use_default,
                 platform,
@@ -152,7 +152,7 @@ def select_league(
     else:
         logger.warning('You must select either "y" or "n".')
         time.sleep(0.25)
-        select_league(
+        return select_league(
             settings,
             use_default,
             platform,
@@ -252,19 +252,19 @@ def select_week(settings: AppSettings, use_default: bool = False) -> Optional[in
 
 
 def main() -> None:
-    dependencies = []
-    with open(Path(__file__).parent / "requirements.txt", "r") as reqs:
-        for line in reqs.readlines():
-            if not line.startswith("#"):
-                dep, dep_version = line.strip().split("==")
-                dependencies.append(f"{normalize_dependency_package_name(dep)}=={dep_version}")
+    required_dependencies = []
+    with open(Path(__file__).parent / "pyproject.toml", "rb") as pyproject_toml_file:
+        pyproject_toml = load_toml(pyproject_toml_file)
+        for dependency in pyproject_toml.get("project", {}).get("dependencies"):
+            dep, dep_version = dependency.split("==")
+            required_dependencies.append(f"{normalize_dependency_package_name(dep)}=={dep_version}")
 
     installed_dependencies = sorted(
         [f"{normalize_dependency_package_name(x.name)}=={x.version}" for x in distributions()]
     )
 
     missing_dependency_count = 0
-    for dependency in dependencies:
+    for dependency in required_dependencies:
         if dependency not in installed_dependencies:
             missing_dependency_count += 1
             logger.error(

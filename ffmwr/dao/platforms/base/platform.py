@@ -8,7 +8,7 @@ import sys
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, Union
+from typing import Any, Callable, Dict, Optional
 
 import requests
 from requests.exceptions import HTTPError
@@ -30,7 +30,7 @@ class BasePlatform(ABC):
         self,
         settings: AppSettings,
         platform: str,
-        base_url: Union[str, None],
+        base_url: Optional[str],
         root_dir: Path,
         data_dir: Path,
         league_id: str,

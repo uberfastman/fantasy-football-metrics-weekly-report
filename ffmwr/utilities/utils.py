@@ -2,7 +2,7 @@ __author__ = "Wren J. R. (uberfastman)"
 __email__ = "uberfastman@uberfastman.dev"
 
 import re
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from pyobjson import PythonObjectJson
 from tornado.gen import WaitIterator, coroutine
@@ -104,7 +104,7 @@ def get_data_from_web(
     headers: Dict[str, str],
     return_responses_as_body_strings: bool = False,
     request_bodies: Optional[Dict[str, str]] = None,
-) -> Dict[str, Union[HTTPResponse, str]]:
+) -> Dict[str, HTTPResponse | str]:
     """Asynchronously download the HTML contents of a list of URLs.
 
     Args:
@@ -138,7 +138,7 @@ def get_data_from_web(
             ]
         )
 
-        results: Dict[str, Union[HTTPResponse, str]] = {}
+        results: Dict[str, HTTPResponse | str] = {}
         while not wait_iterator.done():
             try:
                 result: HTTPResponse = yield wait_iterator.next()

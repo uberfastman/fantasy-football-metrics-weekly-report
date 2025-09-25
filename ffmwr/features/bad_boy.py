@@ -10,6 +10,7 @@ from typing import Dict
 
 import requests
 from bs4 import BeautifulSoup
+from requests.exceptions import ConnectTimeout
 
 from ffmwr.features.base.feature import BaseFeature
 from ffmwr.utilities.constants import nfl_team_abbreviations
@@ -86,20 +87,25 @@ class BadBoyFeature(BaseFeature):
             "https://www.usatoday.com/sports/nfl/arrests",
             week_for_report,
             data_dir,
-            True,  # TODO: figure out how to include only ACTIVE players in team D/St roll-ups
+            True,  # TODO: figure out how to include only ACTIVE players in team D/ST roll-ups
             refresh,
             save_data,
             offline,
         )
 
-    # noinspection DuplicatedCode
-    def _get_feature_data(self) -> None:
-        logger.debug("Retrieving bad boy feature data from the web.")
+    def _get_ajax_nonce(self):
+        logger.debug(f"Retrieving AJAX nonce for {self.feature_type_title} feature.")
 
         res = requests.get(self.feature_web_base_url)
         soup = BeautifulSoup(res.text, "html.parser")
         cdata = re.search("var sitedata = (.*);", soup.find(string=re.compile("CDATA"))).group(1)
-        ajax_nonce = json.loads(cdata)["ajax_nonce"]
+        return json.loads(cdata)["ajax_nonce"]
+
+    # noinspection DuplicatedCode
+    def _get_feature_data(self) -> None:
+        logger.debug("Retrieving bad boy feature data from the web.")
+
+        ajax_nonce = self._get_ajax_nonce()
 
         usa_today_nfl_arrest_url = "https://databases.usatoday.com/wp-admin/admin-ajax.php"
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
@@ -117,83 +123,98 @@ class BadBoyFeature(BaseFeature):
         )
         """
         arrests = []
-        for team in nfl_team_abbreviations:
-            page_num = 1
-            body = (
-                f"action=cspFetchTable"
-                f"&security={ajax_nonce}"
-                f"&pageID=10"
-                f"&sortBy=Date"
-                f"&sortOrder=desc"
-                f"&page={page_num}"
-                f'&searches={{"Team":"{team}"}}'
-            )
+        for ndx, team in enumerate(nfl_team_abbreviations):
+            # the usatoday arrests data uses JAC to abbreviate Jacksonville Jaguars
+            if team == "JAX":
+                team = "JAC"
 
-            res_json = requests.post(usa_today_nfl_arrest_url, data=body, headers=headers).json()
+            logger.debug(f"Retrieving bad boy feature data for NFL team: {team}.")
 
-            arrests_data = res_json["data"]["Result"]
-
-            for arrest in arrests_data:
-                arrests.append(
-                    {
-                        "full_name": f"{arrest['First_name']} {arrest['Last_name']}",
-                        "team_abbr": (
-                            "FA"
-                            if (arrest["Team"] == "Free agent" or arrest["Team"] == "Free Agent")
-                            else arrest["Team"]
-                        ),
-                        "date": arrest["Date"],
-                        "position": arrest["Position"],
-                        "position_type": self.position_types[arrest["Position"]],
-                        "case": arrest["Case_1"].upper(),
-                        "crime": arrest["Category"].upper(),
-                        "description": arrest["Description"],
-                        "outcome": arrest["Outcome"],
-                    }
+            try:
+                page_num = 1
+                body = (
+                    f"action=cspFetchTable"
+                    f"&security={ajax_nonce}"
+                    f"&pageID=10"
+                    f"&sortBy=Date"
+                    f"&sortOrder=desc"
+                    f"&page={page_num}"
+                    f'&searches={{"Team":"{team}"}}'
                 )
 
-            total_results = res_json["data"]["totalResults"]
+                res_json = requests.post(usa_today_nfl_arrest_url, data=body, headers=headers).json()
 
-            # the USA Today NFL arrests database only retrieves 20 entries per request
-            if total_results > 20:
-                # add extra page to include last page of results if they exist
-                num_pages = (total_results // 20) + (1 if total_results % 20 > 0 else 0)
+                arrests_data = res_json["data"]["Result"]
 
-                for page in range(2, num_pages + 1):
-                    page_num += 1
-                    body = (
-                        f"action=cspFetchTable"
-                        f"&security={ajax_nonce}"
-                        f"&pageID=10"
-                        f"&sortBy=Date"
-                        f"&sortOrder=desc"
-                        f"&page={page_num}"
-                        f'&searches={{"Team":"{team}"}}'
+                for arrest in arrests_data:
+                    arrests.append(
+                        {
+                            "full_name": f"{arrest['First_name']} {arrest['Last_name']}",
+                            "team_abbr": (
+                                "FA"
+                                if (arrest["Team"] == "Free agent" or arrest["Team"] == "Free Agent")
+                                else arrest["Team"]
+                            ),
+                            "date": arrest["Date"],
+                            "position": arrest["Position"],
+                            "position_type": self.position_types[arrest["Position"]],
+                            "case": arrest["Case_1"].upper(),
+                            "crime": arrest["Category"].upper(),
+                            "description": arrest["Description"],
+                            "outcome": arrest["Outcome"],
+                        }
                     )
 
-                    r = requests.post(usa_today_nfl_arrest_url, data=body, headers=headers)
-                    resp_json = r.json()
+                total_results = res_json["data"]["totalResults"]
 
-                    arrests_data = resp_json["data"]["Result"]
+                # the USA Today NFL arrests database only retrieves 20 entries per request
+                if total_results > 20:
+                    # add extra page to include last page of results if they exist
+                    num_pages = (total_results // 20) + (1 if total_results % 20 > 0 else 0)
 
-                    for arrest in arrests_data:
-                        arrests.append(
-                            {
-                                "full_name": f"{arrest['First_name']} {arrest['Last_name']}",
-                                "team_abbr": (
-                                    "FA"
-                                    if (arrest["Team"] == "Free agent" or arrest["Team"] == "Free Agent")
-                                    else arrest["Team"]
-                                ),
-                                "date": arrest["Date"],
-                                "position": arrest["Position"],
-                                "position_type": self.position_types[arrest["Position"]],
-                                "case": arrest["Case_1"].upper(),
-                                "crime": arrest["Category"].upper(),
-                                "description": arrest["Description"],
-                                "outcome": arrest["Outcome"],
-                            }
+                    for page in range(2, num_pages + 1):
+                        page_num += 1
+                        body = (
+                            f"action=cspFetchTable"
+                            f"&security={ajax_nonce}"
+                            f"&pageID=10"
+                            f"&sortBy=Date"
+                            f"&sortOrder=desc"
+                            f"&page={page_num}"
+                            f'&searches={{"Team":"{team}"}}'
                         )
+
+                        r = requests.post(usa_today_nfl_arrest_url, data=body, headers=headers)
+                        resp_json = r.json()
+
+                        arrests_data = resp_json["data"]["Result"]
+
+                        for arrest in arrests_data:
+                            arrests.append(
+                                {
+                                    "full_name": f"{arrest['First_name']} {arrest['Last_name']}",
+                                    "team_abbr": (
+                                        "FA"
+                                        if (arrest["Team"] == "Free agent" or arrest["Team"] == "Free Agent")
+                                        else arrest["Team"]
+                                    ),
+                                    "date": arrest["Date"],
+                                    "position": arrest["Position"],
+                                    "position_type": self.position_types[arrest["Position"]],
+                                    "case": arrest["Case_1"].upper(),
+                                    "crime": arrest["Category"].upper(),
+                                    "description": arrest["Description"],
+                                    "outcome": arrest["Outcome"],
+                                }
+                            )
+
+            except ConnectTimeout as e:
+                logger.debug(f"Connection timed out for {self.feature_type_title} feature: {e}")
+                logger.debug(f"Refreshing AJAX nonce and trying again for NFL team {team}.")
+                # refresh the AJAX nonce
+                ajax_nonce = self._get_ajax_nonce()
+                # insert the team for which the AJAX queries timed out back into the list before the next loop
+                nfl_team_abbreviations.insert(ndx + 1, team)
 
         arrests_by_team = {
             key: list(group)
@@ -251,6 +272,7 @@ class BadBoyFeature(BaseFeature):
                     nfl_player["bad_boy_points_total"] += offense_points
 
                     if offense_points > nfl_player["worst_offense_points"]:
+                        # noinspection PyTypeChecker
                         nfl_player["worst_offense"] = offense_category
                         nfl_player["worst_offense_points"] = offense_points
 

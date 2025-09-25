@@ -5,7 +5,7 @@ __email__ = "uberfastman@uberfastman.dev"
 
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set
 
 from ffmwr.calculate.playoff_probabilities import PlayoffProbabilities
 from ffmwr.features.bad_boy import BadBoyFeature
@@ -235,14 +235,14 @@ class BaseTeam(FFMWRPythonObjectJson):
 
         self.week: int = 0
         self.name: Optional[str] = None
-        self.num_moves: int = 0
-        self.num_trades: int = 0
+        self.num_moves: int | str = 0
+        self.num_trades: int | str = 0
         self.managers: List[BaseManager] = []
         self.team_id: Optional[str] = None
         self.division: Optional[str] = None
-        self.points: float = 0
-        self.projected_points: float = 0
-        self.home_field_advantage_points: float = 0
+        self.points: float = 0.0
+        self.projected_points: Optional[float] = 0.0
+        self.home_field_advantage_points: float = 0.0
         self.waiver_priority: int = 0
         self.faab: int = 0
         self.url: Optional[str] = None
@@ -253,7 +253,7 @@ class BaseTeam(FFMWRPythonObjectJson):
         # v v v v v v v v v v v v
 
         self.manager_str: Optional[str] = None
-        self.bench_points: float = 0
+        self.bench_points: float = 0.0
         self.streak_str: Optional[str] = None
         self.division_streak_str: Optional[str] = None
 
@@ -271,10 +271,10 @@ class BaseTeam(FFMWRPythonObjectJson):
         self.worst_violation_fine: float = 0.0
         self.num_violators: int = 0
 
-        self.positions_filled_active: List[str] = []
-        self.coaching_efficiency: Union[float, str] = 0.0
-        self.luck: float = 0
-        self.optimal_points: float = 0
+        self.positions_filled_active: List[Optional[str]] = []
+        self.coaching_efficiency: float | str = 0.0
+        self.luck: float = 0.0
+        self.optimal_points: float = 0.0
         self.weekly_overall_record: BaseRecord = BaseRecord()
         self.record: BaseRecord = BaseRecord()
         self.current_record: BaseRecord = BaseRecord()
@@ -594,7 +594,7 @@ class BasePlayer(FFMWRPythonObjectJson):
         self.headshot_url: Optional[str] = None
         self.owner_team_id: Optional[str] = None
         self.owner_team_name: Optional[str] = None
-        self.percent_owned: float = 0.0
+        self.percent_owned: Optional[float] = 0.0
 
         self.first_name: Optional[str] = None
         self.last_name: Optional[str] = None
@@ -612,12 +612,12 @@ class BasePlayer(FFMWRPythonObjectJson):
         self.selected_position: Optional[str] = None
         self.selected_position_is_flex: bool = False
 
-        self.bye_week: int = 0
+        self.bye_week: Optional[int] = None
         self.jersey_number: Optional[int] = None
         self.status: Optional[str] = None
 
         self.points: float = 0.0
-        self.projected_points: float = 0.0
+        self.projected_points: Optional[float] = 0.0
         self.season_points: float = 0.0
         self.season_projected_points: float = 0.0
         self.season_average_points: float = 0.0
@@ -632,7 +632,7 @@ class BasePlayer(FFMWRPythonObjectJson):
         self.bad_boy_points: int = 0
         self.bad_boy_num_offenders: int = 0
 
-        self.beef_weight: int = 0
+        self.beef_weight: float = 0.0
         self.beef_tabbu: float = 0.0
 
         self.high_roller_fines_count: int = 0

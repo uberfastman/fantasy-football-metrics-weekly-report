@@ -7,7 +7,7 @@ import json
 import logging
 from pathlib import Path
 from time import sleep
-from typing import List, Union
+from typing import List
 
 from colorama import Fore, Style
 from pydrive2.auth import GoogleAuth
@@ -79,6 +79,7 @@ class GoogleDriveIntegration(BaseIntegration):
             google_auth.Authorize()
 
         google_auth.SaveCredentials(backend="dictionary")
+        # noinspection PyUnresolvedReferences
         self.settings.integration_settings.google_drive_auth_token_json = google_auth.credentials.to_json()
         self.settings.write_settings_to_env_file(self.root_dir / ".env")
 
@@ -130,7 +131,7 @@ class GoogleDriveIntegration(BaseIntegration):
 
         return parent_folder_id
 
-    def upload_file(self, file_path: Union[str, Path], test: bool = False) -> str:
+    def upload_file(self, file_path: str | Path, test: bool = False) -> str:
         logger.debug("Uploading file to Google Drive.")
 
         file_for_upload: Path = self.root_dir / file_path

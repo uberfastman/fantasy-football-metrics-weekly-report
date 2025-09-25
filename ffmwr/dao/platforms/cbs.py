@@ -8,8 +8,8 @@ from typing import Any, Callable, Dict
 import requests
 from colorama import Fore, Style
 
-from ffmwr.models.base.model import BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
 from ffmwr.dao.platforms.base.platform import BasePlatform
+from ffmwr.models.base.model import BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
 from ffmwr.utilities.logger import get_logger
 from ffmwr.utilities.settings import AppSettings, get_app_settings_from_env_file
 

@@ -5,7 +5,7 @@ import json
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Type, Union
+from typing import Any, Dict, Type
 
 from ffmwr.utilities.constants import nfl_team_abbreviation_conversions, nfl_team_abbreviations
 from ffmwr.utilities.logger import get_logger
@@ -111,7 +111,7 @@ class BaseFeature(ABC, FFMWRPythonObjectJson):
         player_position: str,
         key_str: str,
         key_type: Type,
-    ) -> Union[int, float, str]:
+    ) -> int | float | str:
         player_full_name = (
             f"{player_first_name.title() if player_first_name else ''}"
             f"{' ' if player_first_name and player_last_name else ''}"

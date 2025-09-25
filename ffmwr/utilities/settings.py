@@ -5,13 +5,12 @@ from datetime import datetime
 from inspect import isclass
 from pathlib import Path
 from time import sleep
-from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Type
 
 from camel_converter import to_snake
 from colorama import Fore, Style
 from dotenv import dotenv_values
-from pydantic import Field, computed_field
-
+from pydantic import Field
 # noinspection PyProtectedMember
 from pydantic.fields import FieldInfo
 from pydantic_settings import BaseSettings, EnvSettingsSource, PydanticBaseSettingsSource, SettingsConfigDict
@@ -168,7 +167,7 @@ class PlatformSettings(CustomSettings):
     yahoo_consumer_key: Optional[str] = Field(None, title=__qualname__)
     yahoo_consumer_secret: Optional[str] = Field(None, title=__qualname__)
     yahoo_access_token_json: Optional[Dict[str, Any]] = Field(None, title=__qualname__)
-    yahoo_game_id: Optional[Union[str, int]] = Field(
+    yahoo_game_id: Optional[str | int] = Field(
         "nfl",
         title=__qualname__,
         description=(
@@ -186,18 +185,6 @@ class PlatformSettings(CustomSettings):
     # espn
     espn_username: Optional[str] = Field(None, title=__qualname__)
     espn_password: Optional[str] = Field(None, title=__qualname__)
-    espn_chrome_user_profile_path: Optional[Path] = Field(None, title=__qualname__)
-
-    @computed_field
-    @property
-    def espn_chrome_user_data_dir(self) -> str:
-        return str(self.espn_chrome_user_profile_path.parent)
-
-    @computed_field
-    @property
-    def espn_chrome_user_profile(self) -> str:
-        return self.espn_chrome_user_profile_path.name
-
     espn_cookie_swid: Optional[str] = Field(None, title=__qualname__)
     espn_cookie_espn_s2: Optional[str] = Field(None, title=__qualname__)
 
@@ -393,7 +380,7 @@ class AppSettings(CustomSettings):
     season: Optional[int] = Field(None, title=__qualname__)
     nfl_season_length: int = Field(18, title=__qualname__)
     current_nfl_week: Optional[int] = Field(None, title=__qualname__)
-    week_for_report: Union[int, str, None] = Field(
+    week_for_report: Optional[int | str] = Field(
         "default",
         title=__qualname__,
         description='value can be "default" or an integer between 1 and 18 defining the chosen week',
@@ -430,9 +417,10 @@ class AppSettings(CustomSettings):
         ),
     )
 
-    platform_settings: PlatformSettings = PlatformSettings()
-    report_settings: ReportSettings = ReportSettings()
-    integration_settings: IntegrationSettings = IntegrationSettings()
+    # TODO: check if https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1020 is resolved and remove #noqa
+    platform_settings: PlatformSettings = PlatformSettings()  # noqa
+    report_settings: ReportSettings = ReportSettings()  # noqa
+    integration_settings: IntegrationSettings = IntegrationSettings()  # noqa
 
 
 def get_app_settings_from_env_file(env_file_path: Path) -> AppSettings:
@@ -456,6 +444,7 @@ def get_app_settings_from_env_file(env_file_path: Path) -> AppSettings:
 
             logger.debug('The ".env" file is available. Running Fantasy Football Metrics Weekly Report app...')
 
+            # noinspection PyArgumentList
             return AppSettings(_env_file=env_file_path, _env_file_encoding="utf-8")
         else:
             logger.error('Unable to access ".env" file. Please check that file permissions are properly set.')
@@ -488,6 +477,7 @@ def create_env_file_from_settings(
 ) -> AppSettings:
     logger.debug('Creating ".env" file from settings.')
 
+    # noinspection PyArgumentList
     app_settings = AppSettings(_env_file=env_file_path, _env_file_encoding="utf-8")
     app_settings.replace_field_values_with_default()
 

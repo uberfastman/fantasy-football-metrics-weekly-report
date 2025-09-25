@@ -7,13 +7,13 @@ import re
 from collections import defaultdict
 from pathlib import Path
 from statistics import median
-from typing import Callable, Dict, Union
+from typing import Callable, Dict, Optional
 
 import requests
 from bs4 import BeautifulSoup
 
-from ffmwr.models.base.model import BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
 from ffmwr.dao.platforms.base.platform import BasePlatform
+from ffmwr.models.base.model import BaseManager, BaseMatchup, BasePlayer, BaseRecord, BaseStat, BaseTeam
 from ffmwr.utilities.logger import get_logger
 from ffmwr.utilities.settings import AppSettings
 
@@ -28,7 +28,7 @@ class FleaflickerPlatform(BasePlatform):
     def __init__(
         self,
         settings: AppSettings,
-        root_dir: Union[Path, None],
+        root_dir: Optional[Path],
         data_dir: Path,
         league_id: str,
         season: int,

@@ -4,7 +4,7 @@ __email__ = "uberfastman@uberfastman.dev"
 import itertools
 from collections import OrderedDict, defaultdict
 from statistics import mean
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -16,7 +16,7 @@ logger = get_logger(__name__, propagate=False)
 
 class CalculateMetrics(object):
     def __init__(
-        self, league_id: Union[str, None], playoff_slots: Union[int, None], playoff_simulations: Union[int, None]
+        self, league_id: Optional[str], playoff_slots: int | None, playoff_simulations: int | None
     ):
         logger.debug("Initializing metrics calculator.")
 
@@ -26,7 +26,7 @@ class CalculateMetrics(object):
         self.coaching_efficiency_dq_count: int = 0
 
     @staticmethod
-    def decode_byte_string(byte_string: Union[bytes, str]) -> Union[bytes, str]:
+    def decode_byte_string(byte_string: bytes | str) -> bytes | str:
         try:
             return byte_string.decode("utf-8")
         except (UnicodeDecodeError, AttributeError):
@@ -280,7 +280,7 @@ class CalculateMetrics(object):
             else:
                 team_playoff_probs_data[prob_ndx + 1] = f"{int(float(team_playoff_probs_data[prob_ndx + 1]))} wins"
             ndx = prob_ndx + 2
-            for stat in team_playoff_probs_data[prob_ndx + 2 :]:
+            for stat in team_playoff_probs_data[prob_ndx + 2:]:
                 team_playoff_probs_data[ndx] = f"{stat:.2f}%"
                 ndx += 1
 
@@ -893,6 +893,7 @@ class CalculateMetrics(object):
         self.get_ranks_for_metric(data_for_luck, power_ranked_teams, "luck_ranking")
 
         for team_rankings in power_ranked_teams.values():
+            # noinspection PyTypeChecker
             team_rankings["power_ranking"] = (
                 team_rankings["score_ranking"]
                 + team_rankings["coaching_efficiency_ranking"]

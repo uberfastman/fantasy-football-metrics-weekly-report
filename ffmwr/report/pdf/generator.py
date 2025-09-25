@@ -9,7 +9,7 @@ import urllib.request
 from copy import deepcopy
 from pathlib import Path
 from random import choice
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple
 from urllib.error import URLError
 
 from PIL import Image, ImageFile
@@ -24,8 +24,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import Flowable, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-from reportlab.platypus.flowables import Image as ReportLabImage
-from reportlab.platypus.flowables import KeepTogether
+from reportlab.platypus.flowables import Image as ReportLabImage, KeepTogether
 
 from ffmwr.models.base.model import BaseLeague, BasePlayer, BaseTeam
 from ffmwr.report.data import ReportData
@@ -148,6 +147,7 @@ class HyperlinkedImage(ReportLabImage, object):
         super(HyperlinkedImage, self).drawOn(canvas, x, y, _sW)
 
 
+# noinspection PyTypeChecker
 class PdfGenerator(object):
     # noinspection SpellCheckingInspection
     def __init__(
@@ -785,10 +785,10 @@ class PdfGenerator(object):
         headers: List[List[str]],
         data: Any,
         table_style: TableStyle,
-        table_style_ties: Union[TableStyle, None],
+        table_style_ties: Optional[TableStyle],
         col_widths: List[float],
-        subtitle_text: Union[str, List[str]] = None,
-        subsubtitle_text: Union[str, List[str]] = None,
+        subtitle_text: Optional[str | List[str]] = None,
+        subsubtitle_text: Optional[str | List[str]] = None,
         header_text: str = None,
         footer_text: str = None,
         row_heights: List[List[float]] = None,
@@ -1014,7 +1014,7 @@ class PdfGenerator(object):
 
         # elements.append(table_with_info)
 
-    def get_tied_metric_footer(self, metric_type: str) -> Union[Paragraph, None]:
+    def get_tied_metric_footer(self, metric_type: str) -> Optional[Paragraph]:
         if metric_type in ["scores", "coaching_efficiency"]:
             if not self.break_ties:
                 return Paragraph(self.tie_for_first_footer, self.text_style_normal)
@@ -1029,8 +1029,8 @@ class PdfGenerator(object):
         title_width: float = 8.5,
         element_type: str = None,
         anchor: str = "",
-        subtitle_text: Union[List, str] = None,
-        subsubtitle_text: Union[List, str] = None,
+        subtitle_text: Optional[List | str] = None,
+        subsubtitle_text: Optional[List | str] = None,
     ) -> Table:
         if element_type == "document":
             title_text_style = self.text_style_h1
@@ -1273,7 +1273,7 @@ class PdfGenerator(object):
         return horizontal_bar_chart
 
     @staticmethod
-    def get_img(path: Union[Path, str], width: float = 1.0 * inch, hyperlink: str = None) -> ReportLabImage:
+    def get_img(path: Path | str, width: float = 1.0 * inch, hyperlink: str = None) -> ReportLabImage:
         img = ImageReader(path)
         iw, ih = img.getSize()
         aspect = ih / float(iw)
@@ -2282,6 +2282,7 @@ class PdfGenerator(object):
         return Path(doc.filename)
 
 
+# noinspection PyTypeChecker
 class TableOfContents(object):
     def __init__(self, settings: AppSettings, font, font_size):
         self.settings: AppSettings = settings
