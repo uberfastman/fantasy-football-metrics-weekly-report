@@ -274,7 +274,7 @@ wheels = [
 
 [[package]]
 name = "fantasy-football-metrics-weekly-report"
-version = "20.0.0"
+version = "21.0.0"
 source = { virtual = "." }
 dependencies = [
     { name = "beautifulsoup4" },
