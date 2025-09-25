@@ -1,4 +1,5 @@
 from pathlib import Path
+from re import findall
 from subprocess import CalledProcessError, DEVNULL, check_output
 from typing import Optional
 
@@ -32,9 +33,11 @@ def get_project_and_python_versions() -> tuple[Version, Version]:
 
     project_version = Version.parse(pyproject_toml_document["project"]["version"])
     python_version = sorted([
-        Version.parse(py_ver[2:], optional_minor_and_patch=True)
-        for py_ver in pyproject_toml_document["project"]["requires-python"].split(",")
+        Version.parse(py_ver, optional_minor_and_patch=True)
+        for py_ver in findall(r"[\d.]+", pyproject_toml_document["project"]["requires-python"])
     ])[-1]
+    # reduce minor version by one to handle exclusive Python version constraint
+    python_version._minor = python_version.minor - 1
 
     return project_version, python_version
 
