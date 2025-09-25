@@ -1,6 +1,6 @@
 [project]
 name = "fantasy-football-metrics-weekly-report"
-version = "20.0.0" # DO NOT EDIT - VERSIONING SET AUTOMATICALLY
+version = "21.0.0" # DO NOT EDIT - VERSIONING SET AUTOMATICALLY
 authors = [
     { name="Wren J. R. (uberfastman)", email="uberfastman@uberfastman.dev" },
 ]

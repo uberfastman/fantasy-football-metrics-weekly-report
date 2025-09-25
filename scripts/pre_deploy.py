@@ -109,9 +109,9 @@ if docker_compose_build_yaml_file.exists():
     for build_arg in docker_compose_build_yaml["services"]["app"]["build"]["args"]:
         build_arg_key, build_arg_value = build_arg.split("=")
         if build_arg_key == "PYTHON_VERSION_MAJOR":
-            build_arg_value = project_semantic_version.major
+            build_arg_value = python_semantic_version.major
         elif build_arg_key == "PYTHON_VERSION_MINOR":
-            build_arg_value = project_semantic_version.minor
+            build_arg_value = python_semantic_version.minor
         updated_build_args.append(f"{build_arg_key}={build_arg_value}")
     docker_compose_build_yaml["services"]["app"]["build"]["args"] = updated_build_args
 
