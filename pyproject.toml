@@ -28,7 +28,6 @@ dependencies = [
     "python-dotenv==1.1.1",
     "reportlab==4.4.4",
     "requests==2.32.5",
-    "ruff==0.13.2",
     "selenium==4.30.0",
     "slack-sdk==3.36.0",
     "tornado==6.5.2",
@@ -44,7 +43,7 @@ dev = [
     "pygments>=2.18.0",
     "pytest>=8.4.2",
     "ruamel-yaml>=0.18.15",
-    "ruff>=0.8.4",
+    "ruff>=0.13.2",
     "semver>=3.0.4",
     "tomlkit>=0.13.3",
 ]
