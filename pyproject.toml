@@ -10,7 +10,7 @@ description = "The Fantasy Football Metrics Weekly Report application automatica
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
-    "beautifulsoup4==4.13.5",
+    "beautifulsoup4==4.14.0",
     "camel-converter==4.0.1",
     "colorama==0.4.6",
     "discord-webhook==1.4.1",
@@ -28,7 +28,7 @@ dependencies = [
     "python-dotenv==1.1.1",
     "reportlab==4.4.4",
     "requests==2.32.5",
-    "ruff>=0.13.2",
+    "ruff==0.13.2",
     "selenium==4.30.0",
     "slack-sdk==3.36.0",
     "tornado==6.5.2",
@@ -46,7 +46,7 @@ dev = [
     "ruamel-yaml>=0.18.15",
     "ruff>=0.8.4",
     "semver>=3.0.4",
-    "tomlkit==0.13.3",
+    "tomlkit>=0.13.3",
 ]
 
 [project.urls]
