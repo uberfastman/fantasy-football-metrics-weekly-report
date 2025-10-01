@@ -84,7 +84,7 @@ if docker_compose_yaml_file.exists():
     project_sem_version = git_tag_version if git_tag_version else project_semantic_version
     print(
         f"Updating \"compose.yaml\" with project version from "
-        f"{'git tag' if git_tag_version else 'pyproject.toml'} to v{project_semantic_version}..."
+        f"{'git tag' if git_tag_version else 'pyproject.toml'} to v{project_sem_version}..."
     )
 
     yaml = YAML(typ="rt")
@@ -92,7 +92,7 @@ if docker_compose_yaml_file.exists():
     docker_compose_yaml = yaml.load(docker_compose_yaml_file)
     docker_compose_yaml["services"]["app"]["image"] = (
         f"{docker_compose_yaml['services']['app']['image'].split(':')[0]}"
-        f":{str(project_semantic_version).replace('v', '')}"
+        f":{str(project_sem_version).replace('v', '')}"
     )
     docker_compose_yaml["services"]["app"].yaml_add_eol_comment(EDIT_MESSAGE, key="image")
 
