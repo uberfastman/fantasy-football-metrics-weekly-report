@@ -216,9 +216,10 @@ class BadBoyFeature(BaseFeature):
                 # insert the team for which the AJAX queries timed out back into the list before the next loop
                 nfl_team_abbreviations.insert(ndx + 1, team)
 
+        arrests.sort(key=lambda x: x["team_abbr"])
         arrests_by_team = {
             key: list(group)
-            for key, group in itertools.groupby(sorted(arrests, key=lambda x: x["team_abbr"]), lambda x: x["team_abbr"])
+            for key, group in itertools.groupby(arrests, lambda x: x["team_abbr"])
         }
 
         for team_abbr in nfl_team_abbreviations:
