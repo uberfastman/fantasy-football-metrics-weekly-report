@@ -5,6 +5,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict
 
+import re
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -58,6 +60,7 @@ class HighRollerFeature(BaseFeature):
             "LS": "L",
             "LT": "L",
             "RT": "L",
+            "T": "L",
         }
         team_defense = {
             "D/ST": "D",
@@ -82,6 +85,45 @@ class HighRollerFeature(BaseFeature):
             offline,
         )
 
+    @staticmethod
+    def _parse_fine_row(player, season):
+        def required_text(selector):
+            element = player.select_one(selector)
+            value = element.get_text(" ", strip=True) if element is not None else ""
+            if not value:
+                raise ValueError(f"Spotrac fines row is missing required field: {selector}")
+            return value
+
+        full_name = required_text("td.fines-player a.link")
+        team = required_text("td.fines-team").upper()
+        team = nfl_team_abbreviation_conversions.get(team, team)
+        if team not in nfl_team_abbreviations:
+            raise ValueError(f"Unknown Spotrac team abbreviation {team!r} for {full_name}")
+        position = required_text("td.fines-position")
+        amount_text = required_text("td.fines-amount")
+        if re.fullmatch(r"\$?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.00)?", amount_text) is None:
+            raise ValueError(f"Invalid Spotrac fine amount {amount_text!r} for {full_name}")
+        amount = int(amount_text.removeprefix("$").replace(",", "").removesuffix(".00"))
+        date_text = required_text("td.fines-date")
+        try:
+            date = datetime.strptime(date_text, "%m/%d/%y").isoformat()
+        except ValueError as exc:
+            raise ValueError(f"Invalid Spotrac fine date {date_text!r} for {full_name}") from exc
+        infraction = player.select_one("td.fines-infraction")
+        if infraction is None:
+            raise ValueError(f"Missing Spotrac infraction for {full_name}")
+        detail = infraction.select_one("span.text-muted")
+        violation = (
+            detail.get_text(" ", strip=True).removeprefix("/").strip()
+            if detail is not None else infraction.get_text(" ", strip=True)
+        )
+        return full_name, team, position, {
+            "violation": violation or None,
+            "violation_fine": amount,
+            "violation_season": season,
+            "violation_date": date,
+        }
+
     # noinspection PyCallingNonCallable
     def _get_feature_data(self):
         for team in nfl_team_abbreviations:
@@ -103,51 +145,27 @@ class HighRollerFeature(BaseFeature):
         )
         headers = {"user-agent": user_agent}
 
-        response = requests.get(self.feature_web_base_url, headers=headers)
+        response = requests.get(self.feature_web_base_url, headers=headers, timeout=30)
+        response.raise_for_status()
 
         html_soup = BeautifulSoup(response.text, "html.parser")
         logger.debug(f"Response URL: {response.url}")
         logger.debug(f"Response (HTML):\n{html_soup.prettify()}")
 
-        fined_players = html_soup.find("tbody").find_all("tr", {"class": ""})
+        fined_players = html_soup.select("table tbody tr:has(td.fines-player)")
+        if not fined_players:
+            raise ValueError(
+                f"No recognizable Spotrac fines rows found at {response.url}; "
+                "the page may be unavailable, empty, or have changed structure."
+            )
 
         for player in fined_players:
-            player_full_name = player.find("a", {"class": "link"}).getText().strip()
-            player_team_abbr = player.find("img", {"class": "me-2"}).getText().strip()
-            player_position = player.find("td", {"class": "text-left details-sm"}).getText().strip()
+            player_full_name, player_team_abbr, player_position, player_fine_info = self._parse_fine_row(
+                player, self.season
+            )
+            if player_position not in self.position_types:
+                raise ValueError(f"Unknown Spotrac position {player_position!r} for {player_full_name}")
             player_position_type = self.position_types[player_position]
-
-            if not player_team_abbr:
-                # attempt to retrieve team abbreviation from parent element if img element is missing closing tag
-                player_team_abbr = player.find("td", {"class": "text-left details"}).getText().strip()
-
-            # replace player team abbreviation with universal team abbreviation as needed
-            if player_team_abbr not in nfl_team_abbreviations:
-                if player_team_abbr in nfl_team_abbreviation_conversions.keys():
-                    player_team_abbr = nfl_team_abbreviation_conversions[player_team_abbr]
-
-            try:
-                player_violation = player.find("span", {"class": "text-muted"}).getText()[2:].strip()
-            except AttributeError as e:
-                logger.debug(f"Unable to parse violation for {player_full_name} with error: {repr(e)}")
-                player_violation = None
-
-            player_fine_info = {
-                "violation": player_violation,
-                "violation_fine": int(
-                    "".join(
-                        [
-                            ch
-                            for ch in player.find("td", {"class": "text-center details highlight"}).getText().strip()
-                            if ch.isdigit()
-                        ]
-                    )
-                ),
-                "violation_season": self.season,
-                "violation_date": datetime.strptime(
-                    player.find("td", {"class": "text-right details"}).getText().strip(), "%m/%d/%y"
-                ).isoformat(),
-            }
 
             normalized_player_key = generate_normalized_player_key(player_full_name, player_team_abbr)
 

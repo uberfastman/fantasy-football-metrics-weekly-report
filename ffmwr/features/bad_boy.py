@@ -84,7 +84,7 @@ class BadBoyFeature(BaseFeature):
 
         super().__init__(
             "bad_boy",
-            "https://www.usatoday.com/sports/nfl/arrests",
+            "https://databases.usatoday.com/nfl-arrests/",
             week_for_report,
             data_dir,
             True,  # TODO: figure out how to include only ACTIVE players in team D/ST roll-ups
@@ -96,10 +96,39 @@ class BadBoyFeature(BaseFeature):
     def _get_ajax_nonce(self):
         logger.debug(f"Retrieving AJAX nonce for {self.feature_type_title} feature.")
 
-        res = requests.get(self.feature_web_base_url)
-        soup = BeautifulSoup(res.text, "html.parser")
-        cdata = re.search("var sitedata = (.*);", soup.find(string=re.compile("CDATA"))).group(1)
-        return json.loads(cdata)["ajax_nonce"]
+        response = requests.get(self.feature_web_base_url, timeout=30)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        for script in soup.find_all("script"):
+            script_text = script.get_text()
+            match = re.search(r"\b(?:var|let|const)\s+sitedata\s*=\s*", script_text)
+            if match is None:
+                continue
+
+            # Decode the JSON object directly, allowing multiline content and
+            # additional JavaScript after the object.
+            try:
+                site_data, _ = json.JSONDecoder().raw_decode(
+                    script_text[match.end():].lstrip()
+                )
+            except json.JSONDecodeError:
+                continue
+
+            if isinstance(site_data, dict):
+                nonce = site_data.get("ajax_nonce")
+                if isinstance(nonce, str) and nonce:
+                    return nonce
+
+        page_title = soup.title.get_text(" ", strip=True) if soup.title else "(no title)"
+        raise RuntimeError(
+            "Unable to find the USA Today NFL arrests AJAX nonce. "
+            f"Response URL: {response.url}; "
+            f"status: {response.status_code}; "
+            f"page title: {page_title!r}. "
+            "The page structure may have changed or the response may be an access/error page."
+        )
 
     # noinspection DuplicatedCode
     def _get_feature_data(self) -> None:
@@ -112,7 +141,7 @@ class BadBoyFeature(BaseFeature):
 
         """
         Example ajax query body:
-        
+
         example_body = (
             'action=cspFetchTable&'
             'security=61406e4feb&'
