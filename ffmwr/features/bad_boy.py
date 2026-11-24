@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Dict
 
 import requests
-from bs4 import BeautifulSoup
 from requests.exceptions import ConnectTimeout
 
 from ffmwr.features.base.feature import BaseFeature
@@ -84,7 +83,7 @@ class BadBoyFeature(BaseFeature):
 
         super().__init__(
             "bad_boy",
-            "https://www.usatoday.com/sports/nfl/arrests",
+            "https://databases.usatoday.com/nfl-arrests/",
             week_for_report,
             data_dir,
             True,  # TODO: figure out how to include only ACTIVE players in team D/ST roll-ups
@@ -93,26 +92,16 @@ class BadBoyFeature(BaseFeature):
             offline,
         )
 
-    # def _get_ajax_nonce(self):
-    #     logger.debug(f"Retrieving AJAX nonce for {self.feature_type_title} feature.")
-    #
-    #     res = requests.get(self.feature_web_base_url)
-    #     soup = BeautifulSoup(res.text, "html.parser")
-    #     print(soup.find(string=re.compile("CDATA")))
-    #     cdata = re.search("var sitedata = (.*);", soup.find(string=re.compile("CDATA"))).group(1)
-    #     return json.loads(cdata)["ajax_nonce"]
-
-    def _get_ajax_nonce(self):
+    def _get_ajax_nonce(self) -> str:
         logger.debug(f"Retrieving AJAX nonce for {self.feature_type_title} feature.")
 
-        res = requests.get(self.feature_web_base_url)
-        print(res.status_code, res.url)
-        print("sitedata" in res.text, "CDATA" in res.text)
-        print(res.text[:2000])
-
+        # www.usatoday.com/sports/nfl/arrests now returns "Access Restricted" (HTTP 402) to scripted requests, so the
+        # nonce is retrieved directly from the USA Today NFL arrests database page, which embeds the same sitedata
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                          "(KHTML, like Gecko) Chrome/129.0 Safari/537.36",
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/129.0 Safari/537.36"
+            ),
             "Accept": "text/html,application/xhtml+xml",
         }
         res = requests.get(self.feature_web_base_url, headers=headers, timeout=30)
