@@ -34,6 +34,7 @@ class HighRollerFeature(BaseFeature):
             "CB": "D",
             "DE": "D",
             "DT": "D",
+            "ED": "D",
             "FS": "D",
             "ILB": "D",
             "LB": "D",
