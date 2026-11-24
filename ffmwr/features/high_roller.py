@@ -84,6 +84,17 @@ class HighRollerFeature(BaseFeature):
             offline,
         )
 
+    def _parse_violation_date(self, raw_date: str, player_full_name: str) -> str:
+        """Parse a Spotrac fine date, falling back to Jan 1 of the season if it is missing or malformed."""
+        for date_format in ("%m/%d/%y", "%m/%d/%Y", "%b %d, %Y"):
+            try:
+                return datetime.strptime(raw_date, date_format).isoformat()
+            except ValueError:
+                continue
+
+        logger.warning(f"Unable to parse fine date \"{raw_date}\" for {player_full_name}; using season start instead.")
+        return datetime(int(self.season), 1, 1).isoformat()
+
     # noinspection PyCallingNonCallable
     def _get_feature_data(self):
         for team in nfl_team_abbreviations:
@@ -113,15 +124,31 @@ class HighRollerFeature(BaseFeature):
 
         fined_players = html_soup.find("tbody").find_all("tr", {"class": ""})
 
+        def _cell_text(row, css_class: str) -> str:
+            cell = row.find("td", {"class": css_class})
+            return cell.get_text(strip=True) if cell else ""
+
         for player in fined_players:
-            player_full_name = player.find("td", {"class": "fines-player"}).get_text(strip=True)
-            player_team_abbr = player.find("td", {"class": "fines-team"}).get_text(strip=True)
-            player_position = player.find("td", {"class": "fines-position"}).get_text(strip=True)
-            player_position_type = self.position_types[player_position]
+            player_full_name = _cell_text(player, "fines-player")
+            player_team_abbr = _cell_text(player, "fines-team")
+            player_position = _cell_text(player, "fines-position")
+            player_fine_amount = "".join(ch for ch in _cell_text(player, "fines-amount") if ch.isdigit())
+
+            # skip rows that are not player fine rows (e.g. totals, ads, or placeholder rows)
+            if not player_full_name or not player_fine_amount:
+                logger.debug(f"Skipping non-player fine row:\n{player.prettify()}")
+                continue
+
+            player_position_type = self.position_types.get(player_position)
+            if player_position_type is None:
+                logger.warning(
+                    f"Skipping fine for {player_full_name} due to unrecognized position \"{player_position}\"."
+                )
+                continue
 
             if not player_team_abbr:
                 # attempt to retrieve team abbreviation from parent element if img element is missing closing tag
-                player_team_abbr = player.find("td", {"class": "text-left details"}).getText().strip()
+                player_team_abbr = _cell_text(player, "text-left details")
 
             # replace player team abbreviation with universal team abbreviation as needed
             if player_team_abbr not in nfl_team_abbreviations:
@@ -136,19 +163,9 @@ class HighRollerFeature(BaseFeature):
 
             player_fine_info = {
                 "violation": player_violation,
-                "violation_fine": int(
-                    "".join(
-                        [
-                            ch
-                            for ch in player.find("td", {"class": "fines-amount"}).get_text(strip=True)
-                            if ch.isdigit()
-                        ]
-                    )
-                ),
+                "violation_fine": int(player_fine_amount),
                 "violation_season": self.season,
-                "violation_date": datetime.strptime(
-                    player.find("td", {"class": "fines-date"}).get_text(strip=True), "%m/%d/%y"
-                ).isoformat(),
+                "violation_date": self._parse_violation_date(_cell_text(player, "fines-date"), player_full_name),
             }
 
             normalized_player_key = generate_normalized_player_key(player_full_name, player_team_abbr)
